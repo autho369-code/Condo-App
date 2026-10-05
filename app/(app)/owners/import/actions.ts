@@ -10,6 +10,7 @@
 // fatal — one bad row does not abort the rest.
 import { revalidatePath } from 'next/cache';
 import { parseLabeledPhones } from '@/lib/contacts/labeled-phones';
+import { subscribeUnitDues } from '@/lib/billing/dues-subscription';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { todayInZone } from '@/lib/time/zoned';
@@ -204,6 +205,18 @@ export async function importOwners(
             : `${occErr.message} (owner not created)`,
         );
       }
+
+      // Bill the monthly dues; a failure here keeps the owner but is reported.
+      const moveIn = toDate(r.move_in_date);
+      const today = todayInZone();
+      const duesErr = await subscribeUnitDues(db, {
+        unitId: unitId!,
+        portfolioId: me.portfolio?.id,
+        associationId,
+        amount: num(r.monthly_dues) ?? 0,
+        startFrom: moveIn && moveIn > today ? moveIn : today,
+      });
+      if (duesErr) errors.push(`Row ${line} (${unitNumber} / ${email}): owner imported, but ${duesErr}`);
 
       seenEmails.add(emailKey);
       imported++;

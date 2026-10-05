@@ -95,7 +95,7 @@ export default async function ReceivablesTasksPage({
                         ? (a.late_fee_is_percent ? `${a.late_fee_amount}% of the balance` : money(a.late_fee_amount))
                         : <span className="text-gray-400">Off</span>}
                     </TD>
-                    <TD className="text-sm text-gray-700">{a.late_fee_enabled ? (a.late_fee_grace_days ?? 10) : '—'}</TD>
+                    <TD className="text-sm text-gray-700">{a.late_fee_enabled ? (a.late_fee_grace_days ?? 0) : '—'}</TD>
                   </TR>
                 ))}
               </tbody>
