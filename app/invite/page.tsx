@@ -188,7 +188,7 @@ export default async function InvitePage({
   if (!invite || invite.accepted_at || invite.status === 'accepted' || invite.status === 'revoked') {
     const used = invite?.accepted_at || invite?.status === 'accepted';
     return (
-      <Shell title={used ? 'Invitation already accepted' : 'Invitation not found'}>
+      <Shell title={used ? 'Invitation already accepted' : 'Invitation not found'} brand={invite?.portfolios?.company_name}>
         <p className="mt-2 text-sm leading-6 text-gray-500">
           {used ? 'This invitation has already been used. Please sign in.' : 'This invitation link is invalid or has been cancelled.'}
         </p>
@@ -199,7 +199,7 @@ export default async function InvitePage({
 
   if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
     return (
-      <Shell title="Invitation expired">
+      <Shell title="Invitation expired" brand={invite.portfolios?.company_name}>
         <p className="mt-2 text-sm leading-6 text-gray-500">
           This invitation expired on {new Date(invite.expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: displayTimeZone() })}. Contact your administrator for a new invitation.
         </p>
