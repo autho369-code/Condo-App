@@ -93,8 +93,24 @@ export async function changeHomeowner(formData: FormData) {
     .order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (buyerOcc?.id) {
     // A buyer who was already a co-owner keeps their own occupancy, often with
-    // dues left at 0: then the unit's current dues schedule stays as it is.
-    if (Number(buyerOcc.dues_amount ?? 0) > 0) {
+    // dues left at 0: they take over the seller's dues.
+    let buyerDues = Number(buyerOcc.dues_amount ?? 0);
+    if (buyerDues <= 0) {
+      const { data: seller } = await db.from('occupancies')
+        .select('dues_amount, dues_frequency')
+        .eq('unit_id', unitId).eq('occupancy_type', 'owner').eq('status', 'past')
+        .neq('owner_id', newOwnerId!)
+        .order('move_out_date', { ascending: false, nullsFirst: false }).limit(1).maybeSingle();
+      const sellerDues = Number(seller?.dues_amount ?? 0);
+      if (sellerDues > 0) {
+        const { error: copyErr } = await db.from('occupancies')
+          .update({ dues_amount: sellerDues, dues_frequency: seller.dues_frequency ?? 'monthly' })
+          .eq('id', buyerOcc.id);
+        if (copyErr) duesWarning = `dues: ${copyErr.message}`;
+        else buyerDues = sellerDues;
+      }
+    }
+    if (!duesWarning && buyerDues > 0) {
       duesWarning = await scheduleOwnerDues(db, buyerOcc.id, transferDate);
     }
   } else {
