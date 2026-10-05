@@ -72,6 +72,20 @@ begin
 
   perform 1 from public.units where id = v_occ.unit_id for update;
 
+  -- Re-read the occupancy under the lock: a transfer that held it may have
+  -- just ended this ownership or changed its dues.
+  select o.unit_id, o.dues_amount, o.dues_frequency, o.occupancy_type, o.status,
+         b.association_id, a.portfolio_id, a.timezone
+    into v_occ
+    from public.occupancies o
+    join public.units u on u.id = o.unit_id
+    join public.buildings b on b.id = u.building_id
+    join public.associations a on a.id = b.association_id
+   where o.id = p_occupancy_id;
+  if not found or v_occ.status = 'past' then
+    return null;
+  end if;
+
   v_amount := round(coalesce(v_occ.dues_amount, 0), 2);
   v_freq := coalesce(v_occ.dues_frequency, 'monthly'::public.recurring_frequency);
   v_today := (now() at time zone coalesce(nullif(v_occ.timezone, ''), 'America/Chicago'))::date;
