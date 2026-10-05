@@ -127,7 +127,9 @@ export async function createCompanyWithAdmin(formData: FormData) {
   const invitationId = result?.invitation_id as string;
   const token = result?.invitation_token as string;
   const expiresAt = result?.invitation_expires_at as string | null;
-  await completeSubmission(svc, submissionToken, portfolioId);
+  // The claim stays in progress until every setup step below succeeds: a
+  // replay of a partly set-up company must not report "created". (It is not
+  // released either, so a replay can't provision the company a second time.)
 
   const { data: provisionedPortfolio } = await svc.from('portfolios')
     .select('slug')
@@ -173,6 +175,7 @@ export async function createCompanyWithAdmin(formData: FormData) {
   // 5: log
   await audit(svc, me, 'company_created', portfolioId, { company_name: companyName, tier, max_units: maxUnits });
   await audit(svc, me, 'admin_invited', portfolioId, { email, full_name: fullName, invitation_id: invitationId });
+  await completeSubmission(svc, submissionToken, portfolioId);
 
   revalidatePath(COMPANIES);
   ok(COMPANIES, 'created');

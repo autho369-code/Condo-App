@@ -67,16 +67,20 @@ export default async function CommunicationsPage() {
   // PostgREST caps every request at 1,000 rows (a .limit(10000) still got
   // 1,000), so page through to count every delivery.
   const trendStart = monthWindowInZone(zone, now, -5).startIso;
+  // Only messages that were actually sent (dated by sent_at) or failed (no
+  // sent_at, dated when queued) count; pending/queued rows are not volume yet.
   type Delivery = { channel: 'email' | 'sms'; failed: boolean; portfolio_id: string | null; created_at: string };
+  const attempted = (failedStatuses: string) =>
+    `sent_at.gte.${trendStart},and(sent_at.is.null,status.in.(${failedStatuses}),created_at.gte.${trendStart})`;
   const [emailRes, smsRes] = await Promise.all([
-    fetchAllRows(() => db.from('email_queue').select('id, status, bounced_at, portfolio_id, created_at').gte('created_at', trendStart).order('created_at').order('id'), { maxRows: 200000 }),
-    fetchAllRows(() => db.from('sms_messages').select('id, status, created_at, sms_conversations(portfolio_id)').eq('direction', 'outbound').gte('created_at', trendStart).order('created_at').order('id'), { maxRows: 200000 }),
+    fetchAllRows(() => db.from('email_queue').select('id, status, bounced_at, portfolio_id, created_at, sent_at').or(attempted('failed')).order('id'), { maxRows: 200000 }),
+    fetchAllRows(() => db.from('sms_messages').select('id, status, created_at, sent_at, sms_conversations(portfolio_id)').eq('direction', 'outbound').or(attempted('failed,undelivered')).order('id'), { maxRows: 200000 }),
   ]);
   const loadError = commError?.message ?? emailRes.error ?? smsRes.error ?? null;
   const toIso = (value: string) => new Date(value).toISOString();
   const deliveries: Delivery[] = [
-    ...emailRes.rows.map((e: any) => ({ channel: 'email' as const, failed: e.status === 'failed' || !!e.bounced_at, portfolio_id: e.portfolio_id, created_at: toIso(e.created_at) })),
-    ...smsRes.rows.map((m: any) => ({ channel: 'sms' as const, failed: ['failed', 'undelivered'].includes(m.status), portfolio_id: m.sms_conversations?.portfolio_id ?? null, created_at: toIso(m.created_at) })),
+    ...emailRes.rows.map((e: any) => ({ channel: 'email' as const, failed: e.status === 'failed' || !!e.bounced_at, portfolio_id: e.portfolio_id, created_at: toIso(e.sent_at ?? e.created_at) })),
+    ...smsRes.rows.map((m: any) => ({ channel: 'sms' as const, failed: ['failed', 'undelivered'].includes(m.status), portfolio_id: m.sms_conversations?.portfolio_id ?? null, created_at: toIso(m.sent_at ?? m.created_at) })),
   ];
   const monthDeliveries = deliveries.filter((d) => d.created_at >= monthStart);
 

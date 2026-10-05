@@ -37,7 +37,7 @@ async function sendAnnouncement(formData: FormData) {
 
   // Every matching active staff login, past PostgREST's 1,000-row cap; skip
   // disabled users and archived/suspended companies.
-  const [recipientsRes, { data: liveCompanies, error: companiesError }] = await Promise.all([
+  const [recipientsRes, companiesRes] = await Promise.all([
     fetchAllRows(() => {
       let query = svc
         .from('profiles')
@@ -49,10 +49,12 @@ async function sendAnnouncement(formData: FormData) {
       if (portfolioId) query = query.eq('portfolio_id', portfolioId)
       return query.order('id')
     }),
-    svc.from('portfolios').select('id').is('archived_at', null).is('suspended_at', null),
+    // Paged too: an unpaged lookup stops at 1,000 companies and would silently
+    // drop every recipient of the companies past that page.
+    fetchAllRows(() => svc.from('portfolios').select('id').is('archived_at', null).is('suspended_at', null).order('id')),
   ])
-  if (recipientsRes.error || companiesError) redirect(`${RETURN}?error=${encodeURIComponent(recipientsRes.error ?? companiesError.message)}`)
-  const liveCompanyIds = new Set((liveCompanies ?? []).map((c: any) => c.id))
+  if (recipientsRes.error || companiesRes.error) redirect(`${RETURN}?error=${encodeURIComponent((recipientsRes.error ?? companiesRes.error) as string)}`)
+  const liveCompanyIds = new Set(companiesRes.rows.map((c: any) => c.id))
   const seen = new Set<string>()
   const recipients = recipientsRes.rows.filter((r: any) => {
     const key = String(r.email).trim().toLowerCase()
