@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
  * on demand.
  */
 export async function POST(req: NextRequest) {
-  const me = await requireStaff();
+  await requireStaff();
   const form = await req.formData();
   const id = form.get('id') as string | null;
 
@@ -39,42 +39,19 @@ export async function POST(req: NextRequest) {
   const next = nextRecurringDate(base, tpl.frequency ?? 'monthly', tpl.interval_count ?? 1, anchorDay);
   if (!next) return back('?error=' + encodeURIComponent('This plan has an unknown frequency.'));
 
-  // Claim this occurrence first: advancing next_due_date only if it is still
-  // the value we read makes a double-click (or a race with the nightly
-  // generator) create one work order, not two.
-  let claim = db
-    .from('recurring_work_orders')
-    .update({ last_generated_at: new Date().toISOString(), next_due_date: next })
-    .eq('id', id);
-  claim = tpl.next_due_date == null ? claim.is('next_due_date', null) : claim.eq('next_due_date', tpl.next_due_date);
-  const { data: claimed, error: advanceErr } = await claim.select('id');
-  if (advanceErr) return back('?error=' + encodeURIComponent(`Could not generate the work order: ${advanceErr.message}`));
-  if (!claimed?.length) return back('?error=' + encodeURIComponent('This occurrence was already generated. Refresh to see the next due date.'));
-
-  const { error: insErr } = await db.from('work_orders').insert({
-    portfolio_id: tpl.portfolio_id,
-    association_id: tpl.association_id,
-    unit_id: tpl.unit_id,
-    vendor_id: tpl.vendor_id,
-    title: tpl.title,
-    description: tpl.description,
-    category: tpl.category ?? 'other',
-    priority: tpl.priority ?? 'normal',
-    trade: tpl.trade,
-    // Without a date the job never shows as Scheduled or Overdue; with a
-    // vendor on the plan it is already assigned.
-    scheduled_date: tpl.next_due_date ?? todayInZone(),
-    status: tpl.vendor_id ? 'assigned' : 'new',
-    created_by: me.auth_user_id,
+  // Claim the occurrence and create the work order in one transaction: the
+  // schedule advances only if next_due_date is still the value we read (so a
+  // double-click or a race with the nightly generator yields one work order),
+  // and a failure anywhere leaves the plan untouched.
+  const { data: woId, error: genErr } = await db.rpc('generate_recurring_work_order_now', {
+    p_id: id,
+    p_expected_due: tpl.next_due_date ?? null,
+    p_next: next,
+    // Without a date the job never shows as Scheduled or Overdue.
+    p_scheduled: tpl.next_due_date ?? todayInZone(),
   });
-  if (insErr) {
-    // Release the claim so the occurrence can be generated again.
-    await db.from('recurring_work_orders')
-      .update({ last_generated_at: tpl.last_generated_at ?? null, next_due_date: tpl.next_due_date ?? null })
-      .eq('id', id)
-      .eq('next_due_date', next);
-    return back('?error=' + encodeURIComponent(insErr.message));
-  }
+  if (genErr) return back('?error=' + encodeURIComponent(`Could not generate the work order: ${genErr.message}`));
+  if (!woId) return back('?error=' + encodeURIComponent('This occurrence was already generated. Refresh to see the next due date.'));
 
   return back('?generated=1');
 }
