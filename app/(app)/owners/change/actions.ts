@@ -100,7 +100,10 @@ export async function changeHomeowner(formData: FormData) {
         .select('dues_amount, dues_frequency')
         .eq('unit_id', unitId).eq('occupancy_type', 'owner').eq('status', 'past')
         .neq('owner_id', newOwnerId!)
-        .order('move_out_date', { ascending: false, nullsFirst: false }).limit(1).maybeSingle();
+        .order('move_out_date', { ascending: false, nullsFirst: false })
+        // Sellers ended together: take the one carrying the unit's dues.
+        .order('dues_amount', { ascending: false })
+        .limit(1).maybeSingle();
       const sellerDues = Number(seller?.dues_amount ?? 0);
       if (sellerDues > 0) {
         const { error: copyErr } = await db.from('occupancies')
