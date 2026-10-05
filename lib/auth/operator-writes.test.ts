@@ -53,7 +53,7 @@ describe('server-action operator refusal in auth guards', () => {
   it.each(['requireStaff', 'requireBoard', 'requireWorkspaceStaff', 'requireFinanceOrPortfolioAdmin', 'requireFinanceStaff', 'requirePortfolioAdmin'])(
     '%s refuses non-admin operators inside server actions',
     (name) => {
-      expect(body(name)).toContain('refuseOperatorActionUnless(');
+      expect(body(name)).toContain('await refuseOperatorAction(me);');
     },
   );
 

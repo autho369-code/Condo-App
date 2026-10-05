@@ -201,6 +201,9 @@ export async function requireMatchingTenantWorkspace(me: MeResult) {
  * cannot be the only gate). Inside a server action, refuse operators whose
  * role is not in `allowed`.
  */
+// Applies whatever other roles the account holds: the database guards also
+// refuse non-admin operators outright, and a dual-role account must not
+// regain service-role writes by rebinding an action to another path.
 async function refuseOperatorAction(me: MeResult, allowed: readonly string[] = ['admin']) {
   if (!me.is_platform_operator) return;
   if (allowed.includes(me.platform_operator_role ?? '')) return;
@@ -223,10 +226,6 @@ async function isMutationRequest(): Promise<boolean> {
   return !method || !['GET', 'HEAD', 'OPTIONS'].includes(method);
 }
 
-/** Operator access that a non-operator role would not grant on its own. */
-async function refuseOperatorActionUnless(me: MeResult, hasOwnRole: boolean) {
-  if (!hasOwnRole) await refuseOperatorAction(me);
-}
 
 export async function requirePlatformOperator(): Promise<MeResult> {
   const me = await requireAuth();
@@ -265,7 +264,7 @@ export function hasPortfolioAdminAccess(
 export async function requirePortfolioAdmin(): Promise<MeResult> {
   const me = await requireAuth();
   if (!hasPortfolioAdminAccess(me)) redirect('/dashboard');
-  await refuseOperatorActionUnless(me, me.is_company_admin);
+  await refuseOperatorAction(me);
   return me;
 }
 
@@ -284,14 +283,14 @@ export function roleHome(me: MeResult): string {
 export async function requireStaff(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.is_staff && !me.is_platform_operator) redirect(roleHome(me));
-  await refuseOperatorActionUnless(me, me.is_staff);
+  await refuseOperatorAction(me);
   return me;
 }
 
 export async function requireBoard(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.is_board && !me.is_platform_operator) redirect(roleHome(me));
-  await refuseOperatorActionUnless(me, me.is_board);
+  await refuseOperatorAction(me);
   return me;
 }
 
@@ -319,7 +318,7 @@ export async function requireVendor() {
 export async function requireWorkspaceStaff(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) redirect(roleHome(me));
-  await refuseOperatorActionUnless(me, me.is_staff || me.is_company_admin);
+  await refuseOperatorAction(me);
   return me;
 }
 
@@ -327,14 +326,14 @@ export async function requireWorkspaceStaff(): Promise<MeResult> {
 export async function requireFinanceOrPortfolioAdmin(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.is_finance_staff && !me.is_company_admin && !me.is_platform_operator) redirect(roleHome(me));
-  await refuseOperatorActionUnless(me, me.is_finance_staff || me.is_company_admin);
+  await refuseOperatorAction(me);
   return me;
 }
 
 export async function requireFinanceStaff(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.is_finance_staff && !me.is_platform_operator) redirect(roleHome(me));
-  await refuseOperatorActionUnless(me, me.is_finance_staff);
+  await refuseOperatorAction(me);
   return me;
 }
 
