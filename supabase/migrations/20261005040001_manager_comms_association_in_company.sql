@@ -9,7 +9,8 @@
 --   * calendar_events are readable by that association's residents and board,
 --     and the SECURITY DEFINER notify triggers email/text its maintenance
 --     contact;
---   * tenants / sms_conversations rows get attached to a foreign association.
+--   * tenants / sms_conversations / management_agreements rows get attached
+--     to a foreign association.
 -- (The restrictive mgr_assoc_scope policy only narrows *scoped* managers and
 -- returns true for everyone else.)
 --
@@ -21,7 +22,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['communications_log', 'calendar_events', 'tenants', 'sms_conversations']
+  foreach t in array array['communications_log', 'calendar_events', 'tenants', 'sms_conversations', 'management_agreements']
   loop
     if to_regclass('public.' || t) is null then
       continue;
