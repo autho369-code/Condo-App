@@ -9,6 +9,7 @@ import { safeInternalNext } from '@/lib/security/redirects';
 import { savePrivateFields } from '@/lib/private-fields';
 import { queueOwnerPortalInvitation } from '@/lib/auth/owner-invitation';
 import { todayInZone } from '@/lib/time/zoned';
+import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
 
 // ---------- Helpers ----------
 const str  = (f: FormData, k: string) => {
@@ -708,8 +709,16 @@ export async function linkOccupancy(ownerId: string, formData: FormData) {
     share_pct:       num(formData, 'share_pct') ?? 100,
   };
 
-  const { error } = await (supabase as any).from('occupancies').insert(payload);
+  const { data: occ, error } = await (supabase as any).from('occupancies').insert(payload).select('id').single();
   if (error) { failTo(error.message); return; }
+
+  // Bill the dues when the field was filled in (an explicit 0 stops the
+  // previous owner's dues; blank, e.g. a co-owner, leaves them alone).
+  // The function ignores tenant and past occupancies.
+  if (occ?.id && str(formData, 'dues_amount') !== null) {
+    const duesErr = await scheduleOwnerDues(supabase, occ.id, payload.move_in_date);
+    if (duesErr) { failTo(`Unit linked, but ${duesErr}`); return; }
+  }
 
   revalidatePath(`/owners/${ownerId}`);
   revalidatePath('/owners');

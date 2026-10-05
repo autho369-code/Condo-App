@@ -19,7 +19,7 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
   const [{ data: associations }, { data: units }, { data: categories }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('units').select('id, unit_number, buildings!inner(association_id)').is('archived_at', null).order('unit_number'),
-    db.from('charge_categories').select('id, name, default_amount, default_frequency, charge_type')
+    db.from('charge_categories').select('id, name, code, default_amount, default_frequency, charge_type')
       .eq('portfolio_id', me.portfolio?.id).eq('active', true).is('archived_at', null).order('sort_order'),
   ]);
 
@@ -114,7 +114,7 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
             Parking (with space #), storage / bike locker (with locker #), internet, special assessment, move fees, and any custom fee.
             Need a fee type that isn&apos;t listed? <Link href="/charge-categories/new" className="font-medium text-gray-700 hover:text-gray-950 hover:underline">Create a custom fee type →</Link>
           </p>
-          <FeeScheduleBuilder categories={(categories ?? []) as FeeCategory[]} />
+          <FeeScheduleBuilder categories={((categories ?? []) as Array<FeeCategory & { code?: string | null }>).filter((c) => (c.code ?? '').toUpperCase() !== 'DUES')} />
         </section>
 
         {/* ── Rental / tenant ── */}

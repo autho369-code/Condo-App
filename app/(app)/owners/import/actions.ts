@@ -10,6 +10,7 @@
 // fatal — one bad row does not abort the rest.
 import { revalidatePath } from 'next/cache';
 import { parseLabeledPhones } from '@/lib/contacts/labeled-phones';
+import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { todayInZone } from '@/lib/time/zoned';
@@ -89,6 +90,9 @@ export async function importOwners(
   // Cache units we resolve/create this run so multiple owners on the same unit
   // (e.g. co-owners) don't each create a duplicate unit.
   const unitCache = new Map<string, string>();
+  // Units whose dues were scheduled by an earlier row of this file: co-owners
+  // share the unit's one dues schedule, so a later co-owner row leaves it alone.
+  const duesScheduledUnits = new Map<string, number>();
   // Emails created earlier in this run (lower-cased) — a repeat is a duplicate too.
   const seenEmails = new Set<string>();
   let imported = 0;
@@ -183,7 +187,7 @@ export async function importOwners(
       if (ownerErr || !owner) throw new Error(ownerErr?.message ?? 'owner insert failed');
 
       // create the occupancy (owner, current, primary)
-      const { error: occErr } = await db.from('occupancies').insert({
+      const { data: occRow, error: occErr } = await db.from('occupancies').insert({
         owner_id: owner.id,
         unit_id: unitId,
         association_id: associationId,
@@ -194,7 +198,7 @@ export async function importOwners(
         dues_amount: num(r.monthly_dues) ?? 0,
         dues_frequency: 'monthly',
         move_in_date: toDate(r.move_in_date),
-      });
+      }).select('id').single();
       if (occErr) {
         // Don't leave an owner with no unit behind: remove the record just created.
         const { error: undoErr } = await db.from('owners').delete().eq('id', owner.id).select('id');
@@ -204,6 +208,24 @@ export async function importOwners(
             : `${occErr.message} (owner not created)`,
         );
       }
+
+      // Bill the monthly dues; a failure here keeps the owner but is reported.
+      const moveIn = toDate(r.move_in_date);
+      // Blank dues (e.g. a co-owner row) leave the unit's dues alone; any
+      // value, including an explicit 0, sets them (0 stops the old dues).
+      const duesGiven = num(r.monthly_dues);
+      const duesAmount = duesGiven ?? 0;
+      let duesErr: string | null = null;
+      const scheduledAmount = duesScheduledUnits.get(unitId!);
+      if (occRow?.id && duesGiven !== null && scheduledAmount === undefined) {
+        duesErr = await scheduleOwnerDues(db, occRow.id, moveIn);
+        if (!duesErr) duesScheduledUnits.set(unitId!, duesAmount);
+      } else if (duesGiven !== null && scheduledAmount !== undefined && scheduledAmount !== duesAmount) {
+        // Co-owners share one dues schedule: flag a conflicting amount
+        // instead of silently picking one.
+        duesErr = `dues: monthly_dues ${duesAmount} conflicts with ${scheduledAmount} on an earlier row for this unit; kept ${scheduledAmount}. Fix the unit's dues if that is wrong.`;
+      }
+      if (duesErr) errors.push(`Row ${line} (${unitNumber} / ${email}): owner imported, but ${duesErr}`);
 
       seenEmails.add(emailKey);
       imported++;

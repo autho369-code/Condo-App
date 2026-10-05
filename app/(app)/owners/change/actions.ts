@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { todayInZone } from '@/lib/time/zoned';
+import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -81,7 +82,45 @@ export async function changeHomeowner(formData: FormData) {
     fail(transferErr.message);
   }
 
+  // Bill the buyer's dues from the transfer date. A matching schedule already
+  // billing the unit is kept; otherwise the seller's dues stop and the buyer's
+  // start fresh.
+  let duesWarning: string | null = null;
+  const { data: buyerOcc } = await db.from('occupancies')
+    .select('id, dues_amount')
+    .eq('unit_id', unitId).eq('owner_id', newOwnerId!)
+    .eq('occupancy_type', 'owner').neq('status', 'past')
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (buyerOcc?.id) {
+    // A buyer who was already a co-owner keeps their own occupancy, often with
+    // dues left at 0: they take over the seller's dues.
+    let buyerDues = Number(buyerOcc.dues_amount ?? 0);
+    if (buyerDues <= 0) {
+      const { data: seller } = await db.from('occupancies')
+        .select('dues_amount, dues_frequency')
+        .eq('unit_id', unitId).eq('occupancy_type', 'owner').eq('status', 'past')
+        .neq('owner_id', newOwnerId!)
+        .order('move_out_date', { ascending: false, nullsFirst: false })
+        // Sellers ended together: take the one carrying the unit's dues.
+        .order('dues_amount', { ascending: false })
+        .limit(1).maybeSingle();
+      const sellerDues = Number(seller?.dues_amount ?? 0);
+      if (sellerDues > 0) {
+        const { error: copyErr } = await db.from('occupancies')
+          .update({ dues_amount: sellerDues, dues_frequency: seller.dues_frequency ?? 'monthly' })
+          .eq('id', buyerOcc.id);
+        if (copyErr) duesWarning = `dues: ${copyErr.message}`;
+        else buyerDues = sellerDues;
+      }
+    }
+    if (!duesWarning && buyerDues > 0) {
+      duesWarning = await scheduleOwnerDues(db, buyerOcc.id, transferDate);
+    }
+  } else {
+    duesWarning = 'dues: the new ownership record was not found, so dues were not scheduled';
+  }
+
   revalidatePath('/owners');
   revalidatePath(`/owners/${newOwnerId!}`);
-  redirect(`/owners/${newOwnerId!}?saved=ownership_changed`);
+  redirect(`/owners/${newOwnerId!}?saved=ownership_changed${duesWarning ? `&warning=${encodeURIComponent(duesWarning)}` : ''}`);
 }

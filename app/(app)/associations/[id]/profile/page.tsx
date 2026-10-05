@@ -423,7 +423,7 @@ export default async function AssociationProfileTab({
             </div>
             <div>
               <Label htmlFor="late_fee_grace_days">Grace period (days)</Label>
-              <Input id="late_fee_grace_days" name="late_fee_grace_days" inputMode="numeric" defaultValue={assoc.late_fee_grace_days ?? 10} />
+              <Input id="late_fee_grace_days" name="late_fee_grace_days" inputMode="numeric" defaultValue={assoc.late_fee_grace_days ?? 0} />
             </div>
             <div className="flex justify-end sm:col-span-4">
               <Button type="submit">Save late-fee policy</Button>

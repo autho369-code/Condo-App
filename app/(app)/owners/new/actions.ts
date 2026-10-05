@@ -10,6 +10,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { resolveAuthorizedOwnerUnit } from '@/lib/security/tenant-boundaries';
 import { queueOwnerPortalInvitation } from '@/lib/auth/owner-invitation';
 import { todayInZone } from '@/lib/time/zoned';
+import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
 
 function s(fd: FormData, k: string): string | null {
   const v = fd.get(k);
@@ -99,8 +100,9 @@ export async function createOwnerWithDetails(formData: FormData) {
   const moveIn = s(formData, 'move_in_date') ?? todayInZone();
 
   // 3) Owner occupancy + regular monthly assessment
+  let occupancyId: string | null = null;
   {
-    const { error: occupancyErr } = await db.from('occupancies').insert({
+    const { data: occupancyRow, error: occupancyErr } = await db.from('occupancies').insert({
       owner_id: ownerId,
       unit_id: assignment.unitId,
       association_id: assignment.associationId,
@@ -114,8 +116,9 @@ export async function createOwnerWithDetails(formData: FormData) {
       dues_frequency: 'monthly',
       share_pct: s(formData, 'ownership_pct') ? Number(s(formData, 'ownership_pct')) : 100,
       is_primary: true,
-    });
+    }).select('id').single();
     if (occupancyErr) warnings.push(`occupancy: ${occupancyErr.message}`);
+    occupancyId = occupancyErr ? null : (occupancyRow?.id ?? null);
   }
 
   // 4) Recurring fee schedule (parallel arrays from the fee builder)
@@ -126,8 +129,19 @@ export async function createOwnerWithDetails(formData: FormData) {
     const idents = formData.getAll('fee_identifier') as string[];
     const memos = formData.getAll('fee_memo') as string[];
 
+    // Monthly dues come only from the dues field (step 4b); a DUES line here
+    // would bill the unit twice.
+    const { data: duesCats } = cats.length
+      ? await db.from('charge_categories').select('id').in('id', cats.filter(Boolean)).ilike('code', 'dues')
+      : { data: [] };
+    const duesCatIds = new Set<string>((duesCats ?? []).map((c: { id: string }) => c.id));
+
     for (let i = 0; i < cats.length; i++) {
       const categoryId = (cats[i] ?? '').trim();
+      if (duesCatIds.has(categoryId)) {
+        warnings.push(`fee ${i + 1}: monthly dues are set from the dues field, so this line was skipped`);
+        continue;
+      }
       const amount = parseFloat(amounts[i] ?? '');
       if (!categoryId || !Number.isFinite(amount)) continue;
       const { error: feeErr } = await db.rpc('subscribe_unit_to_charge', {
@@ -141,6 +155,16 @@ export async function createOwnerWithDetails(formData: FormData) {
       });
       if (feeErr) warnings.push(`fee ${i + 1}: ${feeErr.message}`);
     }
+  }
+
+  // 4b) Bill the monthly dues. Without a recurring charge they are never
+  // posted. Runs after the fee schedule so a dues line added there is not
+  // duplicated.
+  // Only when the dues field was filled in: a co-owner added with it blank
+  // leaves the unit's existing dues alone, while an explicit 0 stops them.
+  if (occupancyId && s(formData, 'dues_amount') !== null) {
+    const duesErr = await scheduleOwnerDues(db, occupancyId, s(formData, 'move_in_date'));
+    if (duesErr) warnings.push(duesErr);
   }
 
   // 5) Optional tenant / lease when the unit is rented

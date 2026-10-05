@@ -33,7 +33,7 @@ export async function updatePortfolioPolicy(portfolioId: string, formData: FormD
       ? { default_late_fee_amount: parseFloat(formData.get('late_fee_amount') as string) || 0 }
       : {}),
     ...(formData.has('late_fee_grace_days')
-      ? { default_late_fee_grace_days: parseInt(formData.get('late_fee_grace_days') as string) || 10 }
+      ? { default_late_fee_grace_days: Math.max(0, parseInt(formData.get('late_fee_grace_days') as string) || 0) }
       : {}),
   }).eq('id', portfolioId);
 
