@@ -18,6 +18,8 @@ export interface MeResult {
   portfolio: any;
   role_name: string | null;
   is_platform_operator: boolean;
+  /** 'admin' | 'support' | 'readonly' for platform operators, else null. */
+  platform_operator_role?: string | null;
   is_company_admin: boolean;
   is_full_access_staff: boolean;
   is_finance_staff: boolean;
@@ -121,7 +123,19 @@ const primeDisplayTimeZone = cache(async (): Promise<void> => {
   }
 });
 
-export async function getMe(options: { enforceMfa?: boolean } = {}): Promise<MeResult> {
+/** Every operator role: for genuine own-account/session self-service only. */
+export const ALL_OPERATOR_ROLES = ['admin', 'support', 'readonly'] as const;
+
+export async function getMe(options: {
+  enforceMfa?: boolean;
+  /**
+   * Operator roles allowed to proceed inside a server action. Defaults to
+   * admins only, so any action reaching a privileged write through getMe()
+   * refuses support/readonly operators however it was routed. Only
+   * self-service entry points (requireAuth, sign-in) widen it.
+   */
+  operatorActionRoles?: readonly string[];
+} = {}): Promise<MeResult> {
   const supabase = await createClient();
   const { data, error } = await (supabase as any).rpc('me');
   if (error) {
@@ -148,12 +162,16 @@ export async function getMe(options: { enforceMfa?: boolean } = {}): Promise<MeR
   if (!me?.auth_user_id && localPreviewEnabled()) return localPreviewMe();
   if (options.enforceMfa !== false) await enforceConfiguredMfa(me, supabase);
   if (me?.auth_user_id) await primeDisplayTimeZone();
+  if (me?.auth_user_id) await refuseOperatorAction(me, options.operatorActionRoles ?? ['admin']);
   return me;
 }
 
 /** Guard helpers — throw redirect if user doesn't have access. */
-export async function requireAuth(): Promise<MeResult> {
-  const me = await getMe();
+export async function requireAuth(options: { operatorActionRoles?: readonly string[] } = {}): Promise<MeResult> {
+  // Inside a server action only operator admins proceed by default, so every
+  // guard built on requireAuth (owner, tenant, board, staff, ...) inherits the
+  // refusal. Genuine self-service (the account page) opts in explicitly.
+  const me = await getMe({ operatorActionRoles: options.operatorActionRoles ?? ['admin'] });
   if (!me.auth_user_id) redirect('/login');
   await requireMatchingTenantWorkspace(me);
   return me;
@@ -177,9 +195,45 @@ export async function requireMatchingTenantWorkspace(me: MeResult) {
   return tenant;
 }
 
+/**
+ * Only operator admins change data. Server actions often write through the
+ * service-role client, where the database cannot see the initiating operator,
+ * and an action ID can be posted to any path (so middleware's path checks
+ * cannot be the only gate). Inside a server action, refuse operators whose
+ * role is not in `allowed`.
+ */
+// Applies whatever other roles the account holds: the database guards also
+// refuse non-admin operators outright, and a dual-role account must not
+// regain service-role writes by rebinding an action to another path.
+async function refuseOperatorAction(me: MeResult, allowed: readonly string[] = ['admin']) {
+  if (!me.is_platform_operator) return;
+  if (allowed.includes(me.platform_operator_role ?? '')) return;
+  if (!(await isMutationRequest())) return;
+  redirect('/platform-operator?error=' + encodeURIComponent('Only Portier platform admins can make changes.'));
+}
+
+/**
+ * A server action or any other non-GET request. Next also runs actions from
+ * plain multipart POSTs without the Next-Action header, so the method stamped
+ * by middleware (client-supplied values are stripped there) is checked too.
+ */
+async function isMutationRequest(): Promise<boolean> {
+  const h = await headers();
+  if (h.get('next-action')) return true;
+  // Middleware stamps the method on every request it matches; a request it
+  // skipped (e.g. a path ending in .png routed to a catch-all page) has no
+  // trusted method and is treated as a possible mutation (fail closed).
+  const method = h.get('x-portier-request-method');
+  return !method || !['GET', 'HEAD', 'OPTIONS'].includes(method);
+}
+
+
 export async function requirePlatformOperator(): Promise<MeResult> {
-  const me = await requireAuth();
+  const me = await requireAuth({ operatorActionRoles: ['admin', 'support'] });
   if (!me.is_platform_operator) redirect('/dashboard');
+  // Support operators work the support queue; its actions and every other
+  // operator write re-check the admin role themselves.
+  await refuseOperatorAction(me, ['admin', 'support']);
   return me;
 }
 
@@ -211,6 +265,7 @@ export function hasPortfolioAdminAccess(
 export async function requirePortfolioAdmin(): Promise<MeResult> {
   const me = await requireAuth();
   if (!hasPortfolioAdminAccess(me)) redirect('/dashboard');
+  await refuseOperatorAction(me);
   return me;
 }
 
@@ -229,12 +284,14 @@ export function roleHome(me: MeResult): string {
 export async function requireStaff(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.is_staff && !me.is_platform_operator) redirect(roleHome(me));
+  await refuseOperatorAction(me);
   return me;
 }
 
 export async function requireBoard(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.is_board && !me.is_platform_operator) redirect(roleHome(me));
+  await refuseOperatorAction(me);
   return me;
 }
 
@@ -262,6 +319,7 @@ export async function requireVendor() {
 export async function requireWorkspaceStaff(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) redirect(roleHome(me));
+  await refuseOperatorAction(me);
   return me;
 }
 
@@ -269,12 +327,14 @@ export async function requireWorkspaceStaff(): Promise<MeResult> {
 export async function requireFinanceOrPortfolioAdmin(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.is_finance_staff && !me.is_company_admin && !me.is_platform_operator) redirect(roleHome(me));
+  await refuseOperatorAction(me);
   return me;
 }
 
 export async function requireFinanceStaff(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.is_finance_staff && !me.is_platform_operator) redirect(roleHome(me));
+  await refuseOperatorAction(me);
   return me;
 }
 

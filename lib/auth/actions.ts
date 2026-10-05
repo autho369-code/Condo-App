@@ -96,7 +96,7 @@ export async function loginWithPassword(formData: FormData) {
   // The system determines the destination from the account's ACTUAL role,
   // not the login tab that was clicked. An explicit ?next= (deep link) wins.
   const explicitNext = safeInternalNext(formData.get('next'));
-  const me = await getMe({ enforceMfa: false });
+  const me = await getMe({ enforceMfa: false, operatorActionRoles: ['admin', 'support', 'readonly'] });
   revalidatePath('/', 'layout');
 
   // Tenant identity comes from trusted headers injected by middleware, never
@@ -148,7 +148,7 @@ export async function acceptInvitation(formData: FormData) {
   const { error } = await (supabase as any).rpc('accept_invitation', { p_token: token });
   if (error) back(error.message);
   revalidatePath('/', 'layout');
-  const me = await getMe({ enforceMfa: false });
+  const me = await getMe({ enforceMfa: false, operatorActionRoles: ['admin', 'support', 'readonly'] });
   redirect(roleHome(me));
 }
 

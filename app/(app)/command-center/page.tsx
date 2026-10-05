@@ -29,9 +29,10 @@ const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_r
 
 async function runMatching() {
   'use server'
-  const { requireAuth: req } = await import('@/lib/auth/me')
-  const me = await req()
-  if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) redirect('/portal')
+  // Staff, company admins and operator admins (support/readonly operators
+  // are refused inside actions by the guard).
+  const { requireWorkspaceStaff } = await import('@/lib/auth/me')
+  const me = await requireWorkspaceStaff()
   // The service client sees every company: a company's staff may only
   // reconcile their own company's payouts (operators run the full job).
   const portfolioId = me.is_platform_operator ? undefined : me.portfolio?.id

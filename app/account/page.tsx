@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { KeyRound, ShieldCheck } from 'lucide-react';
-import { requireAuth } from '@/lib/auth/me';
+import { ALL_OPERATOR_ROLES, requireAuth } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ function homeHref(me: Awaited<ReturnType<typeof requireAuth>>): string {
 
 async function changePassword(formData: FormData) {
   'use server';
-  const me = await requireAuth();
+  const me = await requireAuth({ operatorActionRoles: ALL_OPERATOR_ROLES });
   const supabase = await createClient();
 
   const failTo = (msg: string) => redirect('/account?error=' + encodeURIComponent(msg));
@@ -56,7 +56,7 @@ export default async function AccountPage({
 }: {
   searchParams: Promise<{ error?: string; success?: string }>;
 }) {
-  const me = await requireAuth();
+  const me = await requireAuth({ operatorActionRoles: ALL_OPERATOR_ROLES });
   const sp = await searchParams;
   const back = homeHref(me);
   const supabase = await createClient();

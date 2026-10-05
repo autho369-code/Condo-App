@@ -6,6 +6,7 @@ import { PUBLIC_PATHS } from '@/lib/server/public-paths'
 import { isStaleAuthSession, isSupabaseAuthCookie } from '@/lib/server/auth-session'
 import { apexDomain, classifyTenantHost, tenantAccessDecision } from '@/lib/tenant/host'
 import { requiresMfa } from '@/lib/auth/mfa-policy'
+import { blocksOperatorWrite } from '@/lib/auth/operator-writes'
 
 const APEX_DOMAIN = apexDomain()
 const MARKETING_PATHS = ['/pricing', '/features', '/company', '/report-card', '/local', '/hoa-laws', '/contact', '/compare', '/customers', '/onboarding', '/ai-receptionist', '/professional-services']
@@ -13,6 +14,7 @@ const PUBLIC_ASSETS = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '
 const PUBLIC_ASSET_PREFIXES = ['/icon', '/apple-icon', '/opengraph-image', '/manuals/']
 const INTERNAL_TENANT_HEADERS = [
   'x-portier-client-address',
+  'x-portier-request-method',
   'x-portier-request-path',
   'x-tenant-state',
   'x-tenant-host',
@@ -61,6 +63,9 @@ export async function middleware(request: NextRequest) {
   const edgeClientAddress = request.headers.get('x-vercel-forwarded-for') || 'unknown'
   requestHeaders.set('x-portier-client-address', edgeClientAddress.split(',')[0].trim().slice(0, 128) || 'unknown')
   requestHeaders.set('x-portier-request-path', encodeURIComponent(`${pathname}${request.nextUrl.search}`))
+  // Trusted request method for server code: a server action can arrive as a
+  // plain multipart POST without the Next-Action header (lib/auth/me.ts).
+  requestHeaders.set('x-portier-request-method', request.method.toUpperCase())
 
   let response = NextResponse.next({ request: { headers: requestHeaders } })
   const supabase = createServerClient<Database>(
@@ -188,6 +193,26 @@ export async function middleware(request: NextRequest) {
       )
       return NextResponse.redirect(url)
     }
+  }
+
+  // Only operator admins change data. Server actions and route handlers often
+  // switch to the service-role client, where the database cannot tell who
+  // started the write, so refuse non-GET requests from support/readonly
+  // operators here (see lib/auth/operator-writes.ts for the exceptions).
+  // A failed identity lookup fails closed for writes (the handler's own
+  // getMe() would fail on the same RPC anyway).
+  const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(request.method.toUpperCase())
+  if (user && !isPublic && isWrite && requestIdentityError) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'identity_unavailable' }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+    }
+    return new NextResponse('Your account could not be verified. Try again in a moment.', { status: 503, headers: { 'Cache-Control': 'no-store' } })
+  }
+  if (user && !isPublic && !requestIdentityError && blocksOperatorWrite(requestIdentity, request.method, pathname)) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'operator_read_only' }, { status: 403, headers: { 'Cache-Control': 'no-store' } })
+    }
+    return new NextResponse('Only Portier platform admins can make changes.', { status: 403, headers: { 'Cache-Control': 'no-store' } })
   }
 
   // Enforce portfolio and operator MFA before any page, route handler, or
