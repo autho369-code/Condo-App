@@ -80,13 +80,16 @@ export async function assignParkingSpace(formData: FormData) {
   let ownerId: string | null = null;
   if (unitId && !tenantId) {
     const { data: occs, error: occErr } = await db.from('occupancies')
-      .select('owner_id, is_primary, move_in_date, move_out_date')
+      .select('owner_id, status, is_primary, move_in_date, move_out_date')
       .eq('unit_id', unitId)
       .eq('occupancy_type', 'owner')
-      .in('status', ['current', 'future'])
       .not('owner_id', 'is', null);
     if (occErr) fail(`Could not look up the unit's owner: ${occErr.message}`);
+    // Resolved by tenure dates, so a backdated assignment finds the owner who
+    // held the unit then. A past occupancy with no move-out date has no known
+    // end, so it never counts.
     const onStart = ((occs ?? []) as any[])
+      .filter((o) => o.status !== 'past' || o.move_out_date)
       .filter((o) => (!o.move_in_date || o.move_in_date <= startDate) && (!o.move_out_date || o.move_out_date > startDate))
       .sort((a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)))[0];
     ownerId = onStart?.owner_id ?? null;
