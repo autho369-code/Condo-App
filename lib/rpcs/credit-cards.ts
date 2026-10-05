@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -46,7 +47,12 @@ export async function recordCreditCardCharge(formData: FormData) {
   if (!DATE.test(chargeDate)) redirect(`${back}?error=${encodeURIComponent('Enter the charge date.')}`);
   const amount = Number(text(formData, 'amount'));
   const db = (await createClient()) as any;
-  const { error } = await db.rpc('record_credit_card_charge', {
+  // A double click or re-sent form must not post the same card charge twice.
+  const claim = await claimSubmission(db, formData, 'credit_card_charge');
+  if (claim.status === 'error') redirect(`${back}?error=${encodeURIComponent(claim.message)}`);
+  if (claim.status === 'duplicate') redirect(`${back}?charged=1`);
+  const token = (claim as { token: string }).token;
+  const { data, error } = await db.rpc('record_credit_card_charge', {
     p_card_id: cardId,
     p_association_id: uuidOrNull(formData, 'association_id'),
     p_charge_date: chargeDate,
@@ -57,7 +63,11 @@ export async function recordCreditCardCharge(formData: FormData) {
     p_reference: text(formData, 'reference') || null,
     p_description: text(formData, 'description') || null,
   });
-  if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    await releaseSubmission(db, token);
+    redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  }
+  if (typeof data === 'string' && data) await completeSubmission(db, token, data);
   revalidatePath(back);
   revalidatePath('/credit-cards');
   redirect(`${back}?charged=1`);

@@ -106,7 +106,7 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
     back('saved', 'Certified-mail delivery evidence recorded with an audit trail.');
   }
 
-  const [{ data: cases }, { data: policies }, { data: steps }, { data: associations }, { data: mailDeliveries }, { data: profiles }] = await Promise.all([
+  const [casesRes, policiesRes, stepsRes, associationsRes, mailRes, profilesRes] = await Promise.all([
     db.from('delinquency_cases').select('*, associations(name), units(unit_number), owners(full_name, email), delinquency_policies(name)').order('balance_snapshot', { ascending: false }),
     db.from('delinquency_policies').select('id, association_id, name, minimum_balance, active, jurisdiction, pre_referral_notice_days, notice_method, payment_plan_offer_required, payment_plan_min_months, board_vote_required, foreclosure_min_balance, foreclosure_min_months'),
     db.from('delinquency_steps').select('policy_id, step_number, name, days_past_due, action_type, requires_human_approval').order('step_number'),
@@ -114,6 +114,19 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
     db.from('physical_mail_deliveries').select('id, delinquency_case_id, status, provider, provider_piece_id, expected_delivery_date, delivered_at, delivery_verified_at, updated_at').not('delinquency_case_id', 'is', null).order('created_at', { ascending: false }),
     db.from('collection_jurisdiction_profiles').select('state_code, state_name, summary, citations').order('state_name'),
   ]);
+  // A failed read must never look like "no cases" or a $0.00 balance.
+  const loadErrors: string[] = [];
+  const pick = (res: { data: any; error: { message: string } | null }, label: string): any[] => {
+    if (res.error) loadErrors.push(`${label}: ${res.error.message}`);
+    return res.data ?? [];
+  };
+  const cases = pick(casesRes, 'Collection cases');
+  const policies = pick(policiesRes, 'Collection policies');
+  const steps = pick(stepsRes, 'Policy steps');
+  const associations = pick(associationsRes, 'Associations');
+  const mailDeliveries = pick(mailRes, 'Tracked mail');
+  const profiles = pick(profilesRes, 'State collection rules');
+  const casesFailed = !!casesRes.error;
   const policyAssociations = new Set((policies ?? []).map((policy: any) => policy.association_id));
   const stepsByPolicy = new Map<string, any[]>();
   for (const step of steps ?? []) { const list = stepsByPolicy.get(step.policy_id) ?? []; list.push(step); stepsByPolicy.set(step.policy_id, list); }
@@ -129,7 +142,8 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
     return record.policy_id && (record.status === 'legal_review' || next?.action_type === 'legal_review');
   });
   const readinessEntries = await Promise.all(nearReferral.map(async (record: any) => {
-    const { data } = await db.rpc('delinquency_referral_readiness', { p_case_id: record.id });
+    const { data, error } = await db.rpc('delinquency_referral_readiness', { p_case_id: record.id });
+    if (error) loadErrors.push(`Referral readiness for ${record.owners?.full_name ?? 'a case'}: ${error.message}`);
     return [record.id, data ?? null] as const;
   }));
   const readinessByCase = new Map<string, any>(readinessEntries);
@@ -139,15 +153,20 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
     <div className="space-y-5">
       {sp.error && <Alert title="Collection workflow blocked">{sp.error}</Alert>}
       {sp.saved && <Alert tone="success">{sp.saved}</Alert>}
+      {loadErrors.length > 0 && (
+        <Alert tone="danger" title="Some collection data could not be loaded. Figures on this page may be incomplete.">
+          <ul className="mt-1 list-disc pl-5">{loadErrors.map((message) => <li key={message}>{message}</li>)}</ul>
+        </Alert>
+      )}
       <Alert tone="warning" title="No autonomous legal action.">Portier may identify a case as ready for review, but only a portfolio administrator can approve counsel referral with a written rationale. The software never files a lien, lawsuit, or collection action.</Alert>
       <MetricStrip metrics={[
-        { label: 'Open cases', value: openCases.length, sublabel: 'Active owner accounts' },
-        { label: 'Overdue balance', value: currency(overdueTotal), sublabel: 'Latest ledger snapshot' },
-        { label: 'On hold', value: openCases.filter((record: any) => record.status === 'on_hold').length, sublabel: 'Dispute or payment plan' },
-        { label: 'Legal review', value: openCases.filter((record: any) => record.status === 'legal_review').length, sublabel: 'Human decision required' },
+        { label: 'Open cases', value: casesFailed ? '—' : openCases.length, sublabel: 'Active owner accounts' },
+        { label: 'Overdue balance', value: casesFailed ? '—' : currency(overdueTotal), sublabel: 'Latest ledger snapshot' },
+        { label: 'On hold', value: casesFailed ? '—' : openCases.filter((record: any) => record.status === 'on_hold').length, sublabel: 'Dispute or payment plan' },
+        { label: 'Legal review', value: casesFailed ? '—' : openCases.filter((record: any) => record.status === 'legal_review').length, sublabel: 'Human decision required' },
       ]} />
 
-      {hasPortfolioAdminAccess(me) && (associations ?? []).some((association: any) => !policyAssociations.has(association.id)) && <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><h2 className="font-semibold text-gray-950">Initialize association policies</h2><p className="mt-1 text-sm text-gray-500">Creates a 10-day reminder, 30-day approved notice, 45-day tracked mail, and 60-day counsel review, and applies the collection protections for the association&apos;s state.</p><div className="mt-3 flex flex-wrap gap-2">{(associations ?? []).filter((association: any) => !policyAssociations.has(association.id)).map((association: any) => <form action={initializePolicy} key={association.id}><input type="hidden" name="association_id" value={association.id} /><Button type="submit" variant="secondary">Initialize {association.name}</Button></form>)}</div></div>}
+      {hasPortfolioAdminAccess(me) && !policiesRes.error && (associations ?? []).some((association: any) => !policyAssociations.has(association.id)) && <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><h2 className="font-semibold text-gray-950">Initialize association policies</h2><p className="mt-1 text-sm text-gray-500">Creates a 10-day reminder, 30-day approved notice, 45-day tracked mail, and 60-day counsel review, and applies the collection protections for the association&apos;s state.</p><div className="mt-3 flex flex-wrap gap-2">{(associations ?? []).filter((association: any) => !policyAssociations.has(association.id)).map((association: any) => <form action={initializePolicy} key={association.id}><input type="hidden" name="association_id" value={association.id} /><Button type="submit" variant="secondary">Initialize {association.name}</Button></form>)}</div></div>}
 
       {(policies ?? []).length > 0 && <div className="space-y-2"><h2 className="text-sm font-semibold text-gray-950">Collection protections by association</h2>{(policies ?? []).map((policy: any) => <JurisdictionPanel key={policy.id} associationName={associationName.get(policy.association_id) ?? 'Association'} policy={policy} profiles={profiles ?? []} canEdit={hasPortfolioAdminAccess(me)} />)}</div>}
 
@@ -168,7 +187,7 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
           {readiness && <ReferralReadiness caseId={record.id} readiness={readiness} planRequired={Boolean(casePolicy?.payment_plan_offer_required)} planMinMonths={casePolicy?.payment_plan_min_months ?? null} boardRequired={Boolean(casePolicy?.board_vote_required)} />}
           {record.status === 'legal_review' ? hasPortfolioAdminAccess(me) ? <form action={reviewLegalGate} className="mt-4 grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><Textarea name="note" required minLength={20} placeholder="Document ledger review, notices, board policy, disputes, and the reason for the decision (20+ characters)." /><input type="hidden" name="case_id" value={record.id} /><Button type="submit" name="approved" value="true">Approve counsel referral</Button><Button type="submit" name="approved" value="false" variant="danger">Reject and hold</Button></form> : <div className="mt-4 border-t border-gray-100 pt-4"><Alert title="Administrator review required">A portfolio administrator must inspect the delivered-mail evidence and record the legal decision.</Alert></div> : <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row"><form action={advanceCase} className="flex flex-1 gap-2"><input type="hidden" name="case_id" value={record.id} /><Input name="note" placeholder="Review note or evidence" /><Button type="submit" disabled={!next || record.status === 'on_hold' || days < Number(next?.days_past_due ?? Infinity) || referralBlocked}>Advance</Button></form><form action={setHold} className="flex flex-1 gap-2"><input type="hidden" name="case_id" value={record.id} /><input type="hidden" name="hold" value={record.status === 'on_hold' ? 'false' : 'true'} /><Input name="note" placeholder={record.status === 'on_hold' ? 'Optional release note' : 'Required hold reason'} /><Button type="submit" variant="secondary">{record.status === 'on_hold' ? 'Release hold' : 'Place hold'}</Button></form></div>}
         </div>;
-      })}</div> : <div className="rounded-2xl border border-gray-200/70 bg-white"><EmptyState icon={AlertTriangle} title="No open owner collection cases" description="Sync owner balances to create cases for qualifying overdue accounts." /></div>}
+      })}</div> : casesFailed ? null : <div className="rounded-2xl border border-gray-200/70 bg-white"><EmptyState icon={AlertTriangle} title="No open owner collection cases" description="Sync owner balances to create cases for qualifying overdue accounts." /></div>}
     </div>
   </DataWorkspace>;
 }

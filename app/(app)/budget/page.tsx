@@ -33,26 +33,35 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
 
   const { data: associations, error } = await db.from('associations').select('id, slug, name, fiscal_year_start').is('archived_at', null).order('name');
   const list = (associations ?? []) as any[];
-  const fy = year ?? fiscalYearFor(new Date(), 1);
+  // Without an explicit year, each association shows the fiscal year in
+  // progress under its own fiscal_year_start (FY N ends in calendar year N),
+  // the same rule budget-vs-actuals uses.
+  const now = new Date();
+  const fyByAssociation = new Map<string, number>(list.map((a) => [a.id, year ?? fiscalYearFor(now, a.fiscal_year_start)]));
+  const distinctYears = [...new Set(fyByAssociation.values())].sort((x, y) => x - y);
+  const uniformFy = year ?? (distinctYears.length === 1 ? distinctYears[0] : null);
+  const fy = year ?? uniformFy ?? fiscalYearFor(now, 1);
+  const queryYears = distinctYears.length ? distinctYears : [fy];
   const ids = list.map((a) => a.id);
+  const inAssociationFy = (row: any) => fyByAssociation.get(row.association_id) === Number(row.fiscal_year);
 
   const [linesRes, headersRes] = ids.length
     ? await Promise.all([
         // Every line, past PostgREST's 1,000-row cap, in a stable order.
-        fetchAllRows<any>(() => db.from('budget_lines').select('association_id, category, annual_total').in('association_id', ids).eq('fiscal_year', fy).order('association_id').order('id')),
-        db.from('association_budgets').select('association_id, status, adopted_at').in('association_id', ids).eq('fiscal_year', fy),
+        fetchAllRows<any>(() => db.from('budget_lines').select('association_id, fiscal_year, category, annual_total').in('association_id', ids).in('fiscal_year', queryYears).order('association_id').order('id')),
+        db.from('association_budgets').select('association_id, fiscal_year, status, adopted_at').in('association_id', ids).in('fiscal_year', queryYears),
       ])
     : [{ rows: [], truncated: false, error: null }, { data: [], error: null }];
   const loadError = linesRes.error ?? headersRes.error?.message ?? null;
 
   const totals = new Map<string, { income: number; expense: number; lines: number }>();
-  for (const l of linesRes.rows as any[]) {
+  for (const l of (linesRes.rows as any[]).filter(inAssociationFy)) {
     const t = totals.get(l.association_id) ?? { income: 0, expense: 0, lines: 0 };
     if (l.category === 'income') t.income += Number(l.annual_total); else t.expense += Number(l.annual_total);
     t.lines += 1;
     totals.set(l.association_id, t);
   }
-  const headers = new Map<string, any>(((headersRes.data ?? []) as any[]).map((h) => [h.association_id, h]));
+  const headers = new Map<string, any>(((headersRes.data ?? []) as any[]).filter(inAssociationFy).map((h) => [h.association_id, h]));
   const adoptedCount = list.filter((a) => headers.get(a.id)?.status === 'adopted').length;
   const draftCount = list.filter((a) => totals.has(a.id) && headers.get(a.id)?.status !== 'adopted').length;
   const years = [fy - 2, fy - 1, fy, fy + 1, fy + 2];
@@ -65,7 +74,7 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
         {linesRes.truncated && <Alert tone="warning" title="Budget totals are incomplete.">There are more budget lines than this page can load.</Alert>}
         <MetricStrip
           metrics={[
-            { label: `FY${fy} adopted`, value: `${adoptedCount} of ${list.length}` },
+            { label: uniformFy ? `FY${uniformFy} adopted` : 'Current fiscal year adopted', value: `${adoptedCount} of ${list.length}`, sublabel: uniformFy ? undefined : 'Each association’s own fiscal year' },
             { label: 'In draft', value: draftCount },
             { label: 'Not started', value: list.length - adoptedCount - draftCount },
             { label: 'Budgeted net', value: money([...totals.values()].reduce((s, t) => s + t.income - t.expense, 0)) },
@@ -75,7 +84,8 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
           <form className="flex flex-wrap items-end gap-3">
             <label className="text-[12px] font-medium text-gray-500">
               Fiscal year
-              <Select name="year" defaultValue={String(fy)} className="mt-1 w-28">
+              <Select name="year" defaultValue={year ? String(year) : ''} className="mt-1 w-56">
+                <option value="">Current (each association)</option>
                 {years.map((y) => <option key={y} value={y}>FY{y}</option>)}
               </Select>
             </label>
@@ -90,6 +100,7 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
             <THead>
               <tr>
                 <TH>Association</TH>
+                <TH>Fiscal year</TH>
                 <TH>Status</TH>
                 <TH className="text-right">Income</TH>
                 <TH className="text-right">Expense</TH>
@@ -102,11 +113,13 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
                 const t = totals.get(a.id);
                 const h = headers.get(a.id);
                 const status = h?.status === 'adopted' ? 'adopted' : t ? 'draft' : null;
+                const rowFy = fyByAssociation.get(a.id) ?? fy;
                 return (
                   <TR key={a.id}>
                     <TD>
-                      <Link href={`/associations/${a.slug ?? a.id}/budget?fiscal_year=${fy}`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
+                      <Link href={`/associations/${a.slug ?? a.id}/budget?fiscal_year=${rowFy}`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
                     </TD>
+                    <TD className="whitespace-nowrap tabular-nums text-gray-600">FY{rowFy}</TD>
                     <TD>{status ? <Badge tone={status === 'adopted' ? 'complete' : 'pending'}>{status === 'adopted' ? 'Adopted' : 'Draft'}</Badge> : <span className="text-gray-400">Not started</span>}</TD>
                     <TD className="text-right tabular-nums">{t ? money(t.income) : '—'}</TD>
                     <TD className="text-right tabular-nums">{t ? money(t.expense) : '—'}</TD>

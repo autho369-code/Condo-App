@@ -10,6 +10,8 @@ import { loadAssetOptions } from '@/lib/fixed-assets/options';
 import { archiveFixedAsset, updateFixedAsset } from '@/lib/rpcs/fixed-assets';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
+import { depreciationToDate } from '@/lib/fixed-assets/depreciation';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +40,12 @@ export default async function FixedAssetPage({
   const options = canEdit ? await loadAssetOptions(db) : null;
 
   const cost = asset.purchase_price != null ? Number(asset.purchase_price) : null;
-  const accumulated = Number(asset.accumulated_depreciation ?? 0);
+  const dep = depreciationToDate(asset, todayInZone());
+  const depLabel = dep.basis === 'calculated'
+    ? 'Calculated straight-line to today; not posted to the ledger'
+    : dep.basis === 'none'
+      ? 'No depreciation method set'
+      : `Recorded value. ${dep.note ?? ''}`.trim();
 
   const details: [string, React.ReactNode][] = [
     ['Association', asset.associations?.name ?? '—'],
@@ -74,8 +81,8 @@ export default async function FixedAssetPage({
         <MetricStrip
           metrics={[
             { label: 'Cost', value: cost != null ? money(cost) : '—' },
-            { label: 'Accumulated depreciation', value: money(accumulated) },
-            { label: 'Book value', value: cost != null ? money(cost - accumulated) : '—' },
+            { label: 'Accumulated depreciation', value: money(dep.accumulated), sublabel: depLabel },
+            { label: 'Book value', value: dep.bookValue != null ? money(dep.bookValue) : '—', sublabel: dep.basis === 'calculated' ? 'Cost less calculated depreciation' : undefined },
             { label: 'Status', value: label(asset.status) },
           ]}
         />

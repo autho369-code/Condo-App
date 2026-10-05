@@ -4,6 +4,8 @@ import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shel
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
@@ -189,6 +191,7 @@ export default async function PurchaseOrderDetailPage({
             {billable && (
               <form action={billPurchaseOrder} className="grid gap-4 border-t border-gray-100 px-5 py-5 sm:grid-cols-2">
                 <input type="hidden" name="id" value={id} />
+                <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
                 <div className="sm:col-span-2">
                   <div className="text-sm font-semibold text-gray-950">Bill this purchase order</div>
                   <p className="mt-0.5 text-[13px] text-gray-500">Creates a bill for {po.vendors?.name ?? 'the vendor'} linked to this PO. Bills can never add up to more than the PO total.</p>
@@ -217,7 +220,7 @@ export default async function PurchaseOrderDetailPage({
                 <label className="flex items-center gap-2 text-[13px] text-gray-700 sm:col-span-2">
                   <input type="checkbox" name="submit_for_approval" /> Submit the bill for approval now
                 </label>
-                <div className="sm:col-span-2"><Button type="submit">Create bill</Button></div>
+                <div className="sm:col-span-2"><PendingSubmit pendingLabel="Creating bill…">Create bill</PendingSubmit></div>
               </form>
             )}
           </Section>

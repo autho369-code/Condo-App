@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 // Homeowner payables go through RPCs that re-check finance permission and
 // association scope, enforce the status order and post to the ledger:
@@ -27,6 +28,14 @@ export async function createOwnerPayable(formData: FormData) {
   const dueDate = s(formData, 'due_date');
 
   const db = (await createClient()) as any;
+  // A double click or re-sent form must not create the same payable twice.
+  const claim = await claimSubmission(db, formData, 'owner_payable');
+  if (claim.status === 'error') failTo(claim.message);
+  if (claim.status === 'duplicate') {
+    if (claim.resultId) redirect(`/bills/owner-payable/${claim.resultId}?saved=1`);
+    failTo('This payable is already being saved. Refresh the list in a moment to see it.');
+  }
+  const token = (claim as { token: string }).token;
   const { data, error } = await db.rpc('create_owner_payable', {
     p_association_id: associationId,
     p_owner_id: ownerId,
@@ -38,7 +47,11 @@ export async function createOwnerPayable(formData: FormData) {
     p_amount: amount,
     p_memo: s(formData, 'memo'),
   });
-  if (error) failTo(error.message);
+  if (error) {
+    await releaseSubmission(db, token);
+    failTo(error.message);
+  }
+  if (typeof data === 'string' && data) await completeSubmission(db, token, data);
   revalidatePath('/bills/owner-payable');
   redirect(`/bills/owner-payable/${data}?saved=1`);
 }
