@@ -74,21 +74,23 @@ export async function assignParkingSpace(formData: FormData) {
   // Owner-side parking views (owner profile, owner portal vehicles) read
   // parking_assignments.owner_id. When the space goes to the unit itself (no
   // tenant), attach the unit's current owner.
+  const startDate = s(formData, 'start_date') ?? todayInZone();
+  // The owner on the assignment's start date (a scheduled transfer or a
+  // move-out that has arrived must not hand the space to the wrong owner).
   let ownerId: string | null = null;
   if (unitId && !tenantId) {
-    const { data: occ, error: occErr } = await db.from('occupancies')
-      .select('owner_id')
+    const { data: occs, error: occErr } = await db.from('occupancies')
+      .select('owner_id, is_primary, move_in_date, move_out_date')
       .eq('unit_id', unitId)
       .eq('occupancy_type', 'owner')
-      .eq('status', 'current')
-      .not('owner_id', 'is', null)
-      .order('is_primary', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .in('status', ['current', 'future'])
+      .not('owner_id', 'is', null);
     if (occErr) fail(`Could not look up the unit's owner: ${occErr.message}`);
-    ownerId = occ?.owner_id ?? null;
+    const onStart = ((occs ?? []) as any[])
+      .filter((o) => (!o.move_in_date || o.move_in_date <= startDate) && (!o.move_out_date || o.move_out_date > startDate))
+      .sort((a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)))[0];
+    ownerId = onStart?.owner_id ?? null;
   }
-  const startDate = s(formData, 'start_date') ?? todayInZone();
   const monthlyFee = num(formData, 'monthly_fee') ?? Number(space.monthly_fee ?? 0);
   const billToUnit = formData.get('bill_to_unit') === 'on';
 

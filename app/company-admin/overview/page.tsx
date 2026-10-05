@@ -148,9 +148,13 @@ export default async function OverviewPage() {
   const balances = balancesRes.rows
   const collectionsBalance = (balances ?? []).reduce(
     (sum: number, b: any) => sum + Math.max(0, Number(b.balance ?? 0)), 0)
-  // Delinquent accounts = units carrying a positive balance. (The old count
-  // read occupancies.dues_paid_through, which nothing writes, so it was
-  // always 0.)
+  // Delinquent accounts = units with an open charge past due (the
+  // delinquent_units view), not every unit carrying a balance: current or
+  // future charges are owed but not delinquent.
+  const delinquentRes = assocIds.size > 0
+    ? await fetchAllRows(() => db.from('delinquent_units').select('unit_id').in('association_id', [...assocIds]).order('unit_id'))
+    : { rows: [] as any[], truncated: false, error: null }
+  const delinquentUnits = new Set((delinquentRes.rows ?? []).map((r: any) => r.unit_id)).size
   const unitsWithBalance = (balances ?? []).filter((b: any) => Number(b.balance ?? 0) > 0).length
 
   // ── Monthly revenue: management fees first, subscription as context ──
@@ -171,6 +175,7 @@ export default async function OverviewPage() {
     'Management fees': feesRes,
     'Manager workload': workloadRes,
     Balances: balancesRes,
+    'Delinquent units': delinquentRes,
   })
 
   return (
@@ -204,7 +209,7 @@ export default async function OverviewPage() {
           sub={feeBilledCents > 0 ? `${usd(feeBilledCents / 100)} billed in mgmt fees` : platformCostCents > 0 ? `Platform cost ${usd(platformCostCents / 100)}/mo` : 'No management fees recorded this month'}
           icon={DollarSign}
         />
-        <StatCard label="Delinquent Accounts" value={unitsWithBalance} sub="Units with a balance due" icon={TrendingUp} tone={unitsWithBalance > 0 ? 'warning' : undefined} />
+        <StatCard label="Delinquent Accounts" value={delinquentRes.error ? '—' : delinquentUnits} sub="Units with a charge past due" icon={TrendingUp} tone={delinquentUnits > 0 ? 'warning' : undefined} />
         <StatCard label="Avg Health Score" value={`${avgHealthScore}%`} icon={Heart} />
       </div>
 

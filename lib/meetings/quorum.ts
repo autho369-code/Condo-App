@@ -27,6 +27,7 @@ export async function defaultQuorumRequirement(db: any, associationId: string): 
     .select('id, buildings!inner(association_id)', { count: 'exact', head: true })
     .eq('buildings.association_id', associationId)
     .is('archived_at', null);
-  const units = !countError && count ? count : assoc.unit_count;
+  // A real zero is a valid live count; fall back only when the count failed.
+  const units = !countError && count != null ? count : assoc.unit_count;
   return quorumFromPercentage(assoc.quorum_percentage, units);
 }
