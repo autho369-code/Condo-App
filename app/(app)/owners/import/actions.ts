@@ -211,13 +211,16 @@ export async function importOwners(
 
       // Bill the monthly dues; a failure here keeps the owner but is reported.
       const moveIn = toDate(r.move_in_date);
-      const duesAmount = num(r.monthly_dues) ?? 0;
+      // Blank dues (e.g. a co-owner row) leave the unit's dues alone; any
+      // value, including an explicit 0, sets them (0 stops the old dues).
+      const duesGiven = num(r.monthly_dues);
+      const duesAmount = duesGiven ?? 0;
       let duesErr: string | null = null;
       const scheduledAmount = duesScheduledUnits.get(unitId!);
-      if (occRow?.id && duesAmount > 0 && scheduledAmount === undefined) {
+      if (occRow?.id && duesGiven !== null && scheduledAmount === undefined) {
         duesErr = await scheduleOwnerDues(db, occRow.id, moveIn);
         if (!duesErr) duesScheduledUnits.set(unitId!, duesAmount);
-      } else if (duesAmount > 0 && scheduledAmount !== undefined && scheduledAmount !== duesAmount) {
+      } else if (duesGiven !== null && scheduledAmount !== undefined && scheduledAmount !== duesAmount) {
         // Co-owners share one dues schedule: flag a conflicting amount
         // instead of silently picking one.
         duesErr = `dues: monthly_dues ${duesAmount} conflicts with ${scheduledAmount} on an earlier row for this unit; kept ${scheduledAmount}. Fix the unit's dues if that is wrong.`;

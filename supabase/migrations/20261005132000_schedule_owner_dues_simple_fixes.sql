@@ -111,6 +111,7 @@ begin
     into v_first
     from public.unit_recurring_charges urc
    where urc.unit_id = v_occ.unit_id and urc.active and urc.charge_category_id = any(v_cats)
+     and urc.frequency = v_freq
      and (urc.end_date is null or urc.end_date >= v_first);
   if extract(day from v_first) <> 1 then
     v_first := (date_trunc('month', v_first) + interval '1 month')::date;
