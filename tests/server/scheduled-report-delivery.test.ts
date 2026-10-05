@@ -20,7 +20,7 @@ describe('scheduled report delivery recovery', () => {
 
   it('keeps queue rows portfolio-scoped and uses management-company branding', () => {
     expect(route).toContain('portfolioId: run.portfolio_id');
-    expect(route).toContain("run.portfolios?.company_name ?? 'Portier369'");
+    expect(route).toContain('run.portfolios?.company_name ?? null');
     expect(route).toContain('replyTo: run.portfolios?.support_email ?? null');
   });
 });

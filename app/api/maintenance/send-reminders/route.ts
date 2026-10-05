@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
           to: vendorEmail,
           subject,
           text: body,
-          fromName: reminder.companyName ?? reminder.associationName ?? 'Portier369',
+          fromName: reminder.companyName ?? reminder.associationName ?? null,
           replyTo: reminder.supportEmail ?? null,
           portfolioId: reminder.portfolioId ?? null,
           idempotencyKey: `maintenance-reminder:${reminder.taskId}:${reminder.dueDate}:${reminder.daysUntilDue}:${vendorEmail.toLowerCase()}`,

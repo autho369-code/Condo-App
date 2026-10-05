@@ -31,11 +31,13 @@ export async function GET(request: NextRequest) {
   const { data: claimed, error: claimError } = await db.rpc('claim_email_queue', { p_limit: 20 });
   if (claimError) return NextResponse.json({ error: claimError.message }, { status: 500 });
 
-  // White label: an email that belongs to a client company goes out under
-  // that company's name, not the platform's. Only the sending address stays
-  // on the platform's verified domain. A failed lookup keeps the default name.
+  // White label: an email with no chosen sender name that belongs to a client
+  // company goes out under that company's name. An explicit name is kept —
+  // platform-originated mail to a company (billing, onboarding) says
+  // Portier369 on purpose. Only the sending address stays on the platform's
+  // verified domain. A failed lookup falls back to the platform name.
   const brandIds = [...new Set(((claimed ?? []) as any[])
-    .filter((e) => e.portfolio_id && (!e.from_name || e.from_name === EMAIL_FROM_NAME))
+    .filter((e) => e.portfolio_id && !String(e.from_name ?? '').trim())
     .map((e) => String(e.portfolio_id)))];
   const brandNames = new Map<string, string>();
   if (brandIds.length) {
@@ -45,8 +47,8 @@ export async function GET(request: NextRequest) {
   }
   const senderName = (email: any): string => {
     const branded = email.portfolio_id ? brandNames.get(String(email.portfolio_id)) : undefined;
-    if (branded && (!email.from_name || email.from_name === EMAIL_FROM_NAME)) return branded;
-    return email.from_name ?? EMAIL_FROM_NAME;
+    if (String(email.from_name ?? '').trim()) return String(email.from_name);
+    return branded ?? EMAIL_FROM_NAME;
   };
 
   let sent = 0;

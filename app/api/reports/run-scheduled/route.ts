@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      const companyName = run.portfolios?.company_name ?? 'Portier369';
+      const companyName = run.portfolios?.company_name ?? null;
       const { error, count } = await queueEmails(svc, targets.map((to) => ({
         to,
         subject: `Scheduled report: ${schedule.name}`,
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
         subject: `Scheduled report failed: ${run.scheduled_reports?.name ?? 'report'}`,
         text: `Your scheduled report "${run.scheduled_reports?.name ?? 'report'}" could not be generated.\n\nReason: ${run.error_message ?? 'Unknown error'}\n\nDetails: ${site}/reports/runs/${run.id}`,
         portfolioId: run.portfolio_id,
-        fromName: run.portfolios?.company_name ?? 'Portier369',
+        fromName: run.portfolios?.company_name ?? null,
         idempotencyKey: `scheduled-report-failed:${run.id}`,
       }]);
       failures.push({ run: run.id, status: error ? 'queue_failed' : count ? 'notified' : 'already_notified', error });

@@ -75,7 +75,9 @@ export function emailQueueRow(e: QueuedEmail) {
     body: e.html ?? textToHtml(e.text ?? ''),
     status: 'pending',
     from_address: e.fromAddress ?? EMAIL_FROM,
-    from_name: e.fromName ?? EMAIL_FROM_NAME,
+    // Null = not chosen: delivery sends it under the client company's name
+    // (portfolio_id) or the platform name. Platform-originated mail sets it.
+    from_name: e.fromName ?? null,
     reply_to: e.replyTo ?? null,
     portfolio_id: e.portfolioId ?? null,
     association_id: e.associationId ?? null,
