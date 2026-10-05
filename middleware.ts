@@ -14,6 +14,7 @@ const PUBLIC_ASSETS = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '
 const PUBLIC_ASSET_PREFIXES = ['/icon', '/apple-icon', '/opengraph-image', '/manuals/']
 const INTERNAL_TENANT_HEADERS = [
   'x-portier-client-address',
+  'x-portier-request-method',
   'x-portier-request-path',
   'x-tenant-state',
   'x-tenant-host',
@@ -62,6 +63,9 @@ export async function middleware(request: NextRequest) {
   const edgeClientAddress = request.headers.get('x-vercel-forwarded-for') || 'unknown'
   requestHeaders.set('x-portier-client-address', edgeClientAddress.split(',')[0].trim().slice(0, 128) || 'unknown')
   requestHeaders.set('x-portier-request-path', encodeURIComponent(`${pathname}${request.nextUrl.search}`))
+  // Trusted request method for server code: a server action can arrive as a
+  // plain multipart POST without the Next-Action header (lib/auth/me.ts).
+  requestHeaders.set('x-portier-request-method', request.method.toUpperCase())
 
   let response = NextResponse.next({ request: { headers: requestHeaders } })
   const supabase = createServerClient<Database>(

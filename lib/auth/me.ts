@@ -204,8 +204,20 @@ export async function requireMatchingTenantWorkspace(me: MeResult) {
 async function refuseOperatorAction(me: MeResult, allowed: readonly string[] = ['admin']) {
   if (!me.is_platform_operator) return;
   if (allowed.includes(me.platform_operator_role ?? '')) return;
-  if (!(await headers()).get('next-action')) return;
+  if (!(await isMutationRequest())) return;
   redirect('/platform-operator?error=' + encodeURIComponent('Only Portier platform admins can make changes.'));
+}
+
+/**
+ * A server action or any other non-GET request. Next also runs actions from
+ * plain multipart POSTs without the Next-Action header, so the method stamped
+ * by middleware (client-supplied values are stripped there) is checked too.
+ */
+async function isMutationRequest(): Promise<boolean> {
+  const h = await headers();
+  if (h.get('next-action')) return true;
+  const method = h.get('x-portier-request-method');
+  return !!method && !['GET', 'HEAD', 'OPTIONS'].includes(method);
 }
 
 /** Operator access that a non-operator role would not grant on its own. */

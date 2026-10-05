@@ -66,7 +66,14 @@ describe('server-action operator refusal in auth guards', () => {
     expect(getMe).toContain("refuseOperatorAction(me, options.operatorActionRoles ?? ['admin'])");
   });
 
-  it('keys the refusal on the server-action header', () => {
+  it('treats server actions and any non-GET request as mutations', () => {
     expect(source).toContain(".get('next-action')");
+    expect(source).toContain(".get('x-portier-request-method')");
+  });
+
+  it('middleware stamps the trusted method and strips client copies', () => {
+    const mw = require('node:fs').readFileSync('middleware.ts', 'utf8') as string;
+    expect(mw).toContain("'x-portier-request-method',");
+    expect(mw).toContain("requestHeaders.set('x-portier-request-method', request.method.toUpperCase())");
   });
 });
