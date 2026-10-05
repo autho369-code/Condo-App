@@ -4,6 +4,7 @@ import { isValidTimeZone } from '@/lib/time/display-zone';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { mergePrivateFieldsOne, savePrivateFields } from '@/lib/private-fields';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Alert, Badge } from '@/components/ui/shell';
@@ -36,6 +37,8 @@ export default async function InspectionDetailPage({
     db.from('inspection_items').select('*, work_orders(id, number, title, status)').eq('inspection_id', id).order('sort_order').order('created_at'),
     db.from('inspection_checklist_items').select('id, area, item, condition, note').eq('inspection_id', id).order('sort_order'),
   ]);
+  // Notes are staff-only (inspection_private).
+  await mergePrivateFieldsOne(db, 'inspection_private', 'inspection_id', ['notes'], inspection);
   const checklistRows = (checklist ?? []) as any[];
   const rated = checklistRows.filter((r) => r.condition).length;
   if (!inspection) notFound();
@@ -58,7 +61,7 @@ export default async function InspectionDetailPage({
     const status = String(formData.get('status') ?? 'scheduled');
     const { data: current } = await (supabase as any).from('inspections').select('status, completed_date, associations(timezone)').eq('id', inspectionId).maybeSingle();
     if (!current) bounce(inspectionId, 'error', 'Inspection not found or you do not have access to it.');
-    const patch: Record<string, unknown> = { status, notes: String(formData.get('notes') ?? '').trim() || null };
+    const patch: Record<string, unknown> = { status };
     // Stamp the completion date only when the inspection becomes completed;
     // re-saving notes must not move the real completion date.
     if (status === 'completed' && current.status !== 'completed') {
@@ -70,6 +73,11 @@ export default async function InspectionDetailPage({
     const { data: updated, error } = await (supabase as any).from('inspections').update(patch).eq('id', inspectionId).select('id');
     if (error) bounce(inspectionId, 'error', error.message);
     if (!updated || updated.length === 0) bounce(inspectionId, 'error', 'Inspection not found or you do not have access to it.');
+    // Staff-only notes go straight to the side table, so clearing them works.
+    const notesError = await savePrivateFields(supabase, 'inspection_private', 'inspection_id', inspectionId, {
+      notes: String(formData.get('notes') ?? ''),
+    });
+    if (notesError) bounce(inspectionId, 'error', `Status saved, but the notes did not: ${notesError.message}`);
     revalidatePath(`/inspections/${inspectionId}`);
     bounce(inspectionId, 'saved', 'Inspection status updated.');
   }
