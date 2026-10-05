@@ -6,15 +6,20 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { Alert } from '@/components/ui/shell';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { StatusChip } from '@/components/operations/status-chip';
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformAdmin, requirePlatformOperator } from '@/lib/auth/me';
 import { date } from '@/lib/utils';
+import { displayTimeZone } from '@/lib/time/display-zone';
+import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned';
 import { cancelInvitation, regenerateInvitation, resendInvitation } from '../companies/actions';
 
 export const dynamic = 'force-dynamic';
 
 const RETURN_TO = '/platform-operator/invitations';
+// The roles offered by the form below; anything else is refused.
+const INVITABLE_ROLES = ['company_admin', 'manager', 'board', 'owner', 'tenant'] as const;
 
 // Status enum is {pending, accepted, revoked, expired}; "Resent" is derived from metadata.
 function inviteStatusChip(inv: any) {
@@ -35,15 +40,30 @@ async function createInvitation(formData: FormData) {
   const fullName = (formData.get('full_name') as string)?.trim() || null;
   const portfolioId = (formData.get('portfolio_id') as string) || null;
   const role = (formData.get('hoa_role') as string) || 'company_admin';
-  const expiresAt = (formData.get('expires_at') as string) || null;
+  const expiresOn = ((formData.get('expires_at') as string) || '').trim();
+
+  if (!email) redirect(`${RETURN_TO}?error=${encodeURIComponent('Email is required.')}`);
+  if (!portfolioId) redirect(`${RETURN_TO}?error=${encodeURIComponent('Select a company.')}`);
+  if (!(INVITABLE_ROLES as readonly string[]).includes(role)) redirect(`${RETURN_TO}?error=${encodeURIComponent('Select a valid role.')}`);
+  // A date-only expiry means "through the end of that day" in the platform
+  // zone; new Date('YYYY-MM-DD') would expire it at UTC midnight the day before
+  // for US companies.
+  const zone = displayTimeZone();
+  let expiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
+  if (expiresOn) {
+    const endOfDay = zonedWallTimeToUtc(expiresOn, '23:59', zone);
+    if (!endOfDay) redirect(`${RETURN_TO}?error=${encodeURIComponent('Enter a valid expiry date.')}`);
+    if (expiresOn <= todayInZone(zone)) redirect(`${RETURN_TO}?error=${encodeURIComponent('The expiry date must be after today.')}`);
+    expiresAt = (endOfDay as Date).toISOString();
+  }
 
   const { error } = await (supabase as any).from('user_invitations').insert({
     email,
     full_name: fullName,
-    portfolio_id: portfolioId || null,
+    portfolio_id: portfolioId,
     hoa_role: role,
     invited_by: me.auth_user_id,
-    expires_at: expiresAt || new Date(Date.now() + 30 * 86400000).toISOString(),
+    expires_at: expiresAt,
   });
 
   if (error) redirect(`${RETURN_TO}?error=${encodeURIComponent(error.message)}`);
@@ -61,7 +81,7 @@ export default async function InvitationsPage({
   const supabase = await createClient();
   const db = supabase as any;
 
-  const [{ data: invitations }, { data: portfolios }] = await Promise.all([
+  const [{ data: invitations, error: invitationsError }, { data: portfolios, error: portfoliosError }] = await Promise.all([
     db.from('user_invitations')
       .select('id, email, full_name, hoa_role, status, expires_at, created_at, invited_by, portfolio_id, metadata')
       .order('created_at', { ascending: false })
@@ -75,6 +95,9 @@ export default async function InvitationsPage({
   return (
     <div className="space-y-7">
       {sp.error && <Alert title="Action failed">{sp.error}</Alert>}
+      {(invitationsError || portfoliosError) && (
+        <Alert title="Invitations could not be loaded">{invitationsError?.message ?? portfoliosError?.message}</Alert>
+      )}
       {sp.created === '1' && <Alert tone="success" title="Invitation created">The invitation is pending — use Resend to queue the email.</Alert>}
       {sp.resent === '1' && <Alert tone="success" title="Invitation resent">The email has been queued for delivery.</Alert>}
       {sp.cancelled === '1' && <Alert tone="warning" title="Invitation cancelled" />}
@@ -129,7 +152,7 @@ export default async function InvitationsPage({
               <Input id="expires_at" name="expires_at" type="date" />
             </div>
             <div className="col-span-full">
-              <Button type="submit">Create Invitation</Button>
+              <PendingSubmit pendingLabel="Creating…">Create Invitation</PendingSubmit>
             </div>
           </form>
         </CardBody>

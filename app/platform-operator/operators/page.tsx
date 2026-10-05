@@ -17,7 +17,7 @@ export default async function PlatformOperatorsPage({
   const me = await requirePlatformOperator();
   const sp = await searchParams;
   const supabase = await createClient();
-  const { data: rows } = await (supabase as any)
+  const { data: rows, error: loadError } = await (supabase as any)
     .from('platform_operators')
     .select('id, auth_user_id, email, full_name, role, active, created_at, mfa_enrolled_at')
     .order('created_at');
@@ -28,6 +28,7 @@ export default async function PlatformOperatorsPage({
   return (
     <div className="space-y-5">
       {sp.error && <Alert title="Could not reset MFA">{sp.error}</Alert>}
+      {loadError && <Alert title="Operators could not be loaded">{loadError.message}</Alert>}
       {sp.mfa_reset === '1' && (
         <Alert tone="success" title="Authenticator reset">
           The operator must set up a new authenticator at the next sign-in.

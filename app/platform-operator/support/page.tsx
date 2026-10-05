@@ -5,6 +5,10 @@ import { requirePlatformOperator } from '@/lib/auth/me';
 import { Alert, Badge } from '@/components/ui/shell';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { date } from '@/lib/utils';
+import { displayTimeZone } from '@/lib/time/display-zone';
+import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned';
+
+const REQUEST_STATUSES = ['in_progress', 'resolved', 'closed'] as const;
 import { Headphones, Clock, CheckCircle2, Timer } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -45,14 +49,25 @@ async function setRequestStatus(formData: FormData) {
   'use server';
   await requirePlatformOperator();
   const supabase = await createClient();
-  const id = formData.get('request_id') as string;
-  const status = formData.get('status') as string;
+  const id = String(formData.get('request_id') ?? '');
+  const status = String(formData.get('status') ?? '');
+  if (!id || !(REQUEST_STATUSES as readonly string[]).includes(status)) {
+    redirect(`/platform-operator/support?error=${encodeURIComponent('Invalid support request update.')}`);
+  }
 
   const update: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
   if (status === 'resolved' || status === 'closed') update.resolved_at = new Date().toISOString();
 
-  const { error } = await (supabase as any).from('platform_requests').update(update).eq('id', id);
+  // Only open requests change; RLS hides the row from non-operators, so an
+  // empty result must be reported rather than shown as success.
+  const { data: updated, error } = await (supabase as any)
+    .from('platform_requests')
+    .update(update)
+    .eq('id', id)
+    .not('status', 'in', '("resolved","closed","denied")')
+    .select('id');
   if (error) redirect(`/platform-operator/support?error=${encodeURIComponent(error.message)}`);
+  if (!updated?.length) redirect(`/platform-operator/support?error=${encodeURIComponent('That request was not found or is already closed.')}`);
   revalidatePath('/platform-operator/support');
   redirect('/platform-operator/support?updated=1');
 }
@@ -66,10 +81,10 @@ export default async function SupportPage({
   const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  // "Resolved today" means today in the platform zone (the server runs in UTC).
+  const zone = displayTimeZone();
+  const todayStart = zonedWallTimeToUtc(todayInZone(zone), '00:00', zone)?.getTime() ?? Date.now();
 
-  // A failed load shows an error instead of an empty queue.
   const { data: requestRows, error: requestsError } = await db
     .from('platform_requests')
     .select('*')
@@ -80,20 +95,19 @@ export default async function SupportPage({
   const openCount = requests.filter((r: any) => !r.status || r.status === 'open' || r.status === 'pending').length;
   const inProgressCount = requests.filter((r: any) => r.status === 'in_progress' || r.status === 'processing').length;
   const resolvedToday = requests.filter((r: any) =>
-    (r.status === 'resolved' || r.status === 'closed') && (r.resolved_at ?? r.updated_at) >= todayStart
+    (r.status === 'resolved' || r.status === 'closed') && !!(r.resolved_at ?? r.updated_at) && Date.parse(r.resolved_at ?? r.updated_at) >= todayStart
   ).length;
 
   const portfolioMap = new Map<string, string>();
-  try {
-    const { data: ports } = await db.from('portfolios').select('id, company_name');
-    for (const p of ports ?? []) portfolioMap.set(p.id, p.company_name);
-  } catch {}
+  const { data: ports, error: portfoliosError } = await db.from('portfolios').select('id, company_name');
+  for (const p of ports ?? []) portfolioMap.set(p.id, p.company_name);
+  const loadError = requestsError?.message ?? portfoliosError?.message ?? null;
 
   return (
     <div className="space-y-6">
       {sp.error && <Alert title="Action failed">{sp.error}</Alert>}
-      {requestsError && <Alert tone="danger" title="Could not load support requests">{requestsError.message}</Alert>}
       {sp.updated === '1' && <Alert tone="success" title="Request updated" />}
+      {loadError && <Alert title="Support requests could not be loaded">{loadError}</Alert>}
 
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Support Requests</h1>

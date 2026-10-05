@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
+import { Alert } from '@/components/ui/shell';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayInZone } from '@/lib/time/zoned';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { AlertTriangle, Clock, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
 
@@ -55,52 +58,61 @@ export default async function AssociationHealthPage() {
   const supabase = await createClient();
   const db = supabase as any;
   const now = new Date();
-  const todayDate = now.toISOString().slice(0, 10);
+  // "Overdue" compares against today's date in the platform zone, not UTC.
+  const todayDate = todayInZone();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
 
   // Compute per-association health from raw tables. (v_company_health is a
   // per-COMPANY aggregate — using it here rendered blank rows and zeroed
   // counters, so this page always computes its own per-association rows.)
   let assocHealthData: any[] = [];
+  let loadError: string | null = null;
   {
-    // Fetch associations with portfolio info
-    const { data: assocs } = await db
+    // Every active association platform-wide. The open-item queries read the
+    // whole platform (an operator sees every row) and are paged past
+    // PostgREST's 1,000-row cap; listing thousands of ids in .in() would also
+    // overflow the request URL.
+    const assocsRes = await fetchAllRows(() => db
       .from('associations')
       .select('id, name, portfolio_id, city, unit_count, portfolios!inner(company_name)')
       .is('archived_at', null)
-      .order('name');
+      .order('name')
+      .order('id'));
+    const assocs = assocsRes.rows;
+    loadError = assocsRes.error;
 
-    if (assocs && assocs.length > 0) {
-      const assocIds = assocs.map((a: any) => a.id);
+    if (assocs.length > 0) {
       const [openWO, overdueWO, openViols, managerActivity] = await Promise.all([
-        db.from('work_orders').select('association_id')
-          .in('association_id', assocIds)
-          .is('archived_at', null)
-          .not('status', 'in', '("done","completed","billed","closed","cancelled")'),
-        db.from('work_orders').select('association_id')
-          .in('association_id', assocIds)
+        fetchAllRows(() => db.from('work_orders').select('id, association_id')
           .is('archived_at', null)
           .not('status', 'in', '("done","completed","billed","closed","cancelled")')
-          .lt('scheduled_date', todayDate),
-        db.from('violations').select('association_id')
-          .in('association_id', assocIds)
+          .order('id'), { maxRows: 500000 }),
+        fetchAllRows(() => db.from('work_orders').select('id, association_id')
           .is('archived_at', null)
-          .not('status', 'in', '("closed","cured")'),
-        db.from('association_managers').select('association_id, user_id')
-          .in('association_id', assocIds)
-          .is('ended_at', null),
+          .not('status', 'in', '("done","completed","billed","closed","cancelled")')
+          .lt('scheduled_date', todayDate)
+          .order('id'), { maxRows: 500000 }),
+        fetchAllRows(() => db.from('violations').select('id, association_id')
+          .is('archived_at', null)
+          .not('status', 'in', '("closed","cured")')
+          .order('id'), { maxRows: 500000 }),
+        fetchAllRows(() => db.from('association_managers').select('id, association_id, user_id')
+          .is('ended_at', null)
+          .order('id')),
       ]);
+      loadError = loadError ?? openWO.error ?? overdueWO.error ?? openViols.error ?? managerActivity.error;
 
       // Assigned managers who signed in during the last 7 days
       // (last_login_at is stamped by record_login_attempt).
-      const managerIds = [...new Set((managerActivity.data ?? []).map((m: any) => m.user_id).filter(Boolean))];
-      const { data: recentLogins } = managerIds.length > 0
-        ? await db.from('profiles').select('id').in('id', managerIds).gte('last_login_at', sevenDaysAgo)
-        : { data: [] };
-      const activeIds = new Set((recentLogins ?? []).map((p: any) => p.id));
+      const managerIds = new Set((managerActivity.rows ?? []).map((m: any) => m.user_id).filter(Boolean));
+      const recentLogins = managerIds.size > 0
+        ? await fetchAllRows(() => db.from('profiles').select('id').gte('last_login_at', sevenDaysAgo).order('id'))
+        : { rows: [] as any[], error: null };
+      loadError = loadError ?? recentLogins.error;
+      const activeIds = new Set(recentLogins.rows.map((p: any) => p.id).filter((id: string) => managerIds.has(id)));
       const activeAssocs = new Set<string>();
       const managedAssocs = new Set<string>();
-      for (const m of managerActivity.data ?? []) {
+      for (const m of managerActivity.rows) {
         managedAssocs.add(m.association_id);
         if (activeIds.has(m.user_id)) activeAssocs.add(m.association_id);
       }
@@ -108,9 +120,9 @@ export default async function AssociationHealthPage() {
       const openWOMap = new Map<string, number>();
       const overdueWOMap = new Map<string, number>();
       const violMap = new Map<string, number>();
-      for (const w of openWO.data ?? []) openWOMap.set(w.association_id, (openWOMap.get(w.association_id) ?? 0) + 1);
-      for (const w of overdueWO.data ?? []) overdueWOMap.set(w.association_id, (overdueWOMap.get(w.association_id) ?? 0) + 1);
-      for (const v of openViols.data ?? []) violMap.set(v.association_id, (violMap.get(v.association_id) ?? 0) + 1);
+      for (const w of openWO.rows) openWOMap.set(w.association_id, (openWOMap.get(w.association_id) ?? 0) + 1);
+      for (const w of overdueWO.rows) overdueWOMap.set(w.association_id, (overdueWOMap.get(w.association_id) ?? 0) + 1);
+      for (const v of openViols.rows) violMap.set(v.association_id, (violMap.get(v.association_id) ?? 0) + 1);
 
       assocHealthData = assocs.map((a: any) => {
         const open = openWOMap.get(a.id) ?? 0;
@@ -159,6 +171,8 @@ export default async function AssociationHealthPage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Association Health</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide health monitoring across all associations</p>
       </div>
+
+      {loadError && <Alert title="Some health data could not be loaded">{loadError}</Alert>}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

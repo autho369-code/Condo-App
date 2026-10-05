@@ -1,7 +1,12 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
-import { Badge } from '@/components/ui/shell';
+import { Alert, Badge } from '@/components/ui/shell';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { BILLABLE_SUBSCRIPTION_STATUSES, monthWindowInZone, monthlyRecurringCents } from '@/lib/platform/operator-metrics';
+import { displayTimeZone } from '@/lib/time/display-zone';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { date, money } from '@/lib/utils';
@@ -46,25 +51,30 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  // Month boundaries in the platform zone (the server runs in UTC).
+  const monthStart = monthWindowInZone(displayTimeZone()).startIso;
 
-  // Stats queries
-  const { data: activeSubs } = await db
+  // Stats queries. MRR counts billed subscriptions only (active + past due),
+  // the same definition as the dashboard and Revenue — trials are not revenue.
+  const activeSubsRes = await fetchAllRows(() => db
     .from('subscriptions')
-    .select('price_monthly_cents')
-    .in('status', ['active', 'trialing']);
+    .select('id, status, price_monthly_cents')
+    .in('status', [...BILLABLE_SUBSCRIPTION_STATUSES])
+    .order('id'));
+  const activeSubs = activeSubsRes.rows;
 
   const { count: openInvoices } = await db
     .from('invoices')
     .select('id', { count: 'exact', head: true })
     .not('status', 'in', '("paid","void")');
 
-  const { data: paidThisMonth } = await db
+  const paidThisMonthRes = await fetchAllRows(() => db
     .from('invoices')
-    .select('total_cents')
+    .select('id, total_cents')
     .eq('status', 'paid')
-    .gte('paid_at', monthStart);
+    .gte('paid_at', monthStart)
+    .order('id'));
+  const paidThisMonth = paidThisMonthRes.rows;
 
   // invoices.status has no 'failed' value (draft/open/paid/void/overdue), so
   // this always read 0. A failed card charge leaves the subscription past_due.
@@ -79,14 +89,14 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
     .eq('status', 'overdue');
 
   // Invoices with company name
-  const { data: invoices } = await db
+  const { data: invoices, error: invoicesError } = await db
     .from('invoices')
     .select('*, portfolios!inner(company_name)')
     .order('created_at', { ascending: false })
     .limit(50);
 
   // Subscriptions with company name
-  const { data: subscriptions } = await db
+  const { data: subscriptions, error: subscriptionsError } = await db
     .from('subscriptions')
     .select('*, portfolios!inner(company_name)')
     .order('created_at', { ascending: false })
@@ -99,7 +109,8 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
     .is('archived_at', null)
     .order('company_name');
 
-  const mrr = (activeSubs ?? []).reduce((sum: number, s: any) => sum + (s.price_monthly_cents ?? 0), 0) / 100;
+  const mrr = monthlyRecurringCents(activeSubs) / 100;
+  const loadError = activeSubsRes.error ?? paidThisMonthRes.error ?? invoicesError?.message ?? subscriptionsError?.message ?? null;
   const paidAmount = (paidThisMonth ?? []).reduce((sum: number, i: any) => sum + (i.total_cents ?? 0), 0) / 100;
 
   return (
@@ -109,11 +120,10 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide billing overview across all companies</p>
       </div>
 
-      {sp.error && (<div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{sp.error}</div>)}
+      {sp.error && <Alert title="Action failed">{sp.error}</Alert>}
+      {loadError && <Alert title="Some billing data could not be loaded">{loadError}</Alert>}
       {(sp.invoice_generated || sp.invoice_sent || sp.invoice_paid || sp.invoice_voided) && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {sp.invoice_generated ? 'Invoice generated.' : sp.invoice_sent ? 'Invoice emailed to the company billing contact.' : sp.invoice_paid ? 'Invoice marked paid.' : 'Invoice voided.'}
-        </div>
+        <Alert tone="success" title={sp.invoice_generated ? 'Invoice generated.' : sp.invoice_sent ? 'Invoice emailed to the company billing contact.' : sp.invoice_paid ? 'Invoice marked paid.' : 'Invoice voided.'} />
       )}
 
       {/* Stats */}
@@ -135,6 +145,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
             </div>
             <form action={generateInvoice as any} className="flex flex-wrap items-end gap-2">
               <input type="hidden" name="return_to" value="/platform-operator/billing" />
+              <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
               <div>
                 <Label htmlFor="inv_company" className="text-xs">Company</Label>
                 <select id="inv_company" name="portfolio_id" required className="h-9 w-48 rounded-md border border-gray-300 bg-white px-2 text-sm">
@@ -154,7 +165,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                 <Label htmlFor="inv_end" className="text-xs">Period end</Label>
                 <Input id="inv_end" name="period_end" type="date" className="h-9 w-36" />
               </div>
-              <Button type="submit" size="sm">Generate</Button>
+              <PendingSubmit size="sm" pendingLabel="Generating…">Generate</PendingSubmit>
             </form>
           </div>
         </div>

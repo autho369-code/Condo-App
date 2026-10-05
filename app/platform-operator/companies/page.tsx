@@ -5,6 +5,9 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { Alert } from '@/components/ui/shell';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
@@ -53,21 +56,27 @@ export default async function CompaniesPage({
   const supabase = await createClient();
   const db = supabase as any;
 
+  // Platform-wide lists: page past PostgREST's 1,000-row cap so door counts
+  // and "last payment" are complete, and surface any failed read.
   const [
-    { data: portfolios },
-    { data: subscriptions },
-    { data: admins },
-    { data: associations },
-    { data: healthRows },
-    { data: invoices },
+    { data: portfolios, error: portfoliosError },
+    { data: subscriptions, error: subscriptionsError },
+    { data: admins, error: adminsError },
+    associationsRes,
+    { data: healthRows, error: healthError },
+    invoicesRes,
   ] = await Promise.all([
     db.from('portfolios').select('id, company_name, slug, created_at, suspended_at, suspension_reason, archived_at').order('company_name'),
     db.from('subscriptions').select('portfolio_id, tier, status, seats_included, seats_used, units_limit, price_monthly_cents'),
     db.from('profiles').select('id, email, full_name, portfolio_id').eq('hoa_role', 'company_admin'),
-    db.from('associations').select('id, portfolio_id, unit_count').is('archived_at', null),
+    fetchAllRows(() => db.from('associations').select('id, portfolio_id, unit_count').is('archived_at', null).order('id')),
     db.from('v_company_health').select('*'),
-    db.from('invoices').select('id, portfolio_id, paid_at, total_cents').eq('status', 'paid').order('paid_at', { ascending: false }),
+    fetchAllRows(() => db.from('invoices').select('id, portfolio_id, paid_at, total_cents').eq('status', 'paid').order('paid_at', { ascending: false }).order('id')),
   ]);
+  const associations = associationsRes.rows;
+  const invoices = invoicesRes.rows;
+  const loadError = portfoliosError?.message ?? subscriptionsError?.message ?? adminsError?.message
+    ?? associationsRes.error ?? healthError?.message ?? invoicesRes.error ?? null;
 
   // Build lookup maps
   const subMap = new Map<string, any>();
@@ -110,6 +119,7 @@ export default async function CompaniesPage({
   return (
     <div className="space-y-7">
       {sp.error && <Alert title="Action failed">{sp.error}</Alert>}
+      {loadError && <Alert title="Some company data could not be loaded">{loadError}</Alert>}
       {banner && (
         <Alert tone={BANNERS[banner].tone ?? 'success'} title={BANNERS[banner].title}>
           {BANNERS[banner].body}
@@ -135,6 +145,7 @@ export default async function CompaniesPage({
         </CardHeader>
         <CardBody>
           <form action={createCompanyWithAdmin as any} className="grid gap-3 md:grid-cols-3">
+            <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <div>
               <Label htmlFor="company_name">Company name</Label>
               <Input id="company_name" name="company_name" required />
@@ -166,7 +177,7 @@ export default async function CompaniesPage({
               <Input id="max_units" name="max_units" type="number" min={1} placeholder="Defaults to the plan's unit cap" />
             </div>
             <div className="col-span-full">
-              <Button type="submit">Create Company &amp; Send Invitation</Button>
+              <PendingSubmit pendingLabel="Creating…">Create Company &amp; Send Invitation</PendingSubmit>
             </div>
           </form>
         </CardBody>
@@ -274,20 +285,20 @@ export default async function CompaniesPage({
                             <form action={reactivateCompany as any}>
                               <input type="hidden" name="portfolio_id" value={p.id} />
                               <input type="hidden" name="return_to" value="/platform-operator/companies" />
-                              <Button type="submit" variant="ghost" size="sm">Reactivate</Button>
+                              <PendingSubmit variant="ghost" size="sm">Reactivate</PendingSubmit>
                             </form>
                           ) : (
                             <form action={suspendCompany as any}>
                               <input type="hidden" name="portfolio_id" value={p.id} />
                               <input type="hidden" name="return_to" value="/platform-operator/companies" />
-                              <Button type="submit" variant="ghost" size="sm">Suspend</Button>
+                              <PendingSubmit variant="ghost" size="sm" confirm={`Suspend ${p.company_name ?? 'this company'}? Every user loses access until it is reactivated.`}>Suspend</PendingSubmit>
                             </form>
                           )
                         )}
                         {!isArchived && (
                           <form action={archiveCompany as any}>
                             <input type="hidden" name="portfolio_id" value={p.id} />
-                            <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Delete</Button>
+                            <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:text-red-700" confirm={`Archive ${p.company_name ?? 'this company'}? Every login is disabled and open invitations are revoked. Data is kept.`}>Delete</PendingSubmit>
                           </form>
                         )}
                       </div>
