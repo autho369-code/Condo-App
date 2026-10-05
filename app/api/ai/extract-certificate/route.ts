@@ -5,8 +5,15 @@
  * Uses the portfolio's configured AI provider.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getAIConfig, visionCompletion, chatCompletion } from '@/lib/ai/service';
+import { getAIConfig, visionCompletion } from '@/lib/ai/service';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
+
+// Certificates are a page or two; anything bigger is not one (and would be
+// read into memory and sent to the AI provider whole).
+const MAX_BYTES = 10 * 1024 * 1024;
+// The image types visionCompletion sends to every provider (PDF/HEIC would
+// need a separate document path).
+const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
 export async function POST(request: NextRequest) {
   const me = await requireWorkspaceStaff();
@@ -25,8 +32,14 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     
-    if (!file) {
+    if (!file || typeof file === 'string') {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+    if (file.size > MAX_BYTES) {
+      return NextResponse.json({ error: 'That file is larger than 10 MB. Upload a photo or screenshot of the certificate page.' }, { status: 413 });
+    }
+    if (!ALLOWED_TYPES.has(file.type)) {
+      return NextResponse.json({ error: 'Upload the certificate as a PNG, JPEG, WebP or GIF image (take a screenshot of a PDF page).' }, { status: 415 });
     }
 
     // Convert file to base64
@@ -48,18 +61,15 @@ export async function POST(request: NextRequest) {
   "confidence": number 0-100
 }`;
 
-    const result = await visionCompletion(config, base64, prompt);
+    const result = await visionCompletion(config, base64, prompt, file.type);
     
-    let extracted;
-    try {
-      extracted = JSON.parse(result);
-    } catch {
-      // If vision model doesn't support images, try text-only with description
-      const fallback = await chatCompletion(config, [
-        { role: 'system', content: 'You extract insurance certificate data. Return ONLY valid JSON.' },
-        { role: 'user', content: prompt },
-      ], { jsonMode: true });
-      extracted = JSON.parse(fallback);
+    // No text-only fallback: without the document a model can only invent
+    // policy numbers and dates.
+    const extracted = parseJsonObject(result);
+    if (!extracted) {
+      return NextResponse.json({
+        error: 'The AI could not read that certificate. Enter the details by hand, or try a clearer scan.',
+      }, { status: 422 });
     }
 
     return NextResponse.json({ success: true, data: extracted });
@@ -71,4 +81,18 @@ export async function POST(request: NextRequest) {
       hint: 'Check your AI provider settings and API key.'
     }, { status: 500 });
   }
+}
+
+/** The model's JSON object, also when it wraps it in prose or a code fence. */
+function parseJsonObject(text: string): Record<string, unknown> | null {
+  const candidates = [text, text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)];
+  for (const c of candidates) {
+    try {
+      const v = JSON.parse(c);
+      if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>;
+    } catch {
+      // try the next candidate
+    }
+  }
+  return null;
 }

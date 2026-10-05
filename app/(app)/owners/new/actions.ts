@@ -54,9 +54,11 @@ export async function createOwnerWithDetails(formData: FormData) {
     redirect('/owners/new?error=' + encodeURIComponent('That unit is not in the selected association or is outside your authorized portfolio.'));
   }
   if (!me.is_platform_operator) {
-    const { data: canAccessAssociation, error: associationAccessErr } = await db
-      .rpc('can_access_association', { a_id: assignment.associationId });
-    if (associationAccessErr || canAccessAssociation !== true) {
+    // can_manage_association also honors association-scoped managers
+    // (can_access_association only checks the company).
+    const { data: canManageAssociation, error: associationAccessErr } = await db
+      .rpc('can_manage_association', { p_association_id: assignment.associationId });
+    if (associationAccessErr || canManageAssociation !== true) {
       redirect('/owners/new?error=' + encodeURIComponent('You are not authorized to manage the selected association.'));
     }
   }
