@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/auth/me'
 import { DataWorkspace } from '@/components/operations/data-workspace'
-import { Badge, EmptyState, SectionTitle, Surface } from '@/components/ui/shell'
+import { Alert, Badge, EmptyState, SectionTitle, Surface } from '@/components/ui/shell'
 import { CalendarCheck } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -105,7 +105,7 @@ export default async function ManagerAmenitiesPage({
   // Reservations across the manager's portfolio (RLS-scoped): everything
   // pending plus anything not yet over, soonest first. (Ordering all history
   // oldest-first with a cap let new requests fall off the page.)
-  const { data: resRows } = await db
+  const { data: resRows, error: resError } = await db
     .from('amenity_reservations')
     .select('id, status, start_time, end_time, party_size, reserved_for_name, notes, association_amenities(name), associations:association_id(name, timezone), units(unit_number)')
     .or(`status.eq.pending,end_time.gte.${new Date().toISOString()}`)
@@ -120,7 +120,7 @@ export default async function ManagerAmenitiesPage({
   )
 
   // Amenities the manager controls (RLS-scoped), for the bookable toggle list.
-  const { data: amRows } = await db
+  const { data: amRows, error: amError } = await db
     .from('association_amenities')
     .select('id, name, allow_reservations, associations:association_id(name)')
     .is('archived_at', null)
@@ -132,11 +132,9 @@ export default async function ManagerAmenitiesPage({
       title="Amenities"
       description="Review reservation requests and choose which amenities residents can book."
     >
-      {sp.error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          <span className="font-semibold">Error:</span> {sp.error}
-        </div>
-      )}
+      {sp.error && <Alert tone="danger" title="Error" className="mb-4">{sp.error}</Alert>}
+      {resError && <Alert tone="danger" title="Could not load reservations" className="mb-4">{resError.message}</Alert>}
+      {amError && <Alert tone="danger" title="Could not load amenities" className="mb-4">{amError.message}</Alert>}
       {sp.updated === '1' && (
         <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           Updated.

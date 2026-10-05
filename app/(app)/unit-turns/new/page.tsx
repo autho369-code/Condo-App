@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 
-// Unit turns are derived from work orders assigned to a unit — there is no
-// separate unit_turns table. A new turn is a unit-assigned work order, so send
-// the manager to the work-order form, keeping any unit/association preselected.
+// Unit turns are work orders with trade = 'turnover' — there is no separate
+// unit_turns table. Send the manager to the work-order form with the turnover
+// trade preset, keeping any unit/association preselected.
 export default async function NewUnitTurnPage({
   searchParams,
 }: {
@@ -11,8 +11,8 @@ export default async function NewUnitTurnPage({
   const sp = await searchParams;
   const unit = sp.unit ?? sp.unit_id;
   const params = new URLSearchParams();
+  params.set('trade', 'turnover');
   if (unit) params.set('unit', unit);
   if (sp.association) params.set('association', sp.association);
-  const qs = params.toString();
-  redirect(`/work-orders/new${qs ? `?${qs}` : ''}`);
+  redirect(`/work-orders/new?${params.toString()}`);
 }

@@ -121,10 +121,13 @@ export default async function OwnersPage({
   // Outstanding balance per owner (for the at-a-glance delinquency chip)
   const occUnitIds = [...new Set((occupancies ?? []).map((o: any) => o.unit_id).filter(Boolean))];
   const balanceByUnit = new Map<string, number>();
+  let balanceError: string | null = null;
   if (occUnitIds.length > 0) {
     for (let i = 0; i < occUnitIds.length; i += 150) {
-      const { data: balances } = await (supabase as any)
+      const { data: balances, error: balErr } = await (supabase as any)
         .from('unit_balances').select('unit_id, balance').in('unit_id', occUnitIds.slice(i, i + 150));
+      // Without this every owner would silently show a $0 balance.
+      if (balErr) { balanceError = balErr.message; break; }
       for (const b of balances ?? []) balanceByUnit.set(b.unit_id, Number(b.balance ?? 0));
     }
   }
@@ -295,6 +298,7 @@ export default async function OwnersPage({
     >
       <div className="space-y-4">
         {loadError && <Alert tone="danger" title="Could not load every homeowner">{loadError}</Alert>}
+        {balanceError && <Alert tone="danger" title="Could not load balances">Balances shown below are incomplete: {balanceError}</Alert>}
         {(ownersRes.truncated || occupanciesRes.truncated) && (
           <Alert tone="warning" title="List is incomplete">There are more records than this page can load. Filter by association or letter.</Alert>
         )}

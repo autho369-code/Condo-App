@@ -107,7 +107,10 @@ export async function createOwnerWithDetails(formData: FormData) {
       occupancy_type: 'owner',
       status: 'current',
       move_in_date: moveIn,
-      dues_amount: s(formData, 'dues_amount') ? Number(s(formData, 'dues_amount')) : null,
+      // dues_amount is NOT NULL (default 0): an explicit null failed the insert.
+      // unit_owners is kept in step by the occupancies trigger
+      // (migration 20261005104010_occupancies_sync_unit_owners).
+      dues_amount: s(formData, 'dues_amount') ? Number(s(formData, 'dues_amount')) : 0,
       dues_frequency: 'monthly',
       share_pct: s(formData, 'ownership_pct') ? Number(s(formData, 'ownership_pct')) : 100,
       is_primary: true,

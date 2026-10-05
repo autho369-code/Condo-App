@@ -69,10 +69,28 @@ export default async function NewApprovalPage({
     const dueDate = String(formData.get('due_date') ?? '').trim();
     const amountRaw = String(formData.get('amount') ?? '').trim();
     const votingScheme = parseVotingScheme(formData.get('voting_scheme'));
-    const boardMemberIds = formData.getAll('board_member_ids').map(String);
+    const submittedIds = [...new Set(formData.getAll('board_member_ids').map(String).filter(Boolean))];
 
     if (!name || !description || !dueDate) {
       failTo('Name, Description, and Due Date are required.');
+    }
+
+    // Only active board members of THIS association may vote: the ids come from
+    // the form, so keep the ones that check out and require at least one.
+    let boardMemberIds: string[] = [];
+    if (submittedIds.length > 0) {
+      const { data: validMembers, error: membersErr } = await (supabase as any)
+        .from('board_members')
+        .select('id')
+        .eq('association_id', id)
+        .eq('active', true)
+        .in('id', submittedIds);
+      if (membersErr) failTo(`Could not check the selected board members: ${membersErr.message}`);
+      const validIds = new Set<string>((validMembers ?? []).map((m: any) => m.id));
+      boardMemberIds = submittedIds.filter((mid) => validIds.has(mid));
+    }
+    if (boardMemberIds.length === 0) {
+      failTo('Select at least one active board member of this association to vote.');
     }
 
     // A percentage vote needs its percentage: without it the tally fell back

@@ -44,7 +44,7 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
   await requireStaff();
   const supabase = await createClient();
 
-  const { data: policies } = await (supabase as any)
+  const { data: policies, error: policiesError } = await (supabase as any)
     .from('v_upcoming_expirations')
     .select('*')
     .order('expiration_date', { ascending: true });
@@ -88,6 +88,7 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
     >
       <div className="space-y-6">
         {sp.error && <Alert tone="danger">{sp.error}</Alert>}
+        {policiesError && <Alert tone="danger" title="Could not load insurance policies">{policiesError.message}</Alert>}
         <MetricStrip
           metrics={[
             { label: 'Active policies', value: active },

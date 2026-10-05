@@ -70,7 +70,7 @@ async function updateTask(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
   const freq = formData.get('frequency') as string;
   const id = formData.get('id') as string;
-  const { error: updateError } = await db.from('maintenance_tasks').update({
+  const { data: updatedRows, error: updateError } = await db.from('maintenance_tasks').update({
     task_name: formData.get('task_name'), category: formData.get('category'),
     frequency: freq, custom_interval_days: freq==='custom' ? parseInt(formData.get('custom_days') as string)||null : null,
     vendor_id: (formData.get('vendor_id') as string)||null,
@@ -78,8 +78,9 @@ async function updateTask(formData: FormData) {'use server';
     reminder_days: formData.getAll('reminders').map(Number).filter(n=>n>0),
     priority: formData.get('priority')||'normal',
     start_date: formData.get('start_date'), end_date: (formData.get('end_date') as string)||null,
-  }).eq('id', id);
+  }).eq('id', id).select('id');
   if (updateError) maintenanceFail(`Task not updated: ${updateError.message}`);
+  if (!updatedRows?.length) maintenanceFail('Task not updated: it was not found or you do not have access to it.');
   // Notes are staff-only (maintenance_task_private), written there directly so
   // clearing them works.
   const notes = ((formData.get('notes') as string) ?? '').trim() || null;
@@ -111,8 +112,9 @@ async function deleteTask(formData: FormData) {'use server';
   await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
   const supabase = await createClient();
   const id = formData.get('id') as string;
-  const { error: archiveError } = await (supabase as any).from('maintenance_tasks').update({ archived_at: new Date().toISOString() }).eq('id', id);
+  const { data: archivedRows, error: archiveError } = await (supabase as any).from('maintenance_tasks').update({ archived_at: new Date().toISOString() }).eq('id', id).is('archived_at', null).select('id');
   if (archiveError) maintenanceFail(`Task not removed: ${archiveError.message}`);
+  if (!archivedRows?.length) maintenanceFail('Task not removed: it was not found, was already removed, or you do not have access to it.');
   // Cancel linked calendar events
   const { error: cancelError } = await (supabase as any).from('calendar_events').update({ operations_status: 'canceled' }).eq('maintenance_task_id', id).is('archived_at', null);
   if (cancelError) maintenanceFail(`Task removed, but its calendar events were not cancelled: ${cancelError.message}`);
@@ -222,12 +224,13 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
   const supabase = await createClient(); const db = supabase as any;
   const sp = await searchParams;
 
-  const [{ data: tasks }, { data: associations }, { data: groups }, { data: vendors }, { data: staff }] = await Promise.all([
+  const [{ data: tasks, error: tasksError }, { data: associations }, { data: groups }, { data: vendors }, { data: staff }] = await Promise.all([
     db.from('maintenance_tasks').select('*, associations!inner(name, timezone), vendors(name), profiles(full_name)').is('archived_at',null).order('next_due_date',{ascending:true,nullsFirst:false}),
     db.from('associations').select('id,name').is('archived_at',null).order('name'),
     db.from('maintenance_template_groups').select('*, templates:maintenance_templates(*)').order('sort_order'),
     db.from('vendors').select('id,name,trade,emails').is('archived_at',null).order('name'),
-    db.from('profiles').select('id,full_name,email').order('full_name'),
+    // Only active staff can be assigned a task.
+    db.from('profiles').select('id,full_name,email').eq('hoa_role','manager').is('disabled_at', null).order('full_name'),
   ]);
 
   let rows = (tasks??[]) as any[];
@@ -258,6 +261,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
     >
       <div className="space-y-6">
         {sp.error && <Alert tone="danger" title="That didn't save.">{sp.error}</Alert>}
+        {tasksError && <Alert tone="danger" title="Could not load maintenance tasks">{tasksError.message}</Alert>}
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           <a
             href="/maintenance?tab=tasks"

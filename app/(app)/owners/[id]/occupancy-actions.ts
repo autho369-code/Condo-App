@@ -30,14 +30,16 @@ async function uploadDoc(svc: any, tenantKey: string, kind: string, file: File |
 export async function saveOwnerEmergencyContact(ownerId: string, formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
-  const { error } = await (supabase as any)
+  const { data: saved, error } = await (supabase as any)
     .from('owners')
     .update({
       emergency_contact_name: (formData.get('emergency_contact_name') as string)?.trim() || null,
       emergency_contact_phone: (formData.get('emergency_contact_phone') as string)?.trim() || null,
     })
-    .eq('id', ownerId);
+    .eq('id', ownerId)
+    .select('id');
   if (error) fail(ownerId, `Could not save emergency contact: ${error.message}`);
+  if (!saved?.length) fail(ownerId, 'Could not save emergency contact: the homeowner was not found or you do not have access to it.');
   revalidatePath(`/owners/${ownerId}`);
   redirect(`/owners/${ownerId}`);
 }
@@ -164,11 +166,14 @@ export async function addPet(ownerId: string, formData: FormData) {
 export async function removePet(petId: string, ownerId: string) {
   await requireStaff();
   const supabase = await createClient();
-  const { error } = await (supabase as any)
+  const { data: removed, error } = await (supabase as any)
     .from('unit_pets')
     .update({ archived_at: new Date().toISOString() })
-    .eq('id', petId);
+    .eq('id', petId)
+    .is('archived_at', null)
+    .select('id');
   if (error) fail(ownerId, `Could not remove pet: ${error.message}`);
+  if (!removed?.length) fail(ownerId, 'Could not remove pet: it was not found, was already removed, or you do not have access to it.');
   revalidatePath(`/owners/${ownerId}`);
   redirect(`/owners/${ownerId}`);
 }
@@ -200,11 +205,15 @@ export async function addVehicle(ownerId: string, formData: FormData) {
 export async function removeVehicle(vehicleId: string, ownerId: string) {
   await requireStaff();
   const supabase = await createClient();
-  const { error } = await (supabase as any)
+  const { data: removed, error } = await (supabase as any)
     .from('owner_vehicles')
     .update({ archived_at: new Date().toISOString() })
-    .eq('id', vehicleId);
+    .eq('id', vehicleId)
+    .eq('owner_id', ownerId)
+    .is('archived_at', null)
+    .select('id');
   if (error) fail(ownerId, `Could not remove vehicle: ${error.message}`);
+  if (!removed?.length) fail(ownerId, 'Could not remove vehicle: it was not found, was already removed, or you do not have access to it.');
   revalidatePath(`/owners/${ownerId}`);
   redirect(`/owners/${ownerId}`);
 }

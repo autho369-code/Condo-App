@@ -12,6 +12,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { todayInZone } from '@/lib/time/zoned';
+import { escapeLike } from '@/lib/db/escape-like';
 
 export type ImportSummary = { imported: number; skipped: number; errors?: string[] };
 
@@ -71,6 +72,13 @@ export async function importOwners(
 
   if (!associationId) return { imported: 0, skipped: rows.length, errors: ['No association selected.'] };
 
+  // The association id comes from the client: it must be one this staffer can see.
+  const { data: association, error: assocErr } = await db
+    .from('associations').select('id').eq('id', associationId).is('archived_at', null).maybeSingle();
+  if (assocErr || !association) {
+    return { imported: 0, skipped: rows.length, errors: [assocErr ? `Could not check the association: ${assocErr.message}` : 'That association was not found or is outside your access.'] };
+  }
+
   const building = await ensureBuilding(db, associationId);
   if ('error' in building) {
     return { imported: 0, skipped: rows.length, errors: [`Could not resolve a building: ${building.error}`] };
@@ -80,6 +88,8 @@ export async function importOwners(
   // Cache units we resolve/create this run so multiple owners on the same unit
   // (e.g. co-owners) don't each create a duplicate unit.
   const unitCache = new Map<string, string>();
+  // Emails created earlier in this run (lower-cased) — a repeat is a duplicate too.
+  const seenEmails = new Set<string>();
   let imported = 0;
   let skipped = 0;
   const errors: string[] = [];
@@ -95,6 +105,32 @@ export async function importOwners(
     if (!unitNumber || !firstName || !lastName || !email) {
       skipped++;
       errors.push(`Row ${line}: missing required field (unit_number, owner_first_name, owner_last_name, owner_email).`);
+      continue;
+    }
+
+    // Never create a second owner record for an email this company already has.
+    const emailKey = email.toLowerCase();
+    if (seenEmails.has(emailKey)) {
+      skipped++;
+      errors.push(`Row ${line} (${unitNumber} / ${email}): duplicate — this email appears on an earlier row. Link the extra unit from the owner's page.`);
+      continue;
+    }
+    const { data: existingOwner, error: dupErr } = await db
+      .from('owners')
+      .select('id')
+      .eq('portfolio_id', me.portfolio?.id)
+      .ilike('email', escapeLike(email))
+      .is('archived_at', null)
+      .limit(1)
+      .maybeSingle();
+    if (dupErr) {
+      skipped++;
+      errors.push(`Row ${line} (${unitNumber} / ${email}): could not check for an existing owner: ${dupErr.message}`);
+      continue;
+    }
+    if (existingOwner) {
+      skipped++;
+      errors.push(`Row ${line} (${unitNumber} / ${email}): duplicate — a homeowner with this email already exists. Link the unit from that owner's page.`);
       continue;
     }
 
@@ -156,8 +192,17 @@ export async function importOwners(
         dues_frequency: 'monthly',
         move_in_date: toDate(r.move_in_date),
       });
-      if (occErr) throw new Error(occErr.message);
+      if (occErr) {
+        // Don't leave an owner with no unit behind: remove the record just created.
+        const { error: undoErr } = await db.from('owners').delete().eq('id', owner.id).select('id');
+        throw new Error(
+          undoErr
+            ? `${occErr.message} (the owner record was created but could not be removed: ${undoErr.message})`
+            : `${occErr.message} (owner not created)`,
+        );
+      }
 
+      seenEmails.add(emailKey);
       imported++;
     } catch (err: any) {
       skipped++;

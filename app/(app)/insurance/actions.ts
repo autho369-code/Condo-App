@@ -18,10 +18,12 @@ export async function toggleReminder(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await (supabase as any)
+  const { data: updated, error } = await (supabase as any)
     .from('insurance_policies')
     .update({ [field]: value })
-    .eq('id', policyId);
+    .eq('id', policyId)
+    .select('id');
   if (error) redirect('/insurance?error=' + encodeURIComponent(error.message));
+  if (!updated?.length) redirect('/insurance?error=' + encodeURIComponent('Policy not found or you do not have access to it.'));
   revalidatePath('/insurance');
 }

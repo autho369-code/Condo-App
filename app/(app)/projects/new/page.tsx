@@ -16,7 +16,7 @@ export default async function NewProjectPage({ searchParams }: { searchParams: P
   const [{ data: associations }, { data: components }, { data: managers }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('reserve_components').select('id, name, association_id').order('name'),
-    db.from('profiles').select('id, full_name, email').eq('portfolio_id', me.portfolio?.id).is('disabled_at', null).order('full_name'),
+    db.from('profiles').select('id, full_name, email').eq('portfolio_id', me.portfolio?.id).eq('hoa_role', 'manager').is('disabled_at', null).order('full_name'),
   ]);
 
   async function createProject(formData: FormData) {

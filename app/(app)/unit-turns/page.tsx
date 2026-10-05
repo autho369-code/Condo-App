@@ -5,7 +5,7 @@ import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -59,17 +59,17 @@ export default async function UnitTurnsPage({
   const supabase = await createClient();
   const db = supabase as any;
 
-  // Derive unit-turn data from work_orders linked to units.
-  // The unit_turns table (pending schema) is not yet in the DB,
-  // so we treat any work order with a unit_id as a potential unit turn.
+  // A unit turn is a unit work order with the 'turnover' trade (vendor_trade
+  // enum). There is no separate unit_turns table.
   const [
-    { data: rows },
+    { data: rows, error: rowsError },
     { data: associations },
   ] = await Promise.all([
     db.from('work_orders')
       .select('id, title, number, status, scheduled_date, unit_id, association_id, vendor_id, created_at, units(unit_number), associations(name), vendors(name)')
       .is('archived_at', null)
       .not('unit_id', 'is', null)
+      .eq('trade', 'turnover')
       // A cancelled job is not a turn in progress (it counted as Pending).
       .neq('status', 'cancelled')
       .order('scheduled_date', { ascending: true, nullsFirst: false })
@@ -118,12 +118,13 @@ export default async function UnitTurnsPage({
       title="Unit Turns"
       description="Track unit move-out preparation, cleaning, inspection, and re-listing workflows."
       actions={
-        <Link href="/work-orders/new">
+        <Link href="/unit-turns/new">
           <Button><Plus className="h-4 w-4" /> New unit turn</Button>
         </Link>
       }
     >
       <div className="space-y-6">
+        {rowsError && <Alert tone="danger" title="Could not load unit turns">{rowsError.message}</Alert>}
         <MetricStrip
           metrics={[
             { label: 'Total turns', value: total, sublabel: 'All tracked units' },
@@ -210,7 +211,7 @@ export default async function UnitTurnsPage({
                           Work order
                         </Link>
                         <Link
-                          href={`/work-orders/new?unit=${row.unit_id}${row.association_id ? `&association=${row.association_id}` : ''}`}
+                          href={`/unit-turns/new?unit=${row.unit_id}${row.association_id ? `&association=${row.association_id}` : ''}`}
                           className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
                         >
                           New turn
@@ -229,13 +230,13 @@ export default async function UnitTurnsPage({
               title="No unit turns match the current filters"
               description={
                 all.length === 0
-                  ? 'Unit turns are derived from work orders assigned to units. Create a work order assigned to a unit to populate this view.'
+                  ? 'Unit turns are work orders on a unit with the Turnover trade. Start a unit turn to populate this view.'
                   : undefined
               }
               action={
                 all.length === 0 && (
-                  <Link href="/work-orders/new">
-                    <Button><Plus className="h-4 w-4" /> New work order</Button>
+                  <Link href="/unit-turns/new">
+                    <Button><Plus className="h-4 w-4" /> New unit turn</Button>
                   </Link>
                 )
               }

@@ -71,6 +71,23 @@ export async function assignParkingSpace(formData: FormData) {
       fail('That tenant is not in the same association as this parking space.');
     }
   }
+  // Owner-side parking views (owner profile, owner portal vehicles) read
+  // parking_assignments.owner_id. When the space goes to the unit itself (no
+  // tenant), attach the unit's current owner.
+  let ownerId: string | null = null;
+  if (unitId && !tenantId) {
+    const { data: occ, error: occErr } = await db.from('occupancies')
+      .select('owner_id')
+      .eq('unit_id', unitId)
+      .eq('occupancy_type', 'owner')
+      .eq('status', 'current')
+      .not('owner_id', 'is', null)
+      .order('is_primary', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (occErr) fail(`Could not look up the unit's owner: ${occErr.message}`);
+    ownerId = occ?.owner_id ?? null;
+  }
   const startDate = s(formData, 'start_date') ?? todayInZone();
   const monthlyFee = num(formData, 'monthly_fee') ?? Number(space.monthly_fee ?? 0);
   const billToUnit = formData.get('bill_to_unit') === 'on';
@@ -79,6 +96,7 @@ export async function assignParkingSpace(formData: FormData) {
     portfolio_id: me.portfolio?.id,
     parking_space_id: spaceId,
     unit_id: unitId,
+    owner_id: ownerId,
     tenant_id: tenantId,
     occupant_name: s(formData, 'occupant_name'),
     start_date: startDate,

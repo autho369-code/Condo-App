@@ -29,8 +29,8 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
   const supabase = await createClient();
 
   const [
-    { data: unit }, { data: summary }, { data: schedule },
-    { data: balances }, { data: payments }, { data: categories },
+    { data: unit, error: unitError }, { data: summary, error: summaryError }, { data: schedule, error: scheduleError },
+    { data: balances, error: balancesError }, { data: payments, error: paymentsError }, { data: categories },
   ] = await Promise.all([
     (supabase as any).from('units')
       .select('id, unit_number, bedrooms, bathrooms, sqft, buildings(name, association_id, associations(name))')
@@ -50,7 +50,16 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
   await mergePrivateFields(supabase as any, 'payment_private', 'payment_id', ['notes'], (payments ?? []) as any[]);
   const openCharges = ((balances ?? []) as any[]).filter((c) => Number(c.balance_due) > 0);
 
+  // A failed lookup is not a missing unit: say so instead of a 404.
+  if (unitError) {
+    return (
+      <div className="p-8">
+        <Alert tone="danger" title="Could not load this unit">{unitError.message}</Alert>
+      </div>
+    );
+  }
   if (!unit) notFound();
+  const accountLoadError = (summaryError ?? scheduleError ?? balancesError ?? paymentsError)?.message ?? null;
   const meta = await loadRecordMeta(supabase, 'unit', unitId);
   const associationId = (unit.buildings as any)?.association_id;
   // Portfolio-wide categories plus this association's own.
@@ -85,11 +94,8 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
           Payment recorded and posted to the general ledger. <Link href={`/payments/${sp.receipt}/receipt`} className="font-semibold underline">Print receipt</Link>
         </div>
       )}
-      {sp.error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          <span className="font-semibold">Could not save:</span> {sp.error}
-        </div>
-      )}
+      {sp.error && <Alert tone="danger" title="Could not save">{sp.error}</Alert>}
+      {accountLoadError && <Alert tone="danger" title="Could not load the unit's account">Balances, charges or payments below may be incomplete: {accountLoadError}</Alert>}
 
       {sp.saved === 'tags' && <Alert tone="success" title="Tags saved" />}
       {sp.saved === 'note' && <Alert tone="success" title="Note added" />}
