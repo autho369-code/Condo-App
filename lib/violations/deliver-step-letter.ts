@@ -5,7 +5,7 @@ import { queueEmails, richTextToPlainText, textToHtml } from '@/lib/email/queue'
 import { createServiceClient } from '@/lib/supabase/server';
 import { buildStepLetter } from '@/lib/violations/step-letter';
 import { isValidTimeZone } from '@/lib/time/display-zone';
-import { DEFAULT_TIME_ZONE, todayInZone } from '@/lib/time/zoned';
+import { addDaysToDate, DEFAULT_TIME_ZONE, todayInZone } from '@/lib/time/zoned';
 
 const BUCKET = 'association-documents';
 
@@ -70,7 +70,9 @@ export async function deliverStepLetter(db: any, violationId: string, result: Ad
   // Anchored to when the step was recorded, so a resent letter states the same deadline.
   const stepAt = v.last_step_at ? new Date(v.last_step_at).getTime() : Date.now();
   const hearingDeadline = result.offers_hearing
-    ? todayInZone(zone, new Date(stepAt + hearingDays * 86_400_000))
+    // Calendar-day math on the local step date (fixed 24h steps drift a day
+    // across a daylight-saving change).
+    ? addDaysToDate(todayInZone(zone, new Date(stepAt)), hearingDays)
     : null;
   const associationName = v.associations?.name ?? 'Your association';
   const { subject, body } = buildStepLetter(
