@@ -69,7 +69,7 @@ export default async function MaintenanceTeamPage({ searchParams }: { searchPara
       actions={<Link href="/vendors"><Button variant="secondary">Vendor scorecards</Button></Link>}
     >
       <div className="space-y-6">
-        <FilterBar action="/work-orders/team">
+        <FilterBar action="/work-orders/team" search={false}>
           <FilterSelect label="Period" name="days" defaultValue={String(days)}>
             {WINDOWS.map((d) => <option key={d} value={d}>Last {d} days</option>)}
           </FilterSelect>

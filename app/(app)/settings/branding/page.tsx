@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
+import { ColorField } from '@/components/ui/color-field';
 import { Alert, Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell';
 import { Section } from '@/components/workspace/shell';
 import { revalidatePath } from 'next/cache';
@@ -76,10 +77,7 @@ export default async function BrandingPage({
 
             <div>
               <Label htmlFor="brand_color">Brand color</Label>
-              <div className="flex items-center gap-2">
-                <input type="color" id="brand_color_picker" defaultValue={p.brand_color ?? '#10B981'} className="h-10 w-10 cursor-pointer rounded-lg border border-gray-300" />
-                <Input id="brand_color" name="brand_color" defaultValue={p.brand_color ?? '#10B981'} className="flex-1 font-mono" />
-              </div>
+              <ColorField id="brand_color" name="brand_color" defaultValue={p.brand_color ?? '#10B981'} />
             </div>
 
             <div>

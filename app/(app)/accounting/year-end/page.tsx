@@ -51,7 +51,7 @@ export default async function YearEndPage({
         {sp.error && <Alert tone="danger" title="Could not prepare the package:">{sp.error}</Alert>}
         {sp.saved && <Alert tone="success">{sp.saved}</Alert>}
 
-        <FilterBar action="/accounting/year-end" searchName="_" searchPlaceholder="Choose an association and fiscal year">
+        <FilterBar action="/accounting/year-end" search={false}>
           <FilterSelect label="Association" name="association_id" defaultValue={selected?.id ?? ''}>
             {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </FilterSelect>
