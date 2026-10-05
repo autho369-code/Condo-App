@@ -9,6 +9,7 @@ import { openViolation } from '@/lib/rpcs/violation-rules';
 import { createClient } from '@/lib/supabase/server';
 import { newSubmissionToken } from '@/lib/forms/submission';
 import { todayInZone } from '@/lib/time/zoned';
+import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/time/display-zone';
 import { VIOLATION_TYPES, humanize } from '@/lib/violations/rules-data';
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,7 @@ export default async function NewViolationPage({
   const db = supabase as any;
 
   const [{ data: associations }, { data: units }, { data: rules }] = await Promise.all([
-    db.from('associations').select('id, name').is('archived_at', null).order('name'),
+    db.from('associations').select('id, name, timezone').is('archived_at', null).order('name'),
     // Every unit (one request stops at 1,000 rows).
     fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id, name)').is('archived_at', null).order('unit_number').order('id')).then((r) => ({ data: r.rows })),
     db.from('house_rules')
@@ -33,6 +34,13 @@ export default async function NewViolationPage({
       .eq('active', true)
       .order('sort_order'),
   ]);
+
+  // The observed date defaults to (and is capped at) today in the selected
+  // association's own zone, not the viewer's predominant one.
+  const todayByAssociation: Record<string, string> = {};
+  for (const a of (associations ?? []) as any[]) {
+    todayByAssociation[a.id] = todayInZone(a.timezone && isValidTimeZone(a.timezone) ? a.timezone : DEFAULT_TIME_ZONE);
+  }
 
   return (
     <DataWorkspace
@@ -46,8 +54,9 @@ export default async function NewViolationPage({
           <OpenViolationForm
             action={openViolation}
             today={todayInZone()}
+            todayByAssociation={todayByAssociation}
             submissionToken={newSubmissionToken()}
-            associations={associations ?? []}
+            associations={((associations ?? []) as any[]).map((a) => ({ id: a.id, name: a.name }))}
             units={((units ?? []) as any[]).map((u) => ({
               id: u.id,
               association_id: u.buildings?.association_id,

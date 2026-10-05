@@ -17,6 +17,7 @@ export function OpenViolationForm({
   initialAssociationId,
   initialRuleId,
   today: todayProp,
+  todayByAssociation,
   submissionToken,
 }: {
   action: (formData: FormData) => void | Promise<void>;
@@ -28,6 +29,8 @@ export function OpenViolationForm({
   initialRuleId?: string;
   /** Today's date in the association's zone (the server's UTC date is tomorrow on a US evening). */
   today?: string;
+  /** Today's date in each association's own zone; wins over `today` once one is picked. */
+  todayByAssociation?: Record<string, string>;
   /** One-time token so a double click opens one violation. */
   submissionToken?: string;
 }) {
@@ -36,10 +39,11 @@ export function OpenViolationForm({
   const assocRules = rules.filter((r) => r.association_id === associationId);
   const assocUnits = units.filter((u) => u.association_id === associationId);
   const rule = assocRules.find((r) => r.id === ruleId);
-  const today = todayProp ?? (() => {
+  const fallbackToday = todayProp ?? (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   })();
+  const today = (associationId && todayByAssociation?.[associationId]) || fallbackToday;
 
   return (
     <form action={action} className="space-y-5">
@@ -84,7 +88,8 @@ export function OpenViolationForm({
           </Select>
         </Field>
         <Field label="Observed on" htmlFor="date_observed">
-          <Input id="date_observed" name="date_observed" type="date" max={today} defaultValue={today} />
+          {/* Re-keyed so the default follows the selected association's date. */}
+          <Input key={today} id="date_observed" name="date_observed" type="date" max={today} defaultValue={today} />
         </Field>
       </div>
       <Field label="What was observed" htmlFor="description" hint={rule ? 'Leave blank to use the rule text.' : undefined}>
