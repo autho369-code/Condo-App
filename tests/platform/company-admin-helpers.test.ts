@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { validatePlatformRequest, PLATFORM_REQUEST_ADMIN_COLUMNS } from '@/lib/company-admin/platform-requests';
-import { normalizeCompanySettingsInput, safeHttpUrl } from '@/lib/company-admin/settings';
+import { normalizeCompanyLogoUrl, safeHttpUrl } from '@/lib/company-admin/settings';
 import { effectiveManagerScope } from '@/lib/company-admin/manager-scope';
 import { addDaysToDate, addMonthsToMonth } from '@/lib/time/zoned';
 import { vendorComplianceStatus } from '@/lib/company-admin/vendor-compliance';
+import { associationHealthScore, computeAssociationHealth, healthStatus } from '@/lib/company-admin/health';
+import { collectLoadErrors } from '@/lib/company-admin/load-errors';
 
 describe('validatePlatformRequest', () => {
   const ok = { request_type: 'more_doors', priority: 'high', subject: '  Need 50 doors ', description: 'Growing.' };
@@ -30,21 +32,19 @@ describe('validatePlatformRequest', () => {
   });
 });
 
-describe('normalizeCompanySettingsInput', () => {
-  it('accepts http(s) logo URLs and known manager defaults', () => {
-    expect(normalizeCompanySettingsInput({ logo_url: 'https://cdn.example.com/logo.png', default_role: 'assistant_manager', default_permissions: 'elevated' }))
-      .toEqual({ logoUrl: 'https://cdn.example.com/logo.png', managerDefaults: { role: 'assistant_manager', permissions: 'elevated' } });
+describe('normalizeCompanyLogoUrl', () => {
+  it('accepts http(s) logo URLs', () => {
+    expect(normalizeCompanyLogoUrl(' https://cdn.example.com/logo.png ')).toEqual({ logoUrl: 'https://cdn.example.com/logo.png' });
   });
 
-  it('defaults blanks', () => {
-    expect(normalizeCompanySettingsInput({ logo_url: '', default_role: null, default_permissions: '' }))
-      .toEqual({ logoUrl: null, managerDefaults: { role: 'manager', permissions: 'standard' } });
+  it('treats blank as clearing the logo', () => {
+    expect(normalizeCompanyLogoUrl('')).toEqual({ logoUrl: null });
+    expect(normalizeCompanyLogoUrl(null)).toEqual({ logoUrl: null });
   });
 
-  it('rejects script URLs and unknown role/permission values', () => {
-    expect(normalizeCompanySettingsInput({ logo_url: 'javascript:alert(1)', default_role: 'manager', default_permissions: 'standard' })).toHaveProperty('error');
-    expect(normalizeCompanySettingsInput({ logo_url: '', default_role: 'company_admin', default_permissions: 'standard' })).toHaveProperty('error');
-    expect(normalizeCompanySettingsInput({ logo_url: '', default_role: 'manager', default_permissions: 'superuser' })).toHaveProperty('error');
+  it('rejects script and data URLs', () => {
+    expect(normalizeCompanyLogoUrl('javascript:alert(1)')).toHaveProperty('error');
+    expect(normalizeCompanyLogoUrl('not a url')).toHaveProperty('error');
     expect(safeHttpUrl('data:image/png;base64,AAAA')).toBeNull();
   });
 });
@@ -99,5 +99,47 @@ describe('calendar date math', () => {
   it('rejects malformed input', () => {
     expect(() => addDaysToDate('10/04/2026', 1)).toThrow();
     expect(() => addMonthsToMonth('2026-3', 1)).toThrow();
+  });
+});
+
+describe('association health (shared formula)', () => {
+  it('starts at 100 and deducts per open item, clamped to 0', () => {
+    expect(associationHealthScore({ open: 0, overdue: 0, emergency: 0, violations: 0 })).toBe(100);
+    expect(associationHealthScore({ open: 2, overdue: 1, emergency: 0, violations: 1 })).toBe(100 - 8 - 12 - 6);
+    expect(associationHealthScore({ open: 30, overdue: 10, emergency: 5, violations: 10 })).toBe(0);
+  });
+
+  it('bands scores into healthy / warning / critical', () => {
+    expect(healthStatus(80)).toBe('healthy');
+    expect(healthStatus(79)).toBe('warning');
+    expect(healthStatus(50)).toBe('warning');
+    expect(healthStatus(49)).toBe('critical');
+  });
+
+  it('aggregates rows per association and ignores other associations', () => {
+    const health = computeAssociationHealth(
+      ['a1', 'a2'],
+      [
+        { association_id: 'a1', scheduled_date: '2026-10-01', priority: 'emergency' },
+        { association_id: 'a1', scheduled_date: '2026-10-09', priority: 'normal' },
+        { association_id: 'other', scheduled_date: null, priority: 'emergency' },
+      ],
+      [{ association_id: 'a2' }, { association_id: null }],
+      '2026-10-05',
+    );
+    expect(health.get('a1')).toMatchObject({ open: 2, overdue: 1, emergency: 1, violations: 0 });
+    expect(health.get('a2')).toMatchObject({ open: 0, violations: 1, score: 94, status: 'healthy' });
+    expect(health.has('other')).toBe(false);
+  });
+});
+
+describe('collectLoadErrors', () => {
+  it('reports Supabase and fetchAllRows errors with their labels', () => {
+    expect(collectLoadErrors({
+      Owners: { error: { message: 'permission denied' } },
+      Units: { error: 'timeout' },
+      Fine: { error: null },
+      Missing: null,
+    })).toEqual(['Owners: permission denied', 'Units: timeout']);
   });
 });

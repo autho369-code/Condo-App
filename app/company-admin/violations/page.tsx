@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
-import { Badge } from '@/components/ui/shell'
+import { Alert, Badge } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
 import { AlertTriangle, Calendar, FileText, Eye } from 'lucide-react'
 import { isHearingPendingViolationStatus, isOpenViolationStatus } from '@/lib/violations/queries'
 import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned'
 import { displayTimeZone } from '@/lib/time/display-zone'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,23 +28,28 @@ export default async function ViolationsOversightPage() {
   const firstOfMonth = (zonedWallTimeToUtc(monthStartDate, '00:00', zone) ?? new Date(`${monthStartDate}T00:00:00Z`)).toISOString()
 
   // violations has no portfolio_id column — scope by the portfolio's associations.
-  const { data: assocRows } = await db
+  const { data: assocRows, error: assocRowsError } = await db
     .from('associations')
     .select('id')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
   const assocIds = (assocRows ?? []).map((a: any) => a.id)
 
-  const { data: allViolations } = assocIds.length
+  const { data: allViolations, error: allViolationsError } = assocIds.length
     ? await db
         .from('violations')
         .select(`id, status, title, violation_type, date_observed, hearing_date, fine_amount, created_at, due_date, notice_sent_at, association_id, unit_id, owner_id, associations!violations_association_id_fkey(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name)`)
         .in('association_id', assocIds)
         .is('archived_at', null)
         .order('created_at', { ascending: false })
-    : { data: [] as any[] }
+    : { data: [] as any[], error: null }
 
   const violations = allViolations ?? []
+
+  const loadErrors = collectLoadErrors({
+    Associations: { error: assocRowsError },
+    Violations: { error: allViolationsError },
+  })
 
   // Stats
   const openCount = violations.filter((v: any) => isOpenViolationStatus(v.status?.toLowerCase())).length
@@ -58,6 +64,8 @@ export default async function ViolationsOversightPage() {
           <p className="mt-1.5 text-sm leading-6 text-gray-500">Track all violations across your portfolio</p>
         </div>
       </div>
+
+      {loadErrors.length > 0 && <Alert tone="danger" title="Could not load violations; the list below may be incomplete.">{loadErrors.join(' · ')}</Alert>}
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

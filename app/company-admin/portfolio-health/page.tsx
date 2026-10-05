@@ -1,8 +1,13 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
-import { StatusChip, type Tone } from '@/components/operations/status-chip'
-import { CheckCircle2, AlertTriangle, AlertOctagon, HelpCircle } from 'lucide-react'
+import { StatusChip } from '@/components/operations/status-chip'
+import { Alert } from '@/components/ui/shell'
+import { CheckCircle2, AlertTriangle, AlertOctagon } from 'lucide-react'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
+import { computeAssociationHealth, healthTone, HEALTH_DEDUCTIONS, HEALTH_LABELS, OPEN_WORK_ORDER_STATUSES, type HealthStatus } from '@/lib/company-admin/health'
 import { todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
@@ -29,10 +34,8 @@ function Gauge({ value }: { value: number }) {
   )
 }
 
-function HealthBadge({ status }: { status: 'healthy' | 'warning' | 'attention' | 'critical' }) {
-  const tones: Record<string, Tone> = { healthy: 'success', warning: 'warning', attention: 'warning', critical: 'danger' }
-  const labels = { healthy: 'Healthy', warning: 'Warning', attention: 'Attention', critical: 'Critical' }
-  return <StatusChip tone={tones[status]}>{labels[status]}</StatusChip>
+function HealthBadge({ status }: { status: HealthStatus }) {
+  return <StatusChip tone={healthTone(status)}>{HEALTH_LABELS[status]}</StatusChip>
 }
 
 export default async function PortfolioHealthPage() {
@@ -44,70 +47,68 @@ export default async function PortfolioHealthPage() {
   const todayDate = todayInZone()
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString()
 
-  const { data: associations } = await db
-    .from('associations')
-    .select('id, slug, name, city, state, unit_count')
-    .eq('portfolio_id', portfolioId)
-    .is('archived_at', null)
-    .order('name')
-
-  const { data: allWorkOrders } = await db
-    .from('work_orders')
-    .select('association_id, id, status, scheduled_date')
-    .eq('portfolio_id', portfolioId)
-    .is('archived_at', null)
-    .not('status', 'in', '("done","completed","billed","closed","cancelled")')
-
-  const { data: allViolations } = await db
-    .from('violations')
-    .select('association_id, id')
-    .is('archived_at', null)
-    .not('status', 'in', '("closed","cured")')
-
-  const { data: assocManagers } = await db
-    .from('association_managers')
-    .select('association_id, user_id')
-    .is('ended_at', null)
+  // Paged reads: a plain select stops at 1,000 rows and silently undercounted
+  // larger portfolios.
+  const [assocRes, woRes, violRes, amRes] = await Promise.all([
+    fetchAllRows(() => db
+      .from('associations')
+      .select('id, slug, name, city, state, unit_count')
+      .eq('portfolio_id', portfolioId)
+      .is('archived_at', null)
+      .order('name')
+      .order('id')),
+    fetchAllRows(() => db
+      .from('work_orders')
+      .select('association_id, id, status, priority, scheduled_date')
+      .eq('portfolio_id', portfolioId)
+      .is('archived_at', null)
+      .in('status', [...OPEN_WORK_ORDER_STATUSES])
+      .order('id')),
+    fetchAllRows(() => db
+      .from('violations')
+      .select('association_id, id')
+      .is('archived_at', null)
+      .in('status', [...ACTIVE_VIOLATION_STATUSES])
+      .order('id')),
+    fetchAllRows(() => db
+      .from('association_managers')
+      .select('id, association_id, user_id')
+      .is('ended_at', null)
+      .order('id')),
+  ])
+  const associations = assocRes.rows as any[]
+  const assocManagers = amRes.rows as any[]
 
   // `activity` is an internal agent log, not user sign-ins; last_login_at is
   // stamped by record_login_attempt on every successful login.
-  const assignedManagerIds = [...new Set((assocManagers ?? []).map((am: any) => am.user_id).filter(Boolean))]
-  const { data: recentLogins } = assignedManagerIds.length > 0
+  const assignedManagerIds = [...new Set(assocManagers.map((am: any) => am.user_id).filter(Boolean))]
+  const loginsRes = assignedManagerIds.length > 0
     ? await db.from('profiles').select('id').in('id', assignedManagerIds).gte('last_login_at', sevenDaysAgo)
-    : { data: [] }
+    : { data: [], error: null }
 
-  const activeManagerIds = new Set((recentLogins ?? []).map((p: any) => p.id))
+  const loadErrors = collectLoadErrors({
+    Associations: assocRes,
+    'Work orders': woRes,
+    Violations: violRes,
+    'Manager assignments': amRes,
+    'Manager sign-ins': loginsRes,
+  })
+
+  const activeManagerIds = new Set((loginsRes.data ?? []).map((p: any) => p.id))
   const managerByAssoc = new Map<string, string[]>()
-  for (const am of assocManagers ?? []) {
+  for (const am of assocManagers) {
     if (!managerByAssoc.has(am.association_id)) managerByAssoc.set(am.association_id, [])
     managerByAssoc.get(am.association_id)!.push(am.user_id)
   }
 
-  const healthRows = (associations ?? []).map((assoc: any) => {
-    const openWO = (allWorkOrders ?? []).filter((wo: any) => wo.association_id === assoc.id)
-    const overdueWO = openWO.filter((wo: any) => wo.scheduled_date && wo.scheduled_date < todayDate)
-    const viols = (allViolations ?? []).filter((v: any) => v.association_id === assoc.id)
+  // Shared formula (lib/company-admin/health) so this page, the Executive
+  // Dashboard and the Associations list agree on every score.
+  const healthByAssoc = computeAssociationHealth(associations.map((a: any) => a.id), woRes.rows, violRes.rows, todayDate)
+
+  const healthRows = associations.map((assoc: any) => {
+    const h = healthByAssoc.get(assoc.id)!
     const mgrIds = managerByAssoc.get(assoc.id) ?? []
     const anyManagerActive = mgrIds.length === 0 || mgrIds.some((uid) => activeManagerIds.has(uid))
-
-    const woScore = Math.min(100, openWO.length * 25)
-    const overdueScore = Math.min(100, overdueWO.length * 20)
-    const violationScore = Math.min(100, viols.length * 15)
-    const managerScore = anyManagerActive ? 0 : 5
-    const deductionScore = woScore + overdueScore + violationScore + managerScore
-    const score = Math.max(0, 100 - deductionScore)
-
-    let status: 'healthy' | 'warning' | 'attention' | 'critical'
-    if (overdueWO.length > 3 || viols.length > 5 || !anyManagerActive) {
-      status = 'critical'
-    } else if (overdueWO.length > 1 || openWO.length > 5 || viols.length > 2) {
-      status = 'attention'
-    } else if (overdueWO.length > 0 || openWO.length > 2 || viols.length > 0) {
-      status = 'warning'
-    } else {
-      status = 'healthy'
-    }
-
     return {
       id: assoc.id,
       slug: assoc.slug,
@@ -115,26 +116,25 @@ export default async function PortfolioHealthPage() {
       city: assoc.city,
       state: assoc.state,
       unitCount: assoc.unit_count ?? 0,
-      openWorkOrders: openWO.length,
-      overdueWorkOrders: overdueWO.length,
-      openViolations: viols.length,
+      openWorkOrders: h.open,
+      overdueWorkOrders: h.overdue,
+      emergencies: h.emergency,
+      openViolations: h.violations,
       managerActive: anyManagerActive,
-      status,
-      score,
+      status: h.status,
+      score: h.score,
     }
   })
 
   const overallScore = healthRows.length > 0 ? Math.round(healthRows.reduce((sum: number, r: any) => sum + r.score, 0) / healthRows.length) : 0
   const healthy = healthRows.filter((r: any) => r.status === 'healthy')
   const warning = healthRows.filter((r: any) => r.status === 'warning')
-  const attention = healthRows.filter((r: any) => r.status === 'attention')
   const critical = healthRows.filter((r: any) => r.status === 'critical')
 
   const summaryCards = [
-    { href: '#healthy', icon: CheckCircle2, count: healthy.length, label: 'Healthy', note: 'No issues' },
-    { href: '#warning', icon: HelpCircle, count: warning.length, label: 'Warning', note: 'Some overdue items' },
-    { href: '#attention', icon: AlertTriangle, count: attention.length, label: 'Attention', note: 'Multiple overdue items' },
-    { href: '#critical', icon: AlertOctagon, count: critical.length, label: 'Critical', note: 'High overdue, no activity' },
+    { href: '#healthy', icon: CheckCircle2, count: healthy.length, label: 'Healthy', note: 'Score 80 or above' },
+    { href: '#warning', icon: AlertTriangle, count: warning.length, label: 'Warning', note: 'Score 50–79' },
+    { href: '#critical', icon: AlertOctagon, count: critical.length, label: 'Critical', note: 'Score below 50' },
   ]
 
   return (
@@ -144,11 +144,13 @@ export default async function PortfolioHealthPage() {
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Real-time health monitoring across all associations</p>
       </div>
 
+      {loadErrors.length > 0 && <Alert tone="danger" title="Some data could not be loaded; scores below may be incomplete.">{loadErrors.join(' · ')}</Alert>}
+
       <div className={`${card} p-8 text-center`}>
         <Gauge value={overallScore} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {summaryCards.map((c) => {
           const Icon = c.icon
           return (
@@ -165,19 +167,17 @@ export default async function PortfolioHealthPage() {
 
       <div className={`${card} p-6`}>
         <h2 className="text-sm font-semibold text-gray-950">Health Score Factors</h2>
+        <p className="mt-1 text-xs text-gray-500">Each association starts at 100; every open item deducts points (minimum 0).</p>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: 'Open Work Orders', weight: '25%' },
-            { label: 'Overdue Work Orders', weight: '20%' },
-            { label: 'Unanswered Messages', weight: '15%' },
-            { label: 'Open Violations', weight: '15%' },
-            { label: 'Vendor Delays', weight: '10%' },
-            { label: 'Delinquency Level', weight: '10%' },
-            { label: 'Manager Inactivity', weight: '5%' },
+            { label: 'Open work order', points: HEALTH_DEDUCTIONS.open },
+            { label: 'Overdue work order (extra)', points: HEALTH_DEDUCTIONS.overdue },
+            { label: 'Emergency work order (extra)', points: HEALTH_DEDUCTIONS.emergency },
+            { label: 'Open violation', points: HEALTH_DEDUCTIONS.violations },
           ].map((factor) => (
             <div key={factor.label} className="flex items-center justify-between rounded-xl border border-gray-200/70 bg-gray-50/60 px-4 py-3">
               <span className="text-sm text-gray-600">{factor.label}</span>
-              <span className="text-sm font-medium tabular-nums text-gray-950">{factor.weight}</span>
+              <span className="text-sm font-medium tabular-nums text-gray-950">−{factor.points}</span>
             </div>
           ))}
         </div>
@@ -206,9 +206,9 @@ export default async function PortfolioHealthPage() {
               {healthRows.length === 0 ? (
                 <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-gray-500">No associations found.</td></tr>
               ) : (
-                healthRows.sort((a: any, b: any) => { const order: Record<string, number> = { critical: 0, attention: 1, warning: 2, healthy: 3 }; return order[a.status] - order[b.status] })
-                  .map((row: any) => (
-                    <tr key={row.id} id={row.status} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                healthRows.sort((a: any, b: any) => { const order: Record<string, number> = { critical: 0, warning: 1, healthy: 2 }; return order[a.status] - order[b.status] })
+                  .map((row: any, i: number, sorted: any[]) => (
+                    <tr key={row.id} id={i === 0 || sorted[i - 1].status !== row.status ? row.status : undefined} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                       <td className="px-6 py-3">
                         <Link href={`/associations/${row.slug ?? row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
                       </td>

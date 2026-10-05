@@ -28,15 +28,15 @@ Login page: `/login` (one form; it routes by the account's real role). Never sto
 - This inserts a `user_invitations` row (`hoa_role='company_admin'`) and queues the invite email (Resend).
 - The admin clicks the link → `/accept-invitation?token=…` (`accept_invitation` RPC) → sets a password → lands on `/company-admin/overview`.
 
-### 2. Company Admin → Manager  ⚠️ GAP (fix pending)
-- Company admin: **Managers** page (`/company-admin/managers`) → **"Invite Manager"** button.
-- **Problem:** that button links to `/settings?tab=managers`, but `/settings` is gated by `requirePortfolioAdmin` (needs `hoa_role='manager'`). A `company_admin` fails that check and gets bounced. So a company admin currently *cannot* reach the manager-invite form.
-- The underlying invite works (`invite_staff` RPC) when triggered by a manager/operator from `/settings`.
-- **Fix needed:** give company admins access to the manager-invite action (own action in `/company-admin/managers`, or allow `is_company_admin` in the settings guard).
+### 2. Company Admin → Manager  ✅ wired
+- Company admin: **Managers** page (`/company-admin/managers`) has an inline **Invite manager** form (email + optional association checkboxes).
+- Submitting calls the `inviteManager` server action (`app/company-admin/managers/actions.ts`), which re-checks `requirePortfolioAdmin` and calls the `create_manager_invitation` RPC. The invite email is queued with the tenant-branded `/invite?token=…` link.
+- Selected associations travel with the invitation; on acceptance `apply_pending_invitation` creates the `association_managers` rows. No selection = full portfolio access.
+- (Previously the button linked to `/settings?tab=managers`, which company admins could not reach — that gap is closed.)
 
 ### 3. Manager → Owners / Tenants / Vendors
 - **Owners** (portal invite) ✅: Manager → **Owners → Activations** (`/owners/activations`) shows portal status; **"Stage activation"** → `/owners/forms?template=portal_activation` sends the owner an activation link. Owner accepts → sets password → `/portal`. (Owners are first created via **Owners → New**.)
-- **Vendors** ✅ (manual): Manager creates the vendor (**Vendors → New**); portal access via the vendor's `portal_activated` flag. Dedicated `invite_vendor` RPC exists but the one-click invite button isn't wired yet — vendor portal currently activated by setting the flag.
+- **Vendors** ✅: Manager creates the vendor (**Vendors → New**), then uses the one-click **Invite to portal** button on the vendor list (`/vendors`) or the vendor detail page (`/vendors/[id]`). Both call `inviteVendorToPortal` (`app/(app)/vendors/actions.ts`), which creates a `user_invitations` row (`hoa_role='vendor'`, superseding any older pending invite) for the vendor's first email on file and queues the `/invite` link. The vendor accepts → sets a password → lands on `/vendor`.
 - **Tenants** — by design **no portal invite**. Manager adds the tenant as a contact (tenants table); they receive **email/SMS only** (Communication Center "Tenants" group; SMS console "Tenant" recipient). No login.
 - **Board members** (bonus): `invite_board_member` RPC exists; a board member is an owner whose `hoa_role` is set to `board` + a `board_members` row (how Olivia was set up).
 
@@ -46,6 +46,6 @@ Login page: `/login` (one form; it routes by the account's real role). Never sto
 - `accept_invitation(p_token)` consumes the token, links the auth user to the portfolio + role.
 
 ## Known gaps to close (for a working end-to-end chain)
-1. **Company Admin → Manager invite is blocked** (see step 2) — highest priority.
-2. **Vendor one-click invite** not wired (manual `portal_activated` works).
+1. ~~Company Admin → Manager invite is blocked~~ — fixed (inline form on `/company-admin/managers` → `inviteManager` → `create_manager_invitation`).
+2. ~~Vendor one-click invite not wired~~ — fixed (`inviteVendorToPortal` on `/vendors` and `/vendors/[id]`).
 3. Owner activation send path goes through the forms flow — verify the email actually queues on "Stage activation".

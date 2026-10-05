@@ -5,6 +5,8 @@ import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
 import { FileText, FolderOpen, FileWarning } from 'lucide-react'
 import { todayInZone } from '@/lib/time/zoned'
+import { Alert } from '@/components/ui/shell'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +32,7 @@ export default async function GlobalDocumentsPage() {
   // Calendar dates are the company's zone (server code runs in UTC).
   const today = todayInZone()
 
-  const [{ data: docs }, { data: assocs }] = await Promise.all([
+  const [{ data: docs, error: docsError }, { data: assocs, error: assocsError }] = await Promise.all([
     db.from('documents').select('id, entity_type, entity_id, doc_type, file_name, file_url, expires_at, uploaded_at').order('uploaded_at', { ascending: false }).limit(500),
     db.from('associations').select('id, name').eq('portfolio_id', portfolioId).is('archived_at', null),
   ])
@@ -40,15 +42,25 @@ export default async function GlobalDocumentsPage() {
   // file_url is a private storage path; a raw href resolved under
   // /company-admin/... and 404'd. Sign paths that sit in their entity's folder.
   const docLinks = new Map<string, string>()
+  let signError: string | null = null
   const toSign = (docs ?? []).filter((d: any) => isEntityDocumentStoragePath(d.file_url, d.entity_type, d.entity_id))
   if (toSign.length) {
     try {
-      const { data: signed } = await (createServiceClient() as any).storage.from('association-documents')
+      const { data: signed, error: signedError } = await (createServiceClient() as any).storage.from('association-documents')
         .createSignedUrls(toSign.map((d: any) => d.file_url), 3600)
+      if (signedError) signError = signedError.message ?? String(signedError)
       const byPath = new Map<string, string>((signed ?? []).filter((x: any) => x?.signedUrl).map((x: any) => [x.path, x.signedUrl]))
       for (const d of toSign) { const u = byPath.get(d.file_url); if (u) docLinks.set(d.id, u) }
-    } catch {}
+    } catch (e) {
+      signError = e instanceof Error ? e.message : String(e)
+    }
   }
+
+  const loadErrors = collectLoadErrors({
+    Documents: { error: docsError },
+    Associations: { error: assocsError },
+    'Download links': { error: signError },
+  })
 
   // Group by document category.
   const groups = new Map<string, any[]>()
@@ -67,6 +79,8 @@ export default async function GlobalDocumentsPage() {
           Global repository across every association — governing documents, minutes, contracts, insurance, and audits
         </p>
       </div>
+
+      {loadErrors.length > 0 && <Alert tone="danger" title="Some documents could not be loaded; the list below may be incomplete.">{loadErrors.join(' · ')}</Alert>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {[

@@ -7,11 +7,14 @@ import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { Building2, Eye } from 'lucide-react'
 import { todayInZone } from '@/lib/time/zoned'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
+import { computeAssociationHealth, healthStatus, healthTone, OPEN_WORK_ORDER_STATUSES } from '@/lib/company-admin/health'
 
 export const dynamic = 'force-dynamic'
 
 function HealthBadge({ score }: { score: number }) {
-  const tone: Tone = score >= 80 ? 'success' : score >= 50 ? 'warning' : 'danger'
+  const tone: Tone = healthTone(healthStatus(score))
   return <StatusChip tone={tone}>{score}%</StatusChip>
 }
 
@@ -37,50 +40,43 @@ export default async function CompanyAdminAssociationsPage({
     .order('name')
 
   // Paged: a plain select stops at 1,000 rows and undercounted large portfolios.
-  const { rows: woCounts } = await fetchAllRows(() => db
+  const woRes = await fetchAllRows(() => db
     .from('work_orders')
-    .select('association_id, id, status, scheduled_date')
+    .select('association_id, id, status, priority, scheduled_date')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
-    .not('status', 'in', '("done","completed","billed","closed","cancelled")')
+    .in('status', [...OPEN_WORK_ORDER_STATUSES])
     .order('id'))
 
-  // Calendar dates are the company's zone (server code runs in UTC).
-  const today = todayInZone()
-  const woByAssoc = new Map<string, { open: number; overdue: number }>()
-  for (const wo of woCounts ?? []) {
-    if (!woByAssoc.has(wo.association_id)) woByAssoc.set(wo.association_id, { open: 0, overdue: 0 })
-    const entry = woByAssoc.get(wo.association_id)!
-    entry.open++
-    if (wo.scheduled_date && wo.scheduled_date < today) entry.overdue++
-  }
-
-  const { rows: violCounts } = await fetchAllRows(() => db
+  const violRes = await fetchAllRows(() => db
     .from('violations')
     .select('association_id, id')
     .is('archived_at', null)
-    .not('status', 'in', '("closed","cured")')
+    .in('status', [...ACTIVE_VIOLATION_STATUSES])
     .order('id'))
 
-  const violByAssoc = new Map<string, number>()
-  for (const v of violCounts ?? []) {
-    violByAssoc.set(v.association_id, (violByAssoc.get(v.association_id) ?? 0) + 1)
-  }
+  // Calendar dates are the company's zone (server code runs in UTC).
+  const healthByAssoc = computeAssociationHealth(
+    (associations ?? []).map((a: any) => a.id),
+    woRes.rows,
+    violRes.rows,
+    todayInZone(),
+  )
 
-  const { data: managers } = await db
+  const { data: managers, error: managersError } = await db
     .from('profiles')
     .select('id, full_name, email')
     .eq('portfolio_id', portfolioId)
     .in('hoa_role', ['manager', 'company_admin'])
 
+  const loadErrors = collectLoadErrors({ 'Work orders': woRes, Violations: violRes, Managers: managersError ? { error: managersError } : null })
+
   const cities = [...new Set((associations ?? []).map((a: any) => a.city).filter(Boolean))].sort() as string[]
   const profilesById = new Map<string, any>((managers ?? []).map((p: any) => [p.id, p]))
 
   let rows = (associations ?? []).map((assoc: any) => {
-    const wo = woByAssoc.get(assoc.id) ?? { open: 0, overdue: 0 }
-    const viol = violByAssoc.get(assoc.id) ?? 0
-    const rawScore = 100 - (wo.overdue * 8 + wo.open * 3 + viol * 4)
-    const healthScore = Math.max(0, Math.min(100, rawScore))
+    const h = healthByAssoc.get(assoc.id)
+    const healthScore = h?.score ?? 100
     const assignedMgrs = (assoc.association_managers ?? []).filter((am: any) => !am.ended_at).map((am: any) => profilesById.get(am.user_id))
     return {
       id: assoc.id,
@@ -92,19 +88,17 @@ export default async function CompanyAdminAssociationsPage({
       units: assoc.unit_count ?? 0,
       managerNames: assignedMgrs.map((p: any) => p?.full_name ?? p?.email ?? 'Unknown').join(', ') || '—',
       healthScore,
-      openWorkOrders: wo.open,
-      overdueWorkOrders: wo.overdue,
-      openViolations: viol,
+      openWorkOrders: h?.open ?? 0,
+      overdueWorkOrders: h?.overdue ?? 0,
+      openViolations: h?.violations ?? 0,
       status: assoc.status ?? 'active',
     }
   })
 
   if (sp.manager) rows = rows.filter((r: any) => r.managerNames.toLowerCase().includes(sp.manager!.toLowerCase()))
   if (sp.city) rows = rows.filter((r: any) => r.city === sp.city)
-  if (sp.health) {
-    if (sp.health === 'healthy') rows = rows.filter((r: any) => r.healthScore >= 80)
-    if (sp.health === 'warning') rows = rows.filter((r: any) => r.healthScore >= 50 && r.healthScore < 80)
-    if (sp.health === 'critical') rows = rows.filter((r: any) => r.healthScore < 50)
+  if (sp.health === 'healthy' || sp.health === 'warning' || sp.health === 'critical') {
+    rows = rows.filter((r: any) => healthStatus(r.healthScore) === sp.health)
   }
   if (sp.status) rows = rows.filter((r: any) => r.status === sp.status)
   if (sp.min_units) rows = rows.filter((r: any) => r.units >= parseInt(sp.min_units!, 10))
@@ -125,6 +119,7 @@ export default async function CompanyAdminAssociationsPage({
       </div>
 
       {associationsError && <Alert title="Could not load associations">{associationsError.message}</Alert>}
+      {loadErrors.length > 0 && <Alert tone="danger" title="Some data could not be loaded; health scores may be incomplete.">{loadErrors.join(' · ')}</Alert>}
 
       <form action="/company-admin/associations" method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <label className="text-xs font-medium text-gray-500">

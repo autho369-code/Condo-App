@@ -7,6 +7,8 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import { ShieldAlert, FileWarning, AlertTriangle, ShieldCheck } from 'lucide-react'
 import { addDaysToDate, todayInZone } from '@/lib/time/zoned'
+import { Alert } from '@/components/ui/shell'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,11 +33,11 @@ export default async function CompliancePage() {
   const in60 = addDaysToDate(today, 60)
 
   const [
-    { data: vendors },
-    { data: policies },
-    { data: viols },
-    { data: assocs },
-    { data: certTasks },
+    { data: vendors, error: vendorsError },
+    { data: policies, error: policiesError },
+    { data: viols, error: violsError },
+    { data: assocs, error: assocsError },
+    { data: certTasks, error: certTasksError },
   ] = await Promise.all([
     db.from('vendors')
       .select('id, name, trade, general_liability_expiration, workers_comp_expiration, auto_insurance_expiration, state_license_expiration, epa_certification_expiration, contract_expiration, send_1099, has_taxpayer_id')
@@ -46,7 +48,7 @@ export default async function CompliancePage() {
       .is('archived_at', null)
       .in('status', ['active', 'expiring_soon', 'expired'])
       .order('expiration_date'),
-    fetchAllRows(() => db.from('violations').select('id, association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]).order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows(() => db.from('violations').select('id, association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]).order('id')).then((r) => ({ data: r.rows, error: r.error })),
     db.from('associations').select('id, name, slug').eq('portfolio_id', portfolioId).is('archived_at', null).order('name'),
     // Statutory certifications tracked as preventive maintenance (fire, elevator, boiler, backflow).
     db.from('maintenance_tasks')
@@ -55,6 +57,14 @@ export default async function CompliancePage() {
       .or('task_name.ilike.%fire%,task_name.ilike.%elevator%,task_name.ilike.%boiler%,task_name.ilike.%backflow%,task_name.ilike.%sprinkler%,task_name.ilike.%generator%')
       .order('next_due_date'),
   ])
+
+  const loadErrors = collectLoadErrors({
+    Vendors: { error: vendorsError },
+    'Insurance policies': { error: policiesError },
+    Violations: { error: violsError },
+    Associations: { error: assocsError },
+    'Certification tasks': { error: certTasksError },
+  })
 
   // ── Vendor compliance issues ─────────────────────────────────
   type Issue = { vendor: string; item: string; state: 'missing' | 'expired' | 'expiring'; date?: string }
@@ -106,6 +116,8 @@ export default async function CompliancePage() {
           Company-wide compliance posture — vendor credentials, owner insurance, violations, and statutory inspections
         </p>
       </div>
+
+      {loadErrors.length > 0 && <Alert tone="danger" title="Some compliance data could not be loaded; figures below may be incomplete.">{loadErrors.join(' · ')}</Alert>}
 
       {/* ── KPIs ──────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

@@ -6,6 +6,8 @@ import { Mail, MessageSquare, AlertTriangle, Megaphone } from 'lucide-react'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { displayTimeZone } from '@/lib/time/display-zone'
 import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned'
+import { Alert } from '@/components/ui/shell'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,7 +58,7 @@ export default async function CommunicationsPage() {
   const monthStart = (zonedWallTimeToUtc(`${todayInZone(zone).slice(0, 7)}-01`, '00:00', zone) ?? new Date()).toISOString()
 
   // ── Fetch this month's communications (paged past 1,000 rows) ──
-  const { rows: monthComms } = await fetchAllRows(() => db
+  const { rows: monthComms, error: monthCommsError } = await fetchAllRows(() => db
     .from('communications_log')
     .select('*')
     .eq('portfolio_id', portfolioId)
@@ -74,10 +76,16 @@ export default async function CommunicationsPage() {
   const totalRecipients = monthComms.reduce((sum: number, c: any) => sum + (c.recipient_count ?? 0), 0)
 
   // Fetch associations and profiles for grouping
-  const [{ data: associations }, { data: managers }] = await Promise.all([
+  const [{ data: associations, error: associationsError }, { data: managers, error: managersError }] = await Promise.all([
     db.from('associations').select('id, name').eq('portfolio_id', portfolioId).is('archived_at', null).order('name'),
     db.from('profiles').select('id, full_name').eq('portfolio_id', portfolioId).in('hoa_role', ['manager', 'company_admin']).order('full_name'),
   ])
+
+  const loadErrors = collectLoadErrors({
+    'Communications log': { error: monthCommsError },
+    Associations: { error: associationsError },
+    Managers: { error: managersError },
+  })
 
   // By association: group comms by association_id
   const assocCommMap = new Map<string, { name: string; emails: number; sms: number; phone: number; total: number }>()
@@ -112,7 +120,7 @@ export default async function CommunicationsPage() {
   }
   const mgrCommList = Array.from(mgrCommMap.values()).sort((a, b) => b.total - a.total)
 
-  const tableEmpty = monthComms.length === 0
+  const tableEmpty = monthComms.length === 0 && !monthCommsError
 
   return (
     <div className="space-y-6">
@@ -127,6 +135,8 @@ export default async function CommunicationsPage() {
           </div>
         )}
       </div>
+
+      {loadErrors.length > 0 && <Alert tone="danger" title="Some communications data could not be loaded; figures below may be incomplete.">{loadErrors.join(' · ')}</Alert>}
 
       {/* ── Stats Cards ─────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
