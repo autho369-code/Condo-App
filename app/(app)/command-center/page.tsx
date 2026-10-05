@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth/me'
 import { addDaysToDate, addMonthsToMonth, todayInZone } from '@/lib/time/zoned'
+import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/time/display-zone'
 import { Alert } from '@/components/ui/shell'
 import { StatusChip } from '@/components/operations/status-chip'
 import { Button } from '@/components/ui/button'
@@ -81,15 +82,48 @@ export default async function FinancialCommandCenterPage({
   // ~7 PM Central the UTC date was already tomorrow and today's collections
   // read $0.
   const todayDate = todayInZone()
-  const monthStart = todayDate.slice(0, 8) + '01'
   const d30 = new Date(Date.now() - 30 * 86400000).toISOString()
 
-  const dayOfMonth = Number(todayDate.slice(8, 10))
-  const prevMonth = addMonthsToMonth(todayDate.slice(0, 7), -1)
-  const lastMonthStart = `${prevMonth}-01`
-  // Clamp to the previous month's last day: Mar 31 → Feb 28, not "Feb 31" = Mar 3.
-  const lastDayPrevMonth = Number(addDaysToDate(monthStart, -1).slice(8, 10))
-  const lastMonthSameDay = `${prevMonth}-${String(Math.min(dayOfMonth, lastDayPrevMonth)).padStart(2, '0')}`
+  // Month/day windows anchored on a local date. Clamp last month's same day to
+  // its last day: Mar 31 → Feb 28, not "Feb 31" = Mar 3.
+  const windowFor = (today: string) => {
+    const mStart = today.slice(0, 8) + '01'
+    const prev = addMonthsToMonth(today.slice(0, 7), -1)
+    const lastDayPrev = Number(addDaysToDate(mStart, -1).slice(8, 10))
+    return {
+      today,
+      monthStart: mStart,
+      lastMonthStart: `${prev}-01`,
+      lastMonthSameDay: `${prev}-${String(Math.min(Number(today.slice(8, 10)), lastDayPrev)).padStart(2, '0')}`,
+      yearStart: `${today.slice(0, 4)}-01-01`,
+    }
+  }
+
+  // Each association counts against its own local date. With one zone (the
+  // usual case) every total is a single company-wide query.
+  const { data: zoneRows } = await db.from('associations').select('id, timezone')
+  const zoneOf = new Map<string, string>()
+  const idsByZone = new Map<string, string[]>()
+  for (const a of (zoneRows ?? []) as any[]) {
+    const zone = a.timezone && isValidTimeZone(a.timezone) ? a.timezone : DEFAULT_TIME_ZONE
+    zoneOf.set(a.id, zone)
+    idsByZone.set(zone, [...(idsByZone.get(zone) ?? []), a.id])
+  }
+  const zoneGroups: Array<{ ids: string[] | null; w: ReturnType<typeof windowFor> }> =
+    idsByZone.size > 1
+      ? [...idsByZone].map(([zone, ids]) => ({ ids, w: windowFor(todayInZone(zone)) }))
+      : [{ ids: null, w: windowFor(todayDate) }]
+  const sumTotals = async (pick: (w: ReturnType<typeof windowFor>) => [string, string]) => {
+    const parts = await Promise.all(zoneGroups.map((g) => billingCollectionTotals(db, ...pick(g.w), g.ids)))
+    return parts.reduce((t, p) => ({ charges: t.charges + p.charges, payments: t.payments + p.payments }), { charges: 0, payments: 0 })
+  }
+  const sumYtd = async () => {
+    const parts = await Promise.all(zoneGroups.map((g) => incomeExpenseTotals(db, { from: g.w.yearStart, associationIds: g.ids })))
+    return parts.reduce((t, p) => ({ income: t.income + p.income, expense: t.expense + p.expense }), { income: 0, expense: 0 })
+  }
+  const zoneTodays = zoneGroups.map((g) => g.w.today).sort()
+  const todayFor = (associationId: string | null | undefined) =>
+    associationId && zoneOf.has(associationId) ? todayInZone(zoneOf.get(associationId)!) : todayDate
 
   const [
     { data: paymentsToday },
@@ -104,22 +138,27 @@ export default async function FinancialCommandCenterPage({
     { count: totalUnits },
     { data: latePayers },
   ] = await Promise.all([
-    db.from('payments').select('amount').neq('method', 'credit').eq('payment_date', todayDate),
+    // Every zone's "today" (one date when all associations share a zone);
+    // each payment is then kept only if it is today in its own association.
+    db.from('payments').select('amount, payment_date, units(buildings(association_id))').neq('method', 'credit')
+      .gte('payment_date', zoneTodays[0]).lte('payment_date', zoneTodays[zoneTodays.length - 1]),
     db.from('payment_intents').select('id, amount, status, method, failure_reason, processor_fee_cents, created_at, units(unit_number), owners(full_name)').gte('created_at', d30).order('created_at', { ascending: false }),
     // Totals are summed in the database: row lists stop at 1,000 rows.
     receivableSummary(db),
-    billingCollectionTotals(db, monthStart, todayDate),
-    billingCollectionTotals(db, lastMonthStart, lastMonthSameDay),
+    sumTotals((w) => [w.monthStart, w.today]),
+    sumTotals((w) => [w.lastMonthStart, w.lastMonthSameDay]),
     db.from('bank_transactions').select('id, amount, date, name, matched_at').gte('date', new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)),
     db.from('payout_batches').select('id, processor_payout_id, amount, expected_amount, arrival_date, status, match_method, notes, created_at').order('created_at', { ascending: false }).limit(25),
     db.from('bank_accounts').select('gl_account_id, purpose, fund_type').is('archived_at', null),
-    incomeExpenseTotals(db, { from: `${todayDate.slice(0, 4)}-01-01` }),
+    sumYtd(),
     db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null),
     db.from('occupancies').select('owner_id, late_count, owners(full_name)').eq('status', 'current').gte('late_count', 2),
   ])
 
   const stripeOn = isStripeConfigured()
-  const collectedToday = (paymentsToday ?? []).reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0)
+  const collectedToday = (paymentsToday ?? [])
+    .filter((p: any) => String(p.payment_date).slice(0, 10) === todayFor(p.units?.buildings?.association_id))
+    .reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0)
   const pendingACH = (intents ?? []).filter((i: any) => i.status === 'processing')
   const pendingACHTotal = pendingACH.reduce((s: number, i: any) => s + Number(i.amount ?? 0), 0)
   const returned = (intents ?? []).filter((i: any) => ['returned', 'failed'].includes(i.status))

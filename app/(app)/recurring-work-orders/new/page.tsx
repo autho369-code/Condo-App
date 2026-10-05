@@ -9,6 +9,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { checkWorkOrderLinks } from '@/lib/maintenance/work-order-links';
 import { todayInZone } from '@/lib/time/zoned';
+import { associationZone } from '@/lib/maintenance/calendar';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +42,8 @@ export default async function NewRecurringWorkOrderPage({ searchParams }: { sear
     const vendorId = (formData.get('vendor_id') as string) || null;
     const links = await checkWorkOrderLinks(supabase, associationId!, unitId, vendorId);
     if (links.error !== undefined) redirect('/recurring-work-orders/new?error=' + encodeURIComponent(links.error));
-    const startDate = (formData.get('start_date') as string) || todayInZone();
+    // Blank start date = today in the selected association's own zone.
+    const startDate = (formData.get('start_date') as string) || todayInZone(await associationZone(supabase, associationId));
     const interval = parseInt(formData.get('interval_count') as string, 10);
     const { error } = await (supabase as any).from('recurring_work_orders').insert({
       portfolio_id: links.portfolioId,
