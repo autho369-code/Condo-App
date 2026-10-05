@@ -83,7 +83,16 @@ export default async function SmsOptInsPage({
     // phone_numbers holds { number } objects or plain strings.
     phones.push(...phoneNumberList(entity.phone_numbers));
 
-    phones.forEach((phone, idx) => {
+    // The primary phone is usually also in phone_numbers: list each number once.
+    const seen = new Set<string>();
+    const unique = phones.filter((p) => {
+      const key = canonicalPhone(p);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    unique.forEach((phone, idx) => {
       const optRec = optInByPhone[canonicalPhone(phone)];
       result.push({
         id: `${entity.id}-${idx}`,
