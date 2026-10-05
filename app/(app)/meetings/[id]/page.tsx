@@ -25,7 +25,7 @@ import {
   updateMeetingDetails,
 } from './actions';
 import { displayTimeZone } from '@/lib/time/display-zone';
-import { DEFAULT_TIME_ZONE, isoToWallDateTime } from '@/lib/time/zoned';
+import { DEFAULT_TIME_ZONE, isoToWallDateTime, todayInZone } from '@/lib/time/zoned';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
@@ -106,21 +106,30 @@ export default async function MeetingDetailPage({
     : { data: [] as any[] };
   const signedInIds = new Set((attendees ?? []).map((attendee: any) => attendee.owner_id).filter(Boolean));
   const presentCount = (attendees ?? []).filter((attendee: any) => attendee.present).length;
-  // Quorum counts only distinct, voting-eligible current owners present — the
-  // same rule as calculate_meeting_quorum. Managers and guests never count.
+  // Quorum counts only distinct, voting-eligible owners present who owned in
+  // the association on the meeting date — the same rule as
+  // calculate_meeting_quorum. Managers and guests never count, and a later
+  // sale does not change a past meeting's result.
+  const meetingZone = meeting.associations?.timezone || DEFAULT_TIME_ZONE;
+  const meetingDate = meeting.start_time ? todayInZone(meetingZone, new Date(meeting.start_time)) : todayInZone(meetingZone);
   const voterIds = [...new Set((attendees ?? [])
     .filter((attendee: any) => attendee.present && attendee.voting_eligible && attendee.owner_id)
     .map((attendee: any) => attendee.owner_id as string))];
-  const { data: currentVoters, error: votersError } = voterIds.length && meeting.association_id
-    ? await db.from('occupancies').select('owner_id').in('owner_id', voterIds)
-      .eq('association_id', meeting.association_id).eq('status', 'current')
+  const { data: voterOccs, error: votersError } = voterIds.length && meeting.association_id
+    ? await db.from('occupancies').select('owner_id, status, move_in_date, move_out_date').in('owner_id', voterIds)
+      .eq('association_id', meeting.association_id).eq('occupancy_type', 'owner')
     : { data: [] as any[], error: null };
-  const votingPresent = new Set((currentVoters ?? []).map((o: any) => o.owner_id)).size;
+  const votingPresent = new Set(((voterOccs ?? []) as any[])
+    .filter((o) => o.status !== 'past' || o.move_out_date)
+    .filter((o) => (!o.move_in_date || o.move_in_date <= meetingDate) && (!o.move_out_date || o.move_out_date > meetingDate))
+    .map((o) => o.owner_id)).size;
   const quorum = votersError ? null : meeting.quorum_requirement ?? null;
-  const quorumMet = quorum != null ? votingPresent >= quorum : null;
+  // A completed meeting keeps the result recorded when it was held.
+  const quorumMet = quorum == null ? null
+    : meeting.status === 'completed' && meeting.quorum_met != null ? Boolean(meeting.quorum_met)
+    : votingPresent >= quorum;
   const agendaEditable = meeting.status !== 'completed' && meeting.status !== 'cancelled';
   const saved = successMessage(sp.saved);
-  const meetingZone = meeting.associations?.timezone || DEFAULT_TIME_ZONE;
 
   return (
     <DataWorkspace

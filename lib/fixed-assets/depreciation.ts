@@ -64,6 +64,13 @@ export function depreciationToDate(asset: DepreciationInput, asOf: string): Depr
     return { accumulated: recorded, bookValue: book(recorded), basis: 'recorded', note: 'Only straight-line depreciation is calculated.' };
   }
 
+  // Marked fully depreciated: the whole depreciable basis is written off.
+  if (asset.status === 'fully_depreciated' && cost != null && cost > 0) {
+    const salvage = Math.min(Math.max(num(asset.salvage_value) ?? 0, 0), cost);
+    const accumulated = round2(cost - salvage);
+    return { accumulated, bookValue: book(accumulated), basis: 'calculated' };
+  }
+
   const life = num(asset.useful_life_years);
   const start = asset.placed_in_service_date || asset.purchase_date || null;
   if (cost == null || cost <= 0 || !life || life <= 0 || !start) {
