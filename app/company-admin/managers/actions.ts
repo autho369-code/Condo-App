@@ -44,7 +44,7 @@ export async function inviteManager(formData: FormData) {
   )
   const queued = await queueEmails(svc, [{
     to: email,
-    subject: `You're invited to manage properties for ${companyName} on Portier369`,
+    subject: `You're invited to manage properties for ${companyName}`,
     text: [
       `You have been invited to join ${companyName} as a Property Manager.`,
       '',
