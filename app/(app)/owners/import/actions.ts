@@ -90,6 +90,9 @@ export async function importOwners(
   // Cache units we resolve/create this run so multiple owners on the same unit
   // (e.g. co-owners) don't each create a duplicate unit.
   const unitCache = new Map<string, string>();
+  // Units whose dues were scheduled by an earlier row of this file: co-owners
+  // share the unit's one dues schedule, so a later co-owner row leaves it alone.
+  const duesScheduledUnits = new Set<string>();
   // Emails created earlier in this run (lower-cased) — a repeat is a duplicate too.
   const seenEmails = new Set<string>();
   let imported = 0;
@@ -209,9 +212,12 @@ export async function importOwners(
       // Bill the monthly dues; a failure here keeps the owner but is reported.
       const moveIn = toDate(r.move_in_date);
       const today = todayInZone();
-      const duesErr = occRow?.id
-        ? await scheduleOwnerDues(db, occRow.id, moveIn ?? today)
-        : null;
+      const duesAmount = num(r.monthly_dues) ?? 0;
+      let duesErr: string | null = null;
+      if (occRow?.id && duesAmount > 0 && !duesScheduledUnits.has(unitId!)) {
+        duesErr = await scheduleOwnerDues(db, occRow.id, moveIn ?? today);
+        if (!duesErr) duesScheduledUnits.add(unitId!);
+      }
       if (duesErr) errors.push(`Row ${line} (${unitNumber} / ${email}): owner imported, but ${duesErr}`);
 
       seenEmails.add(emailKey);

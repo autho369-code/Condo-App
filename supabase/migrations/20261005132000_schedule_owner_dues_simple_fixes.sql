@@ -2,7 +2,8 @@
 -- still retires the old owner's schedule; only a schedule already running on
 -- the first due date counts as "same terms"; the new schedule always starts on
 -- the 1st; the app passes the raw start date and the function rounds it in the
--- association's time zone.
+-- association's time zone. When the matching schedule already exists, any
+-- other dues schedule on the unit is still retired.
 create or replace function public.schedule_owner_dues(p_occupancy_id uuid, p_start date default current_date)
 returns uuid
 language plpgsql
@@ -88,6 +89,18 @@ begin
    order by urc.created_at desc
    limit 1;
   if v_keep is not null then
+    -- Still retire any other dues schedule on the unit (e.g. the seller's while
+    -- the fee builder already added the new owner's), so only one bills.
+    update public.unit_recurring_charges urc
+       set active = false, updated_at = now()
+     where urc.unit_id = v_occ.unit_id and urc.active and urc.charge_category_id = any(v_cats)
+       and urc.id <> v_keep
+       and coalesce(urc.start_date, urc.next_post_date) >= v_first;
+    update public.unit_recurring_charges urc
+       set end_date = v_first - 1, updated_at = now()
+     where urc.unit_id = v_occ.unit_id and urc.active and urc.charge_category_id = any(v_cats)
+       and urc.id <> v_keep
+       and (urc.end_date is null or urc.end_date >= v_first);
     return v_keep;
   end if;
 
