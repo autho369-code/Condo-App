@@ -9,6 +9,7 @@
 // its own can_manage_finance() check). Per-row errors are collected, never
 // fatal — one bad row does not abort the rest.
 import { revalidatePath } from 'next/cache';
+import { parseLabeledPhones } from '@/lib/contacts/labeled-phones';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { todayInZone } from '@/lib/time/zoned';
@@ -161,7 +162,8 @@ export async function importOwners(
         unitCache.set(unitNumber, unitId!);
       }
 
-      // create the owner
+      // create the owner (an exported "Mobile: …, Home: …" cell becomes separate numbers)
+      const phones = parseLabeledPhones(clean(r.owner_phone));
       const fullName = [firstName, lastName].filter(Boolean).join(' ');
       const { data: owner, error: ownerErr } = await db
         .from('owners')
@@ -171,7 +173,8 @@ export async function importOwners(
           last_name: lastName,
           full_name: fullName,
           email,
-          phone: clean(r.owner_phone) || null,
+          phone: phones.primary,
+          phone_numbers: phones.entries,
           preferred_comm: 'email',
           created_by: me.auth_user_id,
         })
