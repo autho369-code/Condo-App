@@ -93,6 +93,7 @@ export const companyAdminModules: AppModule[] = [
 
 export const platformOperatorModules: AppModule[] = [
   { label: 'Overview', href: '/platform-operator' },
+  { label: 'Command Center', href: '/platform-operator/overview' },
   { label: 'Platform Intelligence', href: '/platform-operator/insights' },
   { label: 'Piper (AI Phone)', href: '/platform-operator/piper' },
   { label: 'Companies', href: '/platform-operator/companies' },
