@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { requireAuth } from '@/lib/auth/me'
 import { addDaysToDate, addMonthsToMonth, todayInZone } from '@/lib/time/zoned'
 import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/time/display-zone'
@@ -101,7 +102,13 @@ export default async function FinancialCommandCenterPage({
 
   // Each association counts against its own local date. With one zone (the
   // usual case) every total is a single company-wide query.
-  const { data: zoneRows } = await db.from('associations').select('id, timezone')
+  // Paged and complete: explicit id lists below would silently drop any
+  // association missing from this map.
+  const zoneRes = await fetchAllRows<any>(() => db.from('associations').select('id, timezone').order('id'))
+  if (zoneRes.error || zoneRes.truncated) {
+    throw new Error(`Association time zones could not be loaded: ${zoneRes.error ?? 'too many associations'}`)
+  }
+  const zoneRows = zoneRes.rows
   const zoneOf = new Map<string, string>()
   const idsByZone = new Map<string, string[]>()
   for (const a of (zoneRows ?? []) as any[]) {
