@@ -36,8 +36,9 @@ export default async function ViolationSchedulePage({
   const [{ data: steps }, { data: settings }, { data: fineCategories }, options] = await Promise.all([
     db.from('violation_followup_steps').select('*').eq('association_id', selected.id).is('house_rule_id', null).is('archived_at', null).order('step_order'),
     db.from('association_violation_settings').select('*').eq('association_id', selected.id).maybeSingle(),
-    db.from('charge_categories').select('id, name, charge_type').eq('portfolio_id', me.portfolio?.id).eq('active', true).is('archived_at', null).order('sort_order'),
-    loadScheduleOptions(db, me.portfolio?.id, selected.id),
+    // The association's own company (a platform operator's portfolio is not it).
+    db.from('charge_categories').select('id, name, charge_type').eq('portfolio_id', selected.portfolio_id).eq('active', true).is('archived_at', null).order('sort_order'),
+    loadScheduleOptions(db, selected.portfolio_id, selected.id),
   ]);
   const current = toScheduleSteps(steps);
 

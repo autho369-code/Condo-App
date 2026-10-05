@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { openViolation } from '@/lib/rpcs/violation-rules';
 import { createClient } from '@/lib/supabase/server';
+import { newSubmissionToken } from '@/lib/forms/submission';
+import { todayInZone } from '@/lib/time/zoned';
 import { VIOLATION_TYPES, humanize } from '@/lib/violations/rules-data';
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +45,8 @@ export default async function NewViolationPage({
         <Surface>
           <OpenViolationForm
             action={openViolation}
+            today={todayInZone()}
+            submissionToken={newSubmissionToken()}
             associations={associations ?? []}
             units={((units ?? []) as any[]).map((u) => ({
               id: u.id,

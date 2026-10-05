@@ -111,7 +111,12 @@ export async function reviewVendorDocument(formData: FormData) {
     const email = firstVendorEmail(r?.vendors?.emails);
     if (r && email) {
       const svc = createServiceClient() as any;
-      const token = await issueLink(svc, r.id, email);
+      let token: string;
+      try {
+        token = await issueLink(svc, r.id, email);
+      } catch (e: any) {
+        go(to, 'error', `Marked as not accepted, but a new upload link could not be created: ${e?.message ?? 'unknown error'}`);
+      }
       const { error: mailError } = await emailVendorRequest(svc, {
         to: email, vendorName: r.vendors?.name ?? 'there', companyName: r.vendors?.portfolios?.company_name ?? 'Your property manager',
         docType: r.doc_type, message: r.description, dueDate: r.due_date, token, portfolioId: r.portfolio_id, requestId: r.id,

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 
 type Rule = { id: string; association_id: string; rule_number: string; title: string; description: string; action_to_resolve: string | null; default_violation_type: string };
@@ -16,6 +16,8 @@ export function OpenViolationForm({
   types,
   initialAssociationId,
   initialRuleId,
+  today: todayProp,
+  submissionToken,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   associations: { id: string; name: string }[];
@@ -24,16 +26,24 @@ export function OpenViolationForm({
   types: { value: string; label: string }[];
   initialAssociationId?: string;
   initialRuleId?: string;
+  /** Today's date in the association's zone (the server's UTC date is tomorrow on a US evening). */
+  today?: string;
+  /** One-time token so a double click opens one violation. */
+  submissionToken?: string;
 }) {
   const [associationId, setAssociationId] = React.useState(initialAssociationId ?? '');
   const [ruleId, setRuleId] = React.useState(initialRuleId ?? '');
   const assocRules = rules.filter((r) => r.association_id === associationId);
   const assocUnits = units.filter((u) => u.association_id === associationId);
   const rule = assocRules.find((r) => r.id === ruleId);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayProp ?? (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
 
   return (
     <form action={action} className="space-y-5">
+      {submissionToken && <input type="hidden" name="submission_token" value={submissionToken} />}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Association" htmlFor="association_id" required>
           <Select id="association_id" name="association_id" required value={associationId} onChange={(e) => { setAssociationId(e.target.value); setRuleId(''); }}>
@@ -83,7 +93,7 @@ export function OpenViolationForm({
 
       <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
         <Link href="/violations" className="text-center text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
-        <Button type="submit">Open violation</Button>
+        <PendingSubmit pendingLabel="Opening…">Open violation</PendingSubmit>
       </div>
     </form>
   );

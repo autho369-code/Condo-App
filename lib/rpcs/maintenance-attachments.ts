@@ -45,6 +45,19 @@ async function myTenantIds(db: any): Promise<string[]> {
   return Array.isArray(data) ? data.map((row: any) => (typeof row === 'string' ? row : row?.current_tenant_ids)).filter(Boolean) : [];
 }
 
+/**
+ * Staff power applies only inside the caller's own company and, for an
+ * association-scoped manager, their associations. A global staff flag is not
+ * enough: one login can be staff at one company and an owner or vendor at
+ * another, and RLS shows them that other company's records in that role.
+ */
+async function staffCanManage(db: any, portfolioId: string | null, associationId: string | null): Promise<boolean> {
+  const { data, error } = associationId
+    ? await db.rpc('can_manage_association', { p_association_id: associationId })
+    : await db.rpc('can_access_portfolio', { p_id: portfolioId });
+  return !error && data === true;
+}
+
 async function resolveParent(kind: MaintenanceParentKind, id: string): Promise<{ error: string } | { parent: Parent; userId: string }> {
   if (!UUID.test(id) || (kind !== 'service_request' && kind !== 'work_order')) return { error: 'Unknown record' };
   const me = await getMe();
@@ -58,7 +71,7 @@ async function resolveParent(kind: MaintenanceParentKind, id: string): Promise<{
       .eq('id', id).is('archived_at', null).maybeSingle();
     if (!sr) return { error: 'Request not found' };
     let role: Parent['role'];
-    if (isStaff) role = 'staff';
+    if (isStaff && await staffCanManage(db, sr.portfolio_id, sr.association_id)) role = 'staff';
     else if ((me.owner_id && (sr.homeowner_id === me.owner_id || sr.owner_id === me.owner_id))
       || (sr.tenant_id && (await myTenantIds(db)).includes(sr.tenant_id))) {
       if (sr.status !== 'open' && sr.status !== 'waiting') return { error: 'This request is closed' };
@@ -72,7 +85,7 @@ async function resolveParent(kind: MaintenanceParentKind, id: string): Promise<{
     .eq('id', id).is('archived_at', null).maybeSingle();
   if (!wo) return { error: 'Work order not found' };
   let role: Parent['role'];
-  if (isStaff) role = 'staff';
+  if (isStaff && await staffCanManage(db, wo.portfolio_id ?? wo.associations?.portfolio_id ?? null, wo.association_id)) role = 'staff';
   else if (me.vendor_id && wo.vendor_id === me.vendor_id) {
     if (VENDOR_CLOSED.has(wo.status)) return { error: 'This work order is closed' };
     role = 'vendor';
@@ -202,16 +215,13 @@ export async function removeMaintenanceAttachment(attachmentId: string): Promise
     .select('id, file_path, uploaded_by, service_request_id, work_order_id')
     .eq('id', attachmentId).maybeSingle();
   if (!row) return { error: 'File not found' };
-  const isStaff = me.is_staff || me.is_platform_operator || me.is_company_admin;
-  if (!isStaff) {
-    if (row.uploaded_by !== me.auth_user_id) return { error: 'You can only remove files you added' };
-    // Same rule as uploading: once the request / work order is closed, its
-    // files are the record of the job and only staff can remove them.
-    const access = row.work_order_id
-      ? await resolveParent('work_order', row.work_order_id)
-      : await resolveParent('service_request', row.service_request_id);
-    if ('error' in access) return { error: access.error === 'This request is closed' || access.error === 'This work order is closed' ? 'Files on a closed job can only be removed by the management team' : access.error };
-  }
+  // Same access rule as uploading (staff of this record's company, or the
+  // resident / vendor on it while the job is open).
+  const access = row.work_order_id
+    ? await resolveParent('work_order', row.work_order_id)
+    : await resolveParent('service_request', row.service_request_id);
+  if ('error' in access) return { error: access.error === 'This request is closed' || access.error === 'This work order is closed' ? 'Files on a closed job can only be removed by the management team' : access.error };
+  if (access.parent.role !== 'staff' && row.uploaded_by !== me.auth_user_id) return { error: 'You can only remove files you added' };
   const svc = createServiceClient() as any;
   const { error } = await svc.from('maintenance_attachments').delete().eq('id', attachmentId);
   if (error) return { error: error.message };

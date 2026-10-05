@@ -27,7 +27,7 @@ export default async function RuleDetailPage({
 
   const { data: rule } = await db
     .from('house_rules')
-    .select('*, associations(id, name)')
+    .select('*, associations(id, name, portfolio_id)')
     .eq('id', id)
     .is('archived_at', null)
     .maybeSingle();
@@ -37,7 +37,7 @@ export default async function RuleDetailPage({
     db.from('violation_followup_steps').select('*').eq('house_rule_id', id).is('archived_at', null).order('step_order'),
     db.from('violation_followup_steps').select('*').eq('association_id', rule.association_id).is('house_rule_id', null).is('archived_at', null).order('step_order'),
     db.from('violations').select('id', { count: 'exact', head: true }).eq('house_rule_id', id).not('status', 'in', '("cured","closed")'),
-    loadScheduleOptions(db, me.portfolio?.id, rule.association_id),
+    loadScheduleOptions(db, rule.associations?.portfolio_id ?? me.portfolio?.id, rule.association_id),
   ]);
 
   const usingCustom = Boolean(rule.custom_schedule);

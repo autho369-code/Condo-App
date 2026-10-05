@@ -30,6 +30,10 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
     const supabase = await createClient();
     const associationId = (formData.get('association_id') as string) || null;
     if (!associationId) redirect('/inspections/new?error=' + encodeURIComponent('Select an association.'));
+    // The inspection belongs to the association's company (RLS limits the
+    // lookup to associations this staffer can see).
+    const { data: association } = await (supabase as any).from('associations').select('id, portfolio_id').eq('id', associationId).maybeSingle();
+    if (!association?.portfolio_id) redirect('/inspections/new?error=' + encodeURIComponent('That association was not found or is outside your access.'));
     const unitId = (formData.get('unit_id') as string) || null;
     if (unitId) {
       // The unit list spans every association; the unit must be in the chosen one
@@ -40,7 +44,7 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
       }
     }
     const { error } = await (supabase as any).from('inspections').insert({
-      portfolio_id: me.portfolio?.id,
+      portfolio_id: association.portfolio_id,
       association_id: associationId,
       unit_id: unitId,
       inspection_type: (formData.get('inspection_type') as string)?.trim() || null,

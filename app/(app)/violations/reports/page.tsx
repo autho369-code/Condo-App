@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { Inbox } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -55,7 +56,8 @@ export default async function ViolationReportsPage({
   const assocIds = [...new Set(reports.filter((r) => r.status === 'reported').map((r) => r.association_id))];
   const [{ data: units }, { data: rules }] = assocIds.length
     ? await Promise.all([
-        db.from('units').select('id, unit_number, buildings!inner(association_id)').in('buildings.association_id', assocIds).is('archived_at', null).order('unit_number').limit(5000),
+        // Every unit (one request stops at 1,000 rows).
+        fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id)').in('buildings.association_id', assocIds).is('archived_at', null).order('unit_number').order('id')).then((r) => ({ data: r.rows })),
         db.from('house_rules').select('id, association_id, rule_number, title').in('association_id', assocIds).is('archived_at', null).eq('active', true).order('rule_number'),
       ])
     : [{ data: [] }, { data: [] }];
