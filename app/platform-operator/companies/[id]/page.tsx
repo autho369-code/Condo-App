@@ -6,6 +6,9 @@ import { Card, CardBody, CardHeader, CardTitle, Stat } from '@/components/ui/car
 import { Input, Label } from '@/components/ui/input';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { Alert } from '@/components/ui/shell';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
@@ -127,6 +130,7 @@ export default async function CompanyDetailPage({
     { data: invoices },
     { data: invitations },
     { data: auditRows },
+    allAssociations,
   ] = await Promise.all([
     db.from('portfolios').select('id, company_name, slug, tier, created_at, suspended_at, suspension_reason, archived_at, address_city, address_state, phone_number, support_email').eq('id', id).maybeSingle(),
     db.from('subscriptions').select('id, tier, status, billing_email, seats_used, seats_included, associations_limit, units_limit, price_monthly_cents, trial_ends_at, current_period_end').eq('portfolio_id', id).maybeSingle(),
@@ -135,11 +139,14 @@ export default async function CompanyDetailPage({
     db.from('invoices').select('id, number, period_start, period_end, total_cents, status, paid_at, sent_at').eq('portfolio_id', id).order('period_start', { ascending: false }).limit(20),
     db.from('user_invitations').select('id, email, full_name, hoa_role, status, expires_at, created_at, metadata').eq('portfolio_id', id).order('created_at', { ascending: false }).limit(20),
     db.from('audit_logs').select('id, action, actor_email, changes, created_at').eq('entity_type', 'company').eq('entity_id', id).order('created_at', { ascending: false }).limit(30),
+    // The table below lists 20; the stats need every association.
+    fetchAllRows(() => db.from('associations').select('id, unit_count').eq('portfolio_id', id).is('archived_at', null).order('id')),
   ]);
 
   if (!portfolio) notFound();
 
-  const totalDoors = (associationsData ?? []).reduce((sum: number, a: any) => sum + (a.unit_count ?? 0), 0);
+  const totalDoors = allAssociations.rows.reduce((sum: number, a: any) => sum + (a.unit_count ?? 0), 0);
+  const associationCount = allAssociations.rows.length;
   const isSuspended = !!portfolio.suspended_at;
   const isArchived = !!portfolio.archived_at;
   const admins = (staff ?? []).filter((s: any) => s.hoa_role === 'company_admin');
@@ -149,6 +156,7 @@ export default async function CompanyDetailPage({
   return (
     <div className="space-y-7">
       {sp.error && <Alert title="Action failed">{sp.error}</Alert>}
+      {allAssociations.error && <Alert title="Association totals could not be loaded">{allAssociations.error}</Alert>}
       {banner && <Alert tone="success" title={BANNERS[banner]} />}
 
       <header className="space-y-2">
@@ -187,12 +195,12 @@ export default async function CompanyDetailPage({
                     <input type="hidden" name="portfolio_id" value={id} />
                     <input type="hidden" name="return_to" value={returnTo} />
                     <Input name="reason" placeholder="Suspension reason (optional)" className="h-9 w-56 text-xs" />
-                    <Button type="submit" variant="danger" size="sm">Suspend</Button>
+                    <PendingSubmit variant="danger" size="sm" confirm={`Suspend ${portfolio.company_name}? Every user loses access until it is reactivated.`}>Suspend</PendingSubmit>
                   </form>
                 )}
                 <form action={archiveCompany as any}>
                   <input type="hidden" name="portfolio_id" value={id} />
-                  <Button type="submit" variant="danger" size="sm">Archive Company</Button>
+                  <PendingSubmit variant="danger" size="sm" confirm={`Archive ${portfolio.company_name}? Every login is disabled and open invitations are revoked. Data is kept.`}>Archive Company</PendingSubmit>
                 </form>
               </>
             )}
@@ -207,7 +215,7 @@ export default async function CompanyDetailPage({
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <Stat label="Tier" value={subscription?.tier ?? portfolio.tier ?? '—'} />
         <Stat label="Seats" value={`${subscription?.seats_used ?? 0} / ${subscription?.seats_included ?? '—'}`} />
-        <Stat label="Associations" value={associationsData?.length ?? 0} sub={`Limit: ${subscription?.associations_limit ?? '—'}`} />
+        <Stat label="Associations" value={associationCount} sub={`Limit: ${subscription?.associations_limit ?? '—'}`} />
         <Stat label="Doors" value={totalDoors} sub={`Limit: ${subscription?.units_limit ?? '—'}`} />
         <Stat label="Monthly" value={subscription?.price_monthly_cents ? money(subscription.price_monthly_cents / 100) : '—'} />
       </div>
@@ -331,7 +339,7 @@ export default async function CompanyDetailPage({
                         <form action={forcePasswordReset as any}>
                           <input type="hidden" name="profile_id" value={member.id} />
                           <input type="hidden" name="return_to" value={returnTo} />
-                          <Button type="submit" variant="ghost" size="sm">Force Reset</Button>
+                          <PendingSubmit variant="ghost" size="sm" confirm="Force a password reset? Their current password stops working immediately.">Force Reset</PendingSubmit>
                         </form>
                         <form action={unlockAccount as any}>
                           <input type="hidden" name="profile_id" value={member.id} />
@@ -341,7 +349,7 @@ export default async function CompanyDetailPage({
                         <form action={disableLogin as any}>
                           <input type="hidden" name="profile_id" value={member.id} />
                           <input type="hidden" name="return_to" value={returnTo} />
-                          <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Disable Login</Button>
+                          <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:text-red-700" confirm="Disable this user's login?">Disable Login</PendingSubmit>
                         </form>
                       </div>
                     </TD>
@@ -368,7 +376,7 @@ export default async function CompanyDetailPage({
                   <Label htmlFor="admin_email">Email</Label>
                   <Input id="admin_email" name="admin_email" type="email" required className="w-56" />
                 </div>
-                <Button type="submit" variant="secondary">Invite Admin</Button>
+                <PendingSubmit variant="secondary" pendingLabel="Inviting…">Invite Admin</PendingSubmit>
               </form>
             </div>
             <div>
@@ -387,7 +395,7 @@ export default async function CompanyDetailPage({
                     ))}
                   </select>
                 </div>
-                <Button type="submit" variant="secondary">Transfer</Button>
+                <PendingSubmit variant="secondary" confirm="Transfer ownership? Current company admins become managers.">Transfer</PendingSubmit>
               </form>
               <p className="mt-2 text-xs text-gray-400">Current admins are demoted to manager; the selected user becomes the company admin.</p>
             </div>
@@ -509,7 +517,7 @@ export default async function CompanyDetailPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Associations ({associationsData?.length ?? 0})</CardTitle>
+            <CardTitle>Associations ({associationCount}{associationCount > (associationsData?.length ?? 0) ? `, first ${associationsData?.length ?? 0} shown` : ''})</CardTitle>
           </CardHeader>
           <CardBody className="p-0">
             <Table className="border-0">
@@ -544,6 +552,7 @@ export default async function CompanyDetailPage({
           <div className="flex flex-wrap items-end justify-between gap-3">
             <CardTitle>Billing history</CardTitle>
             <form action={generateInvoice as any} className="flex flex-wrap items-end gap-2">
+              <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
               <input type="hidden" name="portfolio_id" value={id} />
               <input type="hidden" name="return_to" value={returnTo} />
               <div>
@@ -560,7 +569,7 @@ export default async function CompanyDetailPage({
                 <Label htmlFor="inv_end" className="text-xs">Period end</Label>
                 <Input id="inv_end" name="period_end" type="date" className="h-9 w-36" />
               </div>
-              <Button type="submit" size="sm">Generate invoice</Button>
+              <PendingSubmit size="sm" pendingLabel="Generating…">Generate invoice</PendingSubmit>
             </form>
           </div>
           <p className="mt-1 text-xs text-gray-500">Billed offline: generate an invoice (defaults to the plan price + current month), then mark it paid when payment arrives. The company admin sees it on their Billing page.</p>

@@ -17,6 +17,7 @@ import {
   ShieldAlert,
 } from 'lucide-react'
 import { displayTimeZone } from '@/lib/time/display-zone'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 
 export const dynamic = 'force-dynamic'
 
@@ -229,10 +230,12 @@ export default async function PlatformOperatorOverviewPage() {
     .select('id', { count: 'exact', head: true })
     .is('archived_at', null)
 
-  const doorsQuery = db
+  // Total doors must cover every association, past PostgREST's 1,000-row cap.
+  const doorsQuery = fetchAllRows(() => db
     .from('associations')
-    .select('unit_count')
+    .select('id, unit_count')
     .is('archived_at', null)
+    .order('id')).then((r) => ({ data: r.rows, error: r.error }))
 
   const activeUsersQuery = db
     .from('profiles')

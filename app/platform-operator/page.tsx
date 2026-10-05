@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
 import { Alert } from '@/components/ui/shell';
 import { money } from '@/lib/utils';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { BILLABLE_SUBSCRIPTION_STATUSES, monthlyRecurringCents } from '@/lib/platform/operator-metrics';
 import {
   Building2,
   DoorOpen,
@@ -57,11 +59,14 @@ export default async function PlatformOperatorOverview({ searchParams }: { searc
     db.from('portfolios').select('id', { count: 'exact', head: true }),
     db.from('profiles').select('id', { count: 'exact', head: true }),
     db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null),
-    db.from('subscriptions').select('price_monthly_cents').in('status', ['active', 'past_due']),
+    fetchAllRows(() => db.from('subscriptions').select('id, status, price_monthly_cents').in('status', [...BILLABLE_SUBSCRIPTION_STATUSES]).order('id')),
     db.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'overdue'),
   ]);
 
-  const mrr = (activeSubsRes.data ?? []).reduce((sum: number, s: any) => sum + (s.price_monthly_cents ?? 0), 0) / 100;
+  const mrr = monthlyRecurringCents(activeSubsRes.rows) / 100;
+  // A failed count must not read as "0 companies".
+  const loadError = portfolios.error?.message ?? profiles.error?.message ?? associations.error?.message
+    ?? activeSubsRes.error ?? openInvoicesRes.error?.message ?? null;
 
   const quickLinks = [
     { label: 'Billing', href: '/platform-operator/billing', description: 'Invoices, subscriptions, payments', icon: CreditCard },
@@ -77,6 +82,7 @@ export default async function PlatformOperatorOverview({ searchParams }: { searc
   return (
     <div className="space-y-6">
       {pageError && <Alert tone="danger" title="Not allowed">{pageError}</Alert>}
+      {loadError && <Alert tone="danger" title="Some platform figures could not be loaded">{loadError}</Alert>}
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Platform Operator</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide administration and monitoring dashboard</p>

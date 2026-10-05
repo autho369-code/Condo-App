@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { requirePlatformOperator } from '@/lib/auth/me'
-import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { Alert } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
+import { PendingSubmit } from '@/components/ui/pending-submit'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { claimSubmission, completeSubmission, newSubmissionToken, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission'
 import { Megaphone } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -26,23 +28,49 @@ async function sendAnnouncement(formData: FormData) {
   if (!subject || !message) {
     redirect(`${RETURN}?error=${encodeURIComponent('Subject and message are required.')}`)
   }
+  if (!['company_admins', 'admins_and_managers'].includes(audience)) {
+    redirect(`${RETURN}?error=${encodeURIComponent('Select a valid audience.')}`)
+  }
 
   const { createServiceClient: svcClient } = await import('@/lib/supabase/server')
   const svc = svcClient() as any
 
-  let query = svc
-    .from('profiles')
-    .select('email, full_name, portfolio_id')
-    .not('email', 'is', null)
-  if (audience === 'company_admins') query = query.eq('hoa_role', 'company_admin')
-  else query = query.in('hoa_role', ['company_admin', 'manager'])
-  if (portfolioId) query = query.eq('portfolio_id', portfolioId)
-
-  const { data: recipients, error } = await query
-  if (error) redirect(`${RETURN}?error=${encodeURIComponent(error.message)}`)
-  if (!recipients || recipients.length === 0) {
+  // Every matching active staff login, past PostgREST's 1,000-row cap; skip
+  // disabled users and archived/suspended companies.
+  const [recipientsRes, companiesRes] = await Promise.all([
+    fetchAllRows(() => {
+      let query = svc
+        .from('profiles')
+        .select('id, email, full_name, portfolio_id')
+        .not('email', 'is', null)
+        .is('disabled_at', null)
+      if (audience === 'company_admins') query = query.eq('hoa_role', 'company_admin')
+      else query = query.in('hoa_role', ['company_admin', 'manager'])
+      if (portfolioId) query = query.eq('portfolio_id', portfolioId)
+      return query.order('id')
+    }),
+    // Paged too: an unpaged lookup stops at 1,000 companies and would silently
+    // drop every recipient of the companies past that page.
+    fetchAllRows(() => svc.from('portfolios').select('id').is('archived_at', null).is('suspended_at', null).order('id')),
+  ])
+  if (recipientsRes.error || companiesRes.error) redirect(`${RETURN}?error=${encodeURIComponent((recipientsRes.error ?? companiesRes.error) as string)}`)
+  const liveCompanyIds = new Set(companiesRes.rows.map((c: any) => c.id))
+  const seen = new Set<string>()
+  const recipients = recipientsRes.rows.filter((r: any) => {
+    const key = String(r.email).trim().toLowerCase()
+    if (!r.portfolio_id || !liveCompanyIds.has(r.portfolio_id) || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+  if (recipients.length === 0) {
     redirect(`${RETURN}?error=${encodeURIComponent('No recipients matched that audience.')}`)
   }
+
+  // A double click or re-sent form must not email every customer twice.
+  const claim = await claimSubmission(svc, formData, 'platform_announcement', me.auth_user_id)
+  if (claim.status === 'error') redirect(`${RETURN}?error=${encodeURIComponent(claim.message)}`)
+  if (claim.status === 'duplicate') redirect(`${RETURN}?error=${encodeURIComponent('This announcement was already queued.')}`)
+  const submissionToken = (claim as { token: string }).token
 
   const html = `<p>${message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '</p><p>')}</p><p style="color:#6b7280;font-size:12px">— The Portier369 platform team</p>`
   const rows = recipients.map((r: any) => ({
@@ -58,14 +86,18 @@ async function sendAnnouncement(formData: FormData) {
   }))
 
   const { error: insertErr } = await svc.from('email_queue').insert(rows)
-  if (insertErr) redirect(`${RETURN}?error=${encodeURIComponent(insertErr.message)}`)
+  if (insertErr) {
+    await releaseSubmission(svc, submissionToken)
+    redirect(`${RETURN}?error=${encodeURIComponent(insertErr.message)}`)
+  }
+  await completeSubmission(svc, submissionToken, me.auth_user_id!)
 
   await svc.from('audit_logs').insert({
     entity_type: 'platform_announcement',
     entity_id: null,
     action: 'announcement_sent',
     actor_id: me.auth_user_id,
-    actor_email: me.profile?.email ?? null,
+    actor_email: me.email ?? null,
     changes: { subject, audience, portfolio_id: portfolioId || 'all', recipients: rows.length },
   })
 
@@ -111,6 +143,7 @@ export default async function AnnouncementsPage({
           <h2 className="text-sm font-semibold text-gray-950">New Announcement</h2>
         </div>
         <form action={sendAnnouncement as any} className="space-y-4">
+          <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="audience">Audience</Label>
@@ -144,7 +177,7 @@ export default async function AnnouncementsPage({
               className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
             />
           </div>
-          <Button type="submit" className="gap-2"><Megaphone className="h-4 w-4" /> Queue announcement</Button>
+          <PendingSubmit className="gap-2" pendingLabel="Queuing…" confirm="Email this announcement to every matching customer now?"><Megaphone className="h-4 w-4" /> Queue announcement</PendingSubmit>
         </form>
       </div>
 

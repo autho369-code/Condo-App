@@ -4,6 +4,9 @@ import { Badge } from '@/components/ui/shell';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Mail, MessageSquare, AlertTriangle } from 'lucide-react';
 import { displayTimeZone } from '@/lib/time/display-zone';
+import { Alert } from '@/components/ui/shell';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { monthWindowInZone } from '@/lib/platform/operator-metrics';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,34 +45,42 @@ export default async function CommunicationsPage() {
   const supabase = await createClient();
   const db = supabase as any;
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const zone = displayTimeZone();
+  // Month boundaries in the platform zone (the server runs in UTC).
+  const monthStart = monthWindowInZone(zone, now).startIso;
 
-  // All communications log
-  let commRows: any[] = [];
-  try {
-    const { data } = await db
-      .from('communications_log')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(2000);
-    commRows = data ?? [];
-  } catch { commRows = []; }
+  // This month's send batches (listed below the charts).
+  const { data: commData, error: commError } = await db
+    .from('communications_log')
+    .select('*')
+    .gte('created_at', monthStart)
+    .order('created_at', { ascending: false })
+    .limit(1000);
+  const commRows: any[] = commData ?? [];
   // Current month's send batches, listed below the charts.
-  const monthComms = commRows.filter((c: any) => c.created_at && c.created_at >= monthStart);
+  const monthComms = commRows;
 
   // Volume comes from the actual deliveries: one email_queue row per email and
   // one outbound sms_messages row per text. communications_log holds one row
   // per send *batch* (recipient_count recipients), so counting it undercounted
   // volume and never saw per-message failures.
-  const trendStart = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString();
+  // PostgREST caps every request at 1,000 rows (a .limit(10000) still got
+  // 1,000), so page through to count every delivery.
+  const trendStart = monthWindowInZone(zone, now, -5).startIso;
+  // Only messages that were actually sent (dated by sent_at) or failed (no
+  // sent_at, dated when queued) count; pending/queued rows are not volume yet.
   type Delivery = { channel: 'email' | 'sms'; failed: boolean; portfolio_id: string | null; created_at: string };
-  const [{ data: emailRows }, { data: smsRows }] = await Promise.all([
-    db.from('email_queue').select('status, bounced_at, portfolio_id, created_at').gte('created_at', trendStart).limit(10000),
-    db.from('sms_messages').select('status, created_at, sms_conversations(portfolio_id)').eq('direction', 'outbound').gte('created_at', trendStart).limit(10000),
+  const attempted = (failedStatuses: string) =>
+    `sent_at.gte.${trendStart},and(sent_at.is.null,status.in.(${failedStatuses}),created_at.gte.${trendStart})`;
+  const [emailRes, smsRes] = await Promise.all([
+    fetchAllRows(() => db.from('email_queue').select('id, status, bounced_at, portfolio_id, created_at, sent_at').or(attempted('failed')).order('id'), { maxRows: 200000 }),
+    fetchAllRows(() => db.from('sms_messages').select('id, status, created_at, sent_at, sms_conversations(portfolio_id)').eq('direction', 'outbound').or(attempted('failed,undelivered')).order('id'), { maxRows: 200000 }),
   ]);
+  const loadError = commError?.message ?? emailRes.error ?? smsRes.error ?? null;
+  const toIso = (value: string) => new Date(value).toISOString();
   const deliveries: Delivery[] = [
-    ...(emailRows ?? []).map((e: any) => ({ channel: 'email' as const, failed: e.status === 'failed' || !!e.bounced_at, portfolio_id: e.portfolio_id, created_at: e.created_at })),
-    ...(smsRows ?? []).map((m: any) => ({ channel: 'sms' as const, failed: ['failed', 'undelivered'].includes(m.status), portfolio_id: m.sms_conversations?.portfolio_id ?? null, created_at: m.created_at })),
+    ...emailRes.rows.map((e: any) => ({ channel: 'email' as const, failed: e.status === 'failed' || !!e.bounced_at, portfolio_id: e.portfolio_id, created_at: toIso(e.sent_at ?? e.created_at) })),
+    ...smsRes.rows.map((m: any) => ({ channel: 'sms' as const, failed: ['failed', 'undelivered'].includes(m.status), portfolio_id: m.sms_conversations?.portfolio_id ?? null, created_at: toIso(m.sent_at ?? m.created_at) })),
   ];
   const monthDeliveries = deliveries.filter((d) => d.created_at >= monthStart);
 
@@ -109,12 +120,11 @@ export default async function CommunicationsPage() {
   // 6-month trend (group by month)
   const monthlyTrend: { month: string; emails: number; sms: number }[] = [];
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const start = d.toISOString();
-    const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1).toISOString();
-    const inMonth = deliveries.filter((c) => c.created_at >= start && c.created_at < end);
+    const window = monthWindowInZone(zone, now, -i);
+    const inMonth = deliveries.filter((c) => c.created_at >= window.startIso && c.created_at < window.endIso);
+    const [y, m] = window.month.split('-').map(Number);
     monthlyTrend.push({
-      month: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+      month: new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' }),
       emails: inMonth.filter((c) => c.channel === 'email').length,
       sms: inMonth.filter((c) => c.channel === 'sms').length,
     });
@@ -127,6 +137,8 @@ export default async function CommunicationsPage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Communications</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide communication volume monitoring</p>
       </div>
+
+      {loadError && <Alert title="Some communication data could not be loaded">{loadError}</Alert>}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

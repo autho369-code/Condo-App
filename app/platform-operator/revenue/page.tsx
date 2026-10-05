@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
 import { money } from '@/lib/utils';
+import { Alert } from '@/components/ui/shell';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { isBillableSubscription, monthWindowInZone } from '@/lib/platform/operator-metrics';
+import { displayTimeZone } from '@/lib/time/display-zone';
 import { DollarSign, TrendingUp, TrendingDown, ArrowUpRight, Layers } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -37,15 +41,19 @@ export default async function RevenuePage() {
   const supabase = await createClient();
   const db = supabase as any;
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const zone = displayTimeZone();
+  // Month boundaries in the platform zone (the server runs in UTC).
+  const monthStart = monthWindowInZone(zone, now).startIso;
 
   // Billable (active/past due) and canceled subscriptions; trials are not revenue.
-  const { data: subs } = await db
+  const subsRes = await fetchAllRows(() => db
     .from('subscriptions')
-    .select('portfolio_id, tier, status, price_monthly_cents, created_at, canceled_at')
-    .in('status', ['active', 'past_due', 'canceled']);
+    .select('id, portfolio_id, tier, status, price_monthly_cents, created_at, canceled_at')
+    .in('status', ['active', 'past_due', 'canceled'])
+    .order('id'));
+  const subs = subsRes.rows;
 
-  const { data: portfolios } = await db
+  const { data: portfolios, error: portfoliosError } = await db
     .from('portfolios')
     .select('id, company_name')
     .order('company_name');
@@ -54,7 +62,7 @@ export default async function RevenuePage() {
   for (const p of portfolios ?? []) portfolioMap.set(p.id, p.company_name);
 
   // Compute MRR, ARR
-  const active = (subs ?? []).filter((s: any) => s.status === 'active' || s.status === 'past_due');
+  const active = (subs ?? []).filter((s: any) => isBillableSubscription(s.status));
   const mrr = active.reduce((sum: number, s: any) => sum + (s.price_monthly_cents ?? 0), 0) / 100;
   const arr = mrr * 12;
 
@@ -66,11 +74,11 @@ export default async function RevenuePage() {
   }
 
   // New revenue this month (subscriptions created this month)
-  const newSubs = (subs ?? []).filter((s: any) => s.status !== 'canceled' && s.created_at >= monthStart);
+  const newSubs = (subs ?? []).filter((s: any) => s.status !== 'canceled' && !!s.created_at && new Date(s.created_at).toISOString() >= monthStart);
   const newRevenue = newSubs.reduce((sum: number, s: any) => sum + (s.price_monthly_cents ?? 0), 0) / 100;
 
   // Lost revenue (canceled this month)
-  const lostSubs = (subs ?? []).filter((s: any) => s.status === 'canceled' && s.canceled_at && s.canceled_at >= monthStart);
+  const lostSubs = (subs ?? []).filter((s: any) => s.status === 'canceled' && s.canceled_at && new Date(s.canceled_at).toISOString() >= monthStart);
   const lostRevenue = lostSubs.reduce((sum: number, s: any) => sum + (s.price_monthly_cents ?? 0), 0) / 100;
 
   // Revenue by company (top 20)
@@ -87,14 +95,15 @@ export default async function RevenuePage() {
   // counts toward a month if it was created by month-end and not yet canceled.
   const trend: { label: string; value: number }[] = [];
   for (let i = 5; i >= 0; i--) {
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59).toISOString();
+    const window = monthWindowInZone(zone, now, -i);
+    const monthEnd = window.endIso; // exclusive: local midnight starting next month
     const value = (subs ?? []).reduce((sum: number, s: any) => {
-      const startedBy = s.created_at && s.created_at <= monthEnd;
-      const stillActive = !s.canceled_at || s.canceled_at > monthEnd;
+      const startedBy = s.created_at && new Date(s.created_at).toISOString() < monthEnd;
+      const stillActive = !s.canceled_at || new Date(s.canceled_at).toISOString() >= monthEnd;
       return startedBy && stillActive ? sum + (s.price_monthly_cents ?? 0) : sum;
     }, 0) / 100;
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    trend.push({ label: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }), value });
+    const [y, m] = window.month.split('-').map(Number);
+    trend.push({ label: new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' }), value });
   }
   const maxRevenue = Math.max(...trend.map((t) => t.value), 1);
 
@@ -114,6 +123,10 @@ export default async function RevenuePage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Revenue</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide revenue analytics across all companies</p>
       </div>
+
+      {(subsRes.error || portfoliosError) && (
+        <Alert title="Revenue data could not be loaded">{subsRes.error ?? portfoliosError?.message}</Alert>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">

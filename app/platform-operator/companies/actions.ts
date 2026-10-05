@@ -14,6 +14,10 @@ import { PLAN_BY_ID, type PlanId } from '@/lib/billing/plans';
 import { safeInternalNext } from '@/lib/security/redirects';
 import { siteUrl } from '@/lib/url/site-url';
 import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { claimSubmission, releaseSubmission, completeSubmission } from '@/lib/forms/submission';
+import { monthWindowInZone, parseDollarsToCents, parsePositiveInt } from '@/lib/platform/operator-metrics';
+import { displayTimeZone } from '@/lib/time/display-zone';
+import { todayInZone } from '@/lib/time/zoned';
 
 const COMPANIES = '/platform-operator/companies';
 // Verified Resend sender for platform-level email
@@ -83,14 +87,27 @@ export async function createCompanyWithAdmin(formData: FormData) {
   const email = (formData.get('admin_email') as string)?.trim().toLowerCase();
   const phone = (formData.get('phone_number') as string)?.trim() || null;
   const tier = (formData.get('tier') as string) || 'foundation';
-  const maxUnits = parseInt(formData.get('max_units') as string, 10) || null;
+  const maxUnitsInput = String(formData.get('max_units') ?? '').trim();
+  const maxUnits = parsePositiveInt(maxUnitsInput);
   const plan = PLAN_BY_ID[tier as PlanId];
 
   if (!companyName || !firstName || !lastName || !email) {
     fail(COMPANIES, 'Company name, admin first/last name, and email are required.');
   }
+  if (!plan) fail(COMPANIES, 'Select a valid plan.');
+  if (maxUnitsInput && maxUnits === null) fail(COMPANIES, 'Maximum units must be a whole number greater than zero.');
 
   const fullName = `${firstName} ${lastName}`;
+
+  // A double click or re-sent form must not provision the company twice.
+  const svc = createServiceClient() as any;
+  const claim = await claimSubmission(svc, formData, 'platform_company_create', me.auth_user_id);
+  if (claim.status === 'error') fail(COMPANIES, claim.message);
+  if (claim.status === 'duplicate') {
+    if (claim.resultId) ok(COMPANIES, 'created');
+    fail(COMPANIES, 'This company is already being created. Refresh in a moment to see it.');
+  }
+  const submissionToken = (claim as { token: string }).token;
 
   // 1+2+3: create company, subscription (trialing), and admin invitation with token
   const { data: result, error } = await (supabase as any).rpc('provision_portfolio', {
@@ -101,14 +118,19 @@ export async function createCompanyWithAdmin(formData: FormData) {
     p_seats: 5,
     p_trial_days: 0,
   });
-  if (error) fail(COMPANIES, `Could not create company: ${error.message}`);
+  if (error) {
+    await releaseSubmission(svc, submissionToken);
+    fail(COMPANIES, `Could not create company: ${error.message}`);
+  }
 
   const portfolioId = result?.portfolio_id as string;
   const invitationId = result?.invitation_id as string;
   const token = result?.invitation_token as string;
   const expiresAt = result?.invitation_expires_at as string | null;
+  // The claim stays in progress until every setup step below succeeds: a
+  // replay of a partly set-up company must not report "created". (It is not
+  // released either, so a replay can't provision the company a second time.)
 
-  const svc = createServiceClient() as any;
   const { data: provisionedPortfolio } = await svc.from('portfolios')
     .select('slug')
     .eq('id', portfolioId)
@@ -153,6 +175,7 @@ export async function createCompanyWithAdmin(formData: FormData) {
   // 5: log
   await audit(svc, me, 'company_created', portfolioId, { company_name: companyName, tier, max_units: maxUnits });
   await audit(svc, me, 'admin_invited', portfolioId, { email, full_name: fullName, invitation_id: invitationId });
+  await completeSubmission(svc, submissionToken, portfolioId);
 
   revalidatePath(COMPANIES);
   ok(COMPANIES, 'created');
@@ -171,8 +194,9 @@ export async function inviteAdmin(formData: FormData) {
   const fullName = `${firstName} ${lastName}`;
   const svc = createServiceClient() as any;
 
-  const { data: portfolio } = await svc.from('portfolios').select('company_name, slug').eq('id', portfolioId).maybeSingle();
+  const { data: portfolio } = await svc.from('portfolios').select('company_name, slug, archived_at').eq('id', portfolioId).maybeSingle();
   if (!portfolio) fail(returnTo, 'Company not found.');
+  if (portfolio.archived_at) fail(returnTo, 'This company is archived; it cannot take new admins.');
 
   const { data: invite, error } = await svc
     .from('user_invitations')
@@ -367,7 +391,7 @@ export async function sendPasswordReset(formData: FormData) {
   });
   if (error) fail(returnTo, `Could not generate reset link: ${error.message}`);
 
-  await svc.from('email_queue').insert({
+  const { error: queueError } = await svc.from('email_queue').insert({
     to_email: profile.email,
     to_name: profile.full_name,
     subject: 'Reset your Portier369 password',
@@ -377,6 +401,7 @@ export async function sendPasswordReset(formData: FormData) {
     from_name: FROM_NAME,
     portfolio_id: profile.portfolio_id,
   });
+  if (queueError) fail(returnTo, `Could not queue the reset email: ${queueError.message}`);
 
   await audit(svc, me, 'password_reset_sent', profile.portfolio_id, { email: profile.email, user_id: profileId });
   revalidatePath(returnTo);
@@ -427,8 +452,7 @@ export async function forcePasswordReset(formData: FormData) {
 
 // ── Invoicing ─────────────────────────────────────────────────────────────
 function invoiceNumber(): string {
-  const d = new Date();
-  const ym = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const ym = todayInZone(displayTimeZone()).slice(0, 7).replace('-', '');
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
   return `INV-${ym}-${rand}`;
 }
@@ -443,17 +467,33 @@ export async function generateInvoice(formData: FormData) {
   const periodEnd = (formData.get('period_end') as string) || '';
   const amountInput = (formData.get('amount') as string) || '';
 
+  if (!portfolioId) fail(returnTo, 'Select a company.');
+  const amountCents = amountInput ? parseDollarsToCents(amountInput) : null;
+  if (amountInput && amountCents === null) fail(returnTo, 'Enter the amount as dollars and cents, e.g. 249.00.');
+
   const svc = createServiceClient() as any;
+  const { data: company } = await svc.from('portfolios').select('id').eq('id', portfolioId).maybeSingle();
+  if (!company) fail(returnTo, 'Company not found.');
   const { data: sub } = await svc.from('subscriptions')
     .select('id, price_monthly_cents').eq('portfolio_id', portfolioId).maybeSingle();
-  const totalCents = amountInput ? Math.round(parseFloat(amountInput) * 100) : (sub?.price_monthly_cents ?? 0);
+  const totalCents = amountCents ?? (sub?.price_monthly_cents ?? 0);
   if (!totalCents || totalCents <= 0) fail(returnTo, 'Enter an amount (or set the plan price first).');
 
-  const now = new Date();
-  const ps = periodStart || new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  const pe = periodEnd || new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+  // Default period: the current calendar month in the platform's zone (the
+  // server runs in UTC, so local-Date math could land on the wrong month).
+  const month = monthWindowInZone(displayTimeZone());
+  const ps = periodStart || month.startDate;
+  const pe = periodEnd || month.endDate;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ps) || !/^\d{4}-\d{2}-\d{2}$/.test(pe)) fail(returnTo, 'Enter valid period dates.');
+  if (pe < ps) fail(returnTo, 'The period end must be on or after the period start.');
 
-  const { error } = await svc.from('invoices').insert({
+  // A double click or re-sent form must not bill the company twice.
+  const claim = await claimSubmission(svc, formData, 'platform_invoice_generate', me.auth_user_id);
+  if (claim.status === 'error') fail(returnTo, claim.message);
+  if (claim.status === 'duplicate') ok(returnTo, 'invoice_generated');
+  const submissionToken = (claim as { token: string }).token;
+
+  const { data: created, error } = await svc.from('invoices').insert({
     portfolio_id: portfolioId,
     subscription_id: sub?.id ?? null,
     number: invoiceNumber(),
@@ -462,8 +502,12 @@ export async function generateInvoice(formData: FormData) {
     subtotal_cents: totalCents,
     total_cents: totalCents,
     status: 'open',
-  });
-  if (error) fail(returnTo, `Could not generate invoice: ${error.message}`);
+  }).select('id').single();
+  if (error) {
+    await releaseSubmission(svc, submissionToken);
+    fail(returnTo, `Could not generate invoice: ${error.message}`);
+  }
+  await completeSubmission(svc, submissionToken, created.id);
 
   await audit(svc, me, 'invoice_generated', portfolioId, { total_cents: totalCents, period_start: ps, period_end: pe });
   revalidatePath(returnTo);
@@ -616,8 +660,9 @@ export async function updateCompanyDetails(formData: FormData) {
   };
 
   const svc = createServiceClient() as any;
-  const { error } = await svc.from('portfolios').update(update).eq('id', portfolioId);
+  const { data: updated, error } = await svc.from('portfolios').update(update).eq('id', portfolioId).select('id');
   if (error) fail(returnTo, `Could not update company: ${error.message}`);
+  if (!updated?.length) fail(returnTo, 'Company not found.');
 
   await audit(svc, me, 'company_updated', portfolioId, update);
   revalidatePath(returnTo);
@@ -632,11 +677,15 @@ export async function suspendCompany(formData: FormData) {
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const svc = createServiceClient() as any;
-  const { error } = await svc
+  const { data: suspended, error } = await svc
     .from('portfolios')
     .update({ suspended_at: new Date().toISOString(), suspension_reason: reason })
-    .eq('id', portfolioId);
+    .eq('id', portfolioId)
+    .is('archived_at', null)
+    .is('suspended_at', null)
+    .select('id');
   if (error) fail(returnTo, `Could not suspend company: ${error.message}`);
+  if (!suspended?.length) fail(returnTo, 'Only an active (not archived or already suspended) company can be suspended.');
 
   await audit(svc, me, 'company_suspended', portfolioId, { reason });
   revalidatePath(returnTo);
@@ -649,11 +698,17 @@ export async function reactivateCompany(formData: FormData) {
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const svc = createServiceClient() as any;
-  const { error } = await svc
+  // An archived company stays suspended: its logins were banned on archive,
+  // so lifting the suspension would leave a half-restored account.
+  const { data: reactivated, error } = await svc
     .from('portfolios')
     .update({ suspended_at: null, suspension_reason: null })
-    .eq('id', portfolioId);
+    .eq('id', portfolioId)
+    .is('archived_at', null)
+    .not('suspended_at', 'is', null)
+    .select('id');
   if (error) fail(returnTo, `Could not reactivate company: ${error.message}`);
+  if (!reactivated?.length) fail(returnTo, 'Only a suspended company that is not archived can be reactivated.');
 
   await audit(svc, me, 'company_reactivated', portfolioId, {});
   revalidatePath(returnTo);
@@ -667,8 +722,9 @@ export async function archiveCompany(formData: FormData) {
   const portfolioId = formData.get('portfolio_id') as string;
 
   const svc = createServiceClient() as any;
-  const { data: portfolio } = await svc.from('portfolios').select('company_name').eq('id', portfolioId).maybeSingle();
+  const { data: portfolio } = await svc.from('portfolios').select('company_name, archived_at').eq('id', portfolioId).maybeSingle();
   if (!portfolio) fail(COMPANIES, 'Company not found.');
+  if (portfolio.archived_at) fail(COMPANIES, 'This company is already archived.');
 
   // Soft delete only — never destroy customer data
   const { error } = await svc
@@ -713,17 +769,21 @@ export async function changePlan(formData: FormData) {
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const plan = PLAN_BY_ID[tier as PlanId];
+  if (!plan) fail(returnTo, 'Select a valid plan.');
+  const priceCents = priceMonthly ? parseDollarsToCents(priceMonthly) : null;
+  if (priceMonthly && priceCents === null) fail(returnTo, 'Enter the monthly price as dollars and cents, e.g. 249.00.');
   const update: Record<string, unknown> = { tier };
   // Price: explicit input wins; otherwise use the plan's standard price (skip
   // for custom/Enterprise so the operator sets it).
-  if (priceMonthly) update.price_monthly_cents = Math.round(parseFloat(priceMonthly) * 100);
+  if (priceCents !== null) update.price_monthly_cents = priceCents;
   else if (plan && !plan.custom) update.price_monthly_cents = plan.priceMonthlyCents;
   // Move the unit cap to match the selected plan (non-custom tiers).
   if (plan && plan.unitsLimit != null) update.units_limit = plan.unitsLimit;
 
   const svc = createServiceClient() as any;
-  const { error } = await svc.from('subscriptions').update(update).eq('portfolio_id', portfolioId);
+  const { data: changed, error } = await svc.from('subscriptions').update(update).eq('portfolio_id', portfolioId).select('id');
   if (error) fail(returnTo, `Could not change plan: ${error.message}`);
+  if (!changed?.length) fail(returnTo, 'This company has no subscription to change.');
   const { error: tierError } = await svc.from('portfolios').update({ tier }).eq('id', portfolioId);
   if (tierError) fail(returnTo, `Subscription updated, but the company tier could not be saved: ${tierError.message}`);
 
@@ -741,14 +801,18 @@ export async function adjustLimits(formData: FormData) {
   const unitsLimit = formData.get('units_limit') as string;
   const assocLimit = formData.get('associations_limit') as string;
   const seats = formData.get('seats_included') as string;
-  if (unitsLimit) update.units_limit = parseInt(unitsLimit, 10);
-  if (assocLimit) update.associations_limit = parseInt(assocLimit, 10);
-  if (seats) update.seats_included = parseInt(seats, 10);
+  for (const [field, raw] of [['units_limit', unitsLimit], ['associations_limit', assocLimit], ['seats_included', seats]] as const) {
+    if (!raw?.trim()) continue;
+    const value = parsePositiveInt(raw);
+    if (value === null) fail(returnTo, 'Limits must be whole numbers greater than zero.');
+    update[field] = value;
+  }
   if (Object.keys(update).length === 0) fail(returnTo, 'No limits provided.');
 
   const svc = createServiceClient() as any;
-  const { error } = await svc.from('subscriptions').update(update).eq('portfolio_id', portfolioId);
+  const { data: adjusted, error } = await svc.from('subscriptions').update(update).eq('portfolio_id', portfolioId).select('id');
   if (error) fail(returnTo, `Could not adjust limits: ${error.message}`);
+  if (!adjusted?.length) fail(returnTo, 'This company has no subscription to adjust.');
 
   await audit(svc, me, 'limits_adjusted', portfolioId, update);
   revalidatePath(returnTo);
@@ -766,11 +830,15 @@ export async function transferOwnership(formData: FormData) {
   const svc = createServiceClient() as any;
   const { data: newOwner } = await svc
     .from('profiles')
-    .select('id, email, full_name, portfolio_id')
+    .select('id, email, full_name, portfolio_id, hoa_role, disabled_at')
     .eq('id', newOwnerId)
     .eq('portfolio_id', portfolioId)
     .maybeSingle();
   if (!newOwner) fail(returnTo, 'The selected user does not belong to this company.');
+  // Only company staff can take over: an owner/board/tenant profile in the
+  // same portfolio must never be promoted straight to company admin.
+  if (!['company_admin', 'manager'].includes(newOwner.hoa_role)) fail(returnTo, 'Only a manager or company admin of this company can become its admin.');
+  if (newOwner.disabled_at) fail(returnTo, 'The selected user is disabled. Re-enable their login first.');
 
   // Demote current admins, promote the new one
   const { data: currentAdmins } = await svc
@@ -780,14 +848,19 @@ export async function transferOwnership(formData: FormData) {
     .eq('hoa_role', 'company_admin');
 
   // Promote first, then demote: a failure part-way must never leave the
-  // company with no admin.
-  const { error } = await svc.from('profiles').update({ hoa_role: 'company_admin' }).eq('id', newOwnerId);
-  if (error) fail(returnTo, `Could not transfer ownership: ${error.message}`);
+  // company with no admin. platform_set_profile_role keeps role_id and the
+  // manager's association assignments consistent (a bare hoa_role update left
+  // demoted admins as managers with no Property Manager role) and audits it.
+  const supabase = await createClient();
+  if (newOwner.hoa_role !== 'company_admin') {
+    const { error } = await (supabase as any).rpc('platform_set_profile_role', { p_profile_id: newOwnerId, p_hoa_role: 'company_admin' });
+    if (error) fail(returnTo, `Could not transfer ownership: ${error.message}`);
+  }
   const demoteFailures: string[] = [];
   for (const admin of currentAdmins ?? []) {
     if (admin.id !== newOwnerId) {
-      const { error: demoteError } = await svc.from('profiles').update({ hoa_role: 'manager' }).eq('id', admin.id);
-      if (demoteError) demoteFailures.push(admin.email ?? admin.id);
+      const { error: demoteError } = await (supabase as any).rpc('platform_set_profile_role', { p_profile_id: admin.id, p_hoa_role: 'manager' });
+      if (demoteError) demoteFailures.push(`${admin.email ?? admin.id} (${demoteError.message})`);
     }
   }
   if (demoteFailures.length) fail(returnTo, `New admin set, but these admins could not be changed to manager: ${demoteFailures.join(', ')}`);
