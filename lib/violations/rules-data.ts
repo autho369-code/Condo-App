@@ -10,8 +10,8 @@ export const humanize = (s: string | null | undefined) =>
 
 /** Associations the signed-in staff member can see, plus the selected one. */
 export async function loadAssociationScope(db: any, requested?: string) {
-  const { data } = await db.from('associations').select('id, name').is('archived_at', null).order('name');
-  const associations = (data ?? []) as { id: string; name: string }[];
+  const { data } = await db.from('associations').select('id, name, portfolio_id').is('archived_at', null).order('name');
+  const associations = (data ?? []) as { id: string; name: string; portfolio_id: string }[];
   const selected = associations.find((a) => a.id === requested) ?? associations[0] ?? null;
   return { associations, selected };
 }

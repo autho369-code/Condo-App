@@ -351,12 +351,15 @@ export async function createBuilding(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
 
-  const associationId = req(formData, 'association_id');
+  const associationId = str(formData, 'association_id');
+  if (!associationId) redirect(`/associations?error=${encodeURIComponent('Choose the association to add the building to.')}`);
   // /buildings/new bounces to /associations without ?association=, which
   // swallowed every error message.
   const failTo = (msg: string) => {
     redirect(`/buildings/new?association=${encodeURIComponent(associationId)}&error=${encodeURIComponent(msg)}`);
   };
+  if (!str(formData, 'name')) { failTo('Enter the building name.'); return; }
+  if (!str(formData, 'address')) { failTo('Enter the building address.'); return; }
 
   // Parse amenities as comma-separated → jsonb array
   const amenitiesCsv = str(formData, 'amenities');
@@ -496,6 +499,9 @@ export async function createUnit(formData: FormData) {
   const failTo = (msg: string) => {
     redirect(`/units/new?error=${encodeURIComponent(msg)}`);
   };
+  // A missing required field must come back as a message, not a crash page.
+  if (!str(formData, 'building_id')) { failTo('Choose the building this unit is in.'); return; }
+  if (!str(formData, 'unit_number')) { failTo('Enter the unit number.'); return; }
 
   const payload = {
     building_id:  req(formData, 'building_id'),

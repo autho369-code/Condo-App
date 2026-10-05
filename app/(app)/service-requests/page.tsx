@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowUpRight, ClipboardList, Wrench } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { requireStaff } from '@/lib/auth/me';
 import { ExportActions, type ExportTable } from '@/components/export/export-actions';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -67,10 +68,11 @@ export default async function ServiceRequestsPage({
   const openCount = (build: (query: any) => any) =>
     build(db.from('service_requests').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', OPEN));
 
-  const [{ data: requestRows }, { data: associations }, { data: openRows }, overdueRes, questionRes, duplicateRes, emergencyRes, newRes, triagedRes] = await Promise.all([
+  const [{ data: requestRows, error: listError }, { data: associations }, { data: openRows }, overdueRes, questionRes, duplicateRes, emergencyRes, newRes, triagedRes] = await Promise.all([
     listQuery.order('priority', { ascending: false }).order('created_at', { ascending: false }).limit(500),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('service_requests').select('created_at').is('archived_at', null).in('status', OPEN).order('created_at').limit(5000),
+    // Every open request for the average age (one request stops at 1,000 rows).
+    fetchAllRows<any>(() => db.from('service_requests').select('id, created_at').is('archived_at', null).in('status', OPEN).order('created_at').order('id')).then((r) => ({ data: r.rows })),
     openCount((query) => query.is('acknowledged_at', null).lt('first_response_due_at', nowIso)),
     openCount((query) => query.eq('request_kind', 'admin')),
     openCount((query) => query.not('duplicate_of', 'is', null).eq('duplicate_reviewed', false)),
@@ -152,6 +154,7 @@ export default async function ServiceRequestsPage({
     >
       <div className="space-y-6">
         {error ? <Alert>{error}</Alert> : null}
+        {listError ? <Alert title="Requests could not be loaded">{listError.message}</Alert> : null}
         <MetricStrip metrics={[
           { label: 'Awaiting triage', value: newCount, sublabel: `${triagedCount} in work orders · avg age ${averageAge}d` },
           { label: 'Reply overdue', value: overdueCount, sublabel: 'Past the first-response time' },

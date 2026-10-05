@@ -11,7 +11,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { Wrench } from 'lucide-react';
 import { nextRecurringDate } from '@/lib/time/recurrence';
-import { wallDateTimeToIso } from '@/lib/time/zoned';
+import { addDaysToDate, todayInZone, wallDateTimeToIso } from '@/lib/time/zoned';
 import { associationZone, MAINTENANCE_CATEGORY_EVENT_TYPE, syncMaintenanceCalendarEvent } from '@/lib/maintenance/calendar';
 import { mergePrivateFields, mergePrivateFieldsOne, savePrivateFields } from '@/lib/private-fields';
 
@@ -187,7 +187,8 @@ async function cloneGroup(formData: FormData) {'use server';
   const { data: templates, error: templatesError } = await db.from('maintenance_templates').select('*').eq('group_id', formData.get('group_id') as string);
   if (templatesError) maintenanceFail(`Templates could not be loaded: ${templatesError.message}`, 'templates');
   if(templates){
-    const today = new Date().toISOString().slice(0,10);
+    // Today in the association's own time zone (a UTC date is tomorrow on a US evening).
+    const today = todayInZone(await associationZone(db, assocId));
     const tasks = templates.map((t:any)=>({
       association_id: assocId, template_id: t.id,
       task_name: t.name, category: t.category,
@@ -229,8 +230,13 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
   // Task notes are staff-only (maintenance_task_private).
   await mergePrivateFields(db, 'maintenance_task_private', 'maintenance_task_id', ['notes'], rows);
   if(sp.assoc) rows = rows.filter((t:any)=>t.association_id===sp.assoc);
-  const overdue = rows.filter((t:any)=>t.next_due_date&&new Date(t.next_due_date)<new Date()).length;
-  const soon = rows.filter((t:any)=>t.next_due_date&&(new Date(t.next_due_date).getTime()-Date.now())/86400000<=14&&(new Date(t.next_due_date).getTime()-Date.now())/86400000>=0).length;
+  // Compare calendar dates (a date-only value parsed as a UTC instant counted
+  // tasks due today as overdue for most of the US day).
+  const todayDate = todayInZone();
+  const soonLimit = addDaysToDate(todayDate, 14);
+  const dueOn = (t: any) => String(t.next_due_date ?? '').slice(0, 10);
+  const overdue = rows.filter((t:any)=>t.next_due_date&&dueOn(t)<todayDate).length;
+  const soon = rows.filter((t:any)=>t.next_due_date&&dueOn(t)>=todayDate&&dueOn(t)<=soonLimit).length;
   const editTask = sp.edit ? rows.find((t:any)=>t.id===sp.edit) : null;
   const tab = sp.tab||'tasks';
 
@@ -298,7 +304,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                     <div><Label htmlFor="priority">Priority</Label><Select id="priority" name="priority" defaultValue={editTask?.priority || 'normal'}><option>low</option><option>normal</option><option>high</option><option>critical</option></Select></div>
                     <div><Label htmlFor="vendor_id">Vendor</Label><Select id="vendor_id" name="vendor_id" defaultValue={editTask?.vendor_id || ''}><option value="">None</option>{(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name} ({v.trade})</option>)}</Select></div>
                     <div><Label htmlFor="staff_id">Manager</Label><Select id="staff_id" name="staff_id" defaultValue={editTask?.assigned_staff_id || ''}><option value="">None</option>{(staff ?? []).map((s: any) => <option key={s.id} value={s.id}>{s.full_name || s.email}</option>)}</Select></div>
-                    <div><Label htmlFor="start_date">Start *</Label><Input id="start_date" name="start_date" type="date" required defaultValue={editTask?.start_date || new Date().toISOString().slice(0, 10)} /></div>
+                    <div><Label htmlFor="start_date">Start *</Label><Input id="start_date" name="start_date" type="date" required defaultValue={editTask?.start_date || todayDate} /></div>
                     <div><Label htmlFor="end_date">End</Label><Input id="end_date" name="end_date" type="date" defaultValue={editTask?.end_date} /></div>
                     <div className="sm:col-span-3"><Label>Reminders</Label><div className="mt-1 flex flex-wrap gap-3">{REMINDERS.map(d => (<label key={d} className="flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" name="reminders" value={d} defaultChecked={(editTask?.reminder_days || [30, 14, 7]).includes(d)} />{d}d</label>))}</div></div>
                     <div className="sm:col-span-3"><Label htmlFor="notes">Notes</Label><Textarea id="notes" name="notes" rows={2} defaultValue={editTask?.notes} /></div>
@@ -332,7 +338,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                 </THead>
                 <tbody>
                   {rows.map((t: any) => {
-                    const over = t.next_due_date && new Date(t.next_due_date) < new Date();
+                    const over = t.next_due_date && dueOn(t) < todayDate;
                     return (
                       <TR key={t.id}>
                         <TD><div className="font-medium text-gray-900">{t.task_name}</div><div className="text-xs text-gray-500">{t.category} · {t.priority}</div></TD>

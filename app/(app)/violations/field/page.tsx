@@ -4,6 +4,7 @@ import { FieldCaptureForm } from '@/components/violations/field-capture-form';
 import { FieldOfflineWorker } from '@/components/violations/field-offline-worker';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,11 +21,12 @@ export default async function ViolationFieldCapturePage() {
   // RLS scopes both lists to the associations this staffer manages.
   const [{ data: associations }, { data: units }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('units')
+    // Every unit (one request stops at 1,000 rows).
+    fetchAllRows<any>(() => db.from('units')
       .select('id, unit_number, buildings!inner(association_id)')
       .is('archived_at', null)
       .order('unit_number')
-      .limit(2000),
+      .order('id')).then((r) => ({ data: r.rows })),
   ]);
 
   const unitOptions = (units ?? []).map((u: any) => ({
