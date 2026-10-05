@@ -166,8 +166,8 @@ but a few worth addressing before scale:
       with `security_invoker`, so none bypasses RLS.
 
 ## 🟢 Optional / cleanup (no rush)
-- [ ] Decide fate of the orphaned `/platform-operator/overview` page vs the root
-      `/platform-operator` dashboard (duplicate command-center).
+- [x] Orphaned `/platform-operator/overview` command center — linked from the
+      operator sidebar and the root dashboard's Quick Navigation (2026-10-05).
 - [ ] `app/platform/*` vs `app/platform-operator/*` consolidation (needs approval).
 - [ ] Drop the inert `'stripe'` value from the `payment_processor` enum (cosmetic;
       requires recreating the enum + retyping columns — low value).

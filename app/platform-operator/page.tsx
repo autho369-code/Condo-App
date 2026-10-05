@@ -69,6 +69,7 @@ export default async function PlatformOperatorOverview({ searchParams }: { searc
     ?? activeSubsRes.error ?? openInvoicesRes.error?.message ?? null;
 
   const quickLinks = [
+    { label: 'Command Center', href: '/platform-operator/overview', description: 'Company health, trials, revenue trend, activity', icon: Building2 },
     { label: 'Billing', href: '/platform-operator/billing', description: 'Invoices, subscriptions, payments', icon: CreditCard },
     { label: 'Door Usage', href: '/platform-operator/door-usage', description: 'Monitor door limits and overages', icon: DoorOpen },
     { label: 'Revenue', href: '/platform-operator/revenue', description: 'MRR, ARR, revenue analytics', icon: DollarSign },
