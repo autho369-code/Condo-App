@@ -20,6 +20,7 @@ declare
   v_freq public.recurring_frequency;
   v_keep uuid;
   v_id uuid;
+  v_today date;
 begin
   if auth.uid() is null then
     raise exception 'Authentication required' using errcode = '42501';
@@ -73,8 +74,8 @@ begin
 
   v_amount := round(coalesce(v_occ.dues_amount, 0), 2);
   v_freq := coalesce(v_occ.dues_frequency, 'monthly'::public.recurring_frequency);
-  v_first := greatest(coalesce(p_start, current_date),
-                      (now() at time zone coalesce(nullif(v_occ.timezone, ''), 'America/Chicago'))::date);
+  v_today := (now() at time zone coalesce(nullif(v_occ.timezone, ''), 'America/Chicago'))::date;
+  v_first := greatest(coalesce(p_start, v_today), v_today);
   if extract(day from v_first) <> 1 then
     v_first := (date_trunc('month', v_first) + interval '1 month')::date;
   end if;
@@ -85,6 +86,7 @@ begin
    where urc.unit_id = v_occ.unit_id and urc.active and urc.charge_category_id = any(v_cats)
      and urc.amount = v_amount and urc.frequency = v_freq
      and coalesce(urc.start_date, urc.next_post_date) <= v_first
+     and extract(day from urc.next_post_date) = 1
      and (urc.end_date is null or urc.end_date >= v_first)
    order by urc.created_at desc
    limit 1;

@@ -149,8 +149,10 @@ export async function createOwnerWithDetails(formData: FormData) {
   // 4b) Bill the monthly dues. Without a recurring charge they are never
   // posted. Runs after the fee schedule so a dues line added there is not
   // duplicated.
-  if (occupancyId) {
-    const duesErr = await scheduleOwnerDues(db, occupancyId, moveIn);
+  // Only with a dues amount: a co-owner added with the field blank must not
+  // stop the unit's existing dues.
+  if (occupancyId && Number(s(formData, 'dues_amount') ?? 0) > 0) {
+    const duesErr = await scheduleOwnerDues(db, occupancyId, s(formData, 'move_in_date'));
     if (duesErr) warnings.push(duesErr);
   }
 

@@ -211,11 +211,10 @@ export async function importOwners(
 
       // Bill the monthly dues; a failure here keeps the owner but is reported.
       const moveIn = toDate(r.move_in_date);
-      const today = todayInZone();
       const duesAmount = num(r.monthly_dues) ?? 0;
       let duesErr: string | null = null;
       if (occRow?.id && duesAmount > 0 && !duesScheduledUnits.has(unitId!)) {
-        duesErr = await scheduleOwnerDues(db, occRow.id, moveIn ?? today);
+        duesErr = await scheduleOwnerDues(db, occRow.id, moveIn);
         if (!duesErr) duesScheduledUnits.add(unitId!);
       }
       if (duesErr) errors.push(`Row ${line} (${unitNumber} / ${email}): owner imported, but ${duesErr}`);
