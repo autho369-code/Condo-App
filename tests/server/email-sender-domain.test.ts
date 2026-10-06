@@ -104,11 +104,12 @@ describe('sender domain helpers', () => {
     expect(platformSenderAddress(null)).toBe('hello@portier369.com');
   });
 
-  it('moves only mail queued from the platform default sender', () => {
+  it('moves only mail queued from a platform address', () => {
     expect(usesPlatformSender('hello@portier369.com')).toBe(true);
     expect(usesPlatformSender('NoReply@portier369.com')).toBe(true);
     expect(usesPlatformSender(null)).toBe(true);
-    expect(usesPlatformSender('billing@portier369.com')).toBe(false);
+    expect(usesPlatformSender('maintenance@portier369.com')).toBe(true);
+    expect(usesPlatformSender('notices@othercompany.com')).toBe(false);
   });
 
   it('recognises a refused sender domain and keeps displayable DNS records', () => {
@@ -236,6 +237,21 @@ describe('email worker sender selection', () => {
     queued = [email({ association_id: 'a1' })];
     domains = [verified];
     failingTable = 'associations';
+    expect(await runWorker()).toMatchObject({ sent: 0, failed: 1 });
+    expect(sent).toEqual([]);
+  });
+
+  it('uses the company domain for maintenance mail queued from maintenance@', async () => {
+    queued = [email({ from_address: 'maintenance@portier369.com', from_name: 'Stellar Property Group' })];
+    domains = [verified];
+    await runWorker();
+    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: brandedKey }]);
+  });
+
+  it('sends nothing when the company name cannot be loaded', async () => {
+    queued = [email()];
+    domains = [verified];
+    failingTable = 'portfolios';
     expect(await runWorker()).toMatchObject({ sent: 0, failed: 1 });
     expect(sent).toEqual([]);
   });

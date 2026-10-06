@@ -3,7 +3,7 @@
 // platform address. Rows live in portfolio_email_domains; the domain is
 // registered and verified with Resend, the same account that sends the mail.
 import { Resend } from 'resend';
-import { EMAIL_FROM, EMAIL_FROM_NAME, EMAIL_FROM_NOREPLY } from '@/lib/email/queue';
+import { EMAIL_FROM, EMAIL_FROM_NAME } from '@/lib/email/queue';
 import { parseCustomDomain } from '@/lib/tenant/custom-domain';
 
 export const DEFAULT_FROM_LOCAL_PART = 'notices';
@@ -43,10 +43,10 @@ export function brandedFromAddress(row: Pick<SenderDomainRow, 'domain' | 'from_l
   return `${row.from_local_part || DEFAULT_FROM_LOCAL_PART}@${row.domain}`;
 }
 
-/** Only mail queued from the platform's default sender is moved to a company's domain. */
+/** Only mail queued from a platform address (hello@, noreply@, maintenance@ …) is moved to a company's domain. */
 export function usesPlatformSender(fromAddress: string | null | undefined): boolean {
   const from = String(fromAddress ?? '').trim().toLowerCase();
-  return !from || from === EMAIL_FROM || from === EMAIL_FROM_NOREPLY;
+  return !from || from.endsWith(`@${EMAIL_FROM.split('@')[1]}`);
 }
 
 /**

@@ -67,10 +67,14 @@ export async function GET(request: NextRequest) {
   const companyIds = [...new Set(claimedRows
     .filter((e) => e.portfolio_id && !e.sender_address && !isPlatformSenderName(e.from_name) && usesPlatformSender(e.from_address))
     .map((e) => String(e.portfolio_id)))];
+  let brandsUnavailable = false;
   const brandNames = new Map<string, string>();
   if (brandIds.length) {
     const { data: brands, error: brandError } = await db.from('portfolios').select('id, company_name').in('id', brandIds);
-    if (brandError) console.error('Could not load sender branding:', brandError.message);
+    if (brandError) {
+      console.error('Could not load sender branding:', brandError.message);
+      brandsUnavailable = true;
+    }
     for (const b of brands ?? []) if (b.company_name) brandNames.set(String(b.id), String(b.company_name));
   }
   // A failed lookup must not silently change an email's sender: the affected
@@ -138,6 +142,11 @@ export async function GET(request: NextRequest) {
       const to = String(email.to_email ?? '').trim().toLowerCase();
       const platformAddress = platformSenderAddress(email.from_address);
       if (!EMAIL_PATTERN.test(to) || !EMAIL_PATTERN.test(platformAddress)) throw new Error('Invalid queued email address');
+      // No company name to send under: retry rather than mix the platform name
+      // with the company's address (or send a replay under a different name).
+      if (brandsUnavailable && email.portfolio_id && !String(email.from_name ?? '').trim()) {
+        throw new Error('The company name could not be loaded; will retry.');
+      }
       if (associationsUnavailable && email.association_id && !earlierAttempt(email)) {
         throw new Error('The email\'s company could not be loaded; will retry.');
       }
