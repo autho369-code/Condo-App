@@ -16,6 +16,7 @@ let refuseBranded = false;
 let queued: any[] = [];
 let domains: any[] = [];
 let owners: any[] = [];
+let failingTable: string | null = null;
 const snapshots: Array<{ id: string; sender_address: string }> = [];
 
 vi.mock('resend', () => ({
@@ -45,7 +46,9 @@ vi.mock('@/lib/supabase/server', () => ({
         },
       }),
       select: () => ({
-        in: async () => (table === 'portfolios'
+        in: async () => (table === failingTable
+          ? { data: null, error: { message: 'connection reset' } }
+          : table === 'portfolios'
           ? { data: [{ id: 'p1', company_name: 'Stellar Property Group' }], error: null }
           : table === 'email_sender_domain_owners'
             ? { data: owners, error: null }
@@ -119,6 +122,7 @@ describe('email worker sender selection', () => {
     snapshots.length = 0;
     refuseBranded = false;
     owners = [{ portfolio_id: 'p1', domain: 'stellarpropertygroup.com' }];
+    failingTable = null;
     vi.resetModules();
   });
 
@@ -189,6 +193,24 @@ describe('email worker sender selection', () => {
     await runWorker();
     expect(sent).toEqual([{ from: 'Stellar Property Group <hello@portier369.com>', key: 'email-queue-e1' }]);
     expect(snapshots).toEqual([{ id: 'e1', sender_address: 'hello@portier369.com' }]);
+  });
+
+  it('sends nothing for a stored company sender when ownership cannot be checked', async () => {
+    queued = [email({ attempt_count: 2, snapshot_claims: 2, sender_address: 'notices@stellarpropertygroup.com' })];
+    domains = [verified];
+    failingTable = 'email_sender_domain_owners';
+    expect(await runWorker()).toMatchObject({ sent: 0, failed: 1 });
+    expect(sent).toEqual([]);
+    expect(snapshots).toEqual([]);
+  });
+
+  it('sends nothing on a first attempt when company domains cannot be loaded', async () => {
+    queued = [email()];
+    domains = [verified];
+    failingTable = 'portfolio_email_domains';
+    expect(await runWorker()).toMatchObject({ sent: 0, failed: 1 });
+    expect(sent).toEqual([]);
+    expect(snapshots).toEqual([]);
   });
 
   it('never sends from a queued address outside the platform domain', async () => {

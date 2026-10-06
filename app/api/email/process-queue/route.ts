@@ -53,11 +53,18 @@ export async function GET(request: NextRequest) {
     if (brandError) console.error('Could not load sender branding:', brandError.message);
     for (const b of brands ?? []) if (b.company_name) brandNames.set(String(b.id), String(b.company_name));
   }
+  // A failed lookup must not silently change an email's sender: the affected
+  // emails fail this run (nothing is sent) and are retried.
+  let domainsUnavailable = false;
+  let ownersUnavailable = false;
   const companySenders = new Map<string, string>();
   if (companyIds.length) {
     const { data: domains, error: domainError } = await db.from('portfolio_email_domains')
       .select('portfolio_id, domain, from_local_part, status, enabled').in('portfolio_id', companyIds);
-    if (domainError) console.error('Could not load sender domains:', domainError.message);
+    if (domainError) {
+      console.error('Could not load sender domains:', domainError.message);
+      domainsUnavailable = true;
+    }
     for (const d of domains ?? []) {
       const address = brandedFromAddress(d);
       if (address) companySenders.set(String(d.portfolio_id), address);
@@ -73,7 +80,10 @@ export async function GET(request: NextRequest) {
   if (ownerIds.length) {
     const { data: owners, error: ownersError } = await db.from('email_sender_domain_owners')
       .select('portfolio_id, domain').in('portfolio_id', ownerIds);
-    if (ownersError) console.error('Could not load sender domain owners:', ownersError.message);
+    if (ownersError) {
+      console.error('Could not load sender domain owners:', ownersError.message);
+      ownersUnavailable = true;
+    }
     for (const o of owners ?? []) ownedDomains.add(`${o.portfolio_id}:${String(o.domain).toLowerCase()}`);
   }
   const trustedStored = (email: any, platformAddress: string): string | null => {
@@ -108,6 +118,13 @@ export async function GET(request: NextRequest) {
       const to = String(email.to_email ?? '').trim().toLowerCase();
       const platformAddress = platformSenderAddress(email.from_address);
       if (!EMAIL_PATTERN.test(to) || !EMAIL_PATTERN.test(platformAddress)) throw new Error('Invalid queued email address');
+      const storedSender = String(email.sender_address ?? '').trim().toLowerCase();
+      if (ownersUnavailable && storedSender && storedSender !== platformAddress) {
+        throw new Error('Sender domains could not be checked; will retry.');
+      }
+      if (domainsUnavailable && !storedSender && email.portfolio_id && companyIds.includes(String(email.portfolio_id))) {
+        throw new Error('Sender domains could not be loaded; will retry.');
+      }
       const primary = primaryAddress(email, platformAddress);
       if (!EMAIL_PATTERN.test(primary)) throw new Error('Invalid sending address');
       const recordSender = async (address: string) => {
