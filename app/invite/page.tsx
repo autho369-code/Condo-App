@@ -10,6 +10,9 @@ import { resolvedTenantUrl, tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { siteUrl } from '@/lib/url/site-url';
+import { cache } from 'react';
+import type { Metadata } from 'next';
+import { brandedMetadata, signInMetadata } from '@/lib/tenant/metadata';
 
 export const dynamic = 'force-dynamic';
 
@@ -158,6 +161,27 @@ function Shell({ title, brand, children }: { title: string; brand?: string | nul
       </div>
     </div>
   );
+}
+
+// The inviting company, from the invitation itself: invitation emails can
+// open on the platform address, which says nothing about the company.
+const invitationCompany = cache(async (token: string): Promise<string | null> => {
+  const { data } = await (createServiceClient() as any)
+    .from('user_invitations').select('portfolios(company_name)').eq('token', token).maybeSingle();
+  const name = data?.portfolios?.company_name;
+  return typeof name === 'string' && name.trim() ? name.trim() : null;
+});
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ token?: string }>;
+}): Promise<Metadata> {
+  const token = (await searchParams).token;
+  const company = token ? await invitationCompany(token).catch(() => null) : null;
+  const base = company ? brandedMetadata(company) : await signInMetadata();
+  // Invitation links are private: never indexed, on any address.
+  return { ...base, robots: { index: false, follow: false } };
 }
 
 export default async function InvitePage({

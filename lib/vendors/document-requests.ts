@@ -2,7 +2,7 @@
 // Keys match documents.doc_type and vendor_expiration_column() in the DB.
 
 import { queueEmails } from '@/lib/email/queue';
-import { siteUrl } from '@/lib/url/site-url';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 
 export const VENDOR_DOC_TYPES = [
   { value: 'w9', label: 'W-9 (taxpayer identification)', expires: false },
@@ -36,7 +36,10 @@ export async function emailVendorRequest(svc: any, opts: {
   to: string; vendorName: string; companyName: string; docType: string; message?: string | null;
   dueDate?: string | null; token: string; portfolioId: string; requestId: string; attempt: string; reason?: string | null;
 }) {
-  const link = `${siteUrl()}/vendor-upload/${opts.token}`;
+  // The link opens on the company's own address, so the upload page carries
+  // its name (falls back to the platform address if the lookup fails).
+  const { data: company } = await svc.from('portfolios').select('slug').eq('id', opts.portfolioId).maybeSingle();
+  const link = tenantWorkspaceUrl(company?.slug ?? null, `/vendor-upload/${opts.token}`);
   const label = vendorDocLabel(opts.docType);
   const lines = [
     `Hello ${opts.vendorName},`,

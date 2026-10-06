@@ -2,6 +2,9 @@ import Sidebar from '@/components/nav/sidebar'
 import { boardModules } from '@/lib/navigation/role-modules'
 import { requireBoard } from '@/lib/auth/me'
 import { createClient } from '@/lib/supabase/server'
+import { workspaceMetadata } from '@/lib/tenant/metadata'
+
+export const generateMetadata = workspaceMetadata
 
 async function getAssociationName(associationIds: string[]): Promise<string | undefined> {
   if (!associationIds || associationIds.length === 0) return undefined

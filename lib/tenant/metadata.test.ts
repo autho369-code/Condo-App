@@ -1,0 +1,78 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+let requestHeaders = new Headers();
+let meResult: any = { data: null, error: null };
+
+vi.mock('next/headers', () => ({ headers: async () => requestHeaders }));
+vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({ rpc: async () => meResult }) }));
+
+const tenantHeaders = (name: string) => new Headers({
+  'x-portfolio-id': 'p1',
+  'x-portfolio-name': encodeURIComponent(name),
+});
+
+beforeEach(() => {
+  requestHeaders = new Headers();
+  meResult = { data: null, error: null };
+  vi.resetModules();
+});
+
+describe('brandedMetadata', () => {
+  it("titles the pages with the company's name", async () => {
+    const { brandedMetadata } = await import('./metadata');
+    expect(brandedMetadata(' Stellar Property Group ')).toMatchObject({
+      title: { template: '%s · Stellar Property Group', default: 'Stellar Property Group' },
+      applicationName: 'Stellar Property Group',
+      appleWebApp: { title: 'Stellar Property Group' },
+    });
+  });
+});
+
+describe('workspaceMetadata', () => {
+  it("uses the company of the address the request came in on", async () => {
+    requestHeaders = tenantHeaders('Café Management');
+    meResult = { data: { portfolio: { company_name: 'Someone Else' } }, error: null };
+    const { workspaceMetadata } = await import('./metadata');
+    expect((await workspaceMetadata()).applicationName).toBe('Café Management');
+  });
+
+  it("falls back to the signed-in user's company on the platform address", async () => {
+    meResult = { data: { portfolio: { company_name: 'Stellar Property Group' } }, error: null };
+    const { workspaceMetadata } = await import('./metadata');
+    expect((await workspaceMetadata()).applicationName).toBe('Stellar Property Group');
+  });
+
+  it('keeps the platform defaults with no company (platform operators)', async () => {
+    meResult = { data: { portfolio: null }, error: null };
+    const { workspaceMetadata } = await import('./metadata');
+    expect(await workspaceMetadata()).toEqual({});
+  });
+});
+
+describe('signInMetadata', () => {
+  it("brands and de-indexes sign-in on a company's address", async () => {
+    requestHeaders = tenantHeaders('Stellar Property Group');
+    const { signInMetadata } = await import('./metadata');
+    expect(await signInMetadata()).toMatchObject({
+      applicationName: 'Stellar Property Group',
+      robots: { index: false, follow: false },
+    });
+  });
+
+  it('leaves the platform sign-in alone', async () => {
+    meResult = { data: { portfolio: { company_name: 'Stellar Property Group' } }, error: null };
+    const { signInMetadata } = await import('./metadata');
+    expect(await signInMetadata()).toEqual({});
+  });
+});
+
+describe('signedInStepMetadata', () => {
+  it("uses the signed-in user's company on the platform address, noindexed", async () => {
+    meResult = { data: { portfolio: { company_name: 'Stellar Property Group' } }, error: null };
+    const { signedInStepMetadata } = await import('./metadata');
+    expect(await signedInStepMetadata()).toMatchObject({
+      applicationName: 'Stellar Property Group',
+      robots: { index: false, follow: false },
+    });
+  });
+});

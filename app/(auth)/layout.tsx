@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { signInMetadata } from '@/lib/tenant/metadata';
+
+export const generateMetadata = signInMetadata;
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const requestHeaders = await headers();

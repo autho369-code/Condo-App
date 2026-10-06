@@ -1,6 +1,9 @@
 import Sidebar from '@/components/nav/sidebar'
 import { ownerModules } from '@/lib/navigation/role-modules'
 import { requireOwner } from '@/lib/auth/me'
+import { workspaceMetadata } from '@/lib/tenant/metadata'
+
+export const generateMetadata = workspaceMetadata
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const me = await requireOwner()

@@ -1,6 +1,9 @@
 import Sidebar from '@/components/nav/sidebar';
 import { requireTenant } from '@/lib/auth/me';
 import { residentModules } from '@/lib/navigation/role-modules';
+import { workspaceMetadata } from '@/lib/tenant/metadata';
+
+export const generateMetadata = workspaceMetadata;
 
 export default async function ResidentLayout({ children }: { children: React.ReactNode }) {
   const me = await requireTenant();

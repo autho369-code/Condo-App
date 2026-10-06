@@ -9,6 +9,9 @@ import { appModules } from '@/lib/navigation/modules';
 import { companyAdminModules } from '@/lib/navigation/role-modules';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 import { CommandPalette, type PaletteLink } from '@/components/search/command-palette';
+import { workspaceMetadata } from '@/lib/tenant/metadata';
+
+export const generateMetadata = workspaceMetadata;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Staff workspace. Company admins are admitted at the layout so their nav
