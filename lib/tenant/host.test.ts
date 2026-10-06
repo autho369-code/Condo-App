@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   classifyTenantHost,
+  forwardedTenantHostname,
   normalizeHostname,
   platformLoginUrl,
   resolvedTenantUrl,
@@ -68,5 +69,21 @@ describe('tenant access decisions', () => {
       .toEqual({ allowed: false, reason: 'portfolio_mismatch' });
     expect(tenantAccessDecision('p1', { is_platform_operator: true, portfolio: { id: 'p1' } }))
       .toEqual({ allowed: false, reason: 'platform_operator_on_tenant' });
+  });
+});
+
+describe('forwardedTenantHostname', () => {
+  it('forwards a retired company address to its current one, keeping the rest of the host', () => {
+    expect(forwardedTenantHostname(classifyTenantHost('stellar.portier369.com', 'portier369.com'), 'stellarpropertygrp'))
+      .toBe('stellarpropertygrp.portier369.com');
+    expect(forwardedTenantHostname(classifyTenantHost('stellar.localhost:3000', 'portier369.com'), 'stellarpropertygrp'))
+      .toBe('stellarpropertygrp.localhost');
+  });
+
+  it('does nothing for the current address, custom domains or a bad slug', () => {
+    expect(forwardedTenantHostname(classifyTenantHost('stellar.portier369.com', 'portier369.com'), 'stellar')).toBeNull();
+    expect(forwardedTenantHostname(classifyTenantHost('portal.stellar.com', 'portier369.com'), 'stellar')).toBeNull();
+    expect(forwardedTenantHostname(classifyTenantHost('stellar.portier369.com', 'portier369.com'), 'Bad Slug')).toBeNull();
+    expect(forwardedTenantHostname(classifyTenantHost('portier369.com', 'portier369.com'), 'stellar')).toBeNull();
   });
 });

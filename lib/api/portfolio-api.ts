@@ -25,7 +25,8 @@ const jsonHeaders = {
   'Cache-Control': 'no-store',
   'Content-Type': 'application/json; charset=utf-8',
   'Vary': 'Authorization, X-API-Key',
-  'X-Portier-API-Version': '2026-08-01',
+  // Brand-neutral: every client's integrations see their own white-labeled API.
+  'X-API-Version': '2026-08-01',
 };
 
 export function rawApiKey(request: Request) {

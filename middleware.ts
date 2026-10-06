@@ -4,7 +4,7 @@ import type { Database } from '@/lib/types/database'
 import { getSupabaseBrowserKey, getSupabaseUrl } from '@/lib/supabase/env'
 import { PUBLIC_PATHS } from '@/lib/server/public-paths'
 import { isStaleAuthSession, isSupabaseAuthCookie } from '@/lib/server/auth-session'
-import { apexDomain, classifyTenantHost, tenantAccessDecision } from '@/lib/tenant/host'
+import { apexDomain, classifyTenantHost, forwardedTenantHostname, tenantAccessDecision } from '@/lib/tenant/host'
 import { requiresMfa } from '@/lib/auth/mfa-policy'
 import { blocksOperatorWrite } from '@/lib/auth/operator-writes'
 
@@ -108,6 +108,15 @@ export async function middleware(request: NextRequest) {
       url.search = ''
       url.searchParams.set('error', 'workspace_not_found')
       return NextResponse.redirect(url)
+    }
+
+    // A company's retired address (after a rename) keeps old links working by
+    // forwarding to its current address, same path and query.
+    const forwardTo = forwardedTenantHostname(host, tenantPortfolio.slug)
+    if (forwardTo) {
+      const url = request.nextUrl.clone()
+      url.hostname = forwardTo
+      return NextResponse.redirect(url, ['GET', 'HEAD'].includes(request.method) ? 308 : 307)
     }
 
     requestHeaders.set('x-tenant-state', 'resolved')

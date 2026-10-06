@@ -113,6 +113,7 @@ export async function createSignatureRequest(formData: FormData) {
   const { error: emailError } = await queueEmails(service, recipients.map((x, i) => signatureRequestEmail({
     to: x.email, toName: x.name, title, company: me.portfolio?.company_name ?? null, message: s(formData, 'message') || null,
     token: x.token, expiresAt, portfolioId: portfolioId!, associationId, idempotencyKey: `signature:${requestId}:${i}:initial`,
+    workspaceSlug: me.portfolio?.slug,
   })));
 
   // Later signers in a sequential request get a freshly issued link when the
@@ -144,6 +145,7 @@ export async function remindSigner(formData: FormData) {
     to: data.email, toName: data.name, title: data.title, company: me.portfolio?.company_name ?? null, message: data.message,
     token, expiresAt: data.expires_at, portfolioId: req?.portfolio_id, associationId: req?.association_id ?? null,
     idempotencyKey: `signature:${id}:${signerId}:reminder:${hash.slice(0, 12)}`, reminder: true,
+    workspaceSlug: me.portfolio?.slug,
   })]);
   if (emailError) fail(`/signatures/${id}`, `Link rotated but the email failed: ${emailError}`);
   redirect(`/signatures/${id}?saved=${encodeURIComponent(`Reminder sent to ${data.name} with a fresh link.`)}`);
