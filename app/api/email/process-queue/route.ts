@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
   const db = createServiceClient() as any;
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const { data: claimed, error: claimError } = await db.rpc('claim_email_queue', { p_limit: 20 });
+  const { data: claimed, error: claimError } = await db.rpc('claim_email_queue_snapshot', { p_limit: 20 });
   if (claimError) return NextResponse.json({ error: claimError.message }, { status: 500 });
 
   // White label: an email with no chosen sender name that belongs to a client
@@ -65,12 +65,13 @@ export async function GET(request: NextRequest) {
   }
   // The first attempt picks the sending address; retries reuse the stored
   // choice so a replay after an accepted send is the identical request. A row
-  // already attempted with no stored choice was handled by the worker before
-  // sender domains existed, which always used the platform address.
+  // with no stored choice that the earlier worker attempted (more attempts
+  // than this worker's claims) was sent from the platform address, so it
+  // keeps it; one only this worker claimed chooses afresh.
   const primaryAddress = (email: any, platformAddress: string): string => {
     const stored = String(email.sender_address ?? '').trim().toLowerCase();
     if (stored) return stored;
-    if (Number(email.attempt_count ?? 1) > 1) return platformAddress;
+    if (Number(email.attempt_count ?? 1) > Number(email.snapshot_claims ?? 1)) return platformAddress;
     if (!email.portfolio_id || isPlatformSenderName(email.from_name) || !usesPlatformSender(email.from_address)) return platformAddress;
     return companySenders.get(String(email.portfolio_id)) ?? platformAddress;
   };

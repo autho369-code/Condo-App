@@ -34,7 +34,7 @@ vi.mock('@/lib/server/cron-auth', () => ({ requireCronSecret: () => null }));
 
 vi.mock('@/lib/supabase/server', () => ({
   createServiceClient: () => ({
-    rpc: async (name: string) => (name === 'claim_email_queue' ? { data: queued, error: null } : { data: true, error: null }),
+    rpc: async (name: string) => (name === 'claim_email_queue_snapshot' ? { data: queued, error: null } : { data: true, error: null }),
     from: (table: string) => ({
       update: (values: any) => ({
         eq: async (_col: string, id: string) => {
@@ -54,7 +54,7 @@ vi.mock('@/lib/supabase/server', () => ({
 const brandedKey = `email-queue-e1-${createHash('sha256').update('notices@stellarpropertygroup.com').digest('hex').slice(0, 16)}`;
 const verified = { portfolio_id: 'p1', domain: 'stellarpropertygroup.com', from_local_part: 'notices', status: 'verified', enabled: true };
 const email = (over: Record<string, unknown> = {}) => ({
-  id: 'e1', attempt_count: 1, to_email: 'owner@example.com', subject: 'Hello', body: '<p>Hi</p>',
+  id: 'e1', attempt_count: 1, snapshot_claims: 1, to_email: 'owner@example.com', subject: 'Hello', body: '<p>Hi</p>',
   from_address: 'hello@portier369.com', from_name: null, portfolio_id: 'p1', ...over,
 });
 
@@ -164,8 +164,15 @@ describe('email worker sender selection', () => {
     ]);
   });
 
-  it('keeps the platform address for a row already attempted before sender domains', async () => {
-    queued = [email({ attempt_count: 2 })];
+  it("chooses afresh after this worker crashed before recording the sender", async () => {
+    queued = [email({ attempt_count: 2, snapshot_claims: 2 })];
+    domains = [verified];
+    await runWorker();
+    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: brandedKey }]);
+  });
+
+  it('keeps the platform address for a row the earlier worker attempted', async () => {
+    queued = [email({ attempt_count: 2, snapshot_claims: 1 })];
     domains = [verified];
     await runWorker();
     expect(sent).toEqual([{ from: 'Stellar Property Group <hello@portier369.com>', key: 'email-queue-e1' }]);
