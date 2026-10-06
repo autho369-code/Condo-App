@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { toolCompletion, type AITool } from '@/lib/ai/service';
-import { clampLimit, portfolioToolsFor, runPortfolioTool, sanitizeSearch } from '@/lib/ai/portfolio-tools';
+import { clampLimit, cleanText, likeEscape, portfolioToolsFor, quotedFilterValue, runPortfolioTool } from '@/lib/ai/portfolio-tools';
 
 const tools: AITool[] = [
   { name: 'unit_summary', description: 'unit', parameters: { type: 'object', properties: { unit_number: { type: 'string' } } } },
@@ -172,11 +172,17 @@ describe('toolCompletion time budget', () => {
 });
 
 describe('portfolio tool input guards', () => {
-  it('strips characters that would change a PostgREST filter', () => {
-    expect(sanitizeSearch('smith,(x)%_*"')).toBe('smith x');
-    expect(sanitizeSearch("O'Brien")).toBe("O'Brien");
-    expect(sanitizeSearch('jane.doe@example.com')).toBe('jane.doe@example.com');
-    expect(sanitizeSearch('a'.repeat(200))).toHaveLength(80);
+  it('keeps punctuation used in names and escapes LIKE wildcards', () => {
+    expect(cleanText('  Condo Towers,   Inc. ')).toBe('Condo Towers, Inc.');
+    expect(cleanText('a'.repeat(200))).toHaveLength(80);
+    expect(likeEscape("O'Brien, Jr.")).toBe("O'Brien, Jr.");
+    expect(likeEscape('100%_a*b\\c')).toBe('100\\%\\_ab\\\\c');
+  });
+
+  it('double-quotes values used inside a PostgREST or() filter', () => {
+    expect(quotedFilterValue('%Habte, Sr%')).toBe('"%Habte, Sr%"');
+    expect(quotedFilterValue('%say "hi"%')).toBe('"%say \\"hi\\"%"');
+    expect(quotedFilterValue('%100\\%%')).toBe('"%100\\\\%%"');
   });
 
   it('clamps list sizes to 1..50', () => {

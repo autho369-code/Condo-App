@@ -99,15 +99,31 @@ export function portfolioToolsFor(canSeeFinance: boolean): AITool[] {
   return canSeeFinance ? ALL_PORTFOLIO_TOOLS : ALL_PORTFOLIO_TOOLS.filter((t) => !FINANCE_TOOLS.has(t.name));
 }
 
-/** Strip characters that would change a PostgREST filter, and cap length. */
-export function sanitizeSearch(value: unknown): string {
-  return String(value ?? '').replace(/[%_,()*\\"]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+/** Trim, collapse spaces and cap length; punctuation is kept (names use it). */
+export function cleanText(value: unknown): string {
+  return String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, 80);
+}
+
+/** Escape LIKE wildcards so the text matches literally (PostgREST treats `*` as `%`, so drop it). */
+export function likeEscape(value: unknown): string {
+  return cleanText(value).replace(/\*/g, '').replace(/[\\%_]/g, (m) => `\\${m}`);
+}
+
+/** A double-quoted value for a PostgREST logic tree (`or=(...)`): commas and parentheses stay literal. */
+export function quotedFilterValue(likePattern: string): string {
+  return `"${likePattern.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
 export function clampLimit(value: unknown, fallback = 25): number {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(50, Math.max(1, Math.trunc(n)));
+}
+
+/** A capped list plus the true total, so "how many" is never answered from a truncated page. */
+function listResult<T>(total: number | null, rows: T[]) {
+  const count = total ?? rows.length;
+  return { total: count, returned: rows.length, truncated: count > rows.length, rows };
 }
 
 const round2 = (n: unknown) => Math.round((Number(n ?? 0) + Number.EPSILON) * 100) / 100;
@@ -127,21 +143,28 @@ export async function runPortfolioTool(
   const db = (await createClient()) as any;
 
   async function associationIds(nameFilter: unknown): Promise<string[] | null> {
-    // "Name (City)" picks between associations that share a name; this is the
-    // form the ambiguity message below offers.
-    const raw = String(nameFilter ?? '').trim();
-    const withCity = raw.match(/^(.+?)\s*\(([^()]+)\)\s*$/);
-    const q = sanitizeSearch(withCity ? withCity[1] : raw);
-    const city = withCity ? sanitizeSearch(withCity[2]).toLowerCase() : '';
-    if (!q) return null;
-    const { data, error } = await db.from('associations').select('id, name, city').ilike('name', `%${q}%`).is('archived_at', null).limit(20);
+    const raw = cleanText(nameFilter);
+    if (!raw) return null;
+    // "Name (City)" picks between associations that share a name (the form the
+    // ambiguity message offers), unless a name really ends in parentheses.
+    const withCity = raw.match(/^(.+?)\s*\(([^()]+)\)$/);
+    const namePart = withCity ? withCity[1].trim() : raw;
+    const { data, error } = await db.from('associations').select('id, name, city')
+      .ilike('name', `%${likeEscape(namePart)}%`).is('archived_at', null).limit(20);
     if (error) fail(error.message);
-    const rows = ((data ?? []) as Array<{ id: string; name: string; city: string | null }>)
-      .filter((a) => !city || (a.city ?? '').trim().toLowerCase() === city);
-    // One exact name wins; otherwise a single partial match. Anything else is
-    // ambiguous (names aren't unique): never silently combine associations.
-    const exact = rows.filter((a) => a.name.trim().toLowerCase() === q.toLowerCase());
-    const candidates = exact.length ? exact : rows;
+    const rows = (data ?? []) as Array<{ id: string; name: string; city: string | null }>;
+    const lower = (v: string | null) => (v ?? '').trim().toLowerCase();
+    // 1) the full text is an exact name; 2) "Name (City)"; 3) an exact name
+    // part; 4) a single partial match. More than one candidate is ambiguous
+    // (names aren't unique): never silently combine associations.
+    let candidates = rows.filter((a) => lower(a.name) === lower(raw));
+    if (!candidates.length && withCity) {
+      candidates = rows.filter((a) => lower(a.name) === lower(namePart) && lower(a.city) === lower(withCity[2]));
+    }
+    if (!candidates.length) {
+      const exact = rows.filter((a) => lower(a.name) === lower(namePart));
+      candidates = exact.length ? exact : rows;
+    }
     if (candidates.length > 1) {
       const label = (a: { name: string; city: string | null }) => (a.city ? `${a.name} (${a.city})` : a.name);
       fail(`Several associations match "${raw}": ${candidates.map(label).join(', ')}. Ask which one, then pass it exactly as listed.`);
@@ -174,8 +197,9 @@ export async function runPortfolioTool(
 
   switch (name) {
     case 'find_owners': {
-      const q = sanitizeSearch(input.query);
+      const q = cleanText(input.query);
       if (q.length < 2) return { error: 'Give at least 2 characters of a name or email.' };
+      const pattern = quotedFilterValue(`%${likeEscape(q)}%`);
       // Start from current owner occupancies the caller can see (association
       // scoping lives on occupancies; the owners table is company-wide), then
       // match the owner's name or email.
@@ -183,7 +207,7 @@ export async function runPortfolioTool(
         .select('owner_id, unit_id, association_id, units(unit_number), owners!inner(id, full_name, email, phone, archived_at)')
         .eq('status', 'current').eq('occupancy_type', 'owner')
         .is('owners.archived_at', null)
-        .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`, { referencedTable: 'owners' })
+        .or(`full_name.ilike.${pattern},email.ilike.${pattern}`, { referencedTable: 'owners' })
         .limit(100);
       if (error) fail(error.message);
       const rows = (occ ?? []) as any[];
@@ -211,15 +235,15 @@ export async function runPortfolioTool(
     }
 
     case 'unit_summary': {
-      const unitNumber = sanitizeSearch(input.unit_number);
+      const unitNumber = cleanText(input.unit_number);
       if (!unitNumber) return { error: 'Give a unit number.' };
       const assocIds = await associationIds(input.association);
       let query = db.from('units')
         .select('id, unit_number, buildings!inner(association_id, name)')
-        .is('archived_at', null).ilike('unit_number', unitNumber).limit(10);
+        .is('archived_at', null).ilike('unit_number', likeEscape(unitNumber)).limit(10);
       if (assocIds) query = query.in('buildings.association_id', assocIds.length ? assocIds : ['00000000-0000-0000-0000-000000000000']);
-      const building = sanitizeSearch(input.building);
-      if (building) query = query.ilike('buildings.name', `%${building}%`);
+      const building = cleanText(input.building);
+      if (building) query = query.ilike('buildings.name', `%${likeEscape(building)}%`);
       const { data: units, error } = await query;
       if (error) fail(error.message);
       if (!units?.length) return { error: `No unit ${unitNumber} found.` };
@@ -278,38 +302,38 @@ export async function runPortfolioTool(
       const min = Number.isFinite(Number(input.min_balance)) ? Math.max(0.01, Number(input.min_balance)) : 0.01;
       const assocIds = await associationIds(input.association);
       if (assocIds && !assocIds.length) return { error: 'No association matches that name.' };
-      let query = db.from('unit_balances').select('unit_id, unit_number, association_id, balance')
+      let query = db.from('unit_balances').select('unit_id, unit_number, association_id, balance', { count: 'exact' })
         .gte('balance', min).order('balance', { ascending: false }).limit(clampLimit(input.limit));
       if (assocIds) query = query.in('association_id', assocIds);
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) fail(error.message);
       const rows = data ?? [];
       const [names, owners] = await Promise.all([
         associationNames(rows.map((r: any) => r.association_id)),
         currentOwnersByUnit(rows.map((r: any) => r.unit_id)),
       ]);
-      return rows.map((r: any) => ({
+      return listResult(count, rows.map((r: any) => ({
         unit: r.unit_number,
         association: names.get(r.association_id) ?? null,
         owners: owners.get(r.unit_id) ?? [],
         balance_due: round2(r.balance),
-      }));
+      })));
     }
 
     case 'list_open_work_orders': {
       const assocIds = await associationIds(input.association);
       if (assocIds && !assocIds.length) return { error: 'No association matches that name.' };
       let query = db.from('work_orders')
-        .select('number, title, status, priority, scheduled_date, created_at, association_id, units(unit_number)')
+        .select('number, title, status, priority, scheduled_date, created_at, association_id, units(unit_number)', { count: 'exact' })
         .is('archived_at', null).not('status', 'in', OPEN_WO)
         .order('created_at', { ascending: false }).limit(clampLimit(input.limit));
       if (assocIds) query = query.in('association_id', assocIds);
-      const status = sanitizeSearch(input.status).replace(/ /g, '_');
+      const status = cleanText(input.status).toLowerCase().replace(/ /g, '_');
       if (status) query = query.eq('status', status);
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) fail(error.message);
       const names = await associationNames((data ?? []).map((w: any) => w.association_id));
-      return (data ?? []).map((w: any) => ({
+      return listResult(count, (data ?? []).map((w: any) => ({
         number: w.number,
         title: w.title,
         status: w.status,
@@ -318,21 +342,21 @@ export async function runPortfolioTool(
         association: names.get(w.association_id) ?? null,
         scheduled: w.scheduled_date,
         opened: w.created_at,
-      }));
+      })));
     }
 
     case 'list_open_violations': {
       const assocIds = await associationIds(input.association);
       if (assocIds && !assocIds.length) return { error: 'No association matches that name.' };
       let query = db.from('violations')
-        .select('title, violation_type, status, due_date, date_observed, association_id, units(unit_number), owners(full_name)')
+        .select('title, violation_type, status, due_date, date_observed, association_id, units(unit_number), owners(full_name)', { count: 'exact' })
         .is('archived_at', null).not('status', 'in', OPEN_VIOLATION)
         .order('due_date', { ascending: true, nullsFirst: false }).limit(clampLimit(input.limit));
       if (assocIds) query = query.in('association_id', assocIds);
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) fail(error.message);
       const names = await associationNames((data ?? []).map((v: any) => v.association_id));
-      return (data ?? []).map((v: any) => ({
+      return listResult(count, (data ?? []).map((v: any) => ({
         title: v.title,
         type: v.violation_type,
         status: v.status,
@@ -341,7 +365,7 @@ export async function runPortfolioTool(
         unit: v.units?.unit_number ?? null,
         owner: v.owners?.full_name ?? null,
         association: names.get(v.association_id) ?? null,
-      }));
+      })));
     }
 
     case 'list_bills': {
@@ -349,14 +373,14 @@ export async function runPortfolioTool(
       const assocIds = await associationIds(input.association);
       if (assocIds && !assocIds.length) return { error: 'No association matches that name.' };
       let query = db.from('payable_bills')
-        .select('bill_number, bill_date, due_date, amount, credit_applied, memo, association_id, vendors(name)')
+        .select('bill_number, bill_date, due_date, amount, credit_applied, memo, association_id, vendors(name)', { count: 'exact' })
         .is('archived_at', null).eq('status', status)
         .order('due_date', { ascending: true, nullsFirst: false }).limit(clampLimit(input.limit));
       if (assocIds) query = query.in('association_id', assocIds);
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) fail(error.message);
       const names = await associationNames((data ?? []).map((b: any) => b.association_id));
-      return (data ?? []).map((b: any) => ({
+      return listResult(count, (data ?? []).map((b: any) => ({
         vendor: b.vendors?.name ?? null,
         bill_number: b.bill_number,
         association: names.get(b.association_id) ?? null,
@@ -364,7 +388,7 @@ export async function runPortfolioTool(
         bill_date: b.bill_date,
         due: b.due_date,
         memo: b.memo,
-      }));
+      })));
     }
 
     default:

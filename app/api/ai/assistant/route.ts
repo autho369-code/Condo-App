@@ -38,6 +38,7 @@ const SYSTEM_PROMPT =
   'You can only read; you cannot change anything, so never claim to have done something. ' +
   'If financial figures are marked as not available to the user\'s role, say so; never report them as $0. ' +
   'Be concise and conversational. Format money with a dollar sign and use plain language. ' +
+  'List lookups return a total and may be truncated: give the total, never just the rows you were shown. ' +
   'When listing items, use short bullet points. Do not output JSON or code unless asked.';
 
 // Up to 4 lookup rounds; toolCompletion keeps all provider calls within 45s.
@@ -86,13 +87,14 @@ export async function POST(request: NextRequest) {
   const history: AssistantTurn[] = boundedAssistantHistory(body.history);
 
   try {
-    // Staff without finance access can't see charges, payments or bills (RLS),
+    // Staff without finance access can't see charges, payments, bills or bank
+    // accounts (RLS),
     // so those figures would read as $0: leave them out instead.
     const canSeeFinance = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
     const fullSnapshot = await buildPortfolioSnapshot();
     const snapshot = canSeeFinance
       ? fullSnapshot
-      : { ...fullSnapshot, receivables: undefined, bills: undefined, recentPayments: undefined,
+      : { ...fullSnapshot, receivables: undefined, bills: undefined, recentPayments: undefined, banking: undefined,
           note: 'Financial figures are not available to this user\'s role.' };
 
     const answer = await toolCompletion(
