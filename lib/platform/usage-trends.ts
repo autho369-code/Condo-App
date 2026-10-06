@@ -15,6 +15,17 @@ export const USAGE_FIELDS = [
   { key: 'sms_sent', label: 'Texts', kind: 'activity' },
 ] as const;
 
+/**
+ * First month whose staff count includes company admins (before it, staff
+ * meant managers only). Staff changes across this month aren't comparable.
+ */
+export const STAFF_DEFINITION_MONTH = '2026-10';
+
+/** Whether a staff-count change from `previous` to `current` mixes the two definitions. */
+export function staffDefinitionChanged(current: string, previous: string): boolean {
+  return previous < STAFF_DEFINITION_MONTH && current >= STAFF_DEFINITION_MONTH;
+}
+
 export type UsageField = (typeof USAGE_FIELDS)[number]['key'];
 
 export type UsageRow = {
