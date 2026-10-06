@@ -17,6 +17,7 @@ let queued: any[] = [];
 let domains: any[] = [];
 let owners: any[] = [];
 let failingTable: string | null = null;
+let associations: any[] = [];
 const snapshots: Array<{ id: string; sender_address: string }> = [];
 
 vi.mock('resend', () => ({
@@ -52,6 +53,8 @@ vi.mock('@/lib/supabase/server', () => ({
           ? { data: [{ id: 'p1', company_name: 'Stellar Property Group' }], error: null }
           : table === 'email_sender_domain_owners'
             ? { data: owners, error: null }
+            : table === 'associations'
+              ? { data: associations, error: null }
             : { data: domains, error: null }),
       }),
     }),
@@ -123,6 +126,7 @@ describe('email worker sender selection', () => {
     refuseBranded = false;
     owners = [{ portfolio_id: 'p1', domain: 'stellarpropertygroup.com' }];
     failingTable = null;
+    associations = [{ id: 'a1', portfolio_id: 'p1' }, { id: 'a2', portfolio_id: 'p2' }];
     vi.resetModules();
   });
 
@@ -213,6 +217,29 @@ describe('email worker sender selection', () => {
     expect(snapshots).toEqual([]);
   });
 
+  it("takes the company from the email's association", async () => {
+    queued = [email({ portfolio_id: null, association_id: 'a1' })];
+    domains = [verified];
+    await runWorker();
+    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: brandedKey }]);
+  });
+
+  it("never brands as a company the email's association does not belong to", async () => {
+    // Association a2 belongs to p2; the row claims p1 (Stellar).
+    queued = [email({ portfolio_id: 'p1', association_id: 'a2' })];
+    domains = [verified];
+    await runWorker();
+    expect(sent).toEqual([{ from: 'Portier369 <hello@portier369.com>', key: 'email-queue-e1' }]);
+  });
+
+  it('sends nothing when the association cannot be loaded', async () => {
+    queued = [email({ association_id: 'a1' })];
+    domains = [verified];
+    failingTable = 'associations';
+    expect(await runWorker()).toMatchObject({ sent: 0, failed: 1 });
+    expect(sent).toEqual([]);
+  });
+
   it('never sends from a queued address outside the platform domain', async () => {
     queued = [email({ from_address: 'notices@othercompany.com', from_name: 'Portier369' })];
     domains = [];
@@ -241,7 +268,7 @@ describe('registerSenderDomain', () => {
       },
     };
     expect(await registerSenderDomain(resend, 'stellarpropertygroup.com', 'd-own'))
-      .toEqual({ ok: true, domain: { id: 'd-own', status: 'verified', records: [] } });
+      .toEqual({ ok: true, domain: { id: 'd-own', status: 'verified', records: [], createdNow: false } });
     expect(create).not.toHaveBeenCalled();
   });
 
@@ -264,6 +291,6 @@ describe('registerSenderDomain', () => {
     const { registerSenderDomain } = await import('../../lib/email/sender-domains');
     const resend: any = { domains: { create: async () => ({ data: created, error: null }) } };
     expect(await registerSenderDomain(resend, 'stellarpropertygroup.com', null))
-      .toEqual({ ok: true, domain: { id: 'd-new', status: 'not_started', records: [{ type: 'TXT' }] } });
+      .toEqual({ ok: true, domain: { id: 'd-new', status: 'not_started', records: [{ type: 'TXT' }], createdNow: true } });
   });
 });

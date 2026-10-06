@@ -41,6 +41,26 @@ export async function GET(request: NextRequest) {
   // stays on the platform domain. A failed lookup falls back to the platform
   // name and address.
   const claimedRows = (claimed ?? []) as any[];
+  // The company an email belongs to comes from its association when it has
+  // one (signed-in staff write queue rows, and portfolio_id alone is not
+  // proof); portfolio_id is used only for mail with no association.
+  const associationIds = [...new Set(claimedRows.filter((e) => e.association_id).map((e) => String(e.association_id)))];
+  const associationCompany = new Map<string, string | null>();
+  let associationsUnavailable = false;
+  if (associationIds.length) {
+    const { data: assocs, error: assocError } = await db.from('associations').select('id, portfolio_id').in('id', associationIds);
+    if (assocError) {
+      console.error('Could not load email associations:', assocError.message);
+      associationsUnavailable = true;
+    }
+    for (const a of assocs ?? []) associationCompany.set(String(a.id), a.portfolio_id ? String(a.portfolio_id) : null);
+  }
+  // Rows the earlier worker attempted keep its exact payload (same sender name
+  // and the platform address) so a retry replays rather than resends.
+  const earlierAttempt = (e: any) => Number(e.attempt_count ?? 1) > Number(e.snapshot_claims ?? 1);
+  for (const e of claimedRows) {
+    if (e.association_id && !earlierAttempt(e)) e.portfolio_id = associationCompany.get(String(e.association_id)) ?? null;
+  }
   const brandIds = [...new Set(claimedRows
     .filter((e) => e.portfolio_id && !String(e.from_name ?? '').trim())
     .map((e) => String(e.portfolio_id)))];
@@ -101,7 +121,7 @@ export async function GET(request: NextRequest) {
   const primaryAddress = (email: any, platformAddress: string): string => {
     const stored = trustedStored(email, platformAddress);
     if (stored) return stored;
-    if (Number(email.attempt_count ?? 1) > Number(email.snapshot_claims ?? 1)) return platformAddress;
+    if (earlierAttempt(email)) return platformAddress;
     if (!email.portfolio_id || isPlatformSenderName(email.from_name) || !usesPlatformSender(email.from_address)) return platformAddress;
     return companySenders.get(String(email.portfolio_id)) ?? platformAddress;
   };
@@ -118,6 +138,9 @@ export async function GET(request: NextRequest) {
       const to = String(email.to_email ?? '').trim().toLowerCase();
       const platformAddress = platformSenderAddress(email.from_address);
       if (!EMAIL_PATTERN.test(to) || !EMAIL_PATTERN.test(platformAddress)) throw new Error('Invalid queued email address');
+      if (associationsUnavailable && email.association_id && !earlierAttempt(email)) {
+        throw new Error('The email\'s company could not be loaded; will retry.');
+      }
       const storedSender = String(email.sender_address ?? '').trim().toLowerCase();
       if (ownersUnavailable && storedSender && storedSender !== platformAddress) {
         throw new Error('Sender domains could not be checked; will retry.');

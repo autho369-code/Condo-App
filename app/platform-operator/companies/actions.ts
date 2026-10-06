@@ -796,7 +796,14 @@ export async function setupSenderDomain(formData: FormData) {
         .eq('domain', parsed.domain).eq('portfolio_id', portfolioId)
       : await db.from('email_sender_domain_owners')
         .insert({ domain: parsed.domain, portfolio_id: portfolioId, provider_domain_id: created.id });
-    if (claimError) fail(returnTo, `${parsed.domain} was registered with the email provider but its ownership could not be saved: ${claimError.message}`);
+    if (claimError) {
+      // Undo a registration this request just made, so setup can be retried.
+      if (created.createdNow) {
+        const { error: removeError } = await resend.domains.remove(created.id);
+        if (removeError) console.error(`Could not remove orphaned sender domain ${parsed.domain}:`, removeError.message);
+      }
+      fail(returnTo, `${parsed.domain} could not be saved for this company: ${claimError.message}. Try again.`);
+    }
   }
 
   const row = {

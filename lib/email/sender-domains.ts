@@ -109,7 +109,7 @@ export function resendClient(): Resend | null {
   return process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 }
 
-type RegisteredDomain = { id: string; status: string; records: unknown };
+type RegisteredDomain = { id: string; status: string; records: unknown; createdNow: boolean };
 
 /**
  * Register a sending domain with Resend. A domain already in the account is
@@ -123,11 +123,11 @@ export async function registerSenderDomain(resend: Resend, name: string, ownProv
   if (ownProviderId) {
     const { data: domain } = await resend.domains.get(ownProviderId);
     if (domain && domain.name.toLowerCase() === name) {
-      return { ok: true, domain: { id: domain.id, status: domain.status, records: domain.records ?? [] } };
+      return { ok: true, domain: { id: domain.id, status: domain.status, records: domain.records ?? [], createdNow: false } };
     }
   }
   const { data: created, error: createError } = await resend.domains.create({ name });
-  if (created) return { ok: true, domain: { id: created.id, status: created.status, records: created.records ?? [] } };
+  if (created) return { ok: true, domain: { id: created.id, status: created.status, records: created.records ?? [], createdNow: true } };
   return {
     ok: false,
     error: `${createError?.message ?? 'No response from the email provider.'} If ${name} is already in the Resend account but not for this company, remove it there first.`,
