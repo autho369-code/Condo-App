@@ -34,14 +34,24 @@ export default async function UsageTrendsPage({ searchParams }: { searchParams: 
       .select('portfolio_id, period_year, period_month, staff_count, owner_count, association_count, unit_count, work_orders_created, service_requests_created, bills_posted, payments_received, emails_sent, sms_sent')
       .gte('period_year', sinceYear)
       .order('period_year', { ascending: false }).order('period_month', { ascending: false }).order('portfolio_id')),
-    db.from('portfolios').select('id, company_name'),
+    db.from('portfolios').select('id, company_name, archived_at'),
   ]);
   const loadError = usageRes.error ?? portfoliosRes.error?.message ?? null;
 
-  const rows = usageRes.rows;
-  const months = totalsByMonth(rows).slice(0, 12);
+  // A company archived mid-month keeps the row captured before it was
+  // archived; drop it from that month on so totals reflect live companies.
+  const archivedMonth = new Map<string, string>(((portfoliosRes.data ?? []) as any[])
+    .filter((p) => p.archived_at)
+    .map((p) => [p.id, String(p.archived_at).slice(0, 7)]));
+  const rows = usageRes.rows.filter((r) => {
+    const archived = archivedMonth.get(r.portfolio_id);
+    return !archived || monthKey(r) < archived;
+  });
+  // All fetched months (up to 24) are kept for comparisons; 12 are shown.
+  const allMonths = totalsByMonth(rows);
+  const months = allMonths.slice(0, 12);
   const selected = months.find((m) => m.month === sp.month) ?? months[0];
-  const prior = selected ? months.find((m) => m.month === previousMonth(selected.month)) : undefined;
+  const prior = selected ? allMonths.find((m) => m.month === previousMonth(selected.month)) : undefined;
   const priorLabel = selected ? monthLabel(previousMonth(selected.month), false) : '';
 
   const names = new Map<string, string>(((portfoliosRes.data ?? []) as any[]).map((p) => [p.id, p.company_name ?? 'Company']));
@@ -74,7 +84,7 @@ export default async function UsageTrendsPage({ searchParams }: { searchParams: 
       <PageHeader
         eyebrow="Platform analytics"
         title="Usage Trends"
-        description="How every company uses the platform, month by month: doors and users on file, plus work orders, service requests, bills, payments and messages created. Counts refresh nightly; months are calendar months in UTC."
+        description="How every company uses the platform, month by month: doors, associations and user accounts on file, plus work orders, service requests, bills, payments and messages created. Counts refresh nightly; months are calendar months in UTC."
       />
 
       {loadError && <Alert tone="danger" className="mb-5" title="Some usage data could not be loaded:">{loadError}</Alert>}

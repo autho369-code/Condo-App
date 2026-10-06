@@ -1,8 +1,14 @@
--- Usage metrics counted only 'manager' profiles as staff, so a company run by
--- its company admin showed 0 staff. Staff now means managers and company
--- admins, the same definition the operator Platform Intelligence page uses.
--- The rest of the function is unchanged; the current and previous month are
--- refreshed so the new Usage Trends page reads the corrected counts.
+-- Usage metrics fixes for the new operator Usage Trends page:
+--  * Staff counted only 'manager' profiles, so a company run by its company
+--    admin showed 0 staff. Staff now means managers and company admins, the
+--    same definition the operator Platform Intelligence page uses.
+--  * Archived companies (all logins disabled) kept getting a row every night
+--    and inflated the totals; companies created after the month don't get one.
+--  * Re-running a closed month (the job does on the 1st-3rd) overwrote its
+--    level counts (staff, owners, associations, doors) with today's numbers.
+--    A closed month now only refreshes its activity counts; levels stay as
+--    they were captured during the month.
+-- Only the current month is refreshed here.
 
 create or replace function public.aggregate_usage_metrics(p_year integer, p_month integer)
 returns void
@@ -13,6 +19,8 @@ as $function$
 declare
   period_start timestamptz := make_timestamptz(p_year, p_month, 1, 0, 0, 0, 'UTC');
   period_end timestamptz := period_start + interval '1 month';
+  -- Level counts are a point-in-time picture: only the month in progress takes today's.
+  month_open boolean := now() < period_end;
 begin
   insert into public.usage_metrics (
     portfolio_id, period_year, period_month,
@@ -50,11 +58,13 @@ begin
               where sc.portfolio_id = p.id and sm.created_at >= period_start and sm.created_at < period_end), 0),
     0
   from public.portfolios p
+  where p.archived_at is null
+    and p.created_at < period_end
   on conflict (portfolio_id, period_year, period_month) do update set
-    staff_count = excluded.staff_count,
-    owner_count = excluded.owner_count,
-    association_count = excluded.association_count,
-    unit_count = excluded.unit_count,
+    staff_count = case when month_open then excluded.staff_count else public.usage_metrics.staff_count end,
+    owner_count = case when month_open then excluded.owner_count else public.usage_metrics.owner_count end,
+    association_count = case when month_open then excluded.association_count else public.usage_metrics.association_count end,
+    unit_count = case when month_open then excluded.unit_count else public.usage_metrics.unit_count end,
     work_orders_created = excluded.work_orders_created,
     service_requests_created = excluded.service_requests_created,
     bills_posted = excluded.bills_posted,
@@ -68,5 +78,3 @@ $function$;
 revoke execute on function public.aggregate_usage_metrics(integer, integer) from public, anon, authenticated;
 
 select public.aggregate_usage_metrics(extract(year from now())::int, extract(month from now())::int);
-select public.aggregate_usage_metrics(extract(year from (now() - interval '1 month'))::int,
-                                      extract(month from (now() - interval '1 month'))::int);

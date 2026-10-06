@@ -6,7 +6,7 @@ export const USAGE_FIELDS = [
   { key: 'unit_count', label: 'Doors', kind: 'level' },
   { key: 'association_count', label: 'Associations', kind: 'level' },
   { key: 'staff_count', label: 'Staff users', kind: 'level' },
-  { key: 'owner_count', label: 'Owner logins', kind: 'level' },
+  { key: 'owner_count', label: 'Owner accounts', kind: 'level' },
   { key: 'work_orders_created', label: 'Work orders', kind: 'activity' },
   { key: 'service_requests_created', label: 'Service requests', kind: 'activity' },
   { key: 'bills_posted', label: 'Bills', kind: 'activity' },
