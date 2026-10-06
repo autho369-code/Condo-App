@@ -34,13 +34,13 @@ export default async function UsageTrendsPage({ searchParams }: { searchParams: 
       .select('portfolio_id, period_year, period_month, staff_count, owner_count, association_count, unit_count, work_orders_created, service_requests_created, bills_posted, payments_received, emails_sent, sms_sent')
       .gte('period_year', sinceYear)
       .order('period_year', { ascending: false }).order('period_month', { ascending: false }).order('portfolio_id')),
-    db.from('portfolios').select('id, company_name, archived_at'),
+    fetchAllRows<any>(() => db.from('portfolios').select('id, company_name, archived_at').order('id')),
   ]);
-  const loadError = usageRes.error ?? portfoliosRes.error?.message ?? null;
+  const loadError = usageRes.error ?? portfoliosRes.error ?? null;
 
   // A company archived mid-month keeps the row captured before it was
   // archived; drop it from that month on so totals reflect live companies.
-  const archivedMonth = new Map<string, string>(((portfoliosRes.data ?? []) as any[])
+  const archivedMonth = new Map<string, string>((portfoliosRes.rows as any[])
     .filter((p) => p.archived_at)
     .map((p) => [p.id, String(p.archived_at).slice(0, 7)]));
   const rows = usageRes.rows.filter((r) => {
@@ -54,7 +54,7 @@ export default async function UsageTrendsPage({ searchParams }: { searchParams: 
   const prior = selected ? allMonths.find((m) => m.month === previousMonth(selected.month)) : undefined;
   const priorLabel = selected ? monthLabel(previousMonth(selected.month), false) : '';
 
-  const names = new Map<string, string>(((portfoliosRes.data ?? []) as any[]).map((p) => [p.id, p.company_name ?? 'Company']));
+  const names = new Map<string, string>((portfoliosRes.rows as any[]).map((p) => [p.id, p.company_name ?? 'Company']));
   const companyRows: CompanyRow[] = selected
     ? rows
       .filter((r) => monthKey(r) === selected.month)
