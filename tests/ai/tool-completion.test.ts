@@ -104,6 +104,27 @@ describe('toolCompletion', () => {
   });
 });
 
+describe('toolCompletion call caps', () => {
+  it('runs at most 4 lookups from one model response', async () => {
+    const bodies: any[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      return bodies.length === 1
+        ? jsonResponse({ choices: [{ message: { tool_calls: Array.from({ length: 7 }, (_, i) => (
+            { id: `c${i}`, type: 'function', function: { name: 'unit_summary', arguments: '{}' } })) } }] })
+        : jsonResponse({ choices: [{ message: { content: 'ok' } }] });
+    }));
+    const execute = vi.fn(async () => ({}));
+
+    await toolCompletion({ provider: 'openai', model: 'gpt-test', apiKey: 'sk-test-12345' }, 's', [{ role: 'user', content: 'q' }], tools, execute);
+
+    expect(execute).toHaveBeenCalledTimes(4);
+    const toolMessages = bodies[1].messages.filter((m: any) => m.role === 'tool');
+    expect(toolMessages).toHaveLength(7); // every call still gets a reply
+    expect(toolMessages[6].content).toContain('limit reached');
+  });
+});
+
 describe('toolCompletion time budget', () => {
   it('stops offering tools once most of the time budget is used', async () => {
     let now = 1_000_000;

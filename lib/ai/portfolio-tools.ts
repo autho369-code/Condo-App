@@ -110,9 +110,17 @@ export async function runPortfolioTool(name: string, input: Record<string, unkno
   async function associationIds(nameFilter: unknown): Promise<string[] | null> {
     const q = sanitizeSearch(nameFilter);
     if (!q) return null;
-    const { data, error } = await db.from('associations').select('id').ilike('name', `%${q}%`).is('archived_at', null).limit(20);
+    const { data, error } = await db.from('associations').select('id, name').ilike('name', `%${q}%`).is('archived_at', null).limit(20);
     if (error) fail(error.message);
-    return (data ?? []).map((a: { id: string }) => a.id);
+    const rows = (data ?? []) as Array<{ id: string; name: string }>;
+    // An exact name wins; otherwise a single partial match. Several partial
+    // matches are ambiguous: never silently combine associations.
+    const exact = rows.filter((a) => a.name.trim().toLowerCase() === q.toLowerCase());
+    if (exact.length) return exact.map((a) => a.id);
+    if (rows.length > 1) {
+      fail(`Several associations match "${q}": ${rows.map((a) => a.name).join(', ')}. Ask which one.`);
+    }
+    return rows.map((a) => a.id);
   }
 
   async function associationNames(ids: string[]): Promise<Map<string, string>> {
@@ -146,7 +154,7 @@ export async function runPortfolioTool(name: string, input: Record<string, unkno
         .select('id, full_name, email, phone')
         .is('archived_at', null)
         .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
-        .order('full_name').limit(10);
+        .order('full_name').limit(25);
       if (error) fail(error.message);
       const ownerIds = (owners ?? []).map((o: { id: string }) => o.id);
       const { data: occ, error: occErr } = ownerIds.length
@@ -161,7 +169,10 @@ export async function runPortfolioTool(name: string, input: Record<string, unkno
       if (balErr) fail(balErr.message);
       const balance = new Map((balances ?? []).map((b: any) => [b.unit_id, round2(b.balance)]));
       const names = await associationNames((occ ?? []).map((o: any) => o.association_id));
-      return (owners ?? []).map((o: any) => ({
+      // Only owners with a current unit this manager can see: the owners
+      // table is company-wide, while association scoping is on occupancies.
+      const visibleOwnerIds = new Set((occ ?? []).map((x: any) => x.owner_id));
+      return (owners ?? []).filter((o: any) => visibleOwnerIds.has(o.id)).map((o: any) => ({
         name: o.full_name,
         email: o.email,
         phone: o.phone,

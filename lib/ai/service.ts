@@ -212,6 +212,9 @@ export interface AITool {
 export type AIToolExecutor = (name: string, input: Record<string, unknown>) => Promise<unknown>;
 
 const MAX_TOOL_RESULT_CHARS = 12_000;
+/** Lookups run per model response, and per question in total. */
+const MAX_TOOL_CALLS_PER_ROUND = 4;
+const MAX_TOOL_CALLS_TOTAL = 10;
 
 function toolResultText(result: unknown): string {
   const text = JSON.stringify(result ?? null);
@@ -257,6 +260,16 @@ export async function toolCompletion(
   const remaining = () => budget - (Date.now() - startedAt);
   const callTimeout = () => Math.max(1_000, Math.min(REQUEST_TIMEOUT_MS, remaining()));
   const mustFinish = (round: number) => round >= maxRounds || remaining() < budget / 4;
+  let callsMade = 0;
+  // Run one requested lookup unless the per-round, per-question or time limit
+  // is reached; the model is told why a lookup was skipped.
+  const guardedRun = async (indexInRound: number, name: string, input: unknown): Promise<string> => {
+    if (indexInRound >= MAX_TOOL_CALLS_PER_ROUND || callsMade >= MAX_TOOL_CALLS_TOTAL || remaining() < budget / 4) {
+      return toolResultText({ error: 'Lookup skipped: limit reached. Answer with what you have.' });
+    }
+    callsMade += 1;
+    return runTool(execute, tools, name, input);
+  };
 
   if (config.provider === 'anthropic') {
     const convo: any[] = messages.map((m) => ({ role: m.role, content: m.content }));
@@ -278,11 +291,11 @@ export async function toolCompletion(
       }
       convo.push({ role: 'assistant', content });
       const results = [];
-      for (const call of calls) {
+      for (const [i, call] of calls.entries()) {
         results.push({
           type: 'tool_result',
           tool_use_id: call.id,
-          content: await runTool(execute, tools, String(call.name ?? ''), call.input),
+          content: await guardedRun(i, String(call.name ?? ''), call.input),
         });
       }
       convo.push({ role: 'user', content: results });
@@ -308,7 +321,7 @@ export async function toolCompletion(
     const calls: any[] = Array.isArray(message.tool_calls) ? message.tool_calls : [];
     if (calls.length === 0 || lastRound) return String(message.content ?? '').trim();
     convo.push({ role: 'assistant', content: message.content ?? null, tool_calls: calls });
-    for (const call of calls) {
+    for (const [i, call] of calls.entries()) {
       let input: unknown = {};
       try {
         input = JSON.parse(call.function?.arguments ?? '{}');
@@ -318,7 +331,7 @@ export async function toolCompletion(
       convo.push({
         role: 'tool',
         tool_call_id: call.id,
-        content: await runTool(execute, tools, String(call.function?.name ?? ''), input),
+        content: await guardedRun(i, String(call.function?.name ?? ''), input),
       });
     }
   }
