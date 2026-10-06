@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import ExcelJS from 'exceljs';
 import {
   reportFormatLabel,
+  reportTitle,
   rowsToCsv,
   serializeReportOutput,
   supportedReportOutputFormats,
@@ -64,5 +65,21 @@ describe('report output serialization', () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(Buffer.from(output.body) as unknown as ExcelJS.Buffer);
     expect(workbook.worksheets[0].getCell('A6').value).toBe('No data');
+  });
+
+  it('names the company, never the platform, in report files', async () => {
+    expect(reportTitle({ title: 'Balance Sheet', companyName: 'Stellar Property Group' })).toBe('Balance Sheet');
+    expect(reportTitle({ companyName: 'Stellar Property Group' })).toBe('Stellar Property Group report');
+    expect(reportTitle({})).toBe('Report');
+
+    const xlsx = await serializeReportOutput('xlsx', [{ a: 1 }], { title: 'Aging', companyName: 'Stellar Property Group' });
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(Buffer.from(xlsx.body as Uint8Array) as any);
+    expect(workbook.creator).toBe('Stellar Property Group');
+
+    const pdf = await serializeReportOutput('pdf', [{ a: 1 }], { companyName: 'Stellar Property Group' });
+    const text = Buffer.from(pdf.body as Uint8Array).toString('latin1');
+    expect(text).toContain('Stellar Property Group');
+    expect(text).not.toContain('Portier369');
   });
 });
