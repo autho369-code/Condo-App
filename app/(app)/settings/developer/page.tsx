@@ -200,7 +200,7 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
                     <TD>{endpoint.last_success_at ? date(endpoint.last_success_at) : 'Never'}</TD>
                     <TD className="text-right">
                       <div className="flex justify-end gap-2">
-                        {enabled && webhookDeliveryReady && (
+                        {enabled && webhooksEnabled && webhookDeliveryReady && (
                           <form action={sendDeveloperWebhookTest.bind(null, endpoint.id)}>
                             <Button type="submit" size="sm" variant="secondary">Send test event</Button>
                           </form>
