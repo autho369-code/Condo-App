@@ -165,11 +165,11 @@ function Shell({ title, brand, children }: { title: string; brand?: string | nul
 
 // The inviting company, from the invitation itself: invitation emails can
 // open on the platform address, which says nothing about the company.
-const invitationCompany = cache(async (token: string): Promise<string | null> => {
+const invitationCompany = cache(async (token: string): Promise<{ name: string; portfolioId: string } | null> => {
   const { data } = await (createServiceClient() as any)
-    .from('user_invitations').select('portfolios(company_name)').eq('token', token).maybeSingle();
+    .from('user_invitations').select('portfolio_id, portfolios(company_name)').eq('token', token).maybeSingle();
   const name = data?.portfolios?.company_name;
-  return typeof name === 'string' && name.trim() ? name.trim() : null;
+  return typeof name === 'string' && name.trim() ? { name: name.trim(), portfolioId: data.portfolio_id } : null;
 });
 
 export async function generateMetadata({
@@ -179,10 +179,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const token = (await searchParams).token;
   const company = token ? await invitationCompany(token).catch(() => null) : null;
-  // The preview card only matches on the inviting company's own address.
+  // The preview card is the inviting company's only on its own address.
   const tenant = tenantFromHeaders(await headers());
   const base = company
-    ? brandedMetadata(company, tenant?.portfolioId ? tenantPreviewImage(tenant) : null)
+    ? brandedMetadata(company.name, tenant?.portfolioId && tenant.portfolioId === company.portfolioId ? tenantPreviewImage(tenant) : null)
     : await signInMetadata();
   // Invitation links are private: never indexed, on any address.
   return { ...base, robots: { index: false, follow: false } };
