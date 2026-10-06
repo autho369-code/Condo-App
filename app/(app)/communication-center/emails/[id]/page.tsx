@@ -52,7 +52,7 @@ export default async function SentEmailPage({ params }: { params: Promise<{ id: 
 
   const [{ data: email }, { data: events }] = await Promise.all([
     db.from('email_queue')
-      .select('id, to_email, to_name, from_name, from_address, reply_to, subject, body, status, delivery_status, error_message, attempt_count, created_at, sent_at, delivered_at, open_count, first_opened_at, last_opened_at, clicked_at, bounced_at, complained_at, associations(name)')
+      .select('id, to_email, to_name, from_name, from_address, sender_address, reply_to, subject, body, status, delivery_status, error_message, attempt_count, created_at, sent_at, delivered_at, open_count, first_opened_at, last_opened_at, clicked_at, bounced_at, complained_at, associations(name)')
       .eq('id', id)
       .maybeSingle(),
     db.from('email_events').select('id, event_type, occurred_at, detail').eq('email_id', id).order('occurred_at', { ascending: true }).limit(200),
@@ -61,7 +61,9 @@ export default async function SentEmailPage({ params }: { params: Promise<{ id: 
 
   const facts: [string, string][] = [
     ['To', email.to_name ? `${email.to_name} <${email.to_email}>` : email.to_email],
-    ['From', [email.from_name, email.from_address ? `<${email.from_address}>` : ''].filter(Boolean).join(' ') || '—'],
+    // sender_address is the address delivery actually used (the company's own
+    // domain once verified); older rows only have the queued from_address.
+    ['From', [email.from_name, (email.sender_address ?? email.from_address) ? `<${email.sender_address ?? email.from_address}>` : ''].filter(Boolean).join(' ') || '—'],
     ['Reply to', email.reply_to ?? '—'],
     ['Association', email.associations?.name ?? '—'],
     ['Created', when(email.created_at)],

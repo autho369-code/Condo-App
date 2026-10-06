@@ -24,8 +24,9 @@ describe('durable email queue worker', () => {
   it('claims atomically and uses provider idempotency', () => {
     expect(migration).toContain('for update skip locked');
     expect(migration).toContain("processing_at < now() - interval '10 minutes'");
-    expect(route).toContain(".rpc('claim_email_queue'");
-    expect(route).toContain('idempotencyKey: `email-queue-${email.id}`');
+    expect(route).toContain(".rpc('claim_email_queue_snapshot'");
+    expect(route).toContain('? `email-queue-${email.id}`');
+    expect(route).toContain('send(primary, keyFor(primary))');
   });
 
   it('records bounded retries and only reports a communication sent after completion', () => {

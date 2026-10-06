@@ -38,6 +38,7 @@ import {
   voidInvoice,
 } from '../actions';
 import { CustomDomainCard } from './custom-domain-card';
+import { EmailDomainCard } from './email-domain-card';
 import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
@@ -88,6 +89,9 @@ const ACTION_LABELS: Record<string, string> = {
   company_archived: 'Company Archived',
   workspace_address_changed: 'Workspace Address Changed',
   custom_domain_changed: 'Custom Domain Changed',
+  email_domain_changed: 'Email Sender Changed',
+  email_domain_enabled: 'Email Sender Switched On',
+  email_domain_disabled: 'Email Sender Switched Off',
   ownership_transferred: 'Ownership Transferred',
 };
 
@@ -105,6 +109,11 @@ const BANNERS: Record<string, string> = {
   address_changed: 'Workspace address saved. The old address keeps working and forwards to the new one.',
   domain_saved: 'Custom domain saved. It serves the company once its DNS points to the platform.',
   domain_cleared: 'Custom domain removed. The company is served from its workspace address.',
+  email_domain_saved: 'Sender domain saved. Send the company the DNS records below, then press Check Now.',
+  email_domain_checked: 'Sender domain checked. It is not verified yet; mail still goes out from the platform address.',
+  email_domain_verified: 'Sender domain verified. Company mail now goes out from its own domain.',
+  email_domain_enabled: 'Sender domain switched on.',
+  email_domain_disabled: 'Sender domain switched off. Company mail goes out from the platform address.',
   plan_changed: 'Subscription plan updated.',
   limits_adjusted: 'Limits updated.',
   ownership_transferred: 'Company ownership transferred.',
@@ -139,6 +148,7 @@ export default async function CompanyDetailPage({
     { data: auditRows },
     allAssociations,
     { data: slugAliases, error: slugAliasesError },
+    { data: senderDomain, error: senderDomainError },
   ] = await Promise.all([
     db.from('portfolios').select('id, company_name, slug, custom_domain, tier, created_at, suspended_at, suspension_reason, archived_at, address_city, address_state, phone_number, support_email').eq('id', id).maybeSingle(),
     db.from('subscriptions').select('id, tier, status, billing_email, seats_used, seats_included, associations_limit, units_limit, price_monthly_cents, trial_ends_at, current_period_end').eq('portfolio_id', id).maybeSingle(),
@@ -150,6 +160,7 @@ export default async function CompanyDetailPage({
     // The table below lists 20; the stats need every association.
     fetchAllRows(() => db.from('associations').select('id, unit_count').eq('portfolio_id', id).is('archived_at', null).order('id')),
     db.from('portfolio_slug_aliases').select('slug, retired_at').eq('portfolio_id', id).order('retired_at', { ascending: false }),
+    db.from('portfolio_email_domains').select('portfolio_id, domain, from_local_part, provider_domain_id, status, records, enabled, verified_at, last_checked_at, last_error').eq('portfolio_id', id).maybeSingle(),
   ]);
 
   if (!portfolio) notFound();
@@ -327,6 +338,8 @@ export default async function CompanyDetailPage({
       </Card>
 
       <CustomDomainCard portfolioId={id} slug={portfolio.slug ?? null} customDomain={portfolio.custom_domain ?? null} returnTo={returnTo} />
+
+      <EmailDomainCard portfolioId={id} row={senderDomain ?? null} loadError={senderDomainError?.message ?? null} returnTo={returnTo} />
 
       {/* ── Company details ─────────────────────────────────────────── */}
       <Card id="details">
