@@ -6,7 +6,14 @@ import { clientAddress, consumePublicRateLimit } from '@/lib/server/rate-limit';
 import { SIGNATURE_BUCKET, hashSigningToken, isWellFormedToken, newSigningToken, sha256Hex } from '@/lib/signatures/crypto';
 import { signatureCompletedEmail, signatureRequestEmail } from '@/lib/signatures/email';
 import { createServiceClient } from '@/lib/supabase/server';
-import { siteUrl } from '@/lib/url/site-url';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+
+/** The sending company's workspace slug, so links stay on its own address. */
+async function workspaceSlug(service: any, portfolioId: string | null | undefined): Promise<string | null> {
+  if (!portfolioId) return null;
+  const { data } = await service.from('portfolios').select('slug').eq('id', portfolioId).maybeSingle();
+  return data?.slug ?? null;
+}
 
 // Public, token-authenticated actions. Authorization is the token itself,
 // verified inside SECURITY DEFINER functions that only the service role can
@@ -58,6 +65,8 @@ export async function signDocument(formData: FormData) {
   const { data: req } = await service.from('signature_requests')
     .select('id, title, portfolio_id, association_id, document_sha256, sequential, created_by').eq('id', requestId).maybeSingle();
 
+  const slug = await workspaceSlug(service, req?.portfolio_id);
+
   if (result.completed && req) {
     const [{ data: signers }, creator] = await Promise.all([
       service.from('signature_signers').select('name, email').eq('request_id', requestId),
@@ -72,7 +81,7 @@ export async function signDocument(formData: FormData) {
       emails.push(signatureCompletedEmail({
         to: creatorEmail, toName: 'there', title: req.title, sha256: req.document_sha256,
         portfolioId: req.portfolio_id, associationId: req.association_id, idempotencyKey: `signature:${requestId}:completed:creator`,
-        staffLink: `${siteUrl()}/signatures/${requestId}`,
+        staffLink: tenantWorkspaceUrl(slug, `/signatures/${requestId}`),
       }));
     }
     await queueEmails(service, emails);
@@ -87,6 +96,7 @@ export async function signDocument(formData: FormData) {
         to: nextSigner.email, toName: nextSigner.name, title: nextSigner.title, company: nextSigner.company, message: nextSigner.message,
         token: next.token, expiresAt: nextSigner.expires_at, portfolioId: nextSigner.portfolio_id, associationId: nextSigner.association_id,
         idempotencyKey: `signature:${requestId}:${nextSigner.signer_id}:handoff`,
+        workspaceSlug: slug,
       })]);
     }
   }
@@ -113,7 +123,7 @@ export async function declineDocument(formData: FormData) {
       await queueEmails(service, [{
         to,
         subject: `Declined — ${req.title}`,
-        text: `${session.signer?.name ?? 'A signer'} declined to sign "${req.title}".\n\nReason: ${reason.trim().slice(0, 1000)}\n\nThe request is closed. Review it at ${siteUrl()}/signatures/${requestId}`,
+        text: `${session.signer?.name ?? 'A signer'} declined to sign "${req.title}".\n\nReason: ${reason.trim().slice(0, 1000)}\n\nThe request is closed. Review it at ${tenantWorkspaceUrl(await workspaceSlug(service, req.portfolio_id), `/signatures/${requestId}`)}`,
         portfolioId: req.portfolio_id,
         associationId: req.association_id,
         idempotencyKey: `signature:${requestId}:declined`,

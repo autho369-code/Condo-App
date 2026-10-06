@@ -6,12 +6,14 @@ import { Alert, Breadcrumb, PageHeader, PageShell, SectionTitle, Surface } from 
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { DEVELOPER_API_ENDPOINTS } from '@/lib/api/catalog';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { date } from '@/lib/utils';
 
 import {
   revokeDeveloperApiKey,
+  sendDeveloperWebhookTest,
   setDeveloperWebhookActive,
 } from './actions';
 import { CreateApiKeyForm } from './create-api-key-form';
@@ -23,6 +25,7 @@ type SearchParams = Promise<{
   error?: string;
   key_revoked?: string;
   webhook_updated?: string;
+  webhook_tested?: string;
 }>;
 
 function deliveryTone(status: string): Tone {
@@ -112,6 +115,7 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
         {sp.error && <Alert tone="danger" title="Developer setting was not updated.">{sp.error}</Alert>}
         {sp.key_revoked && <Alert tone="success" title="API key revoked.">Requests using that key are rejected immediately.</Alert>}
         {sp.webhook_updated && <Alert tone="success" title="Webhook updated.">The endpoint state was saved.</Alert>}
+        {sp.webhook_tested && <Alert tone="success" title="Test event queued.">A signed <code className="font-mono text-xs">ping</code> event is in the delivery queue and goes out with the next delivery run; its result appears under Recent webhook deliveries.</Alert>}
         {readError && <Alert tone="danger" title="Some integration data could not be loaded.">{readError.message}</Alert>}
         {!webhookDeliveryReady && (
           <Alert tone="info" title="Outbound webhook delivery is provider-gated.">
@@ -196,9 +200,16 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
                     <TD><StatusChip tone={enabled ? 'success' : endpoint.failure_count ? 'danger' : 'neutral'}>{enabled ? 'active' : endpoint.disabled_until ? 'paused' : 'inactive'}</StatusChip><span className="ml-2 text-xs text-gray-500">{endpoint.failure_count ?? 0} failures</span></TD>
                     <TD>{endpoint.last_success_at ? date(endpoint.last_success_at) : 'Never'}</TD>
                     <TD className="text-right">
-                      <form action={setDeveloperWebhookActive.bind(null, endpoint.id, !enabled)}>
-                        <Button type="submit" size="sm" variant="secondary">{enabled ? 'Disable' : 'Enable'}</Button>
-                      </form>
+                      <div className="flex justify-end gap-2">
+                        {enabled && webhooksEnabled && webhookDeliveryReady && (
+                          <form action={sendDeveloperWebhookTest.bind(null, endpoint.id)}>
+                            <Button type="submit" size="sm" variant="secondary">Send test event</Button>
+                          </form>
+                        )}
+                        <form action={setDeveloperWebhookActive.bind(null, endpoint.id, !enabled)}>
+                          <Button type="submit" size="sm" variant="secondary">{enabled ? 'Disable' : 'Enable'}</Button>
+                        </form>
+                      </div>
                     </TD>
                   </TR>
                 );
@@ -214,7 +225,7 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
             description="Version 2026-08-01. Authenticate with Authorization: Bearer, use page and limit for pagination, and q for search."
           />
           <div className="mb-5 overflow-x-auto rounded-xl bg-gray-950 p-4 text-gray-100">
-            <code className="whitespace-pre font-mono text-xs">curl &quot;https://portier369.com/api/v1/associations?limit=50&quot; -H &quot;Authorization: Bearer YOUR_API_KEY&quot;</code>
+            <code className="whitespace-pre font-mono text-xs">curl &quot;{tenantWorkspaceUrl(me.portfolio?.slug, '/api/v1/associations?limit=50')}&quot; -H &quot;Authorization: Bearer YOUR_API_KEY&quot;</code>
           </div>
           <Table>
             <THead><tr><TH>Method</TH><TH>Endpoint</TH><TH>Required scope</TH></tr></THead>

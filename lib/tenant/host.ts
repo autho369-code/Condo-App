@@ -67,6 +67,19 @@ export function classifyTenantHost(hostHeader: string | null | undefined, apex =
   return { kind: 'custom-domain', hostname, slug: null };
 }
 
+/**
+ * The host to forward to when a request arrives on a company's retired
+ * address (tenant_branding resolves it but returns the current slug).
+ * Null when the host is already current or the slug is not usable.
+ */
+export function forwardedTenantHostname(
+  host: TenantHost,
+  currentSlug: string | null | undefined,
+): string | null {
+  if (host.kind !== 'subdomain' || !isPortfolioSlug(currentSlug) || currentSlug === host.slug) return null;
+  return `${currentSlug}${host.hostname.slice(host.slug.length)}`;
+}
+
 function normalizePath(path: string) {
   return path.startsWith('/') ? path : `/${path}`;
 }

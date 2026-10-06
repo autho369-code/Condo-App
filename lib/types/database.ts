@@ -22667,6 +22667,7 @@ export type Database = {
         | "owner.created"
         | "owner.updated"
         | "inspection.completed"
+        | "ping"
       work_order_category:
         | "plumbing"
         | "electrical"
@@ -23355,6 +23356,7 @@ export const Constants = {
         "owner.created",
         "owner.updated",
         "inspection.completed",
+        "ping",
       ],
       work_order_category: [
         "plumbing",

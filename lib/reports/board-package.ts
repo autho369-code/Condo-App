@@ -9,6 +9,7 @@
 import { generateLiveExportRows } from '@/lib/reports/live-export';
 import { generateMonthlyFinancialPackagePdf, prepareMonthlyPackageRows } from '@/lib/reports/monthly-package';
 import { queueEmails } from '@/lib/email/queue';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 
 export const BOARD_REPORT_SECTIONS = [
   ['trial_balance', 'Trial balance'],
@@ -96,7 +97,9 @@ export async function publishBoardPackage(opts: {
   let emailed = 0;
   if (notify) {
     const { data: members } = await svc.from('board_members').select('email, full_name').eq('association_id', association.id).eq('active', true);
-    const site = (process.env.NEXT_PUBLIC_SITE_URL || 'https://portier369.com').replace(/\/$/, '');
+    // Link to the board portal on the company's own workspace address.
+    const { data: portfolio } = await svc.from('portfolios').select('slug').eq('id', association.portfolio_id).maybeSingle();
+    const boardReportsUrl = tenantWorkspaceUrl(portfolio?.slug, '/board/reports');
     const recipients = [...new Map(((members ?? []) as any[])
       .filter((m) => typeof m.email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m.email.trim()))
       .map((m) => [m.email.trim().toLowerCase(), m])).values()];
@@ -104,7 +107,7 @@ export async function publishBoardPackage(opts: {
       to: m.email.trim(),
       toName: m.full_name ?? null,
       subject: `${association.name}: board report for ${fmt(dateFrom)} – ${fmt(dateTo)}`,
-      text: `The board report for ${association.name} (${fmt(dateFrom)} – ${fmt(dateTo)}) is ready in your board portal:\n${site}/board/reports\n\nIncluded: ${description}.`,
+      text: `The board report for ${association.name} (${fmt(dateFrom)} – ${fmt(dateTo)}) is ready in your board portal:\n${boardReportsUrl}\n\nIncluded: ${description}.`,
       portfolioId: association.portfolio_id,
       associationId: association.id,
       fromName: association.company_name ?? null,

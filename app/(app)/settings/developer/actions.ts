@@ -126,3 +126,25 @@ export async function setDeveloperWebhookActive(endpointId: string, active: bool
   revalidatePath('/settings/developer');
   redirect('/settings/developer?webhook_updated=1');
 }
+
+export async function sendDeveloperWebhookTest(endpointId: string) {
+  const back = (msg: string) => redirect('/settings/developer?error=' + encodeURIComponent(msg));
+  if (process.env.WEBHOOK_DELIVERY_ENABLED !== 'true') back('Outbound webhook delivery is not enabled in this environment.');
+  const me = await requirePortfolioAdmin();
+  const portfolioId = me.portfolio?.id;
+  if (!portfolioId) back('A portfolio is required.');
+  const supabase = await createClient();
+  // The endpoint must belong to the caller's own portfolio (send_test_webhook
+  // re-checks admin rights, entitlement, enabled state and a 1-minute limit).
+  const { data: endpoint, error: endpointError } = await (supabase as any)
+    .from('webhook_endpoints')
+    .select('id')
+    .eq('id', endpointId)
+    .eq('portfolio_id', portfolioId)
+    .maybeSingle();
+  if (endpointError || !endpoint) back(endpointError?.message ?? 'Webhook endpoint was not found.');
+  const { error } = await (supabase as any).rpc('send_test_webhook', { p_endpoint_id: endpointId });
+  if (error) back(error.message);
+  revalidatePath('/settings/developer');
+  redirect('/settings/developer?webhook_tested=1');
+}

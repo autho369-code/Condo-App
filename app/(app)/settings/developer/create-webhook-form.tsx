@@ -25,7 +25,7 @@ export function CreateWebhookForm({ enabled }: { enabled: boolean }) {
       )}
       <form action={action} className="space-y-4">
         <div><Label htmlFor="webhook_name">Endpoint name</Label><Input id="webhook_name" name="name" required maxLength={200} placeholder="Accounting sync" disabled={!enabled || pending} /></div>
-        <div><Label htmlFor="webhook_url">HTTPS endpoint URL</Label><Input id="webhook_url" name="url" type="url" required placeholder="https://integrations.example.com/portier" disabled={!enabled || pending} /></div>
+        <div><Label htmlFor="webhook_url">HTTPS endpoint URL</Label><Input id="webhook_url" name="url" type="url" required placeholder="https://integrations.example.com/webhooks" disabled={!enabled || pending} /></div>
         <fieldset>
           <legend className="mb-2 text-[13px] font-medium text-gray-700">Business events</legend>
           <div className="grid max-h-72 grid-cols-1 gap-2 overflow-y-auto rounded-xl border border-gray-200 p-3 sm:grid-cols-2">

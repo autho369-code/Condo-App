@@ -1,22 +1,25 @@
 import 'server-only';
 import type { QueuedEmail } from '@/lib/email/queue';
-import { siteUrl } from '@/lib/url/site-url';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 function shell(body: string) {
-  return `<div style="font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;line-height:1.6;color:#111827;max-width:560px">${body}<p style="margin-top:28px;font-size:12px;color:#6b7280">Sent through Portier369 e-signature. If you did not expect this request, you can ignore this email.</p></div>`;
+  return `<div style="font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;line-height:1.6;color:#111827;max-width:560px">${body}<p style="margin-top:28px;font-size:12px;color:#6b7280">Sent through your management company&rsquo;s e-signature service. If you did not expect this request, you can ignore this email.</p></div>`;
 }
 
-export function signingLink(token: string) {
-  return `${siteUrl()}/sign/${token}`;
+/** The signing page on the sending company's own workspace address. */
+export function signingLink(token: string, workspaceSlug: string | null | undefined) {
+  return tenantWorkspaceUrl(workspaceSlug, `/sign/${token}`);
 }
 
 export function signatureRequestEmail(args: {
   to: string; toName: string; title: string; company: string | null; message: string | null;
   token: string; expiresAt: string; portfolioId: string; associationId: string | null; idempotencyKey: string; reminder?: boolean;
+  /** The sending company's workspace slug (its own address). */
+  workspaceSlug: string | null | undefined;
 }): QueuedEmail {
-  const link = signingLink(args.token);
+  const link = signingLink(args.token, args.workspaceSlug);
   const expires = new Date(args.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const from = args.company ?? 'Your management company';
   return {

@@ -13,7 +13,7 @@ import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
 import { date, money } from '@/lib/utils';
-import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { apexDomain, tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { PLANS, planOptionLabel } from '@/lib/billing/plans';
 import {
   adjustLimits,
@@ -34,6 +34,7 @@ import {
   transferOwnership,
   unlockAccount,
   updateCompanyDetails,
+  updateWorkspaceAddress,
   voidInvoice,
 } from '../actions';
 import { displayTimeZone } from '@/lib/time/display-zone';
@@ -84,6 +85,7 @@ const ACTION_LABELS: Record<string, string> = {
   company_suspended: 'Company Suspended',
   company_reactivated: 'Company Reactivated',
   company_archived: 'Company Archived',
+  workspace_address_changed: 'Workspace Address Changed',
   ownership_transferred: 'Ownership Transferred',
 };
 
@@ -98,6 +100,7 @@ const BANNERS: Record<string, string> = {
   login_disabled: 'Login disabled for the selected user.',
   suspended: 'Company suspended.',
   reactivated: 'Company reactivated.',
+  address_changed: 'Workspace address saved. The old address keeps working and forwards to the new one.',
   plan_changed: 'Subscription plan updated.',
   limits_adjusted: 'Limits updated.',
   ownership_transferred: 'Company ownership transferred.',
@@ -131,6 +134,7 @@ export default async function CompanyDetailPage({
     { data: invitations },
     { data: auditRows },
     allAssociations,
+    { data: slugAliases, error: slugAliasesError },
   ] = await Promise.all([
     db.from('portfolios').select('id, company_name, slug, tier, created_at, suspended_at, suspension_reason, archived_at, address_city, address_state, phone_number, support_email').eq('id', id).maybeSingle(),
     db.from('subscriptions').select('id, tier, status, billing_email, seats_used, seats_included, associations_limit, units_limit, price_monthly_cents, trial_ends_at, current_period_end').eq('portfolio_id', id).maybeSingle(),
@@ -141,6 +145,7 @@ export default async function CompanyDetailPage({
     db.from('audit_logs').select('id, action, actor_email, changes, created_at').eq('entity_type', 'company').eq('entity_id', id).order('created_at', { ascending: false }).limit(30),
     // The table below lists 20; the stats need every association.
     fetchAllRows(() => db.from('associations').select('id, unit_count').eq('portfolio_id', id).is('archived_at', null).order('id')),
+    db.from('portfolio_slug_aliases').select('slug, retired_at').eq('portfolio_id', id).order('retired_at', { ascending: false }),
   ]);
 
   if (!portfolio) notFound();
@@ -152,6 +157,8 @@ export default async function CompanyDetailPage({
   const admins = (staff ?? []).filter((s: any) => s.hoa_role === 'company_admin');
   const banner = Object.keys(BANNERS).find((k) => sp[k] === '1');
   const workspaceUrl = tenantWorkspaceUrl(portfolio.slug);
+  // An address taken back after a rename is current again, not an old one.
+  const oldAddresses = ((slugAliases ?? []) as Array<{ slug: string }>).map((a) => a.slug).filter((slug) => slug !== portfolio.slug);
 
   return (
     <div className="space-y-7">
@@ -271,6 +278,49 @@ export default async function CompanyDetailPage({
           </CardBody>
         </Card>
       </div>
+
+      {/* ── Workspace address ───────────────────────────────────────── */}
+      <Card id="workspace-address">
+        <CardHeader>
+          <CardTitle>Workspace address</CardTitle>
+          <p className="text-xs text-gray-500">
+            The company&rsquo;s own web address, used for its login page and every link it emails. Changing it keeps
+            the old address working: visits and old links forward to the new one, and no other company can ever take it.
+          </p>
+        </CardHeader>
+        <CardBody>
+          {slugAliasesError && <Alert title="Old addresses could not be loaded">{slugAliasesError.message}</Alert>}
+          <form action={updateWorkspaceAddress as any} className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="portfolio_id" value={id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <div>
+              <Label htmlFor="slug">Address</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="slug"
+                  name="slug"
+                  required
+                  defaultValue={portfolio.slug ?? ''}
+                  pattern="[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?"
+                  minLength={2}
+                  maxLength={32}
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  className="w-56"
+                />
+                <span className="text-sm text-gray-500">.{apexDomain()}</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">2–32 lowercase letters, numbers or hyphens.</p>
+            </div>
+            <Button type="submit" variant="secondary">Save Address</Button>
+          </form>
+          {oldAddresses.length > 0 && (
+            <p className="mt-3 text-xs text-gray-500">
+              Old addresses that forward here: {oldAddresses.map((slug) => `${slug}.${apexDomain()}`).join(', ')}
+            </p>
+          )}
+        </CardBody>
+      </Card>
 
       {/* ── Company details ─────────────────────────────────────────── */}
       <Card id="details">

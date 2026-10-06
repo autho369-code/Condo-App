@@ -675,6 +675,34 @@ export async function updateCompanyDetails(formData: FormData) {
   ok(returnTo, 'updated');
 }
 
+// ── Workspace address (<slug>.<apex>) ─────────────────────────────────────
+export async function updateWorkspaceAddress(formData: FormData) {
+  const me = await requirePlatformAdmin();
+  const portfolioId = String(formData.get('portfolio_id') ?? '');
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
+  const slug = String(formData.get('slug') ?? '').trim().toLowerCase();
+  if (!/^[0-9a-f-]{36}$/i.test(portfolioId)) fail(returnTo, 'Company not found.');
+  if (!slug) fail(returnTo, 'Enter the new workspace address.');
+
+  const svc = createServiceClient() as any;
+  const { data: before } = await svc.from('portfolios').select('slug').eq('id', portfolioId).maybeSingle();
+  if (!before) fail(returnTo, 'Company not found.');
+
+  // Signed-in session (not the service role): platform_set_portfolio_slug
+  // re-checks that the caller is a platform admin, validates the address,
+  // keeps the old one as a forwarding alias and refuses any address another
+  // company holds now or held before.
+  const db = (await createClient()) as any;
+  const { data: saved, error } = await db.rpc('platform_set_portfolio_slug', { p_portfolio_id: portfolioId, p_slug: slug });
+  if (error) fail(returnTo, error.message);
+
+  if (saved !== before.slug) {
+    await audit(svc, me, 'workspace_address_changed', portfolioId, { from: before.slug, to: saved });
+  }
+  revalidatePath(returnTo);
+  ok(returnTo, 'address_changed');
+}
+
 // ── Company status ────────────────────────────────────────────────────────
 export async function suspendCompany(formData: FormData) {
   const me = await requirePlatformAdmin();
