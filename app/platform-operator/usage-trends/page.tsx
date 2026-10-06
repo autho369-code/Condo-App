@@ -32,7 +32,7 @@ export default async function UsageTrendsPage({ searchParams }: { searchParams: 
 
   const [usageRes, portfoliosRes] = await Promise.all([
     fetchAllRows<UsageRow>(() => db.from('usage_metrics')
-      .select('portfolio_id, period_year, period_month, staff_count, owner_count, association_count, unit_count, work_orders_created, service_requests_created, bills_posted, payments_received, emails_sent, sms_sent')
+      .select('portfolio_id, period_year, period_month, staff_count, owner_count, association_count, unit_count, work_orders_created, service_requests_created, bills_posted, payments_received, emails_sent, sms_sent, api_calls')
       .gte('period_year', sinceYear)
       .order('period_year', { ascending: false }).order('period_month', { ascending: false }).order('portfolio_id')),
     fetchAllRows<any>(() => db.from('portfolios').select('id, company_name, archived_at').order('id')),
@@ -89,7 +89,7 @@ export default async function UsageTrendsPage({ searchParams }: { searchParams: 
       <PageHeader
         eyebrow="Platform analytics"
         title="Usage Trends"
-        description="How every company uses the platform, month by month: doors, associations and user accounts on file, plus work orders, service requests, bills, payments and messages created. Counts refresh nightly; months are calendar months in UTC."
+        description="How every company uses the platform, month by month: doors, associations and user accounts on file, plus work orders, service requests, bills, payments, messages and partner API calls. Counts refresh nightly; months are calendar months in UTC."
       />
 
       {loadError && <Alert tone="danger" className="mb-5" title="Some usage data could not be loaded:">{loadError}</Alert>}

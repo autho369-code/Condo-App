@@ -7,6 +7,7 @@ import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { DEVELOPER_API_ENDPOINTS } from '@/lib/api/catalog';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { date } from '@/lib/utils';
 
 import {
@@ -45,7 +46,9 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
   if (!portfolioId) throw new Error('A portfolio is required to open the Developer Hub.');
 
   const supabase = await createClient();
-  const [keysResult, endpointsResult, deliveriesResult, apiEntitlement, webhookEntitlement] = await Promise.all([
+  // Last 30 UTC days of per-key request counts (api_key_usage_daily).
+  const since30 = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
+  const [keysResult, endpointsResult, deliveriesResult, apiEntitlement, webhookEntitlement, usageResult] = await Promise.all([
     (supabase as any)
       .from('api_keys')
       .select('id, name, prefix, scopes, last_used_at, use_count, expires_at, revoked_at, created_at')
@@ -64,6 +67,14 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
       .limit(25),
     (supabase as any).rpc('has_entitlement', { p_portfolio_id: portfolioId, p_feature_key: 'api_keys' }),
     (supabase as any).rpc('has_entitlement', { p_portfolio_id: portfolioId, p_feature_key: 'webhooks' }),
+    // Paged: one row per key per day can pass PostgREST's 1,000-row cap.
+    fetchAllRows<{ api_key_id: string; request_count: number }>(() => (supabase as any)
+      .from('api_key_usage_daily')
+      .select('api_key_id, request_count')
+      .eq('portfolio_id', portfolioId)
+      .gte('usage_date', since30)
+      .order('api_key_id')
+      .order('usage_date')),
   ]);
 
   const keys = keysResult.data ?? [];
@@ -72,7 +83,13 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
   const apiEnabled = apiEntitlement.data === true;
   const webhooksEnabled = webhookEntitlement.data === true;
   const webhookDeliveryReady = process.env.WEBHOOK_DELIVERY_ENABLED === 'true';
-  const readError = keysResult.error ?? endpointsResult.error ?? deliveriesResult.error;
+  const readError = keysResult.error ?? endpointsResult.error ?? deliveriesResult.error
+    ?? (usageResult.error ? { message: `API usage: ${usageResult.error}` } : null)
+    ?? (usageResult.truncated ? { message: 'API usage: too many rows to total; 30-day call counts are incomplete.' } : null);
+  const calls30 = new Map<string, number>();
+  for (const row of usageResult.rows) {
+    calls30.set(row.api_key_id, (calls30.get(row.api_key_id) ?? 0) + Number(row.request_count ?? 0));
+  }
 
   return (
     <PageShell>
@@ -143,7 +160,7 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
                   <TR key={key.id}>
                     <TD><span className="block font-medium text-gray-950">{key.name}</span><code className="text-xs text-gray-500">{key.prefix}...</code></TD>
                     <TD><div className="flex max-w-sm flex-wrap gap-1">{(key.scopes ?? []).map((scope: string) => <StatusChip key={scope}>{scope}</StatusChip>)}</div></TD>
-                    <TD>{Number(key.use_count ?? 0).toLocaleString()} calls<span className="block text-xs text-gray-500">Last used {key.last_used_at ? date(key.last_used_at) : 'never'}</span></TD>
+                    <TD>{(calls30.get(key.id) ?? 0).toLocaleString()} calls in 30 days<span className="block text-xs text-gray-500">{Number(key.use_count ?? 0).toLocaleString()} all time · last used {key.last_used_at ? date(key.last_used_at) : 'never'}</span></TD>
                     <TD>{key.expires_at ? date(key.expires_at) : 'No expiration'}</TD>
                     <TD><StatusChip tone={active ? 'success' : 'danger'}>{key.revoked_at ? 'revoked' : expired ? 'expired' : 'active'}</StatusChip></TD>
                     <TD className="text-right">

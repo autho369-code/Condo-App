@@ -13,6 +13,7 @@ export const USAGE_FIELDS = [
   { key: 'payments_received', label: 'Payments', kind: 'activity' },
   { key: 'emails_sent', label: 'Emails', kind: 'activity' },
   { key: 'sms_sent', label: 'Texts', kind: 'activity' },
+  { key: 'api_calls', label: 'API calls', kind: 'activity' },
 ] as const;
 
 /**
