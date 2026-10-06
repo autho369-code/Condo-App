@@ -15,7 +15,7 @@ import type { AITool } from '@/lib/ai/service';
 const OPEN_WO = '("done","completed","billed","closed","cancelled")';
 const OPEN_VIOLATION = '("closed","cured")';
 
-export const PORTFOLIO_TOOLS: AITool[] = [
+const ALL_PORTFOLIO_TOOLS: AITool[] = [
   {
     name: 'find_owners',
     description: 'Find homeowners by name or email. Returns contact details, their current units and each unit\'s balance.',
@@ -87,6 +87,17 @@ export const PORTFOLIO_TOOLS: AITool[] = [
   },
 ];
 
+const FINANCE_TOOLS = new Set(['list_delinquent_units', 'list_bills']);
+
+/**
+ * The lookups this user may call. Finance lookups are left out for staff
+ * without finance access: RLS hides charges, payments and bills from them, so
+ * a balance would read as $0 instead of "not available".
+ */
+export function portfolioToolsFor(canSeeFinance: boolean): AITool[] {
+  return canSeeFinance ? ALL_PORTFOLIO_TOOLS : ALL_PORTFOLIO_TOOLS.filter((t) => !FINANCE_TOOLS.has(t.name));
+}
+
 /** Strip characters that would change a PostgREST filter, and cap length. */
 export function sanitizeSearch(value: unknown): string {
   return String(value ?? '').replace(/[%_,()*\\"]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
@@ -104,7 +115,14 @@ function fail(message: string): never {
   throw new Error(message);
 }
 
-export async function runPortfolioTool(name: string, input: Record<string, unknown>): Promise<unknown> {
+export async function runPortfolioTool(
+  name: string,
+  input: Record<string, unknown>,
+  canSeeFinance = false,
+): Promise<unknown> {
+  if (!canSeeFinance && FINANCE_TOOLS.has(name)) {
+    return { error: 'Financial details are not available to your role.' };
+  }
   const db = (await createClient()) as any;
 
   async function associationIds(nameFilter: unknown): Promise<string[] | null> {
@@ -150,38 +168,38 @@ export async function runPortfolioTool(name: string, input: Record<string, unkno
     case 'find_owners': {
       const q = sanitizeSearch(input.query);
       if (q.length < 2) return { error: 'Give at least 2 characters of a name or email.' };
-      const { data: owners, error } = await db.from('owners')
-        .select('id, full_name, email, phone')
-        .is('archived_at', null)
-        .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
-        .order('full_name').limit(25);
+      // Start from current owner occupancies the caller can see (association
+      // scoping lives on occupancies; the owners table is company-wide), then
+      // match the owner's name or email.
+      const { data: occ, error } = await db.from('occupancies')
+        .select('owner_id, unit_id, association_id, units(unit_number), owners!inner(id, full_name, email, phone, archived_at)')
+        .eq('status', 'current').eq('occupancy_type', 'owner')
+        .is('owners.archived_at', null)
+        .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`, { referencedTable: 'owners' })
+        .limit(100);
       if (error) fail(error.message);
-      const ownerIds = (owners ?? []).map((o: { id: string }) => o.id);
-      const { data: occ, error: occErr } = ownerIds.length
-        ? await db.from('occupancies').select('owner_id, unit_id, association_id, units(unit_number)')
-            .in('owner_id', ownerIds).eq('status', 'current').eq('occupancy_type', 'owner')
-        : { data: [], error: null };
-      if (occErr) fail(occErr.message);
-      const unitIds = (occ ?? []).map((o: any) => o.unit_id);
-      const { data: balances, error: balErr } = unitIds.length
-        ? await db.from('unit_balances').select('unit_id, balance').in('unit_id', unitIds)
-        : { data: [], error: null };
-      if (balErr) fail(balErr.message);
-      const balance = new Map((balances ?? []).map((b: any) => [b.unit_id, round2(b.balance)]));
-      const names = await associationNames((occ ?? []).map((o: any) => o.association_id));
-      // Only owners with a current unit this manager can see: the owners
-      // table is company-wide, while association scoping is on occupancies.
-      const visibleOwnerIds = new Set((occ ?? []).map((x: any) => x.owner_id));
-      return (owners ?? []).filter((o: any) => visibleOwnerIds.has(o.id)).map((o: any) => ({
-        name: o.full_name,
-        email: o.email,
-        phone: o.phone,
-        units: (occ ?? []).filter((x: any) => x.owner_id === o.id).map((x: any) => ({
-          unit: x.units?.unit_number ?? null,
-          association: names.get(x.association_id) ?? null,
-          balance_due: balance.get(x.unit_id) ?? 0,
-        })),
-      }));
+      const rows = (occ ?? []) as any[];
+      const unitIds = rows.map((o) => o.unit_id);
+      let balance = new Map<string, number>();
+      if (canSeeFinance && unitIds.length) {
+        const { data: balances, error: balErr } = await db.from('unit_balances').select('unit_id, balance').in('unit_id', unitIds);
+        if (balErr) fail(balErr.message);
+        balance = new Map((balances ?? []).map((b: any) => [b.unit_id, round2(b.balance)]));
+      }
+      const names = await associationNames(rows.map((o) => o.association_id));
+      const owners = new Map<string, any>();
+      for (const row of rows) {
+        const o = row.owners;
+        if (!o) continue;
+        const entry = owners.get(o.id) ?? { name: o.full_name, email: o.email, phone: o.phone, units: [] as any[] };
+        entry.units.push({
+          unit: row.units?.unit_number ?? null,
+          association: names.get(row.association_id) ?? null,
+          ...(canSeeFinance ? { balance_due: balance.get(row.unit_id) ?? 0 } : {}),
+        });
+        owners.set(o.id, entry);
+      }
+      return [...owners.values()].sort((a, b) => String(a.name).localeCompare(String(b.name))).slice(0, 10);
     }
 
     case 'unit_summary': {
@@ -227,11 +245,15 @@ export async function runPortfolioTool(name: string, input: Record<string, unkno
           dues_paid_through: o.dues_paid_through,
           owner_since: o.move_in_date,
         })),
-        balance_due: round2(bal.data?.balance),
-        total_charged: round2(bal.data?.total_charges),
-        total_paid: round2(bal.data?.total_payments),
-        recent_charges: (charges.data ?? []).map((c: any) => ({ description: c.description, amount: round2(c.amount), due: c.due_date })),
-        recent_payments: (payments.data ?? []).map((p: any) => ({ amount: round2(p.amount), date: p.payment_date, method: p.method, reversed: !!p.reversed_at })),
+        ...(canSeeFinance
+          ? {
+              balance_due: round2(bal.data?.balance),
+              total_charged: round2(bal.data?.total_charges),
+              total_paid: round2(bal.data?.total_payments),
+              recent_charges: (charges.data ?? []).map((c: any) => ({ description: c.description, amount: round2(c.amount), due: c.due_date })),
+              recent_payments: (payments.data ?? []).map((p: any) => ({ amount: round2(p.amount), date: p.payment_date, method: p.method, reversed: !!p.reversed_at })),
+            }
+          : { financials: 'Not available to your role.' }),
         open_violations: violations.data ?? [],
         open_work_orders: workOrders.data ?? [],
       };

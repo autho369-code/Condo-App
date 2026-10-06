@@ -15,7 +15,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIConfig, toolCompletion } from '@/lib/ai/service';
-import { PORTFOLIO_TOOLS, runPortfolioTool } from '@/lib/ai/portfolio-tools';
+import { portfolioToolsFor, runPortfolioTool } from '@/lib/ai/portfolio-tools';
 import { requireStaff } from '@/lib/auth/me';
 import { buildPortfolioSnapshot } from '@/lib/ai/portfolio-snapshot';
 import {
@@ -36,6 +36,7 @@ const SYSTEM_PROMPT =
   'and suggest where in the app they might find it. ' +
   'NEVER invent, estimate, or extrapolate numbers, names, dates, or amounts — only state what the DATA or a tool returned. ' +
   'You can only read; you cannot change anything, so never claim to have done something. ' +
+  'If financial figures are marked as not available to the user\'s role, say so; never report them as $0. ' +
   'Be concise and conversational. Format money with a dollar sign and use plain language. ' +
   'When listing items, use short bullet points. Do not output JSON or code unless asked.';
 
@@ -85,7 +86,14 @@ export async function POST(request: NextRequest) {
   const history: AssistantTurn[] = boundedAssistantHistory(body.history);
 
   try {
-    const snapshot = await buildPortfolioSnapshot();
+    // Staff without finance access can't see charges, payments or bills (RLS),
+    // so those figures would read as $0: leave them out instead.
+    const canSeeFinance = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
+    const fullSnapshot = await buildPortfolioSnapshot();
+    const snapshot = canSeeFinance
+      ? fullSnapshot
+      : { ...fullSnapshot, receivables: undefined, bills: undefined, recentPayments: undefined,
+          note: 'Financial figures are not available to this user\'s role.' };
 
     const answer = await toolCompletion(
       config,
@@ -94,8 +102,8 @@ export async function POST(request: NextRequest) {
         ...history.map((t) => ({ role: t.role, content: t.content })),
         { role: 'user' as const, content: question },
       ],
-      PORTFOLIO_TOOLS,
-      runPortfolioTool,
+      portfolioToolsFor(canSeeFinance),
+      (name, input) => runPortfolioTool(name, input, canSeeFinance),
       { temperature: 0.2, maxRounds: 4, timeBudgetMs: 45_000 },
     );
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { toolCompletion, type AITool } from '@/lib/ai/service';
-import { clampLimit, sanitizeSearch } from '@/lib/ai/portfolio-tools';
+import { clampLimit, portfolioToolsFor, runPortfolioTool, sanitizeSearch } from '@/lib/ai/portfolio-tools';
 
 const tools: AITool[] = [
   { name: 'unit_summary', description: 'unit', parameters: { type: 'object', properties: { unit_number: { type: 'string' } } } },
@@ -167,5 +167,20 @@ describe('portfolio tool input guards', () => {
     expect(clampLimit(500)).toBe(50);
     expect(clampLimit(0)).toBe(1);
     expect(clampLimit('7')).toBe(7);
+  });
+});
+
+describe('finance access', () => {
+  it('leaves finance lookups out for staff without finance access', () => {
+    const names = (canSee: boolean) => portfolioToolsFor(canSee).map((t) => t.name);
+    expect(names(true)).toEqual(expect.arrayContaining(['list_delinquent_units', 'list_bills']));
+    expect(names(false)).not.toContain('list_delinquent_units');
+    expect(names(false)).not.toContain('list_bills');
+    expect(names(false)).toContain('unit_summary');
+  });
+
+  it('refuses a finance lookup for staff without finance access', async () => {
+    await expect(runPortfolioTool('list_bills', { status: 'approved' }, false))
+      .resolves.toEqual({ error: 'Financial details are not available to your role.' });
   });
 });
