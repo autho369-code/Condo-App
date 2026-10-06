@@ -154,11 +154,20 @@ export async function runPortfolioTool(
     // name really ends in parentheses.
     const withCity = raw.match(/^(.+?)\s*\(([^()]+)\)$/);
     const namePart = withCity ? withCity[1].trim() : raw;
-    const { data, error } = await db.from('associations').select('id, name, city')
-      .ilike('name', `%${likeEscape(namePart)}%`).is('archived_at', null).limit(20);
-    if (error) fail(error.message);
-    const rows = ((data ?? []) as Array<{ id: string; name: string; city: string | null }>)
-      .filter((a) => !idPrefix || a.id.toLowerCase().startsWith(idPrefix));
+    type Assoc = { id: string; name: string; city: string | null };
+    const byId = (list: Assoc[]) => list.filter((a) => !idPrefix || a.id.toLowerCase().startsWith(idPrefix));
+    // Exact names first (uncapped by partial matches), then partial matches.
+    const exactNames = [...new Set([raw, namePart])].map((n) => `name.ilike.${quotedFilterValue(likeEscape(n))}`).join(',');
+    const { data: exactData, error: exactErr } = await db.from('associations').select('id, name, city')
+      .is('archived_at', null).or(exactNames).limit(100);
+    if (exactErr) fail(exactErr.message);
+    let rows = byId((exactData ?? []) as Assoc[]);
+    if (!rows.length) {
+      const { data, error } = await db.from('associations').select('id, name, city')
+        .ilike('name', `%${likeEscape(namePart)}%`).is('archived_at', null).order('name').limit(20);
+      if (error) fail(error.message);
+      rows = byId((data ?? []) as Assoc[]);
+    }
     const lower = (v: string | null) => (v ?? '').trim().toLowerCase();
     // 1) the full text is an exact name; 2) "Name (City)"; 3) an exact name
     // part; 4) a single partial match. More than one candidate is ambiguous
@@ -215,7 +224,7 @@ export async function runPortfolioTool(
         .eq('status', 'current').eq('occupancy_type', 'owner')
         .is('owners.archived_at', null)
         .or(`full_name.ilike.${pattern},email.ilike.${pattern}`, { referencedTable: 'owners' })
-        .limit(100);
+        .order('owner_id').limit(1000);
       if (error) fail(error.message);
       const rows = (occ ?? []) as any[];
       const unitIds = rows.map((o) => o.unit_id);
@@ -247,12 +256,17 @@ export async function runPortfolioTool(
       const assocIds = await associationIds(input.association);
       let query = db.from('units')
         .select('id, unit_number, buildings!inner(association_id, name)')
-        .is('archived_at', null).ilike('unit_number', likeEscape(unitNumber)).limit(10);
+        .is('archived_at', null).ilike('unit_number', likeEscape(unitNumber)).limit(50);
       if (assocIds) query = query.in('buildings.association_id', assocIds.length ? assocIds : ['00000000-0000-0000-0000-000000000000']);
-      const building = cleanText(input.building);
-      if (building) query = query.ilike('buildings.name', `%${likeEscape(building)}%`);
-      const { data: units, error } = await query;
+      const { data: unitRows, error } = await query;
       if (error) fail(error.message);
+      // Building: an exact name wins over partial matches ("Tower" vs "Tower East").
+      const building = cleanText(input.building).toLowerCase();
+      let units = (unitRows ?? []) as any[];
+      if (building) {
+        const exact = units.filter((u) => (u.buildings?.name ?? '').trim().toLowerCase() === building);
+        units = exact.length ? exact : units.filter((u) => (u.buildings?.name ?? '').toLowerCase().includes(building));
+      }
       if (!units?.length) return { error: `No unit ${unitNumber} found.` };
       const names = await associationNames(units.map((u: any) => u.buildings?.association_id));
       if (units.length > 1) {
