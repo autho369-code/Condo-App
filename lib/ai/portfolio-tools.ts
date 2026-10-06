@@ -41,11 +41,11 @@ const ALL_PORTFOLIO_TOOLS: AITool[] = [
   },
   {
     name: 'list_delinquent_units',
-    description: 'Units that owe money, largest balance first, with the owner name.',
+    description: 'Delinquent units (an open charge past its due date), largest past-due amount first, with the owner name and oldest due date.',
     parameters: {
       type: 'object',
       properties: {
-        min_balance: { type: 'number', description: 'Only units owing at least this much. Default 0.01.' },
+        min_balance: { type: 'number', description: 'Only units with at least this much past due. Default 0.01.' },
         association: { type: 'string', description: 'Optional association name.' },
         limit: { type: 'integer', description: 'Max rows (default 25, max 50).' },
       },
@@ -303,7 +303,7 @@ export async function runPortfolioTool(
           .eq('unit_id', unit.id).eq('status', 'current').eq('occupancy_type', 'owner'),
         db.from('unit_balances').select('balance, total_charges, total_payments').eq('unit_id', unit.id).maybeSingle(),
         db.from('charges').select('description, amount, due_date').eq('unit_id', unit.id).order('due_date', { ascending: false }).limit(6),
-        db.from('receivable_payments_ledger').select('amount, payment_date, method, reversed_at').eq('unit_id', unit.id).lte('payment_date', todayInZone()).order('payment_date', { ascending: false }).limit(6), // future-dated receipts are not received yet
+        db.from('receivable_payments_ledger').select('amount, payment_date, method, reversed_at').eq('unit_id', unit.id).or('method.is.null,method.neq.credit').lte('payment_date', todayInZone()).order('payment_date', { ascending: false }).limit(6), // credits aren't payments; future-dated receipts aren't received yet
         db.from('violations').select('title, violation_type, status, due_date', { count: 'exact' }).eq('unit_id', unit.id).is('archived_at', null).not('status', 'in', OPEN_VIOLATION).limit(10),
         db.from('work_orders').select('number, title, status, priority, scheduled_date', { count: 'exact' }).eq('unit_id', unit.id).is('archived_at', null).not('status', 'in', OPEN_WO).limit(10),
       ]);
@@ -340,7 +340,10 @@ export async function runPortfolioTool(
       const min = Number.isFinite(Number(input.min_balance)) ? Math.max(0.01, Number(input.min_balance)) : 0.01;
       const assocIds = await associationIds(input.association);
       if (assocIds && !assocIds.length) return { error: 'No association matches that name.' };
-      let query = db.from('unit_balances').select('unit_id, unit_number, association_id, balance', { count: 'exact' })
+      // delinquent_units = units with an open charge already past due (the
+      // balance is that past-due amount); a current or future charge is owed
+      // but not delinquent.
+      let query = db.from('delinquent_units').select('unit_id, unit_number, association_id, balance, oldest_due', { count: 'exact' })
         .gte('balance', min).order('balance', { ascending: false }).limit(clampLimit(input.limit));
       if (assocIds) query = query.in('association_id', assocIds);
       const { data, error, count } = await query;
@@ -354,7 +357,8 @@ export async function runPortfolioTool(
         unit: r.unit_number,
         association: names.get(r.association_id) ?? null,
         owners: owners.get(r.unit_id) ?? [],
-        balance_due: round2(r.balance),
+        past_due: round2(r.balance),
+        oldest_due: r.oldest_due,
       })));
     }
 
