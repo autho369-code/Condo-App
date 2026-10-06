@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         { role: 'user' as const, content: question },
       ],
       portfolioToolsFor(canSeeFinance),
-      (name, input) => runPortfolioTool(name, input, canSeeFinance),
+      (name, input) => runPortfolioTool(name, input, canSeeFinance, portfolioId),
       { temperature: 0.2, maxRounds: 4, timeBudgetMs: 45_000 },
     );
 

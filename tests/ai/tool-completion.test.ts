@@ -203,7 +203,7 @@ describe('finance access', () => {
   });
 
   it('refuses a finance lookup for staff without finance access', async () => {
-    await expect(runPortfolioTool('list_bills', { status: 'approved' }, false))
+    await expect(runPortfolioTool('list_bills', { status: 'approved' }, false, 'p1'))
       .resolves.toEqual({ error: 'Financial details are not available to your role.' });
   });
 });

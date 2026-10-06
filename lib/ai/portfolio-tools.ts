@@ -136,12 +136,17 @@ function fail(message: string): never {
 export async function runPortfolioTool(
   name: string,
   input: Record<string, unknown>,
-  canSeeFinance = false,
+  canSeeFinance: boolean,
+  portfolioId: string,
 ): Promise<unknown> {
   if (!canSeeFinance && FINANCE_TOOLS.has(name)) {
     return { error: 'Financial details are not available to your role.' };
   }
   const db = (await createClient()) as any;
+  // Every lookup is pinned to the caller's active portfolio. RLS alone isn't
+  // enough: a platform operator can read every company, and these results go
+  // to this portfolio's AI provider.
+  const PID = portfolioId;
 
   async function associationIds(nameFilter: unknown): Promise<string[] | null> {
     let raw = cleanText(nameFilter);
@@ -160,12 +165,12 @@ export async function runPortfolioTool(
     // Exact names first (uncapped by partial matches), then partial matches.
     const exactNames = [...new Set([raw, namePart])].map((n) => `name.ilike.${quotedFilterValue(likeEscape(n))}`).join(',');
     const { data: exactData, error: exactErr } = await db.from('associations').select('id, name, city')
-      .is('archived_at', null).or(exactNames).limit(100);
+      .eq('portfolio_id', PID).is('archived_at', null).or(exactNames).limit(100);
     if (exactErr) fail(exactErr.message);
     let rows = byId((exactData ?? []) as Assoc[]);
     if (!rows.length) {
       const { data, error } = await db.from('associations').select('id, name, city')
-        .ilike('name', `%${likeEscape(namePart)}%`).is('archived_at', null).order('name').limit(20);
+        .eq('portfolio_id', PID).ilike('name', `%${likeEscape(namePart)}%`).is('archived_at', null).order('name').limit(20);
       if (error) fail(error.message);
       rows = byId((data ?? []) as Assoc[]);
     }
@@ -192,9 +197,20 @@ export async function runPortfolioTool(
   async function associationNames(ids: string[]): Promise<Map<string, string>> {
     const unique = [...new Set(ids.filter(Boolean))];
     if (!unique.length) return new Map();
-    const { data, error } = await db.from('associations').select('id, name').in('id', unique);
+    const map = new Map<string, string>();
+    for (let i = 0; i < unique.length; i += 100) {
+      const { data, error } = await db.from('associations').select('id, name')
+        .eq('portfolio_id', PID).in('id', unique.slice(i, i + 100));
+      if (error) fail(error.message);
+      for (const a of (data ?? []) as { id: string; name: string }[]) map.set(a.id, a.name);
+    }
+    return map;
+  }
+
+  async function portfolioAssociationIds(): Promise<string[]> {
+    const { data, error } = await db.from('associations').select('id').eq('portfolio_id', PID);
     if (error) fail(error.message);
-    return new Map((data ?? []).map((a: { id: string; name: string }) => [a.id, a.name]));
+    return ((data ?? []) as { id: string }[]).map((a) => a.id);
   }
 
   async function currentOwnersByUnit(unitIds: string[]): Promise<Map<string, string[]>> {
@@ -221,8 +237,8 @@ export async function runPortfolioTool(
       // scoping lives on occupancies; the owners table is company-wide), then
       // match the owner's name or email.
       const { data: occ, error } = await db.from('occupancies')
-        .select('owner_id, unit_id, association_id, units(unit_number), owners!inner(id, full_name, email, phone, archived_at)')
-        .eq('status', 'current').eq('occupancy_type', 'owner')
+        .select('owner_id, unit_id, association_id, units(unit_number), owners!occupancies_owner_id_fkey!inner(id, full_name, email, phone, archived_at), associations!occupancies_association_id_fkey!inner(portfolio_id)')
+        .eq('associations.portfolio_id', PID).eq('status', 'current').eq('occupancy_type', 'owner')
         .is('owners.archived_at', null)
         .or(`full_name.ilike.${pattern},email.ilike.${pattern}`, { referencedTable: 'owners' })
         .order('owner_id').limit(1000);
@@ -277,7 +293,8 @@ export async function runPortfolioTool(
       let unitTotal = 0;
       const findUnits = async (buildingPattern: string | null) => {
         let query = db.from('units')
-          .select('id, unit_number, buildings!inner(association_id, name)', { count: 'exact' })
+          .select('id, unit_number, buildings!inner(association_id, name, associations!inner(portfolio_id))', { count: 'exact' })
+          .eq('buildings.associations.portfolio_id', PID)
           .is('archived_at', null).ilike('unit_number', likeEscape(unitNumber)).order('id').limit(50);
         if (assocIds) query = query.in('buildings.association_id', assocIds.length ? assocIds : ['00000000-0000-0000-0000-000000000000']);
         if (buildingPattern) query = query.ilike('buildings.name', buildingPattern);
@@ -316,7 +333,7 @@ export async function runPortfolioTool(
           .eq('unit_id', unit.id).eq('status', 'current').eq('occupancy_type', 'owner'),
         db.from('unit_balances').select('balance, total_charges, total_payments').eq('unit_id', unit.id).maybeSingle(),
         db.from('charges').select('description, amount, due_date').eq('unit_id', unit.id).order('due_date', { ascending: false }).limit(6),
-        db.from('receivable_payments_ledger').select('amount, payment_date, method, reversed_at').eq('unit_id', unit.id).or('method.is.null,method.neq.credit').lte('payment_date', todayInZone()).order('payment_date', { ascending: false }).limit(6), // credits aren't payments; future-dated receipts aren't received yet
+        db.from('receivable_payments_ledger').select('amount, payment_date, method, reversed_at').eq('unit_id', unit.id).or('method.is.null,method.neq.credit').is('reversed_at', null).lte('payment_date', todayInZone()).order('payment_date', { ascending: false }).limit(6), // credits and returned receipts aren't payments; future-dated receipts aren't received yet
         db.from('violations').select('title, violation_type, status, due_date', { count: 'exact' }).eq('unit_id', unit.id).is('archived_at', null).not('status', 'in', OPEN_VIOLATION).limit(10),
         db.from('work_orders').select('number, title, status, priority, scheduled_date', { count: 'exact' }).eq('unit_id', unit.id).is('archived_at', null).not('status', 'in', OPEN_WO).limit(10),
       ]);
@@ -356,12 +373,23 @@ export async function runPortfolioTool(
       // delinquent_units = units with an open charge already past due (the
       // balance is that past-due amount); a current or future charge is owed
       // but not delinquent.
-      let query = db.from('delinquent_units').select('unit_id, unit_number, association_id, balance, oldest_due', { count: 'exact' })
-        .gte('balance', min).order('balance', { ascending: false }).limit(clampLimit(input.limit));
-      if (assocIds) query = query.in('association_id', assocIds);
-      const { data, error, count } = await query;
-      if (error) fail(error.message);
-      const rows = data ?? [];
+      // The view has no portfolio column, so filter by this portfolio's
+      // associations, 100 ids per request; each chunk returns its own top N,
+      // so merging them gives the true top N and the summed total.
+      const scope = assocIds ?? await portfolioAssociationIds();
+      const limit = clampLimit(input.limit);
+      let count = 0;
+      let all: any[] = [];
+      for (let i = 0; i < scope.length; i += 100) {
+        const { data, error, count: n } = await db.from('delinquent_units')
+          .select('unit_id, unit_number, association_id, balance, oldest_due', { count: 'exact' })
+          .in('association_id', scope.slice(i, i + 100))
+          .gte('balance', min).order('balance', { ascending: false }).limit(limit);
+        if (error) fail(error.message);
+        count += n ?? (data ?? []).length;
+        all = all.concat(data ?? []);
+      }
+      const rows = all.sort((a, b) => Number(b.balance) - Number(a.balance)).slice(0, limit);
       const [names, owners] = await Promise.all([
         associationNames(rows.map((r: any) => r.association_id)),
         currentOwnersByUnit(rows.map((r: any) => r.unit_id)),
@@ -380,7 +408,7 @@ export async function runPortfolioTool(
       if (assocIds && !assocIds.length) return { error: 'No association matches that name.' };
       let query = db.from('work_orders')
         .select('number, title, status, priority, scheduled_date, created_at, association_id, units(unit_number)', { count: 'exact' })
-        .is('archived_at', null).not('status', 'in', OPEN_WO)
+        .eq('portfolio_id', PID).is('archived_at', null).not('status', 'in', OPEN_WO)
         .order('created_at', { ascending: false }).limit(clampLimit(input.limit));
       if (assocIds) query = query.in('association_id', assocIds);
       const status = cleanText(input.status).toLowerCase().replace(/ /g, '_');
@@ -404,8 +432,8 @@ export async function runPortfolioTool(
       const assocIds = await associationIds(input.association);
       if (assocIds && !assocIds.length) return { error: 'No association matches that name.' };
       let query = db.from('violations')
-        .select('title, violation_type, status, due_date, date_observed, association_id, units(unit_number), owners(full_name)', { count: 'exact' })
-        .is('archived_at', null).not('status', 'in', OPEN_VIOLATION)
+        .select('title, violation_type, status, due_date, date_observed, association_id, units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name), associations!violations_association_id_fkey!inner(portfolio_id)', { count: 'exact' })
+        .eq('associations.portfolio_id', PID).is('archived_at', null).not('status', 'in', OPEN_VIOLATION)
         .order('due_date', { ascending: true, nullsFirst: false }).limit(clampLimit(input.limit));
       if (assocIds) query = query.in('association_id', assocIds);
       const { data, error, count } = await query;
@@ -429,7 +457,7 @@ export async function runPortfolioTool(
       if (assocIds && !assocIds.length) return { error: 'No association matches that name.' };
       let query = db.from('payable_bills')
         .select('bill_number, bill_date, due_date, amount, credit_applied, memo, association_id, vendors(name)', { count: 'exact' })
-        .is('archived_at', null).eq('status', status)
+        .eq('portfolio_id', PID).is('archived_at', null).eq('status', status)
         .order('due_date', { ascending: true, nullsFirst: false }).limit(clampLimit(input.limit));
       if (assocIds) query = query.in('association_id', assocIds);
       const { data, error, count } = await query;
