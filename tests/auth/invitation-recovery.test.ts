@@ -24,8 +24,10 @@ describe('invitation and password recovery surfaces', () => {
   });
 
   it("sends a company's password reset under the company's name (white label)", () => {
-    expect(forgot).toContain('subject: `Reset your ${brand} password`');
-    expect(forgot).toContain('from_name: company ? null : PLATFORM_NAME');
+    expect(forgot).toContain("subject: brand ? `Reset your ${brand} password` : 'Reset your password'");
+    expect(forgot).toContain('from_name: portfolioId ? null : PLATFORM_NAME');
+    // portfolios has company_name only (no name column).
+    expect(forgot).toContain(".from('portfolios').select('company_name')");
     expect(forgot).not.toContain("'Reset your Portier369 password'");
     expect(reset).not.toContain('Portier369');
   });

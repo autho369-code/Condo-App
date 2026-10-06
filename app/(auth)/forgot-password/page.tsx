@@ -79,21 +79,24 @@ async function requestPasswordReset(formData: FormData) {
     // White label: a company's people get the reset under the company's name.
     // No sender name lets the mail worker apply the company's name and, once
     // verified, its own sending domain. Platform staff keep Portier369.
+    // If the company's name can't be read, the email stays neutral ("your
+    // account") rather than naming the platform.
     let company: string | null = null;
     if (portfolioId) {
-      const { data: portfolio } = await svc.from('portfolios').select('company_name, name').eq('id', portfolioId).maybeSingle();
-      company = String(portfolio?.company_name ?? portfolio?.name ?? '').trim() || null;
+      const { data: portfolio, error: portfolioError } = await svc.from('portfolios').select('company_name').eq('id', portfolioId).maybeSingle();
+      if (portfolioError) console.error('Password reset: could not load company name:', portfolioError.message);
+      company = String(portfolio?.company_name ?? '').trim() || null;
     }
-    const brand = company ?? PLATFORM_NAME;
+    const brand = company ?? (portfolioId ? null : PLATFORM_NAME);
 
     await svc.from('email_queue').insert({
       to_email: email,
       to_name: toName,
-      subject: `Reset your ${brand} password`,
-      body: `<p>Hello${toName ? ` ${escapeHtml(toName)}` : ''},</p><p>We received a request to reset the password for your ${escapeHtml(brand)} account. Click the link below to choose a new password:</p><p><a href="${verifiedAuthLink(linkData, resetRedirect, 'recovery')}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
+      subject: brand ? `Reset your ${brand} password` : 'Reset your password',
+      body: `<p>Hello${toName ? ` ${escapeHtml(toName)}` : ''},</p><p>We received a request to reset the password for your ${brand ? `${escapeHtml(brand)} ` : ''}account. Click the link below to choose a new password:</p><p><a href="${verifiedAuthLink(linkData, resetRedirect, 'recovery')}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
       status: 'pending',
       from_address: FROM_ADDRESS,
-      from_name: company ? null : PLATFORM_NAME,
+      from_name: portfolioId ? null : PLATFORM_NAME,
       portfolio_id: portfolioId,
     });
   } catch {
