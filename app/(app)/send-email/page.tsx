@@ -109,7 +109,7 @@ export default async function SendEmailPage({
             <Input value={fromEmail} readOnly className="bg-gray-50 text-gray-700" />
             <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" name="from_donotreply" className="h-4 w-4 rounded border-gray-300" />
-              Send from noreply@portier369.com
+              Send from the no-reply address
             </label>
           </Field>
 
@@ -175,7 +175,7 @@ export default async function SendEmailPage({
                 <Button variant="secondary" type="button">Cancel</Button>
               </Link>
             </div>
-            <p className="text-sm text-gray-500">Uses your portfolio name and Portier369 delivery identity.</p>
+            <p className="text-sm text-gray-500">Sent under your company&apos;s name.</p>
           </div>
         </form>
       </Surface>

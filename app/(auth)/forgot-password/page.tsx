@@ -13,7 +13,7 @@ import { escapeHtml } from '@/lib/letters/merge';
 export const dynamic = 'force-dynamic';
 
 const FROM_ADDRESS = 'hello@portier369.com';
-const FROM_NAME = 'Portier369';
+const PLATFORM_NAME = 'Portier369';
 
 async function requestPasswordReset(formData: FormData) {
   'use server';
@@ -76,14 +76,24 @@ async function requestPasswordReset(formData: FormData) {
     // outward response identical so this cannot be used for account discovery.
     if (tenant && portfolioId !== tenant.portfolioId) done();
 
+    // White label: a company's people get the reset under the company's name.
+    // No sender name lets the mail worker apply the company's name and, once
+    // verified, its own sending domain. Platform staff keep Portier369.
+    let company: string | null = null;
+    if (portfolioId) {
+      const { data: portfolio } = await svc.from('portfolios').select('company_name, name').eq('id', portfolioId).maybeSingle();
+      company = String(portfolio?.company_name ?? portfolio?.name ?? '').trim() || null;
+    }
+    const brand = company ?? PLATFORM_NAME;
+
     await svc.from('email_queue').insert({
       to_email: email,
       to_name: toName,
-      subject: 'Reset your Portier369 password',
-      body: `<p>Hello${toName ? ` ${escapeHtml(toName)}` : ''},</p><p>We received a request to reset the password for your Portier369 account. Click the link below to choose a new password:</p><p><a href="${verifiedAuthLink(linkData, resetRedirect, 'recovery')}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
+      subject: `Reset your ${brand} password`,
+      body: `<p>Hello${toName ? ` ${escapeHtml(toName)}` : ''},</p><p>We received a request to reset the password for your ${escapeHtml(brand)} account. Click the link below to choose a new password:</p><p><a href="${verifiedAuthLink(linkData, resetRedirect, 'recovery')}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
       status: 'pending',
       from_address: FROM_ADDRESS,
-      from_name: FROM_NAME,
+      from_name: company ? null : PLATFORM_NAME,
       portfolio_id: portfolioId,
     });
   } catch {

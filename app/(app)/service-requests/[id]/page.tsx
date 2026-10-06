@@ -236,7 +236,7 @@ export default async function ServiceRequestDetail({
         </Section>
       ) : null}
 
-      <Section title="How it was sorted" subtitle="Portier369 reads every request as it arrives. Change the type if it got it wrong.">
+      <Section title="How it was sorted" subtitle="Every request is read and sorted as it arrives. Change the type if it got it wrong.">
         <div className="px-5 py-4 text-sm">
           {reasons.length > 0 ? (
             <ul className="mb-4 list-disc space-y-1 pl-5 text-gray-700">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>

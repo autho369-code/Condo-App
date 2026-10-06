@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
         client_user_id: user.auth_user_id,
         legal_name: profile.full_name || profile.email || 'User',
       },
-      client_name: 'Portier369',
+      // Plaid shows this name to the person linking the account (max 30 characters).
+      client_name: String(user.portfolio?.company_name ?? user.portfolio?.name ?? '').trim().slice(0, 30) || 'Portier369',
       products: [Products.Transactions],
       country_codes: [CountryCode.Us],
       language: 'en',

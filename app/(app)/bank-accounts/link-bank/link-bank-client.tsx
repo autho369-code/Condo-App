@@ -144,7 +144,7 @@ export function LinkBankClient({ configured }: { configured: boolean }) {
             </div>
             <h2 className="text-[15px] font-semibold text-gray-950">Bank connections are not enabled</h2>
             <p className="mt-1 text-sm leading-6 text-gray-500">
-              Online bank linking is unavailable until Portier369 finishes its banking-provider setup. You can still
+              Online bank linking is unavailable until the banking-provider setup is finished. You can still
               maintain bank accounts and reconcile transactions manually.
             </p>
             <Alert tone="warning" className="mt-5 text-left">
@@ -162,7 +162,7 @@ export function LinkBankClient({ configured }: { configured: boolean }) {
   return (
     <DataWorkspace
       title="Link bank account"
-      description="Securely connect your bank to Portier369. Transactions will auto-import for reconciliation."
+      description="Securely connect your bank. Transactions will auto-import for reconciliation."
     >
       <div className="mx-auto max-w-lg space-y-6 py-8">
         {step === 'select' && (
@@ -170,7 +170,7 @@ export function LinkBankClient({ configured }: { configured: boolean }) {
             <Surface>
               <SectionTitle
                 title="Connect your bank"
-                description="Plaid securely links the account. Portier369 never stores your online-banking credentials."
+                description="Plaid securely links the account. Your online-banking credentials are never stored."
               />
               {!bankAccountId && (
                 <Field label="Link to existing bank account (optional)">
