@@ -114,7 +114,7 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
         {sp.error && <Alert tone="danger" title="Developer setting was not updated.">{sp.error}</Alert>}
         {sp.key_revoked && <Alert tone="success" title="API key revoked.">Requests using that key are rejected immediately.</Alert>}
         {sp.webhook_updated && <Alert tone="success" title="Webhook updated.">The endpoint state was saved.</Alert>}
-        {sp.webhook_tested && <Alert tone="success" title="Test event queued.">A signed <code className="font-mono text-xs">ping</code> event goes out within a minute; its result appears under Recent webhook deliveries.</Alert>}
+        {sp.webhook_tested && <Alert tone="success" title="Test event queued.">A signed <code className="font-mono text-xs">ping</code> event is in the delivery queue and goes out with the next delivery run; its result appears under Recent webhook deliveries.</Alert>}
         {readError && <Alert tone="danger" title="Some integration data could not be loaded.">{readError.message}</Alert>}
         {!webhookDeliveryReady && (
           <Alert tone="info" title="Outbound webhook delivery is provider-gated.">
