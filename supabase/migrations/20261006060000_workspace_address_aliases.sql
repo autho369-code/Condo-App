@@ -60,9 +60,10 @@ begin
     raise exception '"%" is reserved. Choose another address.', v_slug using errcode = '22023';
   end if;
 
-  -- Same lock the new-company slug trigger takes for this name, so a company
-  -- being created at the same moment can't grab it.
-  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_slug, 0));
+  -- One lock for every address assignment (this function and the new-company
+  -- trigger, which may pick a numbered variant such as acme-2), so two
+  -- assignments can never race for the same address. Both are rare.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('portfolio_slug_assignment', 0));
 
   select slug into v_old from public.portfolios where id = p_portfolio_id for update;
   if not found then
@@ -146,7 +147,9 @@ begin
     v_base := rtrim(left('company-' || v_base, 32), '-');
   end if;
 
-  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_base, 0));
+  -- Shared with platform_set_portfolio_slug: covers every candidate checked
+  -- below, numbered variants included.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('portfolio_slug_assignment', 0));
 
   v_candidate := v_base;
   while exists (select 1 from public.portfolios p where p.slug = v_candidate)
