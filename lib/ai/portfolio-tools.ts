@@ -226,47 +226,59 @@ export async function runPortfolioTool(
         .or(`full_name.ilike.${pattern},email.ilike.${pattern}`, { referencedTable: 'owners' })
         .order('owner_id').limit(1000);
       if (error) fail(error.message);
-      const rows = (occ ?? []) as any[];
-      const unitIds = rows.map((o) => o.unit_id);
+      // Group into owners and cap first; only then look up balances and
+      // association names for the owners actually returned.
+      const grouped = new Map<string, { owner: any; occ: any[] }>();
+      for (const row of (occ ?? []) as any[]) {
+        const o = row.owners;
+        if (!o) continue;
+        const entry = grouped.get(o.id) ?? { owner: o, occ: [] as any[] };
+        entry.occ.push(row);
+        grouped.set(o.id, entry);
+      }
+      const picked = [...grouped.values()]
+        .sort((a, b) => String(a.owner.full_name).localeCompare(String(b.owner.full_name)))
+        .slice(0, 10);
+      const pickedOcc = picked.flatMap((p) => p.occ);
+      const unitIds = pickedOcc.map((o) => o.unit_id);
       let balance = new Map<string, number>();
       if (canSeeFinance && unitIds.length) {
         const { data: balances, error: balErr } = await db.from('unit_balances').select('unit_id, balance').in('unit_id', unitIds);
         if (balErr) fail(balErr.message);
         balance = new Map((balances ?? []).map((b: any) => [b.unit_id, round2(b.balance)]));
       }
-      const names = await associationNames(rows.map((o) => o.association_id));
-      const owners = new Map<string, any>();
-      for (const row of rows) {
-        const o = row.owners;
-        if (!o) continue;
-        const entry = owners.get(o.id) ?? { name: o.full_name, email: o.email, phone: o.phone, units: [] as any[] };
-        entry.units.push({
+      const names = await associationNames(pickedOcc.map((o) => o.association_id));
+      return picked.map(({ owner: o, occ: rows }) => ({
+        name: o.full_name,
+        email: o.email,
+        phone: o.phone,
+        units: rows.map((row) => ({
           unit: row.units?.unit_number ?? null,
           association: names.get(row.association_id) ?? null,
           ...(canSeeFinance ? { balance_due: balance.get(row.unit_id) ?? 0 } : {}),
-        });
-        owners.set(o.id, entry);
-      }
-      return [...owners.values()].sort((a, b) => String(a.name).localeCompare(String(b.name))).slice(0, 10);
+        })),
+      }));
     }
 
     case 'unit_summary': {
       const unitNumber = cleanText(input.unit_number);
       if (!unitNumber) return { error: 'Give a unit number.' };
       const assocIds = await associationIds(input.association);
-      let query = db.from('units')
-        .select('id, unit_number, buildings!inner(association_id, name)')
-        .is('archived_at', null).ilike('unit_number', likeEscape(unitNumber)).limit(50);
-      if (assocIds) query = query.in('buildings.association_id', assocIds.length ? assocIds : ['00000000-0000-0000-0000-000000000000']);
-      const { data: unitRows, error } = await query;
-      if (error) fail(error.message);
-      // Building: an exact name wins over partial matches ("Tower" vs "Tower East").
-      const building = cleanText(input.building).toLowerCase();
-      let units = (unitRows ?? []) as any[];
-      if (building) {
-        const exact = units.filter((u) => (u.buildings?.name ?? '').trim().toLowerCase() === building);
-        units = exact.length ? exact : units.filter((u) => (u.buildings?.name ?? '').toLowerCase().includes(building));
-      }
+      const building = cleanText(input.building);
+      const findUnits = async (buildingPattern: string | null) => {
+        let query = db.from('units')
+          .select('id, unit_number, buildings!inner(association_id, name)')
+          .is('archived_at', null).ilike('unit_number', likeEscape(unitNumber)).limit(50);
+        if (assocIds) query = query.in('buildings.association_id', assocIds.length ? assocIds : ['00000000-0000-0000-0000-000000000000']);
+        if (buildingPattern) query = query.ilike('buildings.name', buildingPattern);
+        const { data, error } = await query;
+        if (error) fail(error.message);
+        return (data ?? []) as any[];
+      };
+      // Building is filtered in the query: an exact name wins over partial
+      // matches ("Tower" vs "Tower East").
+      let units = await findUnits(building ? likeEscape(building) : null);
+      if (building && !units.length) units = await findUnits(`%${likeEscape(building)}%`);
       if (!units?.length) return { error: `No unit ${unitNumber} found.` };
       const names = await associationNames(units.map((u: any) => u.buildings?.association_id));
       if (units.length > 1) {
