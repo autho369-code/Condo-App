@@ -10,6 +10,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type { AITool } from '@/lib/ai/service';
+import { todayInZone } from '@/lib/time/zoned';
 
 // Open = new, assigned, scheduled, in_progress (as elsewhere in the app).
 const OPEN_WO = '("done","completed","billed","closed","cancelled")';
@@ -243,9 +244,13 @@ export async function runPortfolioTool(
       const unitIds = pickedOcc.map((o) => o.unit_id);
       let balance = new Map<string, number>();
       if (canSeeFinance && unitIds.length) {
-        const { data: balances, error: balErr } = await db.from('unit_balances').select('unit_id, balance').in('unit_id', unitIds);
-        if (balErr) fail(balErr.message);
-        balance = new Map((balances ?? []).map((b: any) => [b.unit_id, round2(b.balance)]));
+        // Chunked: one owner can hold hundreds of units, and a single GET
+        // with every id could exceed URL limits.
+        for (let i = 0; i < unitIds.length; i += 100) {
+          const { data: balances, error: balErr } = await db.from('unit_balances').select('unit_id, balance').in('unit_id', unitIds.slice(i, i + 100));
+          if (balErr) fail(balErr.message);
+          for (const b of (balances ?? []) as any[]) balance.set(b.unit_id, round2(b.balance));
+        }
       }
       const names = await associationNames(pickedOcc.map((o) => o.association_id));
       return picked.map(({ owner: o, occ: rows }) => ({
@@ -298,7 +303,7 @@ export async function runPortfolioTool(
           .eq('unit_id', unit.id).eq('status', 'current').eq('occupancy_type', 'owner'),
         db.from('unit_balances').select('balance, total_charges, total_payments').eq('unit_id', unit.id).maybeSingle(),
         db.from('charges').select('description, amount, due_date').eq('unit_id', unit.id).order('due_date', { ascending: false }).limit(6),
-        db.from('receivable_payments_ledger').select('amount, payment_date, method, reversed_at').eq('unit_id', unit.id).order('payment_date', { ascending: false }).limit(6),
+        db.from('receivable_payments_ledger').select('amount, payment_date, method, reversed_at').eq('unit_id', unit.id).lte('payment_date', todayInZone()).order('payment_date', { ascending: false }).limit(6), // future-dated receipts are not received yet
         db.from('violations').select('title, violation_type, status, due_date', { count: 'exact' }).eq('unit_id', unit.id).is('archived_at', null).not('status', 'in', OPEN_VIOLATION).limit(10),
         db.from('work_orders').select('number, title, status, priority, scheduled_date', { count: 'exact' }).eq('unit_id', unit.id).is('archived_at', null).not('status', 'in', OPEN_WO).limit(10),
       ]);
