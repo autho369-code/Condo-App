@@ -20,6 +20,7 @@ describe('vendor document request email', () => {
   it("links to the upload page on the company's own address", async () => {
     vi.stubEnv('VERCEL_ENV', 'production');
     vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://portier369.com');
+    vi.stubEnv('NEXT_PUBLIC_APEX_DOMAIN', 'portier369.com');
     const { emailVendorRequest } = await import('../../lib/vendors/document-requests');
     await emailVendorRequest(svcWith('stellar'), request);
     expect(queued[0].text).toContain('https://stellar.portier369.com/vendor-upload/tok123');
@@ -28,6 +29,7 @@ describe('vendor document request email', () => {
   it('falls back to the platform address when the company address is unknown', async () => {
     vi.stubEnv('VERCEL_ENV', 'production');
     vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://portier369.com');
+    vi.stubEnv('NEXT_PUBLIC_APEX_DOMAIN', 'portier369.com');
     const { emailVendorRequest } = await import('../../lib/vendors/document-requests');
     await emailVendorRequest(svcWith(null), request);
     expect(queued[0].text).toContain('https://portier369.com/vendor-upload/tok123');
