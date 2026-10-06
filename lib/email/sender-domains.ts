@@ -3,7 +3,7 @@
 // platform address. Rows live in portfolio_email_domains; the domain is
 // registered and verified with Resend, the same account that sends the mail.
 import { Resend } from 'resend';
-import { EMAIL_FROM, EMAIL_FROM_NOREPLY } from '@/lib/email/queue';
+import { EMAIL_FROM, EMAIL_FROM_NAME, EMAIL_FROM_NOREPLY } from '@/lib/email/queue';
 import { parseCustomDomain } from '@/lib/tenant/custom-domain';
 
 export const DEFAULT_FROM_LOCAL_PART = 'notices';
@@ -47,6 +47,16 @@ export function brandedFromAddress(row: Pick<SenderDomainRow, 'domain' | 'from_l
 export function usesPlatformSender(fromAddress: string | null | undefined): boolean {
   const from = String(fromAddress ?? '').trim().toLowerCase();
   return !from || from === EMAIL_FROM || from === EMAIL_FROM_NOREPLY;
+}
+
+/**
+ * Platform-originated mail names the platform as its sender (Portier369,
+ * Portier369 Platform) and stays on the platform domain. Anything else that
+ * belongs to a company (no name, or the company's or association's name) is
+ * company mail.
+ */
+export function isPlatformSenderName(name: string | null | undefined): boolean {
+  return String(name ?? '').trim().toLowerCase().startsWith(EMAIL_FROM_NAME.toLowerCase());
 }
 
 /** Whether a provider error means the sending domain itself was refused. */

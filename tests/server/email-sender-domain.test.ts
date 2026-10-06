@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import {
   brandedFromAddress,
+  isPlatformSenderName,
   dnsRecords,
   isSenderDomainError,
   parseSenderSettings,
@@ -12,6 +13,7 @@ const sent: Array<{ from: string; key: string }> = [];
 let refuseBranded = false;
 let queued: any[] = [];
 let domains: any[] = [];
+const snapshots: Array<{ id: string; sender_address: string }> = [];
 
 vi.mock('resend', () => ({
   Resend: class {
@@ -33,6 +35,12 @@ vi.mock('@/lib/supabase/server', () => ({
   createServiceClient: () => ({
     rpc: async (name: string) => (name === 'claim_email_queue' ? { data: queued, error: null } : { data: true, error: null }),
     from: (table: string) => ({
+      update: (values: any) => ({
+        eq: async (_col: string, id: string) => {
+          snapshots.push({ id, sender_address: values.sender_address });
+          return { error: null };
+        },
+      }),
       select: () => ({
         in: async () => (table === 'portfolios'
           ? { data: [{ id: 'p1', company_name: 'Stellar Property Group' }], error: null }
@@ -70,6 +78,13 @@ describe('sender domain helpers', () => {
     expect(brandedFromAddress(null)).toBeNull();
   });
 
+  it('recognises platform-originated sender names', () => {
+    expect(isPlatformSenderName('Portier369')).toBe(true);
+    expect(isPlatformSenderName('Portier369 Platform')).toBe(true);
+    expect(isPlatformSenderName('Stellar Property Group')).toBe(false);
+    expect(isPlatformSenderName(null)).toBe(false);
+  });
+
   it('moves only mail queued from the platform default sender', () => {
     expect(usesPlatformSender('hello@portier369.com')).toBe(true);
     expect(usesPlatformSender('NoReply@portier369.com')).toBe(true);
@@ -88,6 +103,7 @@ describe('sender domain helpers', () => {
 describe('email worker sender selection', () => {
   beforeEach(() => {
     sent.length = 0;
+    snapshots.length = 0;
     refuseBranded = false;
     vi.resetModules();
   });
@@ -96,7 +112,23 @@ describe('email worker sender selection', () => {
     queued = [email()];
     domains = [verified];
     expect(await runWorker()).toMatchObject({ sent: 1, failed: 0 });
-    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: 'email-queue-e1-notices@stellarpropertygroup.com' }]);
+    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: 'email-queue-e1' }]);
+    expect(snapshots).toEqual([{ id: 'e1', sender_address: 'notices@stellarpropertygroup.com' }]);
+  });
+
+  it('uses the company domain for mail that names the company', async () => {
+    queued = [email({ from_name: 'Stellar Property Group' })];
+    domains = [verified];
+    await runWorker();
+    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: 'email-queue-e1' }]);
+  });
+
+  it('replays a retry with the sender chosen on the first attempt', async () => {
+    queued = [email({ sender_address: 'notices@stellarpropertygroup.com' })];
+    domains = [{ ...verified, enabled: false }];
+    await runWorker();
+    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: 'email-queue-e1' }]);
+    expect(snapshots).toEqual([]);
   });
 
   it('keeps the platform address while the domain is unverified', async () => {
@@ -111,6 +143,7 @@ describe('email worker sender selection', () => {
     domains = [verified];
     await runWorker();
     expect(sent).toEqual([{ from: 'Portier369 <hello@portier369.com>', key: 'email-queue-e1' }]);
+    expect(snapshots).toEqual([{ id: 'e1', sender_address: 'hello@portier369.com' }]);
   });
 
   it('falls back to the platform address when the provider refuses the company domain', async () => {
@@ -118,9 +151,9 @@ describe('email worker sender selection', () => {
     domains = [verified];
     refuseBranded = true;
     expect(await runWorker()).toMatchObject({ sent: 1, failed: 0 });
-    expect(sent.map((s) => s.from)).toEqual([
-      'Stellar Property Group <notices@stellarpropertygroup.com>',
-      'Stellar Property Group <hello@portier369.com>',
+    expect(sent).toEqual([
+      { from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: 'email-queue-e1' },
+      { from: 'Stellar Property Group <hello@portier369.com>', key: 'email-queue-e1-platform' },
     ]);
   });
 });

@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCronSecret } from '@/lib/server/cron-auth';
 import { EMAIL_FROM, EMAIL_FROM_NAME } from '@/lib/email/queue';
-import { brandedFromAddress, isSenderDomainError, usesPlatformSender } from '@/lib/email/sender-domains';
+import { brandedFromAddress, isPlatformSenderName, isSenderDomainError, usesPlatformSender } from '@/lib/email/sender-domains';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -33,13 +33,18 @@ export async function GET(request: NextRequest) {
   if (claimError) return NextResponse.json({ error: claimError.message }, { status: 500 });
 
   // White label: an email with no chosen sender name that belongs to a client
-  // company goes out under that company's name, and from the company's own
-  // domain once that domain is verified (portfolio_email_domains). An explicit
-  // name is kept: platform-originated mail to a company (billing, onboarding)
-  // says Portier369 on purpose and stays on the platform domain. A failed
-  // lookup falls back to the platform name and address.
-  const brandIds = [...new Set(((claimed ?? []) as any[])
+  // company goes out under that company's name. Company mail (no name, or a
+  // company/association name) goes out from the company's own domain once
+  // that domain is verified (portfolio_email_domains). Platform-originated
+  // mail to a company (billing, onboarding) says Portier369 on purpose and
+  // stays on the platform domain. A failed lookup falls back to the platform
+  // name and address.
+  const claimedRows = (claimed ?? []) as any[];
+  const brandIds = [...new Set(claimedRows
     .filter((e) => e.portfolio_id && !String(e.from_name ?? '').trim())
+    .map((e) => String(e.portfolio_id)))];
+  const companyIds = [...new Set(claimedRows
+    .filter((e) => e.portfolio_id && !e.sender_address && !isPlatformSenderName(e.from_name) && usesPlatformSender(e.from_address))
     .map((e) => String(e.portfolio_id)))];
   const brandNames = new Map<string, string>();
   if (brandIds.length) {
@@ -47,19 +52,23 @@ export async function GET(request: NextRequest) {
     if (brandError) console.error('Could not load sender branding:', brandError.message);
     for (const b of brands ?? []) if (b.company_name) brandNames.set(String(b.id), String(b.company_name));
   }
-  const brandSenders = new Map<string, string>();
-  if (brandIds.length) {
+  const companySenders = new Map<string, string>();
+  if (companyIds.length) {
     const { data: domains, error: domainError } = await db.from('portfolio_email_domains')
-      .select('portfolio_id, domain, from_local_part, status, enabled').in('portfolio_id', brandIds);
+      .select('portfolio_id, domain, from_local_part, status, enabled').in('portfolio_id', companyIds);
     if (domainError) console.error('Could not load sender domains:', domainError.message);
     for (const d of domains ?? []) {
       const address = brandedFromAddress(d);
-      if (address) brandSenders.set(String(d.portfolio_id), address);
+      if (address) companySenders.set(String(d.portfolio_id), address);
     }
   }
-  const brandedAddress = (email: any): string | null => {
-    if (String(email.from_name ?? '').trim() || !email.portfolio_id || !usesPlatformSender(email.from_address)) return null;
-    return brandSenders.get(String(email.portfolio_id)) ?? null;
+  // The first attempt picks the sending address; retries reuse the stored
+  // choice so a replay after an accepted send is the identical request.
+  const primaryAddress = (email: any, platformAddress: string): string => {
+    const stored = String(email.sender_address ?? '').trim().toLowerCase();
+    if (stored) return stored;
+    if (!email.portfolio_id || isPlatformSenderName(email.from_name) || !usesPlatformSender(email.from_address)) return platformAddress;
+    return companySenders.get(String(email.portfolio_id)) ?? platformAddress;
   };
   const senderName = (email: any): string => {
     const branded = email.portfolio_id ? brandNames.get(String(email.portfolio_id)) : undefined;
@@ -73,8 +82,13 @@ export async function GET(request: NextRequest) {
     try {
       const to = String(email.to_email ?? '').trim().toLowerCase();
       const platformAddress = String(email.from_address || EMAIL_FROM).trim().toLowerCase();
-      const branded = brandedAddress(email);
       if (!EMAIL_PATTERN.test(to) || !EMAIL_PATTERN.test(platformAddress)) throw new Error('Invalid queued email address');
+      const primary = primaryAddress(email, platformAddress);
+      if (!EMAIL_PATTERN.test(primary)) throw new Error('Invalid sending address');
+      if (!email.sender_address) {
+        const { error: snapshotError } = await db.from('email_queue').update({ sender_address: primary }).eq('id', email.id);
+        if (snapshotError) throw new Error(`Could not record the sending address: ${snapshotError.message}`);
+      }
 
       const send = (fromAddress: string, idempotencyKey: string) => resend.emails.send({
         from: `${cleanHeader(senderName(email), EMAIL_FROM_NAME)} <${fromAddress}>`,
@@ -86,14 +100,13 @@ export async function GET(request: NextRequest) {
           : {}),
       }, { idempotencyKey });
 
-      let { data, error } = branded && EMAIL_PATTERN.test(branded)
-        ? await send(branded, `email-queue-${email.id}-${branded}`)
-        : await send(platformAddress, `email-queue-${email.id}`);
+      let { data, error } = await send(primary, `email-queue-${email.id}`);
       // A company domain that stopped verifying must not stop its mail: send
       // it from the platform address instead (a refused send was not sent).
-      if (error && branded && isSenderDomainError(error.message)) {
+      // Its own stable key lets a retry replay this fallback too.
+      if (error && primary !== platformAddress && isSenderDomainError(error.message)) {
         console.error(`Sender domain refused for portfolio ${email.portfolio_id}:`, error.message);
-        ({ data, error } = await send(platformAddress, `email-queue-${email.id}`));
+        ({ data, error } = await send(platformAddress, `email-queue-${email.id}-platform`));
       }
       if (error) throw new Error(error.message);
 
