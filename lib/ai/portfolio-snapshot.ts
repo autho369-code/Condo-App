@@ -1,10 +1,11 @@
 /**
  * Portfolio snapshot builder — server-only.
  *
- * Gathers a compact, RLS-scoped snapshot of the logged-in manager's portfolio
- * so the AI assistant can answer questions GROUNDED ONLY in real data. It uses
- * the user's own Supabase session (`createClient()`), so every query is already
- * constrained by RLS — the manager can only ever see their own data.
+ * Gathers a compact snapshot of the logged-in manager's portfolio so the AI
+ * assistant can answer questions GROUNDED ONLY in real data. It uses the
+ * user's own Supabase session (`createClient()`, RLS applies) AND pins every
+ * query to the active portfolio: a platform operator can read every company
+ * under RLS, and this snapshot is sent to that one portfolio's AI provider.
  *
  * The queries mirror what the manager dashboard (`app/(app)/dashboard/page.tsx`)
  * and the list pages show, so the numbers the assistant reports match the UI.
@@ -15,6 +16,7 @@
 import 'server-only';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export interface PortfolioSnapshot {
   generatedAt: string;
@@ -47,10 +49,39 @@ export interface PortfolioSnapshot {
   recentPayments: Array<{ owner: string | null; unit: string | null; amount: number; date: string | null }>;
 }
 
-export async function buildPortfolioSnapshot(): Promise<PortfolioSnapshot> {
+export async function buildPortfolioSnapshot(portfolioId: string): Promise<PortfolioSnapshot> {
   const me = await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
+  const PID = portfolioId;
+
+  // Views without a portfolio column (unit_balances, receivable_payments_ledger)
+  // are filtered by this portfolio's associations, 100 ids per request.
+  const { data: assocRows, error: assocError } = await db.from('associations').select('id').eq('portfolio_id', PID);
+  if (assocError) throw new Error(`Associations could not be loaded: ${assocError.message}`);
+  const assocIds = ((assocRows ?? []) as Array<{ id: string }>).map((a) => a.id);
+  const chunks: string[][] = [];
+  for (let i = 0; i < assocIds.length; i += 100) chunks.push(assocIds.slice(i, i + 100));
+
+  const arPromise = Promise.all(chunks.map((ids) => fetchAllRows<{ unit_number: string | null; balance: number | null }>(
+    () => db.from('unit_balances').select('unit_id, unit_number, balance').in('association_id', ids).gt('balance', 0).order('unit_id'),
+  ))).then((parts) => {
+    const failed = parts.find((p) => p.error);
+    if (failed) throw new Error(`Receivables could not be loaded: ${failed.error}`);
+    return { data: parts.flatMap((p) => p.rows) };
+  });
+  const paymentsPromise = Promise.all(chunks.map((ids) => db
+    .from('receivable_payments_ledger')
+    .select('amount, owner_name, unit_number, payment_date, created_at')
+    .in('association_id', ids)
+    .order('created_at', { ascending: false, nullsFirst: false })
+    .limit(5))).then((parts: any[]) => {
+    const failed = parts.find((p) => p.error);
+    if (failed) throw new Error(`Payments could not be loaded: ${failed.error.message}`);
+    const rows = parts.flatMap((p) => p.data ?? []) as any[];
+    rows.sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')));
+    return { data: rows.slice(0, 5) };
+  });
 
   const today = new Date();
   const todayIso = today.toISOString();
@@ -81,26 +112,30 @@ export async function buildPortfolioSnapshot(): Promise<PortfolioSnapshot> {
     events,
     payments,
   ] = await Promise.all([
-    db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null),
-    db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null),
-    db.from('owners').select('id', { count: 'exact', head: true }).is('archived_at', null),
-    db.from('vendors').select('id', { count: 'exact', head: true }).is('archived_at', null),
+    db.from('associations').select('id', { count: 'exact', head: true }).eq('portfolio_id', PID).is('archived_at', null),
+    db.from('units').select('id, buildings!inner(associations!inner(portfolio_id))', { count: 'exact', head: true })
+      .eq('buildings.associations.portfolio_id', PID).is('archived_at', null),
+    db.from('owners').select('id', { count: 'exact', head: true }).eq('portfolio_id', PID).is('archived_at', null),
+    db.from('vendors').select('id', { count: 'exact', head: true }).eq('portfolio_id', PID).is('archived_at', null),
     // AR: unit_balances with positive balance (matches dashboard arBalanceQuery).
-    db.from('unit_balances').select('unit_number, balance').gt('balance', 0),
+    arPromise,
     db
       .from('work_orders')
       .select('id', { count: 'exact', head: true })
+      .eq('portfolio_id', PID)
       .is('archived_at', null)
       .not('status', 'in', '("completed","closed","cancelled")'),
     db
       .from('work_orders')
       .select('id', { count: 'exact', head: true })
+      .eq('portfolio_id', PID)
       .is('archived_at', null)
       .not('status', 'in', '("completed","closed","cancelled")')
       .lt('scheduled_date', todayDate),
     db
       .from('work_orders')
       .select('title, status, units(unit_number)')
+      .eq('portfolio_id', PID)
       .is('archived_at', null)
       .not('status', 'in', '("completed","closed","cancelled")')
       .order('created_at', { ascending: false })
@@ -108,42 +143,44 @@ export async function buildPortfolioSnapshot(): Promise<PortfolioSnapshot> {
     db
       .from('payable_bills')
       .select('amount, credit_applied', { count: 'exact', head: false })
+      .eq('portfolio_id', PID)
       .is('archived_at', null)
       .eq('status', 'pending_approval'),
     db
       .from('payable_bills')
       .select('amount, credit_applied', { count: 'exact', head: false })
+      .eq('portfolio_id', PID)
       .is('archived_at', null)
       .eq('status', 'approved'),
     db
       .from('bank_accounts')
       .select('id', { count: 'exact', head: true })
+      .eq('portfolio_id', PID)
       .is('archived_at', null)
       .is('last_reconciliation_date', null),
     db
       .from('violations')
-      .select('id', { count: 'exact', head: true })
+      .select('id, associations!violations_association_id_fkey!inner(portfolio_id)', { count: 'exact', head: true })
+      .eq('associations.portfolio_id', PID)
       .is('archived_at', null)
       .not('status', 'in', '("closed","cured")'),
     db
       .from('violations')
-      .select('id', { count: 'exact', head: true })
+      .select('id, associations!violations_association_id_fkey!inner(portfolio_id)', { count: 'exact', head: true })
+      .eq('associations.portfolio_id', PID)
       .is('archived_at', null)
       .not('status', 'in', '("closed","cured")')
       .lt('due_date', todayDate),
     db
       .from('calendar_events')
       .select('title, event_type, start_datetime, location')
+      .eq('portfolio_id', PID)
       .is('archived_at', null)
       .gte('start_datetime', todayIso)
       .lte('start_datetime', endOfWeekIso)
       .order('start_datetime', { ascending: true })
       .limit(8),
-    db
-      .from('receivable_payments_ledger')
-      .select('amount, owner_name, unit_number, payment_date, created_at')
-      .order('created_at', { ascending: false, nullsFirst: false })
-      .limit(5),
+    paymentsPromise,
   ]);
 
   const arData = (arRows.data ?? []) as Array<{ unit_number: string | null; balance: number | null }>;

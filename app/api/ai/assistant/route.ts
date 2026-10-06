@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     // accounts (RLS),
     // so those figures would read as $0: leave them out instead.
     const canSeeFinance = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
-    const fullSnapshot = await buildPortfolioSnapshot();
+    const fullSnapshot = await buildPortfolioSnapshot(portfolioId);
     const snapshot = canSeeFinance
       ? fullSnapshot
       : { ...fullSnapshot, receivables: undefined, bills: undefined, recentPayments: undefined, banking: undefined,
