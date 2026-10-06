@@ -111,12 +111,16 @@ export async function middleware(request: NextRequest) {
     }
 
     // A company's retired address (after a rename) keeps old links working by
-    // forwarding to its current address, same path and query.
+    // forwarding to its current address, same path and query. Temporary and
+    // uncached: a company may take its old address back, and a cached
+    // permanent redirect would then loop.
     const forwardTo = forwardedTenantHostname(host, tenantPortfolio.slug)
     if (forwardTo) {
       const url = request.nextUrl.clone()
       url.hostname = forwardTo
-      return NextResponse.redirect(url, ['GET', 'HEAD'].includes(request.method) ? 308 : 307)
+      const forward = NextResponse.redirect(url, 307)
+      forward.headers.set('Cache-Control', 'no-store')
+      return forward
     }
 
     requestHeaders.set('x-tenant-state', 'resolved')
