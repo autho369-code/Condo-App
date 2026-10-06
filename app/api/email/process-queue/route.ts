@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase/server';
@@ -63,10 +64,13 @@ export async function GET(request: NextRequest) {
     }
   }
   // The first attempt picks the sending address; retries reuse the stored
-  // choice so a replay after an accepted send is the identical request.
+  // choice so a replay after an accepted send is the identical request. A row
+  // already attempted with no stored choice was handled by the worker before
+  // sender domains existed, which always used the platform address.
   const primaryAddress = (email: any, platformAddress: string): string => {
     const stored = String(email.sender_address ?? '').trim().toLowerCase();
     if (stored) return stored;
+    if (Number(email.attempt_count ?? 1) > 1) return platformAddress;
     if (!email.portfolio_id || isPlatformSenderName(email.from_name) || !usesPlatformSender(email.from_address)) return platformAddress;
     return companySenders.get(String(email.portfolio_id)) ?? platformAddress;
   };
@@ -85,10 +89,17 @@ export async function GET(request: NextRequest) {
       if (!EMAIL_PATTERN.test(to) || !EMAIL_PATTERN.test(platformAddress)) throw new Error('Invalid queued email address');
       const primary = primaryAddress(email, platformAddress);
       if (!EMAIL_PATTERN.test(primary)) throw new Error('Invalid sending address');
-      if (!email.sender_address) {
-        const { error: snapshotError } = await db.from('email_queue').update({ sender_address: primary }).eq('id', email.id);
+      const recordSender = async (address: string) => {
+        const { error: snapshotError } = await db.from('email_queue').update({ sender_address: address }).eq('id', email.id);
         if (snapshotError) throw new Error(`Could not record the sending address: ${snapshotError.message}`);
-      }
+      };
+      if (String(email.sender_address ?? '').trim().toLowerCase() !== primary) await recordSender(primary);
+      // One provider idempotency key per (email, sending address). The platform
+      // address keeps the original email-queue-<id> key, so rows sent before
+      // sender domains existed replay as the same request.
+      const keyFor = (address: string) => address === platformAddress
+        ? `email-queue-${email.id}`
+        : `email-queue-${email.id}-${createHash('sha256').update(address).digest('hex').slice(0, 16)}`;
 
       const send = (fromAddress: string, idempotencyKey: string) => resend.emails.send({
         from: `${cleanHeader(senderName(email), EMAIL_FROM_NAME)} <${fromAddress}>`,
@@ -100,13 +111,15 @@ export async function GET(request: NextRequest) {
           : {}),
       }, { idempotencyKey });
 
-      let { data, error } = await send(primary, `email-queue-${email.id}`);
+      let { data, error } = await send(primary, keyFor(primary));
       // A company domain that stopped verifying must not stop its mail: send
       // it from the platform address instead (a refused send was not sent).
-      // Its own stable key lets a retry replay this fallback too.
+      // The fallback becomes the stored choice before it is sent, so a retry
+      // replays it rather than trying the company domain again.
       if (error && primary !== platformAddress && isSenderDomainError(error.message)) {
         console.error(`Sender domain refused for portfolio ${email.portfolio_id}:`, error.message);
-        ({ data, error } = await send(platformAddress, `email-queue-${email.id}-platform`));
+        await recordSender(platformAddress);
+        ({ data, error } = await send(platformAddress, keyFor(platformAddress)));
       }
       if (error) throw new Error(error.message);
 

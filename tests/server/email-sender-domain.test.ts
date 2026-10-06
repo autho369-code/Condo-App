@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import {
@@ -50,9 +51,10 @@ vi.mock('@/lib/supabase/server', () => ({
   }),
 }));
 
+const brandedKey = `email-queue-e1-${createHash('sha256').update('notices@stellarpropertygroup.com').digest('hex').slice(0, 16)}`;
 const verified = { portfolio_id: 'p1', domain: 'stellarpropertygroup.com', from_local_part: 'notices', status: 'verified', enabled: true };
 const email = (over: Record<string, unknown> = {}) => ({
-  id: 'e1', to_email: 'owner@example.com', subject: 'Hello', body: '<p>Hi</p>',
+  id: 'e1', attempt_count: 1, to_email: 'owner@example.com', subject: 'Hello', body: '<p>Hi</p>',
   from_address: 'hello@portier369.com', from_name: null, portfolio_id: 'p1', ...over,
 });
 
@@ -112,7 +114,7 @@ describe('email worker sender selection', () => {
     queued = [email()];
     domains = [verified];
     expect(await runWorker()).toMatchObject({ sent: 1, failed: 0 });
-    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: 'email-queue-e1' }]);
+    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: brandedKey }]);
     expect(snapshots).toEqual([{ id: 'e1', sender_address: 'notices@stellarpropertygroup.com' }]);
   });
 
@@ -120,14 +122,14 @@ describe('email worker sender selection', () => {
     queued = [email({ from_name: 'Stellar Property Group' })];
     domains = [verified];
     await runWorker();
-    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: 'email-queue-e1' }]);
+    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: brandedKey }]);
   });
 
   it('replays a retry with the sender chosen on the first attempt', async () => {
     queued = [email({ sender_address: 'notices@stellarpropertygroup.com' })];
     domains = [{ ...verified, enabled: false }];
     await runWorker();
-    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: 'email-queue-e1' }]);
+    expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: brandedKey }]);
     expect(snapshots).toEqual([]);
   });
 
@@ -152,9 +154,21 @@ describe('email worker sender selection', () => {
     refuseBranded = true;
     expect(await runWorker()).toMatchObject({ sent: 1, failed: 0 });
     expect(sent).toEqual([
-      { from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: 'email-queue-e1' },
-      { from: 'Stellar Property Group <hello@portier369.com>', key: 'email-queue-e1-platform' },
+      { from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: brandedKey },
+      { from: 'Stellar Property Group <hello@portier369.com>', key: 'email-queue-e1' },
     ]);
+    // The fallback is stored before it is sent, so a retry replays it.
+    expect(snapshots).toEqual([
+      { id: 'e1', sender_address: 'notices@stellarpropertygroup.com' },
+      { id: 'e1', sender_address: 'hello@portier369.com' },
+    ]);
+  });
+
+  it('keeps the platform address for a row already attempted before sender domains', async () => {
+    queued = [email({ attempt_count: 2 })];
+    domains = [verified];
+    await runWorker();
+    expect(sent).toEqual([{ from: 'Stellar Property Group <hello@portier369.com>', key: 'email-queue-e1' }]);
   });
 });
 
