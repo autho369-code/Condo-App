@@ -763,6 +763,13 @@ export async function setupSenderDomain(formData: FormData) {
   const { data: taken } = await db.from('portfolio_email_domains')
     .select('portfolio_id').eq('domain', parsed.domain).neq('portfolio_id', portfolioId).maybeSingle();
   if (taken) fail(returnTo, `${parsed.domain} is already another company's sending domain.`);
+  // A domain ever registered for another company stays theirs.
+  const { data: owner, error: ownerError } = await db.from('email_sender_domain_owners')
+    .select('portfolio_id, provider_domain_id').eq('domain', parsed.domain).maybeSingle();
+  if (ownerError) fail(returnTo, ownerError.message);
+  if (owner && owner.portfolio_id !== portfolioId) {
+    fail(returnTo, `${parsed.domain} was registered for another company and can't be used for this one.`);
+  }
 
   // Same domain: only the address before @ changes; keep the verification.
   if (current?.domain === parsed.domain && current.provider_domain_id) {
@@ -780,9 +787,17 @@ export async function setupSenderDomain(formData: FormData) {
 
   const resend = resendClient();
   if (!resend) fail(returnTo, 'Email is not configured on this deployment (RESEND_API_KEY is missing).');
-  const registered = await registerSenderDomain(resend, parsed.domain);
+  const registered = await registerSenderDomain(resend, parsed.domain, owner?.provider_domain_id ?? null);
   if (!registered.ok) fail(returnTo, `The email provider did not accept ${parsed.domain}: ${registered.error}`);
   const created = registered.domain;
+  if (!owner || owner.provider_domain_id !== created.id) {
+    const { error: claimError } = owner
+      ? await db.from('email_sender_domain_owners').update({ provider_domain_id: created.id })
+        .eq('domain', parsed.domain).eq('portfolio_id', portfolioId)
+      : await db.from('email_sender_domain_owners')
+        .insert({ domain: parsed.domain, portfolio_id: portfolioId, provider_domain_id: created.id });
+    if (claimError) fail(returnTo, `${parsed.domain} was registered with the email provider but its ownership could not be saved: ${claimError.message}`);
+  }
 
   const row = {
     portfolio_id: portfolioId,

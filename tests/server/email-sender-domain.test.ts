@@ -180,29 +180,41 @@ describe('email worker sender selection', () => {
 });
 
 describe('registerSenderDomain', () => {
-  it('reuses a domain already registered with the provider', async () => {
+  const created = { id: 'd-new', name: 'stellarpropertygroup.com', status: 'not_started', records: [{ type: 'TXT' }] };
+
+  it("reuses this company's own earlier registration", async () => {
     const { registerSenderDomain } = await import('../../lib/email/sender-domains');
+    const create = vi.fn();
     const resend: any = {
       domains: {
-        create: async () => ({ data: null, error: { message: 'Domain already exists' } }),
-        list: async ({ after }: { after?: string }) => (after
-          ? { data: { data: [{ id: 'd2', name: 'stellarpropertygroup.com' }], has_more: false }, error: null }
-          : { data: { data: [{ id: 'd1', name: 'other.com' }], has_more: true }, error: null }),
-        get: async (id: string) => ({ data: { id, status: 'verified', records: [] }, error: null }),
+        get: async (id: string) => ({ data: { id, name: 'stellarpropertygroup.com', status: 'verified', records: [] }, error: null }),
+        create,
       },
     };
-    expect(await registerSenderDomain(resend, 'stellarpropertygroup.com'))
-      .toEqual({ ok: true, domain: { id: 'd2', status: 'verified', records: [] } });
+    expect(await registerSenderDomain(resend, 'stellarpropertygroup.com', 'd-own'))
+      .toEqual({ ok: true, domain: { id: 'd-own', status: 'verified', records: [] } });
+    expect(create).not.toHaveBeenCalled();
   });
 
-  it('reports the provider error when the domain is not in the account', async () => {
+  it("never adopts another registration of the domain (it may be verified for someone else)", async () => {
     const { registerSenderDomain } = await import('../../lib/email/sender-domains');
     const resend: any = {
       domains: {
-        create: async () => ({ data: null, error: { message: 'API key is restricted to sending' } }),
-        list: async () => ({ data: { data: [], has_more: false }, error: null }),
+        get: vi.fn(),
+        list: vi.fn(),
+        create: async () => ({ data: null, error: { message: 'Domain already exists' } }),
       },
     };
-    expect(await registerSenderDomain(resend, 'acme.com')).toEqual({ ok: false, error: 'API key is restricted to sending' });
+    const result = await registerSenderDomain(resend, 'stellarpropertygroup.com', null);
+    expect(result.ok).toBe(false);
+    expect(resend.domains.list).not.toHaveBeenCalled();
+    expect(resend.domains.get).not.toHaveBeenCalled();
+  });
+
+  it('creates a new registration when none is recorded', async () => {
+    const { registerSenderDomain } = await import('../../lib/email/sender-domains');
+    const resend: any = { domains: { create: async () => ({ data: created, error: null }) } };
+    expect(await registerSenderDomain(resend, 'stellarpropertygroup.com', null))
+      .toEqual({ ok: true, domain: { id: 'd-new', status: 'not_started', records: [{ type: 'TXT' }] } });
   });
 });

@@ -95,27 +95,24 @@ export function resendClient(): Resend | null {
 type RegisteredDomain = { id: string; status: string; records: unknown };
 
 /**
- * Register a sending domain with Resend. A domain already in the account (for
- * example, a company switching back to an earlier domain) is reused instead of
- * failing; the caller has already checked no other company holds it.
+ * Register a sending domain with Resend. A domain already in the account is
+ * reused only when it is this company's own earlier registration
+ * (`ownProviderId`, from email_sender_domain_owners): a registration made for
+ * another company, or outside the app, may already be verified and would let
+ * this company send as that domain without proving it controls the DNS.
  */
-export async function registerSenderDomain(resend: Resend, name: string):
+export async function registerSenderDomain(resend: Resend, name: string, ownProviderId: string | null):
   Promise<{ ok: true; domain: RegisteredDomain } | { ok: false; error: string }> {
+  if (ownProviderId) {
+    const { data: domain } = await resend.domains.get(ownProviderId);
+    if (domain && domain.name.toLowerCase() === name) {
+      return { ok: true, domain: { id: domain.id, status: domain.status, records: domain.records ?? [] } };
+    }
+  }
   const { data: created, error: createError } = await resend.domains.create({ name });
   if (created) return { ok: true, domain: { id: created.id, status: created.status, records: created.records ?? [] } };
-
-  let after: string | undefined;
-  for (let page = 0; page < 20; page += 1) {
-    const { data: list, error: listError } = await resend.domains.list({ limit: 100, ...(after ? { after } : {}) });
-    if (listError || !list) break;
-    const existing = list.data.find((d) => d.name.toLowerCase() === name);
-    if (existing) {
-      const { data: domain, error: getError } = await resend.domains.get(existing.id);
-      if (domain) return { ok: true, domain: { id: domain.id, status: domain.status, records: domain.records ?? [] } };
-      return { ok: false, error: getError?.message ?? 'The existing domain could not be read.' };
-    }
-    if (!list.has_more || !list.data.length) break;
-    after = list.data[list.data.length - 1].id;
-  }
-  return { ok: false, error: createError?.message ?? 'No response from the email provider.' };
+  return {
+    ok: false,
+    error: `${createError?.message ?? 'No response from the email provider.'} If ${name} is already in the Resend account but not for this company, remove it there first.`,
+  };
 }
