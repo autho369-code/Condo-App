@@ -13,16 +13,44 @@ import { ImageResponse } from 'next/og'
 
 const PLATFORM_BACKGROUND = 'linear-gradient(145deg, #24466f 0%, #1E3A5F 55%, #162D4A 100%)'
 
-export type IconBrand = { glyph: string; background: string }
+export type IconBrand = { glyph: string; background: string; foreground: string }
 
-export const PLATFORM_ICON: IconBrand = { glyph: 'P', background: PLATFORM_BACKGROUND }
+export const PLATFORM_ICON: IconBrand = { glyph: 'P', background: PLATFORM_BACKGROUND, foreground: '#ffffff' }
 
-/** The company's icon: its first letter or digit on its brand colour (hex only; anything else keeps the platform colour). */
+// The renderer's built-in font covers Latin letters (accented included) and
+// digits; any other script would make it fetch a font at request time.
+const DRAWABLE_GLYPH = /^[A-Z0-9\u00C0-\u00D6\u00D8-\u00DE\u0100-\u017F]$/
+
+const DARK_GLYPH = '#111827'
+
+function luminance(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+/** White or dark text, whichever contrasts more with the colour (WCAG contrast ratio). */
+export function glyphColorFor(hex: string): string {
+  const bg = luminance(hex)
+  const onWhite = 1.05 / (bg + 0.05)
+  const onDark = (bg + 0.05) / (luminance(DARK_GLYPH) + 0.05)
+  return onDark > onWhite ? DARK_GLYPH : '#ffffff'
+}
+
+/**
+ * The company's icon: its first letter or digit on its brand colour (hex
+ * only; anything else keeps the platform colour). A name starting with a
+ * character the icon font can't draw keeps the platform icon.
+ */
 export function companyIconBrand(companyName: string | null | undefined, brandColor: string | null | undefined): IconBrand {
   const glyph = String(companyName ?? '').match(/[\p{L}\p{N}]/u)?.[0]?.toUpperCase()
-  if (!glyph) return PLATFORM_ICON
+  if (!glyph || !DRAWABLE_GLYPH.test(glyph)) return PLATFORM_ICON
   const color = String(brandColor ?? '').trim()
-  return { glyph, background: /^#[0-9a-f]{6}$/i.test(color) ? color : PLATFORM_BACKGROUND }
+  return /^#[0-9a-f]{6}$/i.test(color)
+    ? { glyph, background: color, foreground: glyphColorFor(color) }
+    : { glyph, background: PLATFORM_BACKGROUND, foreground: '#ffffff' }
 }
 
 export function renderAppIcon(size: number, maskable = false, brand: IconBrand = PLATFORM_ICON, rounded = !maskable) {
@@ -40,7 +68,7 @@ export function renderAppIcon(size: number, maskable = false, brand: IconBrand =
           justifyContent: 'center',
           background: brand.background,
           borderRadius: radius,
-          color: '#ffffff',
+          color: brand.foreground,
           fontSize: Math.round(size * glyphScale),
           fontWeight: 700,
           fontFamily: 'sans-serif',
