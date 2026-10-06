@@ -31,9 +31,10 @@ access, accounts, approval or decisions.
        and the Developer Hub already existed; 2026-10-06 added
        `/platform-operator/usage-trends` (monthly per-company usage from
        `usage_metrics`, which was collected nightly but never shown).
-       Possible follow-ups: write endpoints in the partner API, a per-key API
-       call log (`usage_metrics.api_calls` is always 0), a webhook "send test
-       event" button.
+       2026-10-06 also added per-key daily API call counts
+       (`api_key_usage_daily`, shown in the Developer Hub and summed into
+       `usage_metrics.api_calls`). Possible follow-ups: write endpoints in the
+       partner API, a webhook "send test event" button.
 
 Cleanup needing Mirsad's approval:
 - [ ] Fold the legacy `app/platform/*` redirect shim into `app/platform-operator/*`.
