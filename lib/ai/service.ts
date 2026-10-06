@@ -92,7 +92,7 @@ async function parseProviderResponse(response: Response): Promise<any> {
   }
 }
 
-async function providerFetch(config: AIConfig, body: Record<string, unknown>): Promise<any> {
+async function providerFetch(config: AIConfig, body: Record<string, unknown>, timeoutMs = REQUEST_TIMEOUT_MS): Promise<any> {
   if (!isSupportedAIProvider(config.provider) || !validModel(config.model)) {
     throw new Error('AI provider configuration is invalid.');
   }
@@ -116,7 +116,7 @@ async function providerFetch(config: AIConfig, body: Record<string, unknown>): P
     body: JSON.stringify(body),
     redirect: 'error',
     cache: 'no-store',
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   return parseProviderResponse(response);
 }
@@ -244,17 +244,25 @@ export async function toolCompletion(
   messages: Array<{ role: 'user' | 'assistant'; content: string }>,
   tools: AITool[],
   execute: AIToolExecutor,
-  options?: { temperature?: number; maxTokens?: number; maxRounds?: number },
+  options?: { temperature?: number; maxTokens?: number; maxRounds?: number; timeBudgetMs?: number },
 ): Promise<string> {
   const maxTokens = Math.min(4096, Math.max(1, options?.maxTokens ?? 1500));
   const maxRounds = Math.min(8, Math.max(1, options?.maxRounds ?? 5));
   const temperature = options?.temperature ?? 0.1;
+  // The whole exchange (all rounds) fits in this budget: each provider call
+  // gets only the time that is left, and once less than a quarter remains the
+  // model must answer without further lookups.
+  const budget = Math.max(5_000, options?.timeBudgetMs ?? 50_000);
+  const startedAt = Date.now();
+  const remaining = () => budget - (Date.now() - startedAt);
+  const callTimeout = () => Math.max(1_000, Math.min(REQUEST_TIMEOUT_MS, remaining()));
+  const mustFinish = (round: number) => round >= maxRounds || remaining() < budget / 4;
 
   if (config.provider === 'anthropic') {
     const convo: any[] = messages.map((m) => ({ role: m.role, content: m.content }));
     const anthropicTools = tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.parameters }));
     for (let round = 0; round <= maxRounds; round++) {
-      const lastRound = round === maxRounds;
+      const lastRound = mustFinish(round);
       const data = await providerFetch(config, {
         model: config.model,
         system,
@@ -262,7 +270,7 @@ export async function toolCompletion(
         temperature,
         max_tokens: maxTokens,
         ...(lastRound ? {} : { tools: anthropicTools }),
-      });
+      }, callTimeout());
       const content: any[] = Array.isArray(data.content) ? data.content : [];
       const calls = content.filter((part) => part?.type === 'tool_use');
       if (calls.length === 0 || lastRound) {
@@ -288,14 +296,14 @@ export async function toolCompletion(
     function: { name: t.name, description: t.description, parameters: t.parameters },
   }));
   for (let round = 0; round <= maxRounds; round++) {
-    const lastRound = round === maxRounds;
+    const lastRound = mustFinish(round);
     const data = await providerFetch(config, {
       model: config.model,
       messages: convo,
       temperature,
       max_tokens: maxTokens,
       ...(lastRound ? {} : { tools: openaiTools }),
-    });
+    }, callTimeout());
     const message = data.choices?.[0]?.message ?? {};
     const calls: any[] = Array.isArray(message.tool_calls) ? message.tool_calls : [];
     if (calls.length === 0 || lastRound) return String(message.content ?? '').trim();

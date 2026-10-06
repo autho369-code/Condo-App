@@ -104,6 +104,35 @@ describe('toolCompletion', () => {
   });
 });
 
+describe('toolCompletion time budget', () => {
+  it('stops offering tools once most of the time budget is used', async () => {
+    let now = 1_000_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    const bodies: any[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      bodies.push(body);
+      now += 4_000; // each provider call "takes" 4 seconds
+      return body.tools
+        ? jsonResponse({ choices: [{ message: { tool_calls: [
+            { id: `c${bodies.length}`, type: 'function', function: { name: 'unit_summary', arguments: '{}' } },
+          ] } }] })
+        : jsonResponse({ choices: [{ message: { content: 'out of time' } }] });
+    }));
+
+    const answer = await toolCompletion(
+      { provider: 'openai', model: 'gpt-test', apiKey: 'sk-test-12345' },
+      's', [{ role: 'user', content: 'q' }], tools, async () => ({}), { maxRounds: 5, timeBudgetMs: 10_000 },
+    );
+
+    expect(answer).toBe('out of time');
+    // 10s budget: round 0 at 0s, round 1 at 4s (6s left), round 2 at 8s (2s < 2.5s) → final, no tools.
+    expect(bodies).toHaveLength(3);
+    expect(bodies[2].tools).toBeUndefined();
+    vi.restoreAllMocks();
+  });
+});
+
 describe('portfolio tool input guards', () => {
   it('strips characters that would change a PostgREST filter', () => {
     expect(sanitizeSearch('smith,(x)%_*"')).toBe('smith x');

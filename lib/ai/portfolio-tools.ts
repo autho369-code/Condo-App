@@ -11,7 +11,8 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type { AITool } from '@/lib/ai/service';
 
-const OPEN_WO = '("completed","closed","cancelled")';
+// Open = new, assigned, scheduled, in_progress (as elsewhere in the app).
+const OPEN_WO = '("done","completed","billed","closed","cancelled")';
 const OPEN_VIOLATION = '("closed","cured")';
 
 export const PORTFOLIO_TOOLS: AITool[] = [

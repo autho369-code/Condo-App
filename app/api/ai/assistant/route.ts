@@ -39,7 +39,7 @@ const SYSTEM_PROMPT =
   'Be concise and conversational. Format money with a dollar sign and use plain language. ' +
   'When listing items, use short bullet points. Do not output JSON or code unless asked.';
 
-// Up to 4 lookup rounds, each a provider call.
+// Up to 4 lookup rounds; toolCompletion keeps all provider calls within 45s.
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       ],
       PORTFOLIO_TOOLS,
       runPortfolioTool,
-      { temperature: 0.2, maxRounds: 4 },
+      { temperature: 0.2, maxRounds: 4, timeBudgetMs: 45_000 },
     );
 
     return NextResponse.json({ answer: (answer ?? '').trim() });
