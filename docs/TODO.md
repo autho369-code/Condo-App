@@ -20,9 +20,20 @@ access, accounts, approval or decisions.
 2. [x] **Assistant tool-calling** — DONE 2026-10-05: the Portfolio Assistant can
        call six fixed, read-only, RLS-scoped lookups (owner, unit, delinquent
        units, open work orders, open violations, bills) on top of the snapshot.
-3. [ ] **Real e-signature** for board resolutions, ARC approvals and vendor
-       contracts (today: drawn/typed signature on board sign-off).
-4. [ ] **Operator cross-company analytics + partner API/webhooks.**
+3. [x] **Real e-signature** — already built (found 2026-10-06): `/signatures`
+       sends private signing links (typed name + consent), records every step
+       in `signature_events` with a SHA-256 document fingerprint, supports
+       sequential signers, and issues a certificate. Board resolutions, vendor
+       agreements, ARC decisions, management agreements and year-end packages
+       are all signable subjects.
+4. [x] **Operator cross-company analytics + partner API/webhooks** — the partner
+       API (`/api/v1`, API keys, scopes, rate limits), signed outbound webhooks
+       and the Developer Hub already existed; 2026-10-06 added
+       `/platform-operator/usage-trends` (monthly per-company usage from
+       `usage_metrics`, which was collected nightly but never shown).
+       Possible follow-ups: write endpoints in the partner API, a per-key API
+       call log (`usage_metrics.api_calls` is always 0), a webhook "send test
+       event" button.
 
 Cleanup needing Mirsad's approval:
 - [ ] Fold the legacy `app/platform/*` redirect shim into `app/platform-operator/*`.

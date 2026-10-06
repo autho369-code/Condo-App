@@ -81,6 +81,7 @@ export const platformOperatorModules: AppModule[] = [
   { label: 'Overview', href: '/platform-operator' },
   { label: 'Command Center', href: '/platform-operator/overview' },
   { label: 'Platform Intelligence', href: '/platform-operator/insights' },
+  { label: 'Usage Trends', href: '/platform-operator/usage-trends' },
   { label: 'Piper (AI Phone)', href: '/platform-operator/piper' },
   { label: 'Companies', href: '/platform-operator/companies' },
   { label: 'Invitations', href: '/platform-operator/invitations' },
