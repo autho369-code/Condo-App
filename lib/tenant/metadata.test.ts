@@ -65,3 +65,14 @@ describe('signInMetadata', () => {
     expect(await signInMetadata()).toEqual({});
   });
 });
+
+describe('signedInStepMetadata', () => {
+  it("uses the signed-in user's company on the platform address, noindexed", async () => {
+    meResult = { data: { portfolio: { company_name: 'Stellar Property Group' } }, error: null };
+    const { signedInStepMetadata } = await import('./metadata');
+    expect(await signedInStepMetadata()).toMatchObject({
+      applicationName: 'Stellar Property Group',
+      robots: { index: false, follow: false },
+    });
+  });
+});

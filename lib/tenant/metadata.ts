@@ -62,3 +62,13 @@ export async function signInMetadata(): Promise<Metadata> {
   if (!tenant?.portfolioId) return {};
   return { ...brandedMetadata(tenant.companyName), robots: { index: false, follow: false } };
 }
+
+/**
+ * generateMetadata for signed-in steps of sign-in (two-factor): the person
+ * already belongs to a company, so the signed-in fallback applies on the
+ * platform address too. Kept out of search results.
+ */
+export async function signedInStepMetadata(): Promise<Metadata> {
+  const name = await workspaceCompanyName();
+  return name ? { ...brandedMetadata(name), robots: { index: false, follow: false } } : {};
+}
