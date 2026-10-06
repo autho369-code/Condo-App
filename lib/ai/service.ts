@@ -229,18 +229,19 @@ function shortenStrings(value: unknown): unknown {
   return value;
 }
 
-/** The longest array in the tree (by item count) and the object holding it. */
-function largestArray(value: unknown, parent: Record<string, unknown> | null = null): { arr: unknown[]; parent: Record<string, unknown> | null } | null {
-  let best: { arr: unknown[]; parent: Record<string, unknown> | null } | null = null;
+/** The longest array in the tree (by item count), the object holding it and its key. */
+type ArrayHit = { arr: unknown[]; parent: Record<string, unknown> | null; key: string | null };
+function largestArray(value: unknown, parent: Record<string, unknown> | null = null, key: string | null = null): ArrayHit | null {
+  let best: ArrayHit | null = null;
   if (Array.isArray(value)) {
-    if (value.length) best = { arr: value, parent };
+    if (value.length) best = { arr: value, parent, key };
     for (const item of value) {
-      const inner = largestArray(item, null);
+      const inner = largestArray(item, null, null);
       if (inner && (!best || inner.arr.length > best.arr.length)) best = inner;
     }
   } else if (value && typeof value === 'object') {
-    for (const v of Object.values(value)) {
-      const inner = largestArray(v, value as Record<string, unknown>);
+    for (const [k, v] of Object.entries(value)) {
+      const inner = largestArray(v, value as Record<string, unknown>, k);
       if (inner && (!best || inner.arr.length > best.arr.length)) best = inner;
     }
   }
@@ -265,9 +266,15 @@ export function toolResultText(result: unknown): string {
     target.arr.pop();
     // Flag the whole result so lists without an envelope aren't read as complete.
     if (value && typeof value === 'object') (value as Record<string, unknown>).trimmed_to_fit = true;
-    if (target.parent && target.parent.rows === target.arr) {
+    if (target.parent && target.key === 'rows') {
       target.parent.returned = target.arr.length;
       target.parent.truncated = true;
+    } else if (target.parent && target.key) {
+      // A nested list (e.g. one owner's units): record its full size and
+      // that it was cut, next to the list itself.
+      const totalKey = `${target.key}_total`;
+      if (target.parent[totalKey] === undefined) target.parent[totalKey] = target.arr.length + 1;
+      target.parent[`${target.key}_truncated`] = true;
     }
     text = JSON.stringify(value);
   }

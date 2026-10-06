@@ -228,6 +228,16 @@ describe('tool result size cap', () => {
     expect(parsed.returned).toBe(parsed.rows.length);
   });
 
+  it('records the full size of a nested list it trims', () => {
+    const units = Array.from({ length: 400 }, (_, i) => ({ unit: `U${i}`, association: 'Lake HOA [id:12345678]' }));
+    const parsed = JSON.parse(toolResultText({ total: 1, returned: 1, truncated: false, rows: [{ name: 'Big Owner', units }] }));
+    const owner = parsed.rows[0];
+    expect(owner.units.length).toBeLessThan(400);
+    expect(owner.units_total).toBe(400);
+    expect(owner.units_truncated).toBe(true);
+    expect(parsed.trimmed_to_fit).toBe(true);
+  });
+
   it('leaves small results untouched', () => {
     expect(toolResultText({ a: 1 })).toBe('{"a":1}');
   });

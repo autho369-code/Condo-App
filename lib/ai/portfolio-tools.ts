@@ -208,7 +208,7 @@ export async function runPortfolioTool(
   }
 
   async function portfolioAssociationIds(): Promise<string[]> {
-    const { data, error } = await db.from('associations').select('id').eq('portfolio_id', PID);
+    const { data, error } = await db.from('associations').select('id').eq('portfolio_id', PID).is('archived_at', null);
     if (error) fail(error.message);
     return ((data ?? []) as { id: string }[]).map((a) => a.id);
   }
@@ -237,8 +237,8 @@ export async function runPortfolioTool(
       // scoping lives on occupancies; the owners table is company-wide), then
       // match the owner's name or email.
       const { data: occ, error } = await db.from('occupancies')
-        .select('owner_id, unit_id, association_id, units(unit_number), owners!occupancies_owner_id_fkey!inner(id, full_name, email, phone, archived_at), associations!occupancies_association_id_fkey!inner(portfolio_id)')
-        .eq('associations.portfolio_id', PID).eq('status', 'current').eq('occupancy_type', 'owner')
+        .select('owner_id, unit_id, association_id, units(unit_number), owners!occupancies_owner_id_fkey!inner(id, full_name, email, phone, archived_at), associations!occupancies_association_id_fkey!inner(portfolio_id, archived_at)')
+        .eq('associations.portfolio_id', PID).is('associations.archived_at', null).eq('status', 'current').eq('occupancy_type', 'owner')
         .is('owners.archived_at', null)
         .or(`full_name.ilike.${pattern},email.ilike.${pattern}`, { referencedTable: 'owners' })
         .order('owner_id').limit(1000);
@@ -293,8 +293,8 @@ export async function runPortfolioTool(
       let unitTotal = 0;
       const findUnits = async (buildingPattern: string | null) => {
         let query = db.from('units')
-          .select('id, unit_number, buildings!inner(association_id, name, associations!inner(portfolio_id))', { count: 'exact' })
-          .eq('buildings.associations.portfolio_id', PID)
+          .select('id, unit_number, buildings!inner(association_id, name, associations!inner(portfolio_id, archived_at))', { count: 'exact' })
+          .eq('buildings.associations.portfolio_id', PID).is('buildings.associations.archived_at', null)
           .is('archived_at', null).ilike('unit_number', likeEscape(unitNumber)).order('id').limit(50);
         if (assocIds) query = query.in('buildings.association_id', assocIds.length ? assocIds : ['00000000-0000-0000-0000-000000000000']);
         if (buildingPattern) query = query.ilike('buildings.name', buildingPattern);
@@ -332,7 +332,7 @@ export async function runPortfolioTool(
         db.from('occupancies').select('is_primary, dues_amount, dues_frequency, dues_paid_through, move_in_date, owners(full_name, email, phone)')
           .eq('unit_id', unit.id).eq('status', 'current').eq('occupancy_type', 'owner'),
         db.from('unit_balances').select('balance, total_charges, total_payments').eq('unit_id', unit.id).maybeSingle(),
-        db.from('charges').select('description, amount, due_date').eq('unit_id', unit.id).order('due_date', { ascending: false }).limit(6),
+        db.from('charges').select('description, amount, due_date, created_at').eq('unit_id', unit.id).order('created_at', { ascending: false }).limit(6),
         db.from('receivable_payments_ledger').select('amount, payment_date, method, reversed_at').eq('unit_id', unit.id).or('method.is.null,method.neq.credit').is('reversed_at', null).lte('payment_date', todayInZone()).order('payment_date', { ascending: false }).limit(6), // credits and returned receipts aren't payments; future-dated receipts aren't received yet
         db.from('violations').select('title, violation_type, status, due_date', { count: 'exact' }).eq('unit_id', unit.id).is('archived_at', null).not('status', 'in', OPEN_VIOLATION).limit(10),
         db.from('work_orders').select('number, title, status, priority, scheduled_date', { count: 'exact' }).eq('unit_id', unit.id).is('archived_at', null).not('status', 'in', OPEN_WO).limit(10),
@@ -357,7 +357,7 @@ export async function runPortfolioTool(
               balance_due: round2(bal.data?.balance),
               total_charged: round2(bal.data?.total_charges),
               total_paid: round2(bal.data?.total_payments),
-              recent_charges: (charges.data ?? []).map((c: any) => ({ description: c.description, amount: round2(c.amount), due: c.due_date })),
+              recent_charges: (charges.data ?? []).map((c: any) => ({ description: c.description, amount: round2(c.amount), due: c.due_date, posted: c.created_at })),
               recent_payments: (payments.data ?? []).map((p: any) => ({ amount: round2(p.amount), date: p.payment_date, method: p.method, reversed: !!p.reversed_at })),
             }
           : { financials: 'Not available to your role.' }),
@@ -432,8 +432,8 @@ export async function runPortfolioTool(
       const assocIds = await associationIds(input.association);
       if (assocIds && !assocIds.length) return { error: 'No association matches that name.' };
       let query = db.from('violations')
-        .select('title, violation_type, status, due_date, date_observed, association_id, units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name), associations!violations_association_id_fkey!inner(portfolio_id)', { count: 'exact' })
-        .eq('associations.portfolio_id', PID).is('archived_at', null).not('status', 'in', OPEN_VIOLATION)
+        .select('title, violation_type, status, due_date, date_observed, association_id, units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name), associations!violations_association_id_fkey!inner(portfolio_id, archived_at)', { count: 'exact' })
+        .eq('associations.portfolio_id', PID).is('associations.archived_at', null).is('archived_at', null).not('status', 'in', OPEN_VIOLATION)
         .order('due_date', { ascending: true, nullsFirst: false }).limit(clampLimit(input.limit));
       if (assocIds) query = query.in('association_id', assocIds);
       const { data, error, count } = await query;
