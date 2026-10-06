@@ -92,7 +92,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "resend": "^6.12.4",
-    "tailwind-merge": "^2.5.4"
+    "tailwind-merge": "^2.5.4",
+    "tldts": "^6.1.86"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

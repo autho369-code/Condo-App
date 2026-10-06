@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseCustomDomain, pointsAtVercel, requiredDnsRecord } from './custom-domain';
+import { isRootDomain, parseCustomDomain, pointsAtVercel, requiredDnsRecord } from './custom-domain';
 
 describe('parseCustomDomain', () => {
   it('normalizes a typed domain', () => {
@@ -26,10 +26,22 @@ describe('parseCustomDomain', () => {
   });
 });
 
+describe('isRootDomain', () => {
+  it('finds the registrable domain under multi-label public suffixes', () => {
+    expect(isRootDomain('acme.com')).toBe(true);
+    expect(isRootDomain('acme.co.uk')).toBe(true);
+    expect(isRootDomain('acme.com.au')).toBe(true);
+    expect(isRootDomain('portal.acme.com')).toBe(false);
+    expect(isRootDomain('portal.acme.co.uk')).toBe(false);
+  });
+});
+
 describe('requiredDnsRecord', () => {
   it('uses a CNAME for a subdomain and an A record for a root domain', () => {
     expect(requiredDnsRecord('portal.acme.com')).toEqual({ type: 'CNAME', name: 'portal.acme.com', value: 'cname.vercel-dns.com' });
     expect(requiredDnsRecord('acme.com')).toEqual({ type: 'A', name: 'acme.com', value: '76.76.21.21' });
+    expect(requiredDnsRecord('acme.co.uk').type).toBe('A');
+    expect(requiredDnsRecord('portal.acme.co.uk').type).toBe('CNAME');
   });
 
   it("prefers Vercel's recommended values", () => {

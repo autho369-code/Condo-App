@@ -8,7 +8,6 @@ import { Alert } from '@/components/ui/shell';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { apexDomain } from '@/lib/tenant/host';
 import {
-  DEFAULT_A_RECORD,
   isRootDomain,
   lookupDomain,
   pointsAtVercel,
@@ -132,7 +131,7 @@ async function DomainStatus({ domain }: { domain: string }) {
           <p className="mt-2 text-xs text-gray-500">
             {isRootDomain(domain)
               ? 'A root domain needs an A record. A subdomain such as portal.theircompany.com can use a CNAME instead.'
-              : `Some providers want only the part before the company’s domain in Name (for example, portal). If this is the company’s root domain, use an A record with value ${attached?.recommended.ipv4 || DEFAULT_A_RECORD} instead.`}
+              : 'Some providers want only the part before the company\u2019s domain in Name (for example, portal).'}
             {' '}DNS changes can take up to a few hours; reload this page to check again.
           </p>
         </div>

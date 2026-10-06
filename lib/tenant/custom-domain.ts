@@ -4,6 +4,7 @@
 // repeats the validation below) and must also be attached to the Vercel
 // project and pointed at Vercel in the company's DNS before it serves.
 import { promises as dns } from 'node:dns';
+import { getDomain } from 'tldts';
 import { apexDomain, normalizeHostname } from '@/lib/tenant/host';
 
 const HOSTNAME = /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+([a-z]{2,63}|xn--[a-z0-9-]{1,59})$/;
@@ -24,9 +25,14 @@ export function parseCustomDomain(value: unknown, apex = apexDomain()): CustomDo
   return { ok: true, domain: raw };
 }
 
-/** A root domain (yourcompany.com) can't hold a CNAME; it needs an A record. */
+/**
+ * A root domain (yourcompany.com, yourcompany.co.uk) can't hold a CNAME; it
+ * needs an A record. The registrable boundary comes from the public suffix
+ * list, so multi-label suffixes such as co.uk are handled.
+ */
 export function isRootDomain(domain: string): boolean {
-  return domain.split('.').length === 2;
+  const registrable = getDomain(domain);
+  return registrable ? registrable === domain : domain.split('.').length === 2;
 }
 
 /** Vercel's documented defaults when its API isn't connected. */
