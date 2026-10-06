@@ -12,7 +12,7 @@ import { displayTimeZone } from '@/lib/time/display-zone';
 import { siteUrl } from '@/lib/url/site-url';
 import { cache } from 'react';
 import type { Metadata } from 'next';
-import { brandedMetadata, signInMetadata } from '@/lib/tenant/metadata';
+import { brandedMetadata, signInMetadata, tenantPreviewImage } from '@/lib/tenant/metadata';
 
 export const dynamic = 'force-dynamic';
 
@@ -179,7 +179,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const token = (await searchParams).token;
   const company = token ? await invitationCompany(token).catch(() => null) : null;
-  const base = company ? brandedMetadata(company) : await signInMetadata();
+  // The preview card only matches on the inviting company's own address.
+  const tenant = tenantFromHeaders(await headers());
+  const base = company
+    ? brandedMetadata(company, tenant?.portfolioId ? tenantPreviewImage(tenant) : null)
+    : await signInMetadata();
   // Invitation links are private: never indexed, on any address.
   return { ...base, robots: { index: false, follow: false } };
 }
