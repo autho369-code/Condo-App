@@ -1,29 +1,10 @@
-import { ImageResponse } from 'next/og'
+import { renderAppIcon } from '@/lib/brand/app-icon'
+import { requestIconBrand } from '@/lib/brand/request-icon'
 
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
 
-export default function Icon() {
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#1E3A5F',
-          borderRadius: 8,
-          color: '#ffffff',
-          fontSize: 20,
-          fontWeight: 700,
-          fontFamily: 'sans-serif',
-        }}
-      >
-        P
-      </div>
-    ),
-    size
-  )
+// Browser-tab icon: the company's initial on its own address.
+export default async function Icon() {
+  return renderAppIcon(size.width, false, await requestIconBrand())
 }
