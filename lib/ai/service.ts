@@ -216,11 +216,65 @@ const MAX_TOOL_RESULT_CHARS = 12_000;
 const MAX_TOOL_CALLS_PER_ROUND = 4;
 const MAX_TOOL_CALLS_TOTAL = 10;
 
-function toolResultText(result: unknown): string {
-  const text = JSON.stringify(result ?? null);
-  return text.length > MAX_TOOL_RESULT_CHARS
-    ? `${text.slice(0, MAX_TOOL_RESULT_CHARS)}… (truncated)`
-    : text;
+const MAX_TOOL_STRING_CHARS = 300;
+
+function shortenStrings(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return value.length > MAX_TOOL_STRING_CHARS ? `${value.slice(0, MAX_TOOL_STRING_CHARS)}…` : value;
+  }
+  if (Array.isArray(value)) return value.map(shortenStrings);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, shortenStrings(v)]));
+  }
+  return value;
+}
+
+/** The longest array in the tree (by item count) and the object holding it. */
+function largestArray(value: unknown, parent: Record<string, unknown> | null = null): { arr: unknown[]; parent: Record<string, unknown> | null } | null {
+  let best: { arr: unknown[]; parent: Record<string, unknown> | null } | null = null;
+  if (Array.isArray(value)) {
+    if (value.length) best = { arr: value, parent };
+    for (const item of value) {
+      const inner = largestArray(item, null);
+      if (inner && (!best || inner.arr.length > best.arr.length)) best = inner;
+    }
+  } else if (value && typeof value === 'object') {
+    for (const v of Object.values(value)) {
+      const inner = largestArray(v, value as Record<string, unknown>);
+      if (inner && (!best || inner.arr.length > best.arr.length)) best = inner;
+    }
+  }
+  return best;
+}
+
+/**
+ * Serialize a lookup result within MAX_TOOL_RESULT_CHARS while keeping it
+ * valid JSON: long strings are shortened first, then rows are dropped from
+ * the end of the largest list, and a list envelope's `returned`/`truncated`
+ * are updated to describe what is actually sent.
+ */
+export function toolResultText(result: unknown): string {
+  let text = JSON.stringify(result ?? null);
+  if (text.length <= MAX_TOOL_RESULT_CHARS) return text;
+  let value = shortenStrings(result ?? null);
+  if (Array.isArray(value)) value = { total: value.length, returned: value.length, truncated: false, rows: value };
+  text = JSON.stringify(value);
+  while (text.length > MAX_TOOL_RESULT_CHARS) {
+    const target = largestArray(value);
+    if (!target) break;
+    target.arr.pop();
+    // Flag the whole result so lists without an envelope aren't read as complete.
+    if (value && typeof value === 'object') (value as Record<string, unknown>).trimmed_to_fit = true;
+    if (target.parent && target.parent.rows === target.arr) {
+      target.parent.returned = target.arr.length;
+      target.parent.truncated = true;
+    }
+    text = JSON.stringify(value);
+  }
+  if (text.length > MAX_TOOL_RESULT_CHARS) {
+    return JSON.stringify({ error: 'Lookup result too large to show. Narrow the question.' });
+  }
+  return text;
 }
 
 async function runTool(execute: AIToolExecutor, tools: AITool[], name: string, rawInput: unknown): Promise<string> {

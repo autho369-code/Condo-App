@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { toolCompletion, type AITool } from '@/lib/ai/service';
+import { toolCompletion, toolResultText, type AITool } from '@/lib/ai/service';
 import { clampLimit, cleanText, likeEscape, portfolioToolsFor, quotedFilterValue, runPortfolioTool } from '@/lib/ai/portfolio-tools';
 
 const tools: AITool[] = [
@@ -205,5 +205,30 @@ describe('finance access', () => {
   it('refuses a finance lookup for staff without finance access', async () => {
     await expect(runPortfolioTool('list_bills', { status: 'approved' }, false))
       .resolves.toEqual({ error: 'Financial details are not available to your role.' });
+  });
+});
+
+describe('tool result size cap', () => {
+  it('drops rows instead of cutting JSON and keeps the envelope accurate', () => {
+    const rows = Array.from({ length: 50 }, (_, i) => ({ id: i, memo: 'x'.repeat(280) }));
+    const text = toolResultText({ total: 80, returned: 50, truncated: true, rows });
+    expect(text.length).toBeLessThanOrEqual(12_000);
+    const parsed = JSON.parse(text);
+    expect(parsed.total).toBe(80);
+    expect(parsed.returned).toBe(parsed.rows.length);
+    expect(parsed.rows.length).toBeLessThan(50);
+    expect(parsed.truncated).toBe(true);
+  });
+
+  it('shortens very long strings and wraps bare arrays', () => {
+    const rows = Array.from({ length: 60 }, () => ({ note: 'y'.repeat(5_000) }));
+    const parsed = JSON.parse(toolResultText(rows));
+    expect(parsed.total).toBe(60);
+    expect(parsed.rows[0].note.length).toBeLessThanOrEqual(301);
+    expect(parsed.returned).toBe(parsed.rows.length);
+  });
+
+  it('leaves small results untouched', () => {
+    expect(toolResultText({ a: 1 })).toBe('{"a":1}');
   });
 });
