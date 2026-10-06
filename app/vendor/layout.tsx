@@ -1,6 +1,9 @@
 import Sidebar from '@/components/nav/sidebar'
 import { vendorModules } from '@/lib/navigation/role-modules'
 import { requireVendor } from '@/lib/auth/me'
+import { workspaceMetadata } from '@/lib/tenant/metadata'
+
+export const generateMetadata = workspaceMetadata
 
 export default async function VendorLayout({ children }: { children: React.ReactNode }) {
   const me = await requireVendor()

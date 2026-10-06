@@ -1,11 +1,18 @@
 import type { MetadataRoute } from 'next'
+import { headers } from 'next/headers'
+import { tenantFromHeaders } from '@/lib/tenant/resolve'
 
-export default function manifest(): MetadataRoute.Manifest {
+// Installed-app details. On a company's own address (workspace address or
+// custom domain) the app installs under the company's name.
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const tenant = tenantFromHeaders(await headers())
+  const company = tenant?.portfolioId ? tenant.companyName.trim() : ''
   return {
-    name: 'Portier369 — Property Management',
-    short_name: 'Portier369',
-    description:
-      'All-in-one property management software for condominium and HOA management companies.',
+    name: company || 'Portier369 — Property Management',
+    short_name: company ? company.slice(0, 30) : 'Portier369',
+    description: company
+      ? `${company} — owner, board and management portal.`
+      : 'All-in-one property management software for condominium and HOA management companies.',
     id: '/',
     start_url: '/',
     scope: '/',

@@ -1,6 +1,9 @@
 import Sidebar from '@/components/nav/sidebar'
 import { companyAdminModules } from '@/lib/navigation/role-modules'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
+import { workspaceMetadata } from '@/lib/tenant/metadata'
+
+export const generateMetadata = workspaceMetadata
 
 export default async function CompanyAdminLayout({ children }: { children: React.ReactNode }) {
   const me = await requirePortfolioAdmin()
