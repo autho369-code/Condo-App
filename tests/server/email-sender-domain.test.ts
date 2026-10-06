@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 import {
   brandedFromAddress,
   isPlatformSenderName,
+  platformSenderAddress,
   dnsRecords,
   isSenderDomainError,
   parseSenderSettings,
@@ -14,6 +15,7 @@ const sent: Array<{ from: string; key: string }> = [];
 let refuseBranded = false;
 let queued: any[] = [];
 let domains: any[] = [];
+let owners: any[] = [];
 const snapshots: Array<{ id: string; sender_address: string }> = [];
 
 vi.mock('resend', () => ({
@@ -45,7 +47,9 @@ vi.mock('@/lib/supabase/server', () => ({
       select: () => ({
         in: async () => (table === 'portfolios'
           ? { data: [{ id: 'p1', company_name: 'Stellar Property Group' }], error: null }
-          : { data: domains, error: null }),
+          : table === 'email_sender_domain_owners'
+            ? { data: owners, error: null }
+            : { data: domains, error: null }),
       }),
     }),
   }),
@@ -87,6 +91,13 @@ describe('sender domain helpers', () => {
     expect(isPlatformSenderName(null)).toBe(false);
   });
 
+  it('honours only platform-domain queued senders', () => {
+    expect(platformSenderAddress('noreply@portier369.com')).toBe('noreply@portier369.com');
+    expect(platformSenderAddress('notices@othercompany.com')).toBe('hello@portier369.com');
+    expect(platformSenderAddress('x@evilportier369.com')).toBe('hello@portier369.com');
+    expect(platformSenderAddress(null)).toBe('hello@portier369.com');
+  });
+
   it('moves only mail queued from the platform default sender', () => {
     expect(usesPlatformSender('hello@portier369.com')).toBe(true);
     expect(usesPlatformSender('NoReply@portier369.com')).toBe(true);
@@ -107,6 +118,7 @@ describe('email worker sender selection', () => {
     sent.length = 0;
     snapshots.length = 0;
     refuseBranded = false;
+    owners = [{ portfolio_id: 'p1', domain: 'stellarpropertygroup.com' }];
     vi.resetModules();
   });
 
@@ -169,6 +181,21 @@ describe('email worker sender selection', () => {
     domains = [verified];
     await runWorker();
     expect(sent).toEqual([{ from: 'Stellar Property Group <notices@stellarpropertygroup.com>', key: brandedKey }]);
+  });
+
+  it("ignores a stored sender on another company's domain", async () => {
+    queued = [email({ sender_address: 'notices@othercompany.com' })];
+    domains = [{ ...verified, status: 'pending' }];
+    await runWorker();
+    expect(sent).toEqual([{ from: 'Stellar Property Group <hello@portier369.com>', key: 'email-queue-e1' }]);
+    expect(snapshots).toEqual([{ id: 'e1', sender_address: 'hello@portier369.com' }]);
+  });
+
+  it('never sends from a queued address outside the platform domain', async () => {
+    queued = [email({ from_address: 'notices@othercompany.com', from_name: 'Portier369' })];
+    domains = [];
+    await runWorker();
+    expect(sent).toEqual([{ from: 'Portier369 <hello@portier369.com>', key: 'email-queue-e1' }]);
   });
 
   it('keeps the platform address for a row the earlier worker attempted', async () => {

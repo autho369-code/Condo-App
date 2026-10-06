@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCronSecret } from '@/lib/server/cron-auth';
-import { EMAIL_FROM, EMAIL_FROM_NAME } from '@/lib/email/queue';
-import { brandedFromAddress, isPlatformSenderName, isSenderDomainError, usesPlatformSender } from '@/lib/email/sender-domains';
+import { EMAIL_FROM_NAME } from '@/lib/email/queue';
+import { addressDomain, brandedFromAddress, isPlatformSenderName, isSenderDomainError, platformSenderAddress, usesPlatformSender } from '@/lib/email/sender-domains';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -63,13 +63,33 @@ export async function GET(request: NextRequest) {
       if (address) companySenders.set(String(d.portfolio_id), address);
     }
   }
+  // A stored sender is honoured only when it is the platform address or on a
+  // domain registered for the email's own company: queue rows can be written
+  // by signed-in staff, who must never send as another company.
+  const ownerIds = [...new Set(claimedRows
+    .filter((e) => e.portfolio_id && e.sender_address)
+    .map((e) => String(e.portfolio_id)))];
+  const ownedDomains = new Set<string>();
+  if (ownerIds.length) {
+    const { data: owners, error: ownersError } = await db.from('email_sender_domain_owners')
+      .select('portfolio_id, domain').in('portfolio_id', ownerIds);
+    if (ownersError) console.error('Could not load sender domain owners:', ownersError.message);
+    for (const o of owners ?? []) ownedDomains.add(`${o.portfolio_id}:${String(o.domain).toLowerCase()}`);
+  }
+  const trustedStored = (email: any, platformAddress: string): string | null => {
+    const stored = String(email.sender_address ?? '').trim().toLowerCase();
+    if (!stored) return null;
+    if (stored === platformAddress) return stored;
+    return email.portfolio_id && ownedDomains.has(`${email.portfolio_id}:${addressDomain(stored)}`) ? stored : null;
+  };
+
   // The first attempt picks the sending address; retries reuse the stored
   // choice so a replay after an accepted send is the identical request. A row
   // with no stored choice that the earlier worker attempted (more attempts
   // than this worker's claims) was sent from the platform address, so it
   // keeps it; one only this worker claimed chooses afresh.
   const primaryAddress = (email: any, platformAddress: string): string => {
-    const stored = String(email.sender_address ?? '').trim().toLowerCase();
+    const stored = trustedStored(email, platformAddress);
     if (stored) return stored;
     if (Number(email.attempt_count ?? 1) > Number(email.snapshot_claims ?? 1)) return platformAddress;
     if (!email.portfolio_id || isPlatformSenderName(email.from_name) || !usesPlatformSender(email.from_address)) return platformAddress;
@@ -86,7 +106,7 @@ export async function GET(request: NextRequest) {
   await inBatches(claimed ?? [], 4, async (email: any) => {
     try {
       const to = String(email.to_email ?? '').trim().toLowerCase();
-      const platformAddress = String(email.from_address || EMAIL_FROM).trim().toLowerCase();
+      const platformAddress = platformSenderAddress(email.from_address);
       if (!EMAIL_PATTERN.test(to) || !EMAIL_PATTERN.test(platformAddress)) throw new Error('Invalid queued email address');
       const primary = primaryAddress(email, platformAddress);
       if (!EMAIL_PATTERN.test(primary)) throw new Error('Invalid sending address');

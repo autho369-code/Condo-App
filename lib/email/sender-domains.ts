@@ -59,6 +59,23 @@ export function isPlatformSenderName(name: string | null | undefined): boolean {
   return String(name ?? '').trim().toLowerCase().startsWith(EMAIL_FROM_NAME.toLowerCase());
 }
 
+const PLATFORM_DOMAIN = EMAIL_FROM.split('@')[1];
+
+/**
+ * The platform address a queued email may use. Queue rows can be written by
+ * signed-in staff, so only addresses on the platform's own domain are honoured;
+ * anything else (including another company's domain) becomes the default.
+ */
+export function platformSenderAddress(fromAddress: string | null | undefined): string {
+  const from = String(fromAddress ?? '').trim().toLowerCase();
+  return from.endsWith(`@${PLATFORM_DOMAIN}`) && /^[^\s@]+@[^\s@]+$/.test(from) ? from : EMAIL_FROM;
+}
+
+/** The domain part of an address. */
+export function addressDomain(address: string): string {
+  return address.slice(address.lastIndexOf('@') + 1).toLowerCase();
+}
+
 /** Whether a provider error means the sending domain itself was refused. */
 export function isSenderDomainError(message: string | null | undefined): boolean {
   return /domain|not verified|verify/i.test(String(message ?? ''));
