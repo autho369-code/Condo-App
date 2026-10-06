@@ -413,8 +413,8 @@ export async function runPortfolioTool(
       const assocIds = await associationIds(input.association);
       if (assocIds && !assocIds.length) return { error: 'No association matches that name.' };
       let query = db.from('work_orders')
-        .select('number, title, status, priority, scheduled_date, created_at, association_id, units(unit_number), associations!work_orders_association_id_fkey!inner(archived_at)', { count: 'exact' })
-        .eq('portfolio_id', PID).is('associations.archived_at', null).is('archived_at', null).not('status', 'in', OPEN_WO)
+        .select('number, title, status, priority, scheduled_date, created_at, association_id, units(unit_number), associations!work_orders_association_id_fkey!inner(portfolio_id, archived_at)', { count: 'exact' })
+        .eq('associations.portfolio_id', PID).is('associations.archived_at', null).is('archived_at', null).not('status', 'in', OPEN_WO)
         .order('created_at', { ascending: false }).limit(clampLimit(input.limit));
       if (assocIds) query = query.in('association_id', assocIds);
       const status = cleanText(input.status).toLowerCase().replace(/ /g, '_');

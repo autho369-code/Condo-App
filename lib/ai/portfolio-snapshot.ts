@@ -57,9 +57,10 @@ export async function buildPortfolioSnapshot(portfolioId: string): Promise<Portf
 
   // Views without a portfolio column (unit_balances, receivable_payments_ledger)
   // are filtered by this portfolio's associations, 100 ids per request.
-  const { data: assocRows, error: assocError } = await db.from('associations').select('id').eq('portfolio_id', PID);
-  if (assocError) throw new Error(`Associations could not be loaded: ${assocError.message}`);
-  const assocIds = ((assocRows ?? []) as Array<{ id: string }>).map((a) => a.id);
+  const assocRes = await fetchAllRows<{ id: string }>(() => db.from('associations').select('id').eq('portfolio_id', PID).order('id'));
+  if (assocRes.error) throw new Error(`Associations could not be loaded: ${assocRes.error}`);
+  if (assocRes.truncated) throw new Error('Too many associations to summarize.');
+  const assocIds = assocRes.rows.map((a) => a.id);
   const chunks: string[][] = [];
   for (let i = 0; i < assocIds.length; i += 100) chunks.push(assocIds.slice(i, i + 100));
 
@@ -121,21 +122,21 @@ export async function buildPortfolioSnapshot(portfolioId: string): Promise<Portf
     arPromise,
     db
       .from('work_orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('portfolio_id', PID)
+      .select('id, associations!work_orders_association_id_fkey!inner(portfolio_id)', { count: 'exact', head: true })
+      .eq('associations.portfolio_id', PID)
       .is('archived_at', null)
       .not('status', 'in', '("completed","closed","cancelled")'),
     db
       .from('work_orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('portfolio_id', PID)
+      .select('id, associations!work_orders_association_id_fkey!inner(portfolio_id)', { count: 'exact', head: true })
+      .eq('associations.portfolio_id', PID)
       .is('archived_at', null)
       .not('status', 'in', '("completed","closed","cancelled")')
       .lt('scheduled_date', todayDate),
     db
       .from('work_orders')
-      .select('title, status, units(unit_number)')
-      .eq('portfolio_id', PID)
+      .select('title, status, units(unit_number), associations!work_orders_association_id_fkey!inner(portfolio_id)')
+      .eq('associations.portfolio_id', PID)
       .is('archived_at', null)
       .not('status', 'in', '("completed","closed","cancelled")')
       .order('created_at', { ascending: false })
