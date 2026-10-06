@@ -8,7 +8,7 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { tenantFromHeaders, type TenantBranding } from '@/lib/tenant/resolve';
-import { resolvedTenantUrl } from '@/lib/tenant/host';
+import { classifyTenantHost, normalizeHostname, resolvedTenantUrl } from '@/lib/tenant/host';
 
 const PREVIEW_ALT = 'HOA & condo management portal';
 
@@ -30,8 +30,17 @@ export function brandedMetadata(companyName: string, previewImage?: string | nul
   };
 }
 
-/** The company's link-preview card on its own address. */
+/**
+ * The company's link-preview card on its own address: the custom domain the
+ * page was served on (resolvedTenantUrl sends custom domains to the workspace
+ * subdomain, which is right for sign-in callbacks but not for a public card),
+ * else its workspace address.
+ */
 export function tenantPreviewImage(tenant: Pick<TenantBranding, 'hostname' | 'slug'>): string {
+  const hostname = normalizeHostname(tenant.hostname);
+  if (hostname && classifyTenantHost(hostname).kind === 'custom-domain') {
+    return new URL('/opengraph-image', `https://${hostname}`).toString();
+  }
   return resolvedTenantUrl(tenant, '/opengraph-image');
 }
 

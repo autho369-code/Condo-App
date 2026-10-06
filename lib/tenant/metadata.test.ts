@@ -95,6 +95,20 @@ describe('link-preview image', () => {
     vi.unstubAllEnvs();
   });
 
+  it("keeps a company's custom domain in the preview image", async () => {
+    vi.stubEnv('NEXT_PUBLIC_APEX_DOMAIN', 'portier369.com');
+    requestHeaders = new Headers({
+      'x-portfolio-id': 'p1',
+      'x-portfolio-name': encodeURIComponent('Stellar Property Group'),
+      'x-portfolio-slug': 'stellar',
+      'x-tenant-host': 'portal.stellarpropertygroup.com',
+    });
+    const { signInMetadata } = await import('./metadata');
+    const meta = await signInMetadata();
+    expect(meta.twitter).toMatchObject({ images: ['https://portal.stellarpropertygroup.com/opengraph-image'] });
+    vi.unstubAllEnvs();
+  });
+
   it('sets no image for the signed-in fallback on the platform address', async () => {
     meResult = { data: { portfolio: { company_name: 'Stellar Property Group' } }, error: null };
     const { workspaceMetadata } = await import('./metadata');
