@@ -19,7 +19,7 @@ const OPEN_VIOLATION = '("closed","cured")';
 const ALL_PORTFOLIO_TOOLS: AITool[] = [
   {
     name: 'find_owners',
-    description: 'Find homeowners by name or email. Returns contact details, their current units and each unit\'s balance.',
+    description: 'Find homeowners by name or email. Returns contact details, their current units and each unit\'s balance (up to 10 owners; check total and truncated).',
     parameters: {
       type: 'object',
       properties: { query: { type: 'string', description: 'Part of the owner\'s name or email.' } },
@@ -253,7 +253,10 @@ export async function runPortfolioTool(
         }
       }
       const names = await associationNames(pickedOcc.map((o) => o.association_id));
-      return picked.map(({ owner: o, occ: rows }) => ({
+      // Total is the number of matching owners found (a floor if the
+      // 1,000-occupancy read was full), so a broad search is never presented
+      // as complete.
+      const result = listResult(grouped.size, picked.map(({ owner: o, occ: rows }) => ({
         name: o.full_name,
         email: o.email,
         phone: o.phone,
@@ -262,7 +265,8 @@ export async function runPortfolioTool(
           association: names.get(row.association_id) ?? null,
           ...(canSeeFinance ? { balance_due: balance.get(row.unit_id) ?? 0 } : {}),
         })),
-      }));
+      })));
+      return (occ ?? []).length >= 1000 ? { ...result, truncated: true, total_is_minimum: true } : result;
     }
 
     case 'unit_summary': {
@@ -289,10 +293,13 @@ export async function runPortfolioTool(
       if (units.length > 1) {
         return {
           ambiguous: true,
-          message: 'Several units have that number. Ask which association or building.',
+          message: 'Several units have that number. Ask which association or building, then pass the association exactly as listed.',
           matches: units.map((u: any) => ({
             unit: u.unit_number,
-            association: names.get(u.buildings?.association_id) ?? null,
+            // The id tag keeps duplicate association names apart (associationIds() accepts it).
+            association: u.buildings?.association_id
+              ? `${names.get(u.buildings.association_id) ?? 'Association'} [id:${String(u.buildings.association_id).slice(0, 8)}]`
+              : null,
             building: u.buildings?.name ?? null,
           })),
         };
