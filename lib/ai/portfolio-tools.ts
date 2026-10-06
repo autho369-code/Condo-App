@@ -127,18 +127,24 @@ export async function runPortfolioTool(
   const db = (await createClient()) as any;
 
   async function associationIds(nameFilter: unknown): Promise<string[] | null> {
-    const q = sanitizeSearch(nameFilter);
+    // "Name (City)" picks between associations that share a name; this is the
+    // form the ambiguity message below offers.
+    const raw = String(nameFilter ?? '').trim();
+    const withCity = raw.match(/^(.+?)\s*\(([^()]+)\)\s*$/);
+    const q = sanitizeSearch(withCity ? withCity[1] : raw);
+    const city = withCity ? sanitizeSearch(withCity[2]).toLowerCase() : '';
     if (!q) return null;
     const { data, error } = await db.from('associations').select('id, name, city').ilike('name', `%${q}%`).is('archived_at', null).limit(20);
     if (error) fail(error.message);
-    const rows = (data ?? []) as Array<{ id: string; name: string; city: string | null }>;
+    const rows = ((data ?? []) as Array<{ id: string; name: string; city: string | null }>)
+      .filter((a) => !city || (a.city ?? '').trim().toLowerCase() === city);
     // One exact name wins; otherwise a single partial match. Anything else is
     // ambiguous (names aren't unique): never silently combine associations.
     const exact = rows.filter((a) => a.name.trim().toLowerCase() === q.toLowerCase());
     const candidates = exact.length ? exact : rows;
     if (candidates.length > 1) {
       const label = (a: { name: string; city: string | null }) => (a.city ? `${a.name} (${a.city})` : a.name);
-      fail(`Several associations match "${q}": ${candidates.map(label).join(', ')}. Ask which one.`);
+      fail(`Several associations match "${raw}": ${candidates.map(label).join(', ')}. Ask which one, then pass it exactly as listed.`);
     }
     return candidates.map((a) => a.id);
   }

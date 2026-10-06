@@ -40,6 +40,23 @@ describe('toolCompletion', () => {
     expect(bodies[1].messages.at(-1).content).toContain('"balance_due":50');
   });
 
+  it('sends DeepSeek reasoning back with the tool results', async () => {
+    const bodies: any[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      return bodies.length === 1
+        ? jsonResponse({ choices: [{ message: { content: '', reasoning_content: 'think', tool_calls: [
+            { id: 'r1', type: 'function', function: { name: 'unit_summary', arguments: '{}' } },
+          ] } }] })
+        : jsonResponse({ choices: [{ message: { content: 'done' } }] });
+    }));
+
+    await toolCompletion({ provider: 'deepseek', model: 'deepseek-reasoner', apiKey: 'sk-test-12345' }, 's', [{ role: 'user', content: 'q' }], tools, async () => ({}));
+
+    const assistant = bodies[1].messages.find((m: any) => m.role === 'assistant');
+    expect(assistant.reasoning_content).toBe('think');
+  });
+
   it('runs an Anthropic tool_use block and returns the final text', async () => {
     const bodies: any[] = [];
     vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => {

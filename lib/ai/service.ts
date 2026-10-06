@@ -320,7 +320,14 @@ export async function toolCompletion(
     const message = data.choices?.[0]?.message ?? {};
     const calls: any[] = Array.isArray(message.tool_calls) ? message.tool_calls : [];
     if (calls.length === 0 || lastRound) return String(message.content ?? '').trim();
-    convo.push({ role: 'assistant', content: message.content ?? null, tool_calls: calls });
+    convo.push({
+      role: 'assistant',
+      content: message.content ?? null,
+      tool_calls: calls,
+      // DeepSeek reasoning models require their reasoning sent back with the
+      // tool results (400 otherwise); other providers never return it.
+      ...(message.reasoning_content != null ? { reasoning_content: message.reasoning_content } : {}),
+    });
     for (const [i, call] of calls.entries()) {
       let input: unknown = {};
       try {
