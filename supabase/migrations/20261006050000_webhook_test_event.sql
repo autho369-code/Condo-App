@@ -26,7 +26,9 @@ begin
   if not endpoint_row.active or (endpoint_row.disabled_until is not null and endpoint_row.disabled_until > now()) then
     raise exception 'Enable this endpoint before sending a test event.' using errcode = '22023';
   end if;
-  -- One test per endpoint per minute.
+  -- One test per endpoint per minute. Lock the endpoint row first (only after
+  -- the access checks) so overlapping calls wait and can't both pass.
+  perform 1 from public.webhook_endpoints where id = endpoint_row.id for update;
   perform 1 from public.webhook_deliveries
    where endpoint_id = endpoint_row.id
      and event_type = 'ping'::public.webhook_event
