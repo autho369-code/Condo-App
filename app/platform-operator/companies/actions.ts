@@ -14,6 +14,7 @@ import { PLAN_BY_ID, type PlanId } from '@/lib/billing/plans';
 import { safeInternalNext } from '@/lib/security/redirects';
 import { siteUrl } from '@/lib/url/site-url';
 import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { attachDomainToVercel, parseCustomDomain, vercelDomainsEnv } from '@/lib/tenant/custom-domain';
 import { claimSubmission, releaseSubmission, completeSubmission } from '@/lib/forms/submission';
 import { monthWindowInZone, parseDollarsToCents, parsePositiveInt } from '@/lib/platform/operator-metrics';
 import { displayTimeZone } from '@/lib/time/display-zone';
@@ -701,6 +702,43 @@ export async function updateWorkspaceAddress(formData: FormData) {
   }
   revalidatePath(returnTo);
   ok(returnTo, 'address_changed');
+}
+
+export async function updateCustomDomain(formData: FormData) {
+  const me = await requirePlatformAdmin();
+  const portfolioId = String(formData.get('portfolio_id') ?? '');
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
+  if (!/^[0-9a-f-]{36}$/i.test(portfolioId)) fail(returnTo, 'Company not found.');
+  const parsed = parseCustomDomain(formData.get('custom_domain'));
+  if (!parsed.ok) fail(returnTo, parsed.error);
+
+  const svc = createServiceClient() as any;
+  const { data: before } = await svc.from('portfolios').select('custom_domain').eq('id', portfolioId).maybeSingle();
+  if (!before) fail(returnTo, 'Company not found.');
+
+  // Signed-in session: the RPC re-checks platform admin, repeats the
+  // validation and refuses a domain another company already uses.
+  const db = (await createClient()) as any;
+  const { data: saved, error } = await db.rpc('platform_set_portfolio_custom_domain', {
+    p_portfolio_id: portfolioId,
+    p_domain: parsed.domain ?? '',
+  });
+  if (error) fail(returnTo, error.message);
+
+  if ((saved ?? null) !== (before.custom_domain ?? null)) {
+    await audit(svc, me, 'custom_domain_changed', portfolioId, { from: before.custom_domain ?? null, to: saved ?? null });
+  }
+  revalidatePath(returnTo);
+  if (!saved) ok(returnTo, 'domain_cleared');
+
+  const vercel = vercelDomainsEnv();
+  if (vercel) {
+    const attached = await attachDomainToVercel(vercel, saved);
+    if (!attached.ok) {
+      fail(returnTo, `Domain saved, but it could not be added to the Vercel project: ${attached.error} Add ${saved} under Vercel → Project → Domains.`);
+    }
+  }
+  ok(returnTo, 'domain_saved');
 }
 
 // ── Company status ────────────────────────────────────────────────────────

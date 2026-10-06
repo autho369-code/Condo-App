@@ -37,6 +37,7 @@ import {
   updateWorkspaceAddress,
   voidInvoice,
 } from '../actions';
+import { CustomDomainCard } from './custom-domain-card';
 import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
@@ -86,6 +87,7 @@ const ACTION_LABELS: Record<string, string> = {
   company_reactivated: 'Company Reactivated',
   company_archived: 'Company Archived',
   workspace_address_changed: 'Workspace Address Changed',
+  custom_domain_changed: 'Custom Domain Changed',
   ownership_transferred: 'Ownership Transferred',
 };
 
@@ -101,6 +103,8 @@ const BANNERS: Record<string, string> = {
   suspended: 'Company suspended.',
   reactivated: 'Company reactivated.',
   address_changed: 'Workspace address saved. The old address keeps working and forwards to the new one.',
+  domain_saved: 'Custom domain saved. It serves the company once its DNS points to the platform.',
+  domain_cleared: 'Custom domain removed. The company is served from its workspace address.',
   plan_changed: 'Subscription plan updated.',
   limits_adjusted: 'Limits updated.',
   ownership_transferred: 'Company ownership transferred.',
@@ -136,7 +140,7 @@ export default async function CompanyDetailPage({
     allAssociations,
     { data: slugAliases, error: slugAliasesError },
   ] = await Promise.all([
-    db.from('portfolios').select('id, company_name, slug, tier, created_at, suspended_at, suspension_reason, archived_at, address_city, address_state, phone_number, support_email').eq('id', id).maybeSingle(),
+    db.from('portfolios').select('id, company_name, slug, custom_domain, tier, created_at, suspended_at, suspension_reason, archived_at, address_city, address_state, phone_number, support_email').eq('id', id).maybeSingle(),
     db.from('subscriptions').select('id, tier, status, billing_email, seats_used, seats_included, associations_limit, units_limit, price_monthly_cents, trial_ends_at, current_period_end').eq('portfolio_id', id).maybeSingle(),
     db.from('profiles').select('id, email, full_name, display_name, hoa_role, last_login_at, mfa_enrolled_at').eq('portfolio_id', id).in('hoa_role', ['company_admin', 'manager']).order('hoa_role'),
     db.from('associations').select('id, name, city, state, unit_count, status').eq('portfolio_id', id).is('archived_at', null).order('name').limit(20),
@@ -321,6 +325,8 @@ export default async function CompanyDetailPage({
           )}
         </CardBody>
       </Card>
+
+      <CustomDomainCard portfolioId={id} slug={portfolio.slug ?? null} customDomain={portfolio.custom_domain ?? null} returnTo={returnTo} />
 
       {/* ── Company details ─────────────────────────────────────────── */}
       <Card id="details">
