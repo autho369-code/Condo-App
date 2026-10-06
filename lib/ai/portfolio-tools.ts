@@ -143,16 +143,22 @@ export async function runPortfolioTool(
   const db = (await createClient()) as any;
 
   async function associationIds(nameFilter: unknown): Promise<string[] | null> {
-    const raw = cleanText(nameFilter);
+    let raw = cleanText(nameFilter);
+    // A trailing "[id:abcd1234]" (offered by the ambiguity message) picks one
+    // association even when name and city are both shared.
+    const idTag = raw.match(/\s*\[id:([0-9a-f-]{6,36})\]$/i);
+    const idPrefix = idTag ? idTag[1].toLowerCase() : '';
+    if (idTag) raw = raw.slice(0, idTag.index).trim();
     if (!raw) return null;
-    // "Name (City)" picks between associations that share a name (the form the
-    // ambiguity message offers), unless a name really ends in parentheses.
+    // "Name (City)" picks between associations that share a name, unless a
+    // name really ends in parentheses.
     const withCity = raw.match(/^(.+?)\s*\(([^()]+)\)$/);
     const namePart = withCity ? withCity[1].trim() : raw;
     const { data, error } = await db.from('associations').select('id, name, city')
       .ilike('name', `%${likeEscape(namePart)}%`).is('archived_at', null).limit(20);
     if (error) fail(error.message);
-    const rows = (data ?? []) as Array<{ id: string; name: string; city: string | null }>;
+    const rows = ((data ?? []) as Array<{ id: string; name: string; city: string | null }>)
+      .filter((a) => !idPrefix || a.id.toLowerCase().startsWith(idPrefix));
     const lower = (v: string | null) => (v ?? '').trim().toLowerCase();
     // 1) the full text is an exact name; 2) "Name (City)"; 3) an exact name
     // part; 4) a single partial match. More than one candidate is ambiguous
@@ -166,7 +172,8 @@ export async function runPortfolioTool(
       candidates = exact.length ? exact : rows;
     }
     if (candidates.length > 1) {
-      const label = (a: { name: string; city: string | null }) => (a.city ? `${a.name} (${a.city})` : a.name);
+      const label = (a: { id: string; name: string; city: string | null }) =>
+        `${a.city ? `${a.name} (${a.city})` : a.name} [id:${a.id.slice(0, 8)}]`;
       fail(`Several associations match "${raw}": ${candidates.map(label).join(', ')}. Ask which one, then pass it exactly as listed.`);
     }
     return candidates.map((a) => a.id);
@@ -266,8 +273,8 @@ export async function runPortfolioTool(
         db.from('unit_balances').select('balance, total_charges, total_payments').eq('unit_id', unit.id).maybeSingle(),
         db.from('charges').select('description, amount, due_date').eq('unit_id', unit.id).order('due_date', { ascending: false }).limit(6),
         db.from('receivable_payments_ledger').select('amount, payment_date, method, reversed_at').eq('unit_id', unit.id).order('payment_date', { ascending: false }).limit(6),
-        db.from('violations').select('title, violation_type, status, due_date').eq('unit_id', unit.id).is('archived_at', null).not('status', 'in', OPEN_VIOLATION).limit(10),
-        db.from('work_orders').select('number, title, status, priority, scheduled_date').eq('unit_id', unit.id).is('archived_at', null).not('status', 'in', OPEN_WO).limit(10),
+        db.from('violations').select('title, violation_type, status, due_date', { count: 'exact' }).eq('unit_id', unit.id).is('archived_at', null).not('status', 'in', OPEN_VIOLATION).limit(10),
+        db.from('work_orders').select('number, title, status, priority, scheduled_date', { count: 'exact' }).eq('unit_id', unit.id).is('archived_at', null).not('status', 'in', OPEN_WO).limit(10),
       ]);
       for (const r of [occ, bal, charges, payments, violations, workOrders]) if (r.error) fail(r.error.message);
       return {
@@ -293,8 +300,8 @@ export async function runPortfolioTool(
               recent_payments: (payments.data ?? []).map((p: any) => ({ amount: round2(p.amount), date: p.payment_date, method: p.method, reversed: !!p.reversed_at })),
             }
           : { financials: 'Not available to your role.' }),
-        open_violations: violations.data ?? [],
-        open_work_orders: workOrders.data ?? [],
+        open_violations: listResult(violations.count ?? null, violations.data ?? []),
+        open_work_orders: listResult(workOrders.count ?? null, workOrders.data ?? []),
       };
     }
 
