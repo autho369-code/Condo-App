@@ -207,6 +207,12 @@ export async function runPortfolioTool(
     return map;
   }
 
+  async function hiddenAssociationIds(): Promise<string[]> {
+    const { data, error } = await db.from('associations').select('id').eq('portfolio_id', PID).not('archived_at', 'is', null);
+    if (error) fail(error.message);
+    return ((data ?? []) as { id: string }[]).map((a) => a.id);
+  }
+
   async function portfolioAssociationIds(): Promise<string[]> {
     const { data, error } = await db.from('associations').select('id').eq('portfolio_id', PID).is('archived_at', null);
     if (error) fail(error.message);
@@ -407,8 +413,8 @@ export async function runPortfolioTool(
       const assocIds = await associationIds(input.association);
       if (assocIds && !assocIds.length) return { error: 'No association matches that name.' };
       let query = db.from('work_orders')
-        .select('number, title, status, priority, scheduled_date, created_at, association_id, units(unit_number)', { count: 'exact' })
-        .eq('portfolio_id', PID).is('archived_at', null).not('status', 'in', OPEN_WO)
+        .select('number, title, status, priority, scheduled_date, created_at, association_id, units(unit_number), associations!work_orders_association_id_fkey!inner(archived_at)', { count: 'exact' })
+        .eq('portfolio_id', PID).is('associations.archived_at', null).is('archived_at', null).not('status', 'in', OPEN_WO)
         .order('created_at', { ascending: false }).limit(clampLimit(input.limit));
       if (assocIds) query = query.in('association_id', assocIds);
       const status = cleanText(input.status).toLowerCase().replace(/ /g, '_');
@@ -460,6 +466,10 @@ export async function runPortfolioTool(
         .eq('portfolio_id', PID).is('archived_at', null).eq('status', status)
         .order('due_date', { ascending: true, nullsFirst: false }).limit(clampLimit(input.limit));
       if (assocIds) query = query.in('association_id', assocIds);
+      // association_id is optional on bills: keep portfolio-level bills, drop
+      // bills of hidden associations.
+      const hidden = assocIds ? [] : await hiddenAssociationIds();
+      if (hidden.length) query = query.or(`association_id.is.null,association_id.not.in.(${hidden.join(',')})`);
       const { data, error, count } = await query;
       if (error) fail(error.message);
       const names = await associationNames((data ?? []).map((b: any) => b.association_id));
