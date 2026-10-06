@@ -14,9 +14,12 @@ access, accounts, approval or decisions.
 
 1. [ ] **Resale / estoppel certificate** — the document an HOA issues when a unit
        sells (balance, dues, special assessments, violations, pending charges).
-       Earlier scoped to MD §11-135, never built. Last everyday-use gap vs AppFolio.
-2. [ ] **Assistant tool-calling** — let the Portfolio Assistant run live,
-       RLS-scoped queries instead of answering from a data snapshot.
+       Earlier scoped to MD §11-135 and **declined by Mirsad** (see
+       `docs/appfolio-gap-analysis.md`); the **Homeowner Resale** report already
+       gives the per-unit data. Build only if Mirsad asks.
+2. [x] **Assistant tool-calling** — DONE 2026-10-05: the Portfolio Assistant can
+       call six fixed, read-only, RLS-scoped lookups (owner, unit, delinquent
+       units, open work orders, open violations, bills) on top of the snapshot.
 3. [ ] **Real e-signature** for board resolutions, ARC approvals and vendor
        contracts (today: drawn/typed signature on board sign-off).
 4. [ ] **Operator cross-company analytics + partner API/webhooks.**
@@ -199,8 +202,8 @@ but a few worth addressing before scale:
 ## 🚀 Exceed-AppFolio roadmap (future bets, optional)
 Detail + rationale in `docs/appfolio-gap-analysis.md`.
 
-- [ ] Upgrade the Portfolio Assistant to **tool-calling** (live queries) beyond the
-      current data-snapshot grounding.
+- [x] Upgrade the Portfolio Assistant to **tool-calling** (live queries) beyond the
+      current data-snapshot grounding. (2026-10-05)
 - [ ] **Real e-signature** for board resolutions / ARC approvals / vendor contracts
       (current board sign-off is a typed-name signature, not a vendor e-sign).
 - [ ] **Operator cross-company analytics** + partner **API / webhooks** (leans into

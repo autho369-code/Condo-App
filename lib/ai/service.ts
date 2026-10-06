@@ -92,7 +92,7 @@ async function parseProviderResponse(response: Response): Promise<any> {
   }
 }
 
-async function providerFetch(config: AIConfig, body: Record<string, unknown>): Promise<any> {
+async function providerFetch(config: AIConfig, body: Record<string, unknown>, timeoutMs = REQUEST_TIMEOUT_MS): Promise<any> {
   if (!isSupportedAIProvider(config.provider) || !validModel(config.model)) {
     throw new Error('AI provider configuration is invalid.');
   }
@@ -116,7 +116,7 @@ async function providerFetch(config: AIConfig, body: Record<string, unknown>): P
     body: JSON.stringify(body),
     redirect: 'error',
     cache: 'no-store',
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   return parseProviderResponse(response);
 }
@@ -200,4 +200,208 @@ export async function visionCompletion(
     response_format: { type: 'json_object' },
   });
   return data.choices?.[0]?.message?.content ?? '';
+}
+
+export interface AITool {
+  name: string;
+  description: string;
+  /** JSON Schema for the tool's input object. */
+  parameters: Record<string, unknown>;
+}
+
+export type AIToolExecutor = (name: string, input: Record<string, unknown>) => Promise<unknown>;
+
+const MAX_TOOL_RESULT_CHARS = 12_000;
+/** Lookups run per model response, and per question in total. */
+const MAX_TOOL_CALLS_PER_ROUND = 4;
+const MAX_TOOL_CALLS_TOTAL = 10;
+
+const MAX_TOOL_STRING_CHARS = 300;
+
+function shortenStrings(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return value.length > MAX_TOOL_STRING_CHARS ? `${value.slice(0, MAX_TOOL_STRING_CHARS)}…` : value;
+  }
+  if (Array.isArray(value)) return value.map(shortenStrings);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, shortenStrings(v)]));
+  }
+  return value;
+}
+
+/** The longest array in the tree (by item count), the object holding it and its key. */
+type ArrayHit = { arr: unknown[]; parent: Record<string, unknown> | null; key: string | null };
+function largestArray(value: unknown, parent: Record<string, unknown> | null = null, key: string | null = null): ArrayHit | null {
+  let best: ArrayHit | null = null;
+  if (Array.isArray(value)) {
+    if (value.length) best = { arr: value, parent, key };
+    for (const item of value) {
+      const inner = largestArray(item, null, null);
+      if (inner && (!best || inner.arr.length > best.arr.length)) best = inner;
+    }
+  } else if (value && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) {
+      const inner = largestArray(v, value as Record<string, unknown>, k);
+      if (inner && (!best || inner.arr.length > best.arr.length)) best = inner;
+    }
+  }
+  return best;
+}
+
+/**
+ * Serialize a lookup result within MAX_TOOL_RESULT_CHARS while keeping it
+ * valid JSON: long strings are shortened first, then rows are dropped from
+ * the end of the largest list, and a list envelope's `returned`/`truncated`
+ * are updated to describe what is actually sent.
+ */
+export function toolResultText(result: unknown): string {
+  let text = JSON.stringify(result ?? null);
+  if (text.length <= MAX_TOOL_RESULT_CHARS) return text;
+  let value = shortenStrings(result ?? null);
+  if (Array.isArray(value)) value = { total: value.length, returned: value.length, truncated: false, rows: value };
+  text = JSON.stringify(value);
+  while (text.length > MAX_TOOL_RESULT_CHARS) {
+    const target = largestArray(value);
+    if (!target) break;
+    target.arr.pop();
+    // Flag the whole result so lists without an envelope aren't read as complete.
+    if (value && typeof value === 'object') (value as Record<string, unknown>).trimmed_to_fit = true;
+    if (target.parent && target.key === 'rows') {
+      target.parent.returned = target.arr.length;
+      target.parent.truncated = true;
+    } else if (target.parent && target.key) {
+      // A nested list (e.g. one owner's units): record its full size and
+      // that it was cut, next to the list itself.
+      const totalKey = `${target.key}_total`;
+      if (target.parent[totalKey] === undefined) target.parent[totalKey] = target.arr.length + 1;
+      target.parent[`${target.key}_truncated`] = true;
+    }
+    text = JSON.stringify(value);
+  }
+  if (text.length > MAX_TOOL_RESULT_CHARS) {
+    return JSON.stringify({ error: 'Lookup result too large to show. Narrow the question.' });
+  }
+  return text;
+}
+
+async function runTool(execute: AIToolExecutor, tools: AITool[], name: string, rawInput: unknown): Promise<string> {
+  if (!tools.some((tool) => tool.name === name)) return toolResultText({ error: `Unknown tool: ${name}` });
+  const input = rawInput && typeof rawInput === 'object' && !Array.isArray(rawInput)
+    ? rawInput as Record<string, unknown>
+    : {};
+  try {
+    return toolResultText(await execute(name, input));
+  } catch (error) {
+    return toolResultText({ error: error instanceof Error ? error.message : 'Lookup failed' });
+  }
+}
+
+/**
+ * Chat with tool calling. The model may call the allow-listed `tools`; each
+ * call runs through `execute` (the caller decides what a tool can read) and the
+ * result goes back to the model, for at most `maxRounds` rounds. Returns the
+ * final text answer.
+ */
+export async function toolCompletion(
+  config: AIConfig,
+  system: string,
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+  tools: AITool[],
+  execute: AIToolExecutor,
+  options?: { temperature?: number; maxTokens?: number; maxRounds?: number; timeBudgetMs?: number },
+): Promise<string> {
+  const maxTokens = Math.min(4096, Math.max(1, options?.maxTokens ?? 1500));
+  const maxRounds = Math.min(8, Math.max(1, options?.maxRounds ?? 5));
+  const temperature = options?.temperature ?? 0.1;
+  // The whole exchange (all rounds) fits in this budget: each provider call
+  // gets only the time that is left, and once less than a quarter remains the
+  // model must answer without further lookups.
+  const budget = Math.max(5_000, options?.timeBudgetMs ?? 50_000);
+  const startedAt = Date.now();
+  const remaining = () => budget - (Date.now() - startedAt);
+  const callTimeout = () => Math.max(1_000, Math.min(REQUEST_TIMEOUT_MS, remaining()));
+  const mustFinish = (round: number) => round >= maxRounds || remaining() < budget / 4;
+  let callsMade = 0;
+  // Run one requested lookup unless the per-round, per-question or time limit
+  // is reached; the model is told why a lookup was skipped.
+  const guardedRun = async (indexInRound: number, name: string, input: unknown): Promise<string> => {
+    if (indexInRound >= MAX_TOOL_CALLS_PER_ROUND || callsMade >= MAX_TOOL_CALLS_TOTAL || remaining() < budget / 4) {
+      return toolResultText({ error: 'Lookup skipped: limit reached. Answer with what you have.' });
+    }
+    callsMade += 1;
+    return runTool(execute, tools, name, input);
+  };
+
+  if (config.provider === 'anthropic') {
+    const convo: any[] = messages.map((m) => ({ role: m.role, content: m.content }));
+    const anthropicTools = tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.parameters }));
+    for (let round = 0; round <= maxRounds; round++) {
+      const lastRound = mustFinish(round);
+      const data = await providerFetch(config, {
+        model: config.model,
+        system,
+        messages: convo,
+        temperature,
+        max_tokens: maxTokens,
+        ...(lastRound ? {} : { tools: anthropicTools }),
+      }, callTimeout());
+      const content: any[] = Array.isArray(data.content) ? data.content : [];
+      const calls = content.filter((part) => part?.type === 'tool_use');
+      if (calls.length === 0 || lastRound) {
+        return content.filter((part) => part?.type === 'text').map((part) => part.text).join('\n').trim();
+      }
+      convo.push({ role: 'assistant', content });
+      const results = [];
+      for (const [i, call] of calls.entries()) {
+        results.push({
+          type: 'tool_result',
+          tool_use_id: call.id,
+          content: await guardedRun(i, String(call.name ?? ''), call.input),
+        });
+      }
+      convo.push({ role: 'user', content: results });
+    }
+    return '';
+  }
+
+  const convo: any[] = [{ role: 'system', content: system }, ...messages];
+  const openaiTools = tools.map((t) => ({
+    type: 'function',
+    function: { name: t.name, description: t.description, parameters: t.parameters },
+  }));
+  for (let round = 0; round <= maxRounds; round++) {
+    const lastRound = mustFinish(round);
+    const data = await providerFetch(config, {
+      model: config.model,
+      messages: convo,
+      temperature,
+      max_tokens: maxTokens,
+      ...(lastRound ? {} : { tools: openaiTools }),
+    }, callTimeout());
+    const message = data.choices?.[0]?.message ?? {};
+    const calls: any[] = Array.isArray(message.tool_calls) ? message.tool_calls : [];
+    if (calls.length === 0 || lastRound) return String(message.content ?? '').trim();
+    convo.push({
+      role: 'assistant',
+      content: message.content ?? null,
+      tool_calls: calls,
+      // DeepSeek reasoning models require their reasoning sent back with the
+      // tool results (400 otherwise); other providers never return it.
+      ...(message.reasoning_content != null ? { reasoning_content: message.reasoning_content } : {}),
+    });
+    for (const [i, call] of calls.entries()) {
+      let input: unknown = {};
+      try {
+        input = JSON.parse(call.function?.arguments ?? '{}');
+      } catch {
+        input = {};
+      }
+      convo.push({
+        role: 'tool',
+        tool_call_id: call.id,
+        content: await guardedRun(i, String(call.function?.name ?? ''), input),
+      });
+    }
+  }
+  return '';
 }
