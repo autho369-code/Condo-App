@@ -33,6 +33,7 @@ const ALL_PORTFOLIO_TOOLS: AITool[] = [
       properties: {
         unit_number: { type: 'string', description: 'The unit number, e.g. "301".' },
         association: { type: 'string', description: 'Optional association name, to pick between units with the same number.' },
+        building: { type: 'string', description: 'Optional building name, when one association has the same unit number in several buildings.' },
       },
       required: ['unit_number'],
     },
@@ -128,17 +129,18 @@ export async function runPortfolioTool(
   async function associationIds(nameFilter: unknown): Promise<string[] | null> {
     const q = sanitizeSearch(nameFilter);
     if (!q) return null;
-    const { data, error } = await db.from('associations').select('id, name').ilike('name', `%${q}%`).is('archived_at', null).limit(20);
+    const { data, error } = await db.from('associations').select('id, name, city').ilike('name', `%${q}%`).is('archived_at', null).limit(20);
     if (error) fail(error.message);
-    const rows = (data ?? []) as Array<{ id: string; name: string }>;
-    // An exact name wins; otherwise a single partial match. Several partial
-    // matches are ambiguous: never silently combine associations.
+    const rows = (data ?? []) as Array<{ id: string; name: string; city: string | null }>;
+    // One exact name wins; otherwise a single partial match. Anything else is
+    // ambiguous (names aren't unique): never silently combine associations.
     const exact = rows.filter((a) => a.name.trim().toLowerCase() === q.toLowerCase());
-    if (exact.length) return exact.map((a) => a.id);
-    if (rows.length > 1) {
-      fail(`Several associations match "${q}": ${rows.map((a) => a.name).join(', ')}. Ask which one.`);
+    const candidates = exact.length ? exact : rows;
+    if (candidates.length > 1) {
+      const label = (a: { name: string; city: string | null }) => (a.city ? `${a.name} (${a.city})` : a.name);
+      fail(`Several associations match "${q}": ${candidates.map(label).join(', ')}. Ask which one.`);
     }
-    return rows.map((a) => a.id);
+    return candidates.map((a) => a.id);
   }
 
   async function associationNames(ids: string[]): Promise<Map<string, string>> {
@@ -207,9 +209,11 @@ export async function runPortfolioTool(
       if (!unitNumber) return { error: 'Give a unit number.' };
       const assocIds = await associationIds(input.association);
       let query = db.from('units')
-        .select('id, unit_number, buildings!inner(association_id)')
+        .select('id, unit_number, buildings!inner(association_id, name)')
         .is('archived_at', null).ilike('unit_number', unitNumber).limit(10);
       if (assocIds) query = query.in('buildings.association_id', assocIds.length ? assocIds : ['00000000-0000-0000-0000-000000000000']);
+      const building = sanitizeSearch(input.building);
+      if (building) query = query.ilike('buildings.name', `%${building}%`);
       const { data: units, error } = await query;
       if (error) fail(error.message);
       if (!units?.length) return { error: `No unit ${unitNumber} found.` };
@@ -217,8 +221,12 @@ export async function runPortfolioTool(
       if (units.length > 1) {
         return {
           ambiguous: true,
-          message: 'Several units have that number. Ask which association.',
-          matches: units.map((u: any) => ({ unit: u.unit_number, association: names.get(u.buildings?.association_id) ?? null })),
+          message: 'Several units have that number. Ask which association or building.',
+          matches: units.map((u: any) => ({
+            unit: u.unit_number,
+            association: names.get(u.buildings?.association_id) ?? null,
+            building: u.buildings?.name ?? null,
+          })),
         };
       }
       const unit = units[0];
@@ -235,6 +243,7 @@ export async function runPortfolioTool(
       return {
         unit: unit.unit_number,
         association: names.get(unit.buildings?.association_id) ?? null,
+        building: unit.buildings?.name ?? null,
         owners: (occ.data ?? []).map((o: any) => ({
           name: o.owners?.full_name ?? null,
           email: o.owners?.email ?? null,
