@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { changeLabel, monthKey, monthLabel, percentChange, previousMonth, totalsByMonth } from '@/lib/platform/usage-trends';
+import { changeLabel, monthKey, monthLabel, percentChange, previousMonth, staffDefinitionChanged, totalsByMonth } from '@/lib/platform/usage-trends';
 
 describe('usage trends', () => {
   it('sums every company per month, newest month first', () => {
@@ -29,5 +29,11 @@ describe('usage trends', () => {
     expect(changeLabel(3, 0, 'Sep')).toBe('Up from 0 in Sep');
     expect(changeLabel(0, 0, 'Sep')).toBe('None in Sep either');
     expect(changeLabel(3, null, 'Sep')).toBe('No earlier month');
+  });
+
+  it('flags staff comparisons that cross the staff-definition change', () => {
+    expect(staffDefinitionChanged('2026-10', '2026-09')).toBe(true);
+    expect(staffDefinitionChanged('2026-11', '2026-10')).toBe(false);
+    expect(staffDefinitionChanged('2026-09', '2026-08')).toBe(false);
   });
 });

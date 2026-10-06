@@ -12,6 +12,7 @@ import {
   monthKey,
   monthLabel,
   previousMonth,
+  staffDefinitionChanged,
   totalsByMonth,
   type MonthTotals,
   type UsageRow,
@@ -65,7 +66,11 @@ export default async function UsageTrendsPage({ searchParams }: { searchParams: 
   const strip = (key: keyof MonthTotals & string, label: string) => ({
     label,
     value: count(selected?.[key] as number),
-    sublabel: selected ? changeLabel(Number(selected[key]), prior ? Number(prior[key]) : null, priorLabel) : undefined,
+    sublabel: !selected
+      ? undefined
+      : key === 'staff_count' && staffDefinitionChanged(selected.month, previousMonth(selected.month))
+        ? 'Now includes company admins'
+        : changeLabel(Number(selected[key]), prior ? Number(prior[key]) : null, priorLabel),
   });
 
   const monthColumns: Column<MonthTotals>[] = [
