@@ -22,6 +22,10 @@ export const PLATFORM_ICON: IconBrand = { glyph: 'P', background: PLATFORM_BACKG
 // a font at request time. Checked against the font file in app-icon.test.ts.
 export const DRAWABLE_GLYPH = /^[A-Z0-9\u00C0-\u00D6\u00D8-\u00DE]$/
 
+// Text the same bundled font can draw in full: printable ASCII, Latin-1 and
+// typographic dashes/quotes (checked against the font file in the test).
+export const DRAWABLE_TEXT = /^[\u0020-\u007E\u00A0-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D]+$/
+
 const DARK_GLYPH = '#111827'
 
 function luminance(hex: string): number {

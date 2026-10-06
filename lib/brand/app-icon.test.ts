@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DRAWABLE_GLYPH, PLATFORM_ICON, companyIconBrand, glyphColorFor } from './app-icon';
+import { DRAWABLE_GLYPH, DRAWABLE_TEXT, PLATFORM_ICON, companyIconBrand, glyphColorFor } from './app-icon';
 
 /** Code points in a TrueType font's format-4 cmap. */
 function fontCodePoints(path: string): (cp: number) => boolean {
@@ -64,6 +64,12 @@ describe('companyIconBrand', () => {
     const allowed = Array.from({ length: 0x250 }, (_, cp) => String.fromCodePoint(cp)).filter((ch) => DRAWABLE_GLYPH.test(ch));
     expect(allowed.length).toBeGreaterThan(60);
     expect(allowed.filter((ch) => !has(ch.codePointAt(0)!))).toEqual([]);
+
+    // Company names on link-preview cards: every character the text check accepts.
+    const textChars = Array.from({ length: 0x2100 }, (_, cp) => String.fromCodePoint(cp)).filter((ch) => DRAWABLE_TEXT.test(ch));
+    expect(textChars.filter((ch) => !has(ch.codePointAt(0)!))).toEqual([]);
+    expect(DRAWABLE_TEXT.test('Stellar Property Group, Inc. — Élan & Co’s')).toBe(true);
+    expect(DRAWABLE_TEXT.test('中华物业')).toBe(false);
   });
 
   it('falls back to the platform icon without a usable name', () => {

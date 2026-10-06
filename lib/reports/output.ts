@@ -26,6 +26,8 @@ export type ReportOutput = {
 
 export type ReportOutputContext = {
   title?: string;
+  /** The management company the report belongs to (white label: files never name the platform). */
+  companyName?: string | null;
   scope?: string;
   dateFrom?: string | null;
   dateTo?: string | null;
@@ -43,6 +45,12 @@ function humanizeHeader(value: string): string {
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }
 
+/** The report's title, or the company's name, never the platform's. */
+export function reportTitle(context: ReportOutputContext): string {
+  const company = context.companyName?.trim();
+  return context.title?.trim() || (company ? `${company} report` : 'Report');
+}
+
 function rowsToPdf(rows: Record<string, unknown>[], context: ReportOutputContext): Uint8Array {
   const doc = new jsPDF({ unit: 'pt', format: 'letter' });
   const headers = rows.length === 0 ? ['Result'] : [...new Set(rows.flatMap((row) => Object.keys(row)))];
@@ -53,8 +61,9 @@ function rowsToPdf(rows: Record<string, unknown>[], context: ReportOutputContext
       return value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
     }));
 
-  const title = context.title?.trim() || 'Portier369 report';
+  const title = reportTitle(context);
   const scope = context.scope?.trim() || 'Portfolio';
+  doc.setProperties({ title, author: context.companyName?.trim() || '', creator: context.companyName?.trim() || '' });
   const period = context.dateFrom && context.dateTo
     ? `${context.dateFrom} through ${context.dateTo}`
     : context.dateTo
@@ -99,9 +108,9 @@ async function rowsToXlsx(rows: Record<string, unknown>[], context: ReportOutput
   // Loaded on demand so the report worker only pays for it when Excel is picked.
   const ExcelJS = (await import('exceljs')).default;
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Portier369';
+  workbook.creator = context.companyName?.trim() || '';
   workbook.created = new Date();
-  const title = context.title?.trim() || 'Portier369 report';
+  const title = reportTitle(context);
   // Sheet names: max 31 chars, no : \ / ? * [ ]
   const sheet = workbook.addWorksheet(title.replace(/[:\\/?*[\]]/g, ' ').slice(0, 31) || 'Report');
 

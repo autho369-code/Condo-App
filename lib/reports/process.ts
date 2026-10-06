@@ -108,8 +108,10 @@ export async function processReportRun(runId: string): Promise<void> {
         .maybeSingle();
       scope = association?.name ?? 'Selected association';
     }
+    const { data: company } = await svc.from('portfolios').select('company_name').eq('id', run.portfolio_id).maybeSingle();
     const output = await serializeReportOutput(run.output_format, rows, {
-      title: run.report_definitions?.name ?? slug ?? 'Portier369 report',
+      title: run.report_definitions?.name ?? slug ?? undefined,
+      companyName: company?.company_name ?? null,
       scope,
       dateFrom: typeof parameters.date_from === 'string' ? parameters.date_from : null,
       dateTo: typeof parameters.date_to === 'string' ? parameters.date_to : null,

@@ -76,3 +76,43 @@ describe('signedInStepMetadata', () => {
     });
   });
 });
+
+describe('link-preview image', () => {
+  it("points company pages at the company's own preview card", async () => {
+    vi.stubEnv('NEXT_PUBLIC_APEX_DOMAIN', 'portier369.com');
+    requestHeaders = new Headers({
+      'x-portfolio-id': 'p1',
+      'x-portfolio-name': encodeURIComponent('Stellar Property Group'),
+      'x-portfolio-slug': 'stellar',
+      'x-tenant-host': 'stellar.portier369.com',
+    });
+    const { workspaceMetadata } = await import('./metadata');
+    const meta = await workspaceMetadata();
+    expect(meta.openGraph).toMatchObject({
+      images: [{ url: 'https://stellar.portier369.com/opengraph-image', width: 1200, height: 630, alt: 'HOA & condo management portal' }],
+    });
+    expect(meta.twitter).toMatchObject({ card: 'summary_large_image', images: ['https://stellar.portier369.com/opengraph-image'] });
+    vi.unstubAllEnvs();
+  });
+
+  it("keeps a company's custom domain in the preview image", async () => {
+    vi.stubEnv('NEXT_PUBLIC_APEX_DOMAIN', 'portier369.com');
+    requestHeaders = new Headers({
+      'x-portfolio-id': 'p1',
+      'x-portfolio-name': encodeURIComponent('Stellar Property Group'),
+      'x-portfolio-slug': 'stellar',
+      'x-tenant-host': 'portal.stellarpropertygroup.com',
+    });
+    const { signInMetadata } = await import('./metadata');
+    const meta = await signInMetadata();
+    expect(meta.twitter).toMatchObject({ images: ['https://portal.stellarpropertygroup.com/opengraph-image'] });
+    vi.unstubAllEnvs();
+  });
+
+  it('sets no image for the signed-in fallback on the platform address', async () => {
+    meResult = { data: { portfolio: { company_name: 'Stellar Property Group' } }, error: null };
+    const { workspaceMetadata } = await import('./metadata');
+    const meta = await workspaceMetadata();
+    expect((meta.openGraph as any).images).toBeUndefined();
+  });
+});
