@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { isRootDomain, parseCustomDomain, pointsAtVercel, requiredDnsRecord } from './custom-domain';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { isRootDomain, parseCustomDomain, pointsAtVercel, requiredDnsRecord, vercelDomainStatus } from './custom-domain';
 
 describe('parseCustomDomain', () => {
   it('normalizes a typed domain', () => {
@@ -61,5 +61,41 @@ describe('pointsAtVercel', () => {
     expect(pointsAtVercel({ cnames: ['stellarpropertygrp.appfolio.com'], ipv4: [] }, cname)).toBe(false);
     expect(pointsAtVercel({ cnames: ['evilvercel-dns.com'], ipv4: [] }, cname)).toBe(false);
     expect(pointsAtVercel({ cnames: [], ipv4: [] }, cname)).toBe(false);
+  });
+});
+
+describe('vercelDomainStatus', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const env = { token: 't', projectId: 'prj_1', teamId: null };
+  const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
+
+  it('asks Vercel to re-check an unverified domain and uses the result', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: URL, init?: RequestInit) => {
+      calls.push(`${init?.method ?? 'GET'} ${url.pathname}`);
+      if (url.pathname.endsWith('/verify')) return json(200, { name: 'portal.acme.com', verified: true });
+      if (url.pathname.startsWith('/v6/')) return json(200, { misconfigured: false });
+      return json(200, { name: 'portal.acme.com', verified: false, verification: [{ type: 'TXT', domain: '_vercel.acme.com', value: 'vc-1' }] });
+    }));
+    const status = await vercelDomainStatus(env, 'portal.acme.com');
+    expect(calls).toContain('POST /v9/projects/prj_1/domains/portal.acme.com/verify');
+    expect(status).toMatchObject({ state: 'attached', verified: true, misconfigured: false, verification: [] });
+  });
+
+  it('keeps the TXT challenge when verification still fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: URL) => {
+      if (url.pathname.endsWith('/verify')) return json(400, { error: { message: 'TXT not found' } });
+      if (url.pathname.startsWith('/v6/')) return json(200, { misconfigured: true });
+      return json(200, { verified: false, verification: [{ type: 'TXT', domain: '_vercel.acme.com', value: 'vc-1' }] });
+    }));
+    const status = await vercelDomainStatus(env, 'portal.acme.com');
+    expect(status).toMatchObject({ state: 'attached', verified: false, verification: [{ type: 'TXT', value: 'vc-1' }] });
+  });
+
+  it('does not call verify for a verified domain', async () => {
+    const fetch = vi.fn(async (url: URL) => json(200, url.pathname.startsWith('/v6/') ? { misconfigured: false } : { verified: true }));
+    vi.stubGlobal('fetch', fetch);
+    await vercelDomainStatus(env, 'portal.acme.com');
+    expect(fetch.mock.calls.some(([url]) => String(url).includes('/verify'))).toBe(false);
   });
 });

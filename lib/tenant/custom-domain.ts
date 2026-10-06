@@ -128,11 +128,18 @@ export async function vercelDomainStatus(env: VercelEnv, domain: string): Promis
     if (project.status === 404) return { state: 'not-attached' };
     if (project.status !== 200) return { state: 'error', error: project.body?.error?.message || `Vercel answered ${project.status}.` };
     const cfg = config.status === 200 ? config.body : null;
+    let domainInfo = project.body;
+    // Vercel only re-checks a TXT ownership challenge when asked; each page
+    // load asks, so "reload to check again" really checks.
+    if (!domainInfo?.verified) {
+      const verify = await vercel(env, `/v9/projects/${encodeURIComponent(env.projectId)}/domains/${name}/verify`, { method: 'POST' });
+      if (verify.status === 200 && verify.body) domainInfo = verify.body;
+    }
     return {
       state: 'attached',
-      verified: !!project.body?.verified,
+      verified: !!domainInfo?.verified,
       misconfigured: cfg ? !!cfg.misconfigured : null,
-      verification: Array.isArray(project.body?.verification) ? project.body.verification : [],
+      verification: !domainInfo?.verified && Array.isArray(domainInfo?.verification) ? domainInfo.verification : [],
       recommended: {
         cname: cfg?.recommendedCNAME?.[0]?.value ?? null,
         ipv4: cfg?.recommendedIPv4?.[0]?.value?.[0] ?? null,
