@@ -17,9 +17,10 @@ export type IconBrand = { glyph: string; background: string; foreground: string 
 
 export const PLATFORM_ICON: IconBrand = { glyph: 'P', background: PLATFORM_BACKGROUND, foreground: '#ffffff' }
 
-// The renderer's built-in font covers Latin letters (accented included) and
-// digits; any other script would make it fetch a font at request time.
-const DRAWABLE_GLYPH = /^[A-Z0-9\u00C0-\u00D6\u00D8-\u00DE\u0100-\u017F]$/
+// The renderer's bundled font (next/og's Noto Sans latin subset) covers A–Z,
+// 0–9 and the Latin-1 capitals (À–Ö, Ø–Þ); anything else would make it fetch
+// a font at request time. Checked against the font file in app-icon.test.ts.
+export const DRAWABLE_GLYPH = /^[A-Z0-9\u00C0-\u00D6\u00D8-\u00DE]$/
 
 const DARK_GLYPH = '#111827'
 
