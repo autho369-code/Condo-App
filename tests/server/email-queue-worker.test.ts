@@ -25,7 +25,8 @@ describe('durable email queue worker', () => {
     expect(migration).toContain('for update skip locked');
     expect(migration).toContain("processing_at < now() - interval '10 minutes'");
     expect(route).toContain(".rpc('claim_email_queue'");
-    expect(route).toContain('idempotencyKey: `email-queue-${email.id}`');
+    expect(route).toContain('send(platformAddress, `email-queue-${email.id}`)');
+    expect(route).toContain('send(branded, `email-queue-${email.id}-${branded}`)');
   });
 
   it('records bounded retries and only reports a communication sent after completion', () => {

@@ -15,6 +15,7 @@ import { safeInternalNext } from '@/lib/security/redirects';
 import { siteUrl } from '@/lib/url/site-url';
 import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { attachDomainToVercel, parseCustomDomain, vercelDomainsEnv } from '@/lib/tenant/custom-domain';
+import { parseSenderSettings, registerSenderDomain, resendClient, storedStatus } from '@/lib/email/sender-domains';
 import { claimSubmission, releaseSubmission, completeSubmission } from '@/lib/forms/submission';
 import { monthWindowInZone, parseDollarsToCents, parsePositiveInt } from '@/lib/platform/operator-metrics';
 import { displayTimeZone } from '@/lib/time/display-zone';
@@ -739,6 +740,127 @@ export async function updateCustomDomain(formData: FormData) {
     }
   }
   ok(returnTo, 'domain_saved');
+}
+
+// ── Email sender domain ─────────────────────────────────────────────────
+// Writes go through the signed-in session: portfolio_email_domains RLS lets
+// only platform admins insert or update.
+export async function setupSenderDomain(formData: FormData) {
+  const me = await requirePlatformAdmin();
+  const portfolioId = String(formData.get('portfolio_id') ?? '');
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
+  if (!/^[0-9a-f-]{36}$/i.test(portfolioId)) fail(returnTo, 'Company not found.');
+  const parsed = parseSenderSettings(formData.get('domain'), formData.get('from_local_part'));
+  if (!parsed.ok) fail(returnTo, parsed.error);
+
+  const db = (await createClient()) as any;
+  const { data: company } = await db.from('portfolios').select('id').eq('id', portfolioId).maybeSingle();
+  if (!company) fail(returnTo, 'Company not found.');
+  const { data: current, error: currentError } = await db.from('portfolio_email_domains')
+    .select('domain, from_local_part, provider_domain_id').eq('portfolio_id', portfolioId).maybeSingle();
+  if (currentError) fail(returnTo, currentError.message);
+
+  const { data: taken } = await db.from('portfolio_email_domains')
+    .select('portfolio_id').eq('domain', parsed.domain).neq('portfolio_id', portfolioId).maybeSingle();
+  if (taken) fail(returnTo, `${parsed.domain} is already another company's sending domain.`);
+
+  // Same domain: only the address before @ changes; keep the verification.
+  if (current?.domain === parsed.domain && current.provider_domain_id) {
+    const { error } = await db.from('portfolio_email_domains')
+      .update({ from_local_part: parsed.localPart }).eq('portfolio_id', portfolioId);
+    if (error) fail(returnTo, error.message);
+    if (current.from_local_part !== parsed.localPart) {
+      await audit(createServiceClient(), me, 'email_domain_changed', portfolioId, {
+        from: `${current.from_local_part}@${current.domain}`, to: `${parsed.localPart}@${parsed.domain}`,
+      });
+    }
+    revalidatePath(returnTo);
+    ok(returnTo, 'email_domain_saved');
+  }
+
+  const resend = resendClient();
+  if (!resend) fail(returnTo, 'Email is not configured on this deployment (RESEND_API_KEY is missing).');
+  const registered = await registerSenderDomain(resend, parsed.domain);
+  if (!registered.ok) fail(returnTo, `The email provider did not accept ${parsed.domain}: ${registered.error}`);
+  const created = registered.domain;
+
+  const row = {
+    portfolio_id: portfolioId,
+    domain: parsed.domain,
+    from_local_part: parsed.localPart,
+    provider_domain_id: created.id,
+    status: storedStatus(created.status),
+    records: created.records ?? [],
+    enabled: true,
+    verified_at: created.status === 'verified' ? new Date().toISOString() : null,
+    last_checked_at: new Date().toISOString(),
+    last_error: null,
+  };
+  const { error } = await db.from('portfolio_email_domains').upsert(row, { onConflict: 'portfolio_id' });
+  if (error) fail(returnTo, `${parsed.domain} was registered with the email provider but could not be saved: ${error.message}`);
+
+  await audit(createServiceClient(), me, 'email_domain_changed', portfolioId, {
+    from: current ? `${current.from_local_part}@${current.domain}` : null,
+    to: `${parsed.localPart}@${parsed.domain}`,
+  });
+  revalidatePath(returnTo);
+  ok(returnTo, 'email_domain_saved');
+}
+
+export async function checkSenderDomain(formData: FormData) {
+  await requirePlatformAdmin();
+  const portfolioId = String(formData.get('portfolio_id') ?? '');
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
+  if (!/^[0-9a-f-]{36}$/i.test(portfolioId)) fail(returnTo, 'Company not found.');
+
+  const db = (await createClient()) as any;
+  const { data: current, error: currentError } = await db.from('portfolio_email_domains')
+    .select('provider_domain_id, verified_at').eq('portfolio_id', portfolioId).maybeSingle();
+  if (currentError) fail(returnTo, currentError.message);
+  if (!current?.provider_domain_id) fail(returnTo, 'Set up a sending domain first.');
+  const resend = resendClient();
+  if (!resend) fail(returnTo, 'Email is not configured on this deployment (RESEND_API_KEY is missing).');
+
+  // Ask the provider to re-check DNS, then read the result.
+  const { error: verifyError } = await resend.domains.verify(current.provider_domain_id);
+  const { data: domain, error: getError } = await resend.domains.get(current.provider_domain_id);
+  const now = new Date().toISOString();
+  if (getError || !domain) {
+    await db.from('portfolio_email_domains')
+      .update({ last_checked_at: now, last_error: getError?.message ?? verifyError?.message ?? 'No response' })
+      .eq('portfolio_id', portfolioId);
+    fail(returnTo, `Could not check the sending domain: ${getError?.message ?? 'no response from the email provider'}`);
+  }
+
+  const status = storedStatus(domain.status);
+  const { error } = await db.from('portfolio_email_domains').update({
+    status,
+    records: domain.records ?? [],
+    verified_at: status === 'verified' ? (current.verified_at ?? now) : null,
+    last_checked_at: now,
+    last_error: verifyError?.message ?? null,
+  }).eq('portfolio_id', portfolioId);
+  if (error) fail(returnTo, error.message);
+  revalidatePath(returnTo);
+  ok(returnTo, status === 'verified' ? 'email_domain_verified' : 'email_domain_checked');
+}
+
+export async function setSenderDomainEnabled(formData: FormData) {
+  const me = await requirePlatformAdmin();
+  const portfolioId = String(formData.get('portfolio_id') ?? '');
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
+  if (!/^[0-9a-f-]{36}$/i.test(portfolioId)) fail(returnTo, 'Company not found.');
+  const enabled = formData.get('enabled') === 'true';
+
+  const db = (await createClient()) as any;
+  const { data: updated, error } = await db.from('portfolio_email_domains')
+    .update({ enabled }).eq('portfolio_id', portfolioId).select('domain');
+  if (error) fail(returnTo, error.message);
+  if (!updated?.length) fail(returnTo, 'Set up a sending domain first.');
+
+  await audit(createServiceClient(), me, enabled ? 'email_domain_enabled' : 'email_domain_disabled', portfolioId, { domain: updated[0].domain });
+  revalidatePath(returnTo);
+  ok(returnTo, enabled ? 'email_domain_enabled' : 'email_domain_disabled');
 }
 
 // ── Company status ────────────────────────────────────────────────────────
