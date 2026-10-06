@@ -33,8 +33,10 @@ access, accounts, approval or decisions.
        `usage_metrics`, which was collected nightly but never shown).
        2026-10-06 also added per-key daily API call counts
        (`api_key_usage_daily`, shown in the Developer Hub and summed into
-       `usage_metrics.api_calls`). Possible follow-ups: write endpoints in the
-       partner API, a webhook "send test event" button.
+       `usage_metrics.api_calls`) and a webhook "Send test event" button
+       (`send_test_webhook`, signed `ping` delivery). Possible follow-up: write
+       endpoints in the partner API (needs a decision on which records partners
+       may change).
 
 Cleanup needing Mirsad's approval:
 - [ ] Fold the legacy `app/platform/*` redirect shim into `app/platform-operator/*`.

@@ -12,6 +12,7 @@ import { date } from '@/lib/utils';
 
 import {
   revokeDeveloperApiKey,
+  sendDeveloperWebhookTest,
   setDeveloperWebhookActive,
 } from './actions';
 import { CreateApiKeyForm } from './create-api-key-form';
@@ -23,6 +24,7 @@ type SearchParams = Promise<{
   error?: string;
   key_revoked?: string;
   webhook_updated?: string;
+  webhook_tested?: string;
 }>;
 
 function deliveryTone(status: string): Tone {
@@ -112,6 +114,7 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
         {sp.error && <Alert tone="danger" title="Developer setting was not updated.">{sp.error}</Alert>}
         {sp.key_revoked && <Alert tone="success" title="API key revoked.">Requests using that key are rejected immediately.</Alert>}
         {sp.webhook_updated && <Alert tone="success" title="Webhook updated.">The endpoint state was saved.</Alert>}
+        {sp.webhook_tested && <Alert tone="success" title="Test event queued.">A signed <code className="font-mono text-xs">ping</code> event goes out within a minute; its result appears under Recent webhook deliveries.</Alert>}
         {readError && <Alert tone="danger" title="Some integration data could not be loaded.">{readError.message}</Alert>}
         {!webhookDeliveryReady && (
           <Alert tone="info" title="Outbound webhook delivery is provider-gated.">
@@ -196,9 +199,16 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
                     <TD><StatusChip tone={enabled ? 'success' : endpoint.failure_count ? 'danger' : 'neutral'}>{enabled ? 'active' : endpoint.disabled_until ? 'paused' : 'inactive'}</StatusChip><span className="ml-2 text-xs text-gray-500">{endpoint.failure_count ?? 0} failures</span></TD>
                     <TD>{endpoint.last_success_at ? date(endpoint.last_success_at) : 'Never'}</TD>
                     <TD className="text-right">
-                      <form action={setDeveloperWebhookActive.bind(null, endpoint.id, !enabled)}>
-                        <Button type="submit" size="sm" variant="secondary">{enabled ? 'Disable' : 'Enable'}</Button>
-                      </form>
+                      <div className="flex justify-end gap-2">
+                        {enabled && webhookDeliveryReady && (
+                          <form action={sendDeveloperWebhookTest.bind(null, endpoint.id)}>
+                            <Button type="submit" size="sm" variant="secondary">Send test event</Button>
+                          </form>
+                        )}
+                        <form action={setDeveloperWebhookActive.bind(null, endpoint.id, !enabled)}>
+                          <Button type="submit" size="sm" variant="secondary">{enabled ? 'Disable' : 'Enable'}</Button>
+                        </form>
+                      </div>
                     </TD>
                   </TR>
                 );
