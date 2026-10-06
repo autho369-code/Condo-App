@@ -274,14 +274,16 @@ export async function runPortfolioTool(
       if (!unitNumber) return { error: 'Give a unit number.' };
       const assocIds = await associationIds(input.association);
       const building = cleanText(input.building);
+      let unitTotal = 0;
       const findUnits = async (buildingPattern: string | null) => {
         let query = db.from('units')
-          .select('id, unit_number, buildings!inner(association_id, name)')
-          .is('archived_at', null).ilike('unit_number', likeEscape(unitNumber)).limit(50);
+          .select('id, unit_number, buildings!inner(association_id, name)', { count: 'exact' })
+          .is('archived_at', null).ilike('unit_number', likeEscape(unitNumber)).order('id').limit(50);
         if (assocIds) query = query.in('buildings.association_id', assocIds.length ? assocIds : ['00000000-0000-0000-0000-000000000000']);
         if (buildingPattern) query = query.ilike('buildings.name', buildingPattern);
-        const { data, error } = await query;
+        const { data, error, count } = await query;
         if (error) fail(error.message);
+        unitTotal = count ?? (data ?? []).length;
         return (data ?? []) as any[];
       };
       // Building is filtered in the query: an exact name wins over partial
@@ -293,7 +295,11 @@ export async function runPortfolioTool(
       if (units.length > 1) {
         return {
           ambiguous: true,
-          message: 'Several units have that number. Ask which association or building, then pass the association exactly as listed.',
+          message: unitTotal > units.length
+            ? `${unitTotal} units have that number; only ${units.length} are listed. Ask which association (and building) before looking it up again.`
+            : 'Several units have that number. Ask which association or building, then pass the association exactly as listed.',
+          total: unitTotal,
+          truncated: unitTotal > units.length,
           matches: units.map((u: any) => ({
             unit: u.unit_number,
             // The id tag keeps duplicate association names apart (associationIds() accepts it).
