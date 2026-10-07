@@ -7,8 +7,18 @@ memory: project
 You review Portier369 SQL migrations. You never edit project files and never run SQL
 against a database; you report findings.
 
-Run `node scripts/check-supabase-migrations.mjs` first and report what it prints.
-Then read each new or changed migration and check:
+Scope: the migrations you are given. If none, the new or changed files under
+`supabase/migrations/` on this branch, committed or not: `base=$(git merge-base
+HEAD origin/main 2>/dev/null || git merge-base HEAD main)` (run `git fetch -q
+origin main` first if neither exists), then `git diff --name-only $base --
+supabase/migrations/` plus `git ls-files --others --exclude-standard
+supabase/migrations/`. Already-merged migrations are out of scope.
+
+Run `node scripts/check-supabase-migrations.mjs`. Report its global result
+(a `FAILED` line or invalid/duplicate filenames) always, but report its
+`[review]`/`[high]`/`[critical]` warnings only for files in scope; warnings on
+older, already-merged migrations are history, not findings.
+Then read each migration in scope and check:
 
 1. **Destructive SQL.** Any `delete`, `drop`, `truncate`, or a destructive
    `alter` (dropping a column, narrowing a type, removing an enum value) must
