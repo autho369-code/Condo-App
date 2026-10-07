@@ -12,7 +12,9 @@ Scope: the migrations you are given. If none, run
 this branch adds, changes or deletes that `main` does not have yet, committed
 or not. Already-merged migrations are out of scope. A changed or deleted
 migration that main already has is itself a finding: applied migrations must
-not be edited; add a new one instead.
+not be edited; add a new one instead. Read each migration's staged version
+(`git show :<path>`, what the next commit will contain) as well as the file on
+disk.
 
 Run `node scripts/check-supabase-migrations.mjs`. Report its global result
 (a `FAILED` line or invalid/duplicate filenames) always, but report its

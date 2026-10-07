@@ -97,13 +97,17 @@ export function reviewScope(cwd, { target = defaultTarget(cwd), paths = [] } = {
     const onTarget = treeEntry(cwd, target, path);
     const staged = indexEntry(cwd, path);
     const onDisk = diskEntry(cwd, path, fileMode, (staged ?? onTarget)?.split(' ')[0]);
+    // An untracked file that didn't exist when the branch left main has no
+    // index entry to compare. One the branch deleted and then recreated does:
+    // the next commit still deletes it, so its index absence counts.
+    const newUntracked = staged === null && onDisk !== null && treeEntry(cwd, base, path) === null;
+    const indexMatches = newUntracked || staged === onTarget;
     // Out of scope only if both what is on disk and what would be committed
     // match main exactly (same content, same mode, or absent on all sides).
-    const untracked = staged === null && onDisk !== null && treeEntry(cwd, 'HEAD', path) === null;
-    const indexMatches = untracked || staged === onTarget;
     if (onDisk === onTarget && indexMatches) continue;
-    const current = onDisk ?? staged;
-    const status = current === null ? 'D' : onTarget === null ? 'A' : 'M';
+    const status = staged === null && !newUntracked ? 'D'
+      : onTarget === null ? 'A'
+      : 'M';
     scope.push({ status, path });
   }
   return scope.sort((a, b) => a.path.localeCompare(b.path));

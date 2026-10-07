@@ -10,8 +10,10 @@ Scope: the files you are given. If none, run `node scripts/review-scope.mjs`.
 It lists the files this branch changes that `main` does not have yet
 (`A`dded, `M`odified, `D`eleted), committed or not, and leaves out work main
 already has and files only main changed. Review a deleted file by what its
-removal takes away (`git show origin/main:<path>`). Use `git diff origin/main
--- <path>` to see each change.
+removal takes away (`git show origin/main:<path>`). For each changed file,
+read both `git diff --cached origin/main -- <path>` (what the next commit will
+contain) and `git diff origin/main -- <path>` (what is on disk); they differ
+when a staged change was edited or undone only on disk.
 
 First read `docs/DESIGN_SYSTEM.md` and `CLAUDE.md`. Then, for each changed page or
 component:
