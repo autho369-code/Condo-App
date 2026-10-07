@@ -6,7 +6,7 @@ import { queueEmails } from '@/lib/email/queue';
 import { consumePublicRateLimit } from '@/lib/server/rate-limit';
 import { hashSigningToken, isWellFormedToken } from '@/lib/signatures/crypto';
 import { createServiceClient } from '@/lib/supabase/server';
-import { siteUrl } from '@/lib/url/site-url';
+import { COMPANY_ADDRESS_COLUMNS, companyUrl } from '@/lib/tenant/host';
 import { vendorDocExpires, vendorDocLabel } from '@/lib/vendors/document-requests';
 
 // Public, token-authenticated upload. The token is the only credential; it is
@@ -58,10 +58,11 @@ export async function submitVendorUpload(formData: FormData) {
     const { data: requester } = await svc.auth.admin.getUserById(session.requested_by);
     const to = requester?.user?.email;
     if (to) {
+      const { data: company } = await svc.from('portfolios').select(COMPANY_ADDRESS_COLUMNS).eq('id', session.portfolio_id).maybeSingle();
       await queueEmails(svc, [{
         to,
         subject: `${session.vendor_name} sent their ${vendorDocLabel(session.doc_type)}`,
-        text: `${session.vendor_name} uploaded the ${vendorDocLabel(session.doc_type)} you requested${expiresOn ? ` (expires ${expiresOn})` : ''}.\n\nReview it: ${siteUrl()}/vendors/compliance`,
+        text: `${session.vendor_name} uploaded the ${vendorDocLabel(session.doc_type)} you requested${expiresOn ? ` (expires ${expiresOn})` : ''}.\n\nReview it: ${companyUrl(company, '/vendors/compliance')}`,
         portfolioId: session.portfolio_id,
         idempotencyKey: `vendor-doc-submitted:${session.request_id}:${path}`,
       }]);

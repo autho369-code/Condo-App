@@ -181,8 +181,8 @@ export async function sendOwnerStatements(formData: FormData) {
     if (loadError) return { error: `Statements were generated but could not be loaded for sending: ${loadError.message}` };
 
     const { queueEmails } = await import('@/lib/email/queue');
-    const { tenantWorkspaceUrl } = await import('@/lib/tenant/host');
-    const ledgerUrl = tenantWorkspaceUrl(me.portfolio?.slug, '/portal/ledger');
+    const { companyUrl } = await import('@/lib/tenant/host');
+    const ledgerUrl = companyUrl(me.portfolio, '/portal/ledger');
     const fmt = (n: unknown) => Number(n ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
     const sendable = (statements ?? []).filter((s: any) => s.owners?.email);
     const failedIds = (statements ?? []).filter((s: any) => !s.owners?.email).map((s: any) => s.id);

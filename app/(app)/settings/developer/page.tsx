@@ -6,7 +6,7 @@ import { Alert, Breadcrumb, PageHeader, PageShell, SectionTitle, Surface } from 
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { DEVELOPER_API_ENDPOINTS } from '@/lib/api/catalog';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
-import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { companyUrl } from '@/lib/tenant/host';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { date } from '@/lib/utils';
@@ -225,7 +225,7 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
             description="Version 2026-08-01. Authenticate with Authorization: Bearer, use page and limit for pagination, and q for search."
           />
           <div className="mb-5 overflow-x-auto rounded-xl bg-gray-950 p-4 text-gray-100">
-            <code className="whitespace-pre font-mono text-xs">curl &quot;{tenantWorkspaceUrl(me.portfolio?.slug, '/api/v1/associations?limit=50')}&quot; -H &quot;Authorization: Bearer YOUR_API_KEY&quot;</code>
+            <code className="whitespace-pre font-mono text-xs">curl &quot;{companyUrl(me.portfolio, '/api/v1/associations?limit=50')}&quot; -H &quot;Authorization: Bearer YOUR_API_KEY&quot;</code>
           </div>
           <Table>
             <THead><tr><TH>Method</TH><TH>Endpoint</TH><TH>Required scope</TH></tr></THead>

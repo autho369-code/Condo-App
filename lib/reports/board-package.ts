@@ -9,7 +9,7 @@
 import { generateLiveExportRows } from '@/lib/reports/live-export';
 import { generateMonthlyFinancialPackagePdf, prepareMonthlyPackageRows } from '@/lib/reports/monthly-package';
 import { queueEmails } from '@/lib/email/queue';
-import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { COMPANY_ADDRESS_COLUMNS, companyUrl } from '@/lib/tenant/host';
 
 export const BOARD_REPORT_SECTIONS = [
   ['trial_balance', 'Trial balance'],
@@ -98,8 +98,8 @@ export async function publishBoardPackage(opts: {
   if (notify) {
     const { data: members } = await svc.from('board_members').select('email, full_name').eq('association_id', association.id).eq('active', true);
     // Link to the board portal on the company's own workspace address.
-    const { data: portfolio } = await svc.from('portfolios').select('slug').eq('id', association.portfolio_id).maybeSingle();
-    const boardReportsUrl = tenantWorkspaceUrl(portfolio?.slug, '/board/reports');
+    const { data: portfolio } = await svc.from('portfolios').select(COMPANY_ADDRESS_COLUMNS).eq('id', association.portfolio_id).maybeSingle();
+    const boardReportsUrl = companyUrl(portfolio, '/board/reports');
     const recipients = [...new Map(((members ?? []) as any[])
       .filter((m) => typeof m.email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m.email.trim()))
       .map((m) => [m.email.trim().toLowerCase(), m])).values()];

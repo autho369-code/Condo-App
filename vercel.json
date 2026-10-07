@@ -62,6 +62,10 @@
     {
       "path": "/api/calendar/send-reminders",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/tenant/verify-domains",
+      "schedule": "17 * * * *"
     }
   ]
 }

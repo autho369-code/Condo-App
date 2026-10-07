@@ -150,3 +150,73 @@ export function tenantAccessDecision(
   }
   return { allowed: true };
 }
+
+/**
+ * How long a custom-domain check stays trusted. The check runs hourly; a value
+ * older than this means checks stopped (job failing, company archived), so
+ * links go back to the workspace address until the domain is checked again.
+ */
+export const CUSTOM_DOMAIN_VERIFICATION_MAX_AGE_MS = 3 * 60 * 60 * 1000;
+
+function recentlyVerified(at: string | null | undefined, now: number) {
+  const t = at ? Date.parse(at) : NaN;
+  return Number.isFinite(t) && t <= now + 5 * 60 * 1000 && now - t <= CUSTOM_DOMAIN_VERIFICATION_MAX_AGE_MS;
+}
+
+/** Columns `companyUrl` needs from portfolios. */
+export const COMPANY_ADDRESS_COLUMNS = 'slug, custom_domain, custom_domain_verified_at';
+
+export type CompanyAddress = {
+  slug?: string | null;
+  custom_domain?: string | null;
+  custom_domain_verified_at?: string | null;
+};
+
+/**
+ * Where links to a company's pages should point in its emails, notices and
+ * pages: its own custom domain while the hourly domain check keeps confirming
+ * it serves the company (within CUSTOM_DOMAIN_VERIFICATION_MAX_AGE_MS), else
+ * its workspace address. Not for auth links (sign-in
+ * callbacks, password reset, invites): those must stay on addresses in
+ * Supabase Auth's redirect allow-list, so they keep using tenantWorkspaceUrl.
+ * Preview/local deployments stay on their own origin, as tenantWorkspaceUrl does.
+ */
+export function companyUrl(
+  company: CompanyAddress | null | undefined,
+  path = '/',
+  platformOrigin = siteUrl(),
+  apex = apexDomain(),
+  now = Date.now(),
+) {
+  const normalizedApex = normalizeHostname(apex) || DEFAULT_APEX_DOMAIN;
+  const onProduction = [normalizedApex, `www.${normalizedApex}`]
+    .includes(normalizeHostname(new URL(platformOrigin).hostname));
+  const domain = normalizeHostname(company?.custom_domain);
+  if (
+    onProduction
+    && domain
+    && recentlyVerified(company?.custom_domain_verified_at, now)
+    && classifyTenantHost(domain, normalizedApex).kind === 'custom-domain'
+  ) {
+    return new URL(normalizePath(path), `https://${domain}`).toString();
+  }
+  return tenantWorkspaceUrl(company?.slug, path, platformOrigin, apex);
+}
+
+/**
+ * A URL on the host this request came in on (where the user's session cookie
+ * lives), for redirects back from payment pages and the like. Keeps a custom
+ * domain, unlike resolvedTenantUrl (which must not, for auth callbacks).
+ */
+export function sameHostTenantUrl(
+  tenant: { hostname?: string | null; slug?: string | null } | null | undefined,
+  path: string,
+  platformOrigin = siteUrl(),
+  apex = apexDomain(),
+) {
+  const hostname = normalizeHostname(tenant?.hostname);
+  if (hostname && classifyTenantHost(hostname, apex).kind === 'custom-domain') {
+    return new URL(normalizePath(path), `https://${hostname}`).toString();
+  }
+  return resolvedTenantUrl(tenant, path, platformOrigin, apex);
+}

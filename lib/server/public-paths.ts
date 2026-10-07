@@ -40,6 +40,8 @@ export const PUBLIC_PATHS = [
   '/api/webhooks/deliver',
   '/api/webhooks/resend',
   '/api/mail/deliver',
+  '/api/tenant/domain-check',
+  '/api/tenant/verify-domains',
   '/report-card',
   '/sign',
   '/vendor-upload',

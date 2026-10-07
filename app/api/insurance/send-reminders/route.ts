@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { queueEmails, type QueuedEmail } from '@/lib/email/queue';
 import { requireCronSecret } from '@/lib/server/cron-auth';
-import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { companyUrl, type CompanyAddress } from '@/lib/tenant/host';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     // White-label branding: every email presents as the management company —
     // sender name, reply-to, and signature. Only the sending address stays on
     // the verified portier369.com domain (Resend requirement).
-    const brandByPortfolio = new Map<string, { companyName: string | null; supportEmail: string | null; supportPhone: string | null; slug: string | null }>();
+    const brandByPortfolio = new Map<string, { companyName: string | null; supportEmail: string | null; supportPhone: string | null; address: CompanyAddress }>();
     if (assocIds.length > 0) {
       const { data: assignments } = await svc
         .from('association_managers')
@@ -76,13 +76,13 @@ export async function GET(request: NextRequest) {
       }
       const portfolioIds = Array.from(new Set(due.map((p) => p.associations?.portfolio_id).filter(Boolean)));
       if (portfolioIds.length > 0) {
-        const { data: pfs } = await svc.from('portfolios').select('id, company_name, support_email, support_phone, slug').in('id', portfolioIds);
+        const { data: pfs } = await svc.from('portfolios').select('id, company_name, support_email, support_phone, slug, custom_domain, custom_domain_verified_at').in('id', portfolioIds);
         for (const pf of pfs ?? []) {
           brandByPortfolio.set(pf.id, {
             companyName: pf.company_name ?? null,
             supportEmail: pf.support_email ?? null,
             supportPhone: pf.support_phone ?? null,
-            slug: pf.slug ?? null,
+            address: { slug: pf.slug, custom_domain: pf.custom_domain, custom_domain_verified_at: pf.custom_domain_verified_at },
           });
         }
       }
@@ -102,8 +102,8 @@ export async function GET(request: NextRequest) {
       const replyTo = managers[0]?.email ?? brand?.supportEmail ?? null;
       const contactLine = [brand?.supportEmail, brand?.supportPhone].filter(Boolean).join(' · ');
       const signature = `— ${companyName}${contactLine ? `\n${contactLine}` : ''}`;
-      const portalUrl = tenantWorkspaceUrl(brand?.slug, '/portal/insurance');
-      const managerUrl = tenantWorkspaceUrl(brand?.slug, '/insurance');
+      const portalUrl = companyUrl(brand?.address, '/portal/insurance');
+      const managerUrl = companyUrl(brand?.address, '/insurance');
       const details =
         `Carrier: ${p.insurance_company}\n` +
         `Policy #: ${p.policy_number}\n` +
