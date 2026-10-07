@@ -117,6 +117,8 @@ export async function removeOwnerAttachment(ownerId: string, attachmentId: strin
   if (isScopedStoragePath(row.file_path, 'owners', ownerId)) {
     const { error: storageErr } = await createServiceClient().storage.from(BUCKET).remove([row.file_path]);
     if (storageErr) fail(ownerId, `Attachment removed, but its file could not be deleted: ${storageErr.message}`);
+  } else {
+    console.error('Owner attachment path outside the owner folder; file left in place', { attachmentId, ownerId });
   }
   revalidatePath(`/owners/${ownerId}`);
   redirect(`/owners/${ownerId}`);
