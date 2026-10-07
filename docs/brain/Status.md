@@ -47,7 +47,9 @@ Back to [[Home]]. Updated 2026-10-07 (after #243).
    changed (the #243 sweep fixed ~15 destructive ones; non-destructive
    update/insert actions remain). Also `update_record_note` (portfolio-level
    check only; notes on association records).
-   Also `record_delinquency_payment_plan_offer` (second check has no
-   `can_view_association_row`).
+   Also `sync_owner_delinquency_cases(p_portfolio_id)`: portfolio-wide for
+   scoped staff with no association trigger behind it; refuse scoped managers
+   like post_recurring_* (low risk, cases come from open charges).
+   (`record_delinquency_payment_plan_offer` is already scoped, 20261004130000.)
 2. Optional: ask whether the remaining reason-required void/cancel forms
    should also confirm.
