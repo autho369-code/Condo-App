@@ -4,8 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-07
-- Open: AI Assistant setup reachable for company admins; managers see an
-  "ask your company admin" note instead of a bounce; AI on/off status.
+- Open: #242 follow-up — snapshot guard admits company admins (own portfolio
+  only); AI on/off reflects a key that actually decrypts.
+- #242 (merged 32bd9b5): AI Assistant setup reachable for company admins;
+  managers see an "ask your company admin" note instead of a bounce; AI
+  on/off status. Merged before the Codex fixes — those ride the follow-up.
 - #239 (merged 0e8f398; migrations applied): invitation token hardening (token format CHECK,
   server-generated tokens for API writes, `html_escape` escapes `'`); company
   name can't be blank, brand color #RRGGBB (DB checks + all three settings

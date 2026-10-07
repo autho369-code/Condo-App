@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-07 (after #241).
+Back to [[Home]]. Updated 2026-10-07 (after #242).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,11 +12,13 @@ Back to [[Home]]. Updated 2026-10-07 (after #241).
   pilot).
 
 ## Open PR
-- Open: AI Assistant setup — company admins can use the assistant (AI
-  routes accept workspace staff incl. company admins), `/settings/ai` opens
-  for every workspace member (form for admins, read-only "ask your company
-  admin" for managers), assistant shows "AI is off" up front, company-admin
-  nav gets AI Assistant + AI Settings. "AI is on" only when the saved key decrypts (same check as the routes); snapshot guard admits company admins, pinned to own portfolio. No migration.
+- Open: follow-up to #242 (Codex findings): `buildPortfolioSnapshot` admits
+  company admins (requireWorkspaceStaff) and refuses any portfolio but the
+  caller's own; `isAIConfigured()` (same decrypt check as the routes) drives
+  "AI is on/off" on `/settings/ai` and `/assistant`. No migration.
+- #242 merged (32bd9b5): AI routes accept company admins, `/settings/ai`
+  opens for every workspace member (form for admins), `/assistant` shows
+  "AI is off" up front, company-admin nav gets AI Assistant + AI Settings.
 - **Mirsad to do:** Stellar has provider OpenAI / gpt-4o selected but **no
   API key saved** — enter a key at `/settings/ai` (company admin) to turn AI
   on. Decision pending: a platform `DEEPSEEK_API_KEY` exists in Vercel but is
