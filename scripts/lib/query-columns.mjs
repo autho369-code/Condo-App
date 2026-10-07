@@ -13,6 +13,19 @@
 //     select table_name, json_agg(column_name order by column_name) cols
 //     from information_schema.columns where table_schema = 'public'
 //     group by table_name) t;
+//
+// and, for embeds written through a foreign-key column (tenant_id(...)),
+// supabase/schema-foreign-keys.json ("table.column": "referenced table"):
+//
+//   select json_object_agg(k, v order by k) from (
+//     select c.conrelid::regclass::text || '.' || a.attname k,
+//            min(c.confrelid::regclass::text) v
+//     from pg_constraint c
+//     join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+//     where c.contype = 'f' and array_length(c.conkey, 1) = 1
+//       and c.connamespace = 'public'::regnamespace
+//       and c.confrelid::regclass::text not like '%.%'
+//     group by 1) t;
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -46,7 +59,7 @@ function splitTop(select) {
 const EMBED = /^(?:[A-Za-z_0-9]+:)?([A-Za-z_0-9]+)(?:![A-Za-z_0-9]+)*\s*\(([\s\S]*)\)$/;
 
 /** Problems in one select list for `table`, recursing into embedded tables. */
-export function selectProblems(schema, table, select) {
+export function selectProblems(schema, table, select, fks = {}) {
   const columns = schema[table];
   if (!columns) return [`table or view '${table}' not found`];
   const have = new Set(columns);
@@ -57,10 +70,14 @@ export function selectProblems(schema, table, select) {
     const embed = EMBED.exec(item);
     if (embed) {
       const [, resource, inner] = embed;
-      if (schema[resource]) problems.push(...selectProblems(schema, resource, inner));
-      // Embedding through a foreign-key column (owner_id(full_name)): the
-      // column must exist; its target table isn't in the snapshot.
-      else if (!have.has(resource) && resource !== 'count') problems.push(`${table}: embedded '${resource}' is neither a table nor a column`);
+      if (schema[resource]) problems.push(...selectProblems(schema, resource, inner, fks));
+      else if (have.has(resource)) {
+        // Embedding through a foreign-key column (tenant_id(first_name)):
+        // check the inner columns against the table the key references.
+        const target = fks[`${table}.${resource}`];
+        if (target) problems.push(...selectProblems(schema, target, inner, fks));
+        else problems.push(`${table}.${resource} is not a foreign key to a public table, so it can't be embedded`);
+      } else if (resource !== 'count') problems.push(`${table}: embedded '${resource}' is neither a table nor a column`);
       continue;
     }
     let col = item;
@@ -125,7 +142,7 @@ function chainSelect(src, i) {
 }
 
 /** Every problem across app/, components/ and lib/, as "file:line  message". */
-export function findQueryColumnProblems(root, schema) {
+export function findQueryColumnProblems(root, schema, fks = {}) {
   const from = /\.from\(\s*['"]([a-z_0-9]+)['"]\s*\)/g;
   const found = new Set();
   let checked = 0;
@@ -137,7 +154,7 @@ export function findQueryColumnProblems(root, schema) {
         if (select == null) continue;
         checked++;
         const line = src.slice(0, m.index).split('\n').length;
-        for (const p of selectProblems(schema, m[1], select.replace(/\s+/g, ' '))) {
+        for (const p of selectProblems(schema, m[1], select.replace(/\s+/g, ' '), fks)) {
           found.add(`${relative(root, file)}:${line}  ${p}`);
         }
       }

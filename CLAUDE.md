@@ -21,7 +21,8 @@ functionality with an original design. Next.js 15 (App Router) + Supabase
    `journal_entries`/`journal_lines` (double-entry); payments→owner is via the
    `receivable_payments_ledger` view; work orders link to owners through
    `unit_owners` → `unit_id`. `npm test` checks every static `.select()`
-   against `supabase/schema-columns.json` (a snapshot of the live columns);
+   against `supabase/schema-columns.json` and `schema-foreign-keys.json`
+   (snapshots of the live columns and foreign keys);
    refresh it after a migration adds columns (SQL in
    `scripts/lib/query-columns.mjs`).
 3. **Server actions must fail loudly.** Never `return { error }` from a plain
