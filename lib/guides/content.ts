@@ -37,7 +37,7 @@ export const MANAGER_RUNBOOK: Guide = {
         h('Signing in'),
         ul(
           'Go to {address} and sign in.',
-          'Enter your work email and password. Staff accounts are invitation-based: your company admin creates your account and you receive an email with a link to set your password. You can always find this Runbook on the Onboarding page.',
+          'Enter your work email and password. Staff accounts are invitation-based: your company admin creates your account and you receive an email with a link to set your password. You can always open this Runbook again at {runbook}; bookmark it.',
           'Forgot your password? Click Forgot password? on the sign-in page and a reset link is emailed to you. Your company admin can also issue a temporary password from Settings.',
         ),
         h('The workspace'),
@@ -236,7 +236,7 @@ export const COMPANY_ADMIN_GUIDE: Guide = {
       blocks: [
         ul(
           'Company settings (Settings): company name, logo and branding, and, critically, the Company Name, Support Email, and Support Phone. These appear on every owner\'s dashboard contact card, are the final fallback for owner messages, and brand every email sent on your behalf (see White-Label Email). Fill in all three before inviting anyone.',
-          'Invite your managers (Company Admin → Managers, or Settings → Invite a staff member): enter their email; they receive an invitation link to set their password. Invites sent from Company Admin → Managers also link the Manager Runbook, which every manager can open from the Onboarding page. Pending invitations are listed with expiry dates.',
+          'Invite your managers (Company Admin → Managers, or Settings → Invite a staff member): enter their email; they receive an invitation link to set their password. Invites sent from Company Admin → Managers also link the Manager Runbook, which every manager can open at {runbook}. Pending invitations are listed with expiry dates.',
           'Create associations and import their data (owners, units, opening balances) via CSV import, or have managers do it.',
           'Upload each association\'s operating documents (association → Documents tab): Declaration / CC&Rs, Bylaws, Articles of Incorporation, and Rules & Regulations are required; the current operating budget and master insurance policy are optional. Onboarding is not complete until every association has all four required documents on file (see Association Operating & Governing Documents).',
           'Assign a Site Manager on every association (association → Profile tab). This decides which manager receives owner-portal messages. Unassigned associations route messages to you.',

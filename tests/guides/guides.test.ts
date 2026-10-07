@@ -27,7 +27,18 @@ describe('staff guides', () => {
       expect(src).not.toContain('→');
       expect(src).not.toContain('{company}');
       expect(src).not.toContain('{address}');
+      expect(src).not.toContain('{runbook}');
     }
+  });
+
+  it('keep body text in the body style across page breaks', () => {
+    const src = text(renderGuidePdf(GUIDES['manager-runbook'], { companyName: 'Stellar Property Group', signInAddress: 'stellar.portier369.com/login', runbookAddress: 'stellar.portier369.com/manuals/manager-runbook.pdf' }));
+    // Every text run names its font. The 9pt bold font belongs to the page
+    // header alone; body text continuing after a page break must not use it.
+    const headers = (src.match(/\(Stellar Property Group . Manager Operations Runbook\) Tj/g) ?? []).length;
+    const headerFontRuns = (src.match(/\/F2 9 Tf/g) ?? []).length;
+    expect(headers).toBeGreaterThan(3);
+    expect(headerFontRuns).toBe(headers);
   });
 
   it('fall back to neutral wording for names the built-in font cannot draw', () => {

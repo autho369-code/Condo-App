@@ -6,6 +6,8 @@ export type GuideBranding = {
   companyName: string | null;
   /** Where its staff sign in (always the Portier369 sign-in, via Supabase). */
   signInAddress: string | null;
+  /** Where the Manager Runbook can always be opened again (company address). */
+  runbookAddress?: string | null;
 };
 
 // The PDF's built-in Helvetica covers Windows-1252 only: arrows and the
@@ -16,7 +18,8 @@ const fill = (text: string, b: GuideBranding) =>
   printable(
     text
       .replaceAll('{company}', b.companyName ?? 'your management company')
-      .replaceAll('{address}', b.signInAddress ?? 'your company\'s sign-in page'),
+      .replaceAll('{address}', b.signInAddress ?? 'your company\'s sign-in page')
+      .replaceAll('{runbook}', b.runbookAddress ?? 'the link in your invitation email'),
   );
 
 // Characters Windows-1252 (the built-in fonts' encoding) can print, beyond
@@ -60,18 +63,25 @@ export function renderGuidePdf(guide: Guide, rawBranding: GuideBranding): Uint8A
     while (cut.length > 1 && doc.getTextWidth(`${cut}...`) > maxWidth) cut = cut.slice(0, -1);
     return `${cut.trimEnd()}...`;
   };
-  const style = (size: number, bold = false, color: [number, number, number] = [31, 41, 55]) => {
+  // The style text is being written in, so a page break mid-paragraph can
+  // put it back after drawing the page header.
+  let current: [number, boolean, [number, number, number]] = [11, false, [31, 41, 55]];
+  const apply = ([size, bold, color]: typeof current) => {
     doc.setFont('helvetica', bold ? 'bold' : 'normal');
     doc.setFontSize(size);
     doc.setTextColor(...color);
   };
+  const style = (size: number, bold = false, color: [number, number, number] = [31, 41, 55]) => {
+    current = [size, bold, color];
+    apply(current);
+  };
   const header = () => {
-    style(9, true);
+    apply([9, true, [31, 41, 55]]);
     doc.text(fit(company ? `${company} — ${title}` : title, contentWidth), margin, 40);
     doc.setDrawColor(209, 213, 219);
     doc.line(margin, 50, width - margin, 50);
   };
-  const newPage = () => { doc.addPage(); header(); y = 80; };
+  const newPage = () => { doc.addPage(); header(); apply(current); y = 80; };
   const ensure = (needed: number) => { if (y + needed > bottom) newPage(); };
   const lines = (text: string, size: number, maxWidth = contentWidth): string[] => {
     doc.setFontSize(size);

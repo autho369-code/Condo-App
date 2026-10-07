@@ -24,29 +24,37 @@ const RENAMED: Record<string, string> = {
   'Portier369-Company-Admin-Guide.docx': 'company-admin-guide.pdf',
 };
 
-/** Sign-in always goes through the Portier369 sign-in (Supabase) at the company's workspace address. */
-function signInAddress(slug: string | null): string | null {
+/** An address on the company's Portier369 workspace, shown without https://. */
+function workspaceAddress(slug: string | null, path: string): string | null {
   if (!slug) return null;
-  const url = new URL(tenantWorkspaceUrl(slug, '/login'));
+  const url = new URL(tenantWorkspaceUrl(slug, path));
   return `${url.host}${url.pathname}`;
+}
+
+/** Sign-in always goes through the Portier369 sign-in (Supabase) at the company's workspace address. */
+function addresses(slug: string | null) {
+  return {
+    signInAddress: workspaceAddress(slug, '/login'),
+    runbookAddress: workspaceAddress(slug, '/manuals/manager-runbook.pdf'),
+  };
 }
 
 async function branding(request: NextRequest): Promise<GuideBranding> {
   const tenant = tenantFromHeaders(request.headers);
   // Read the name header itself: tenantFromHeaders substitutes the platform
   // name when it is missing, which must never head a company's guide.
-  if (tenant) return { companyName: request.headers.get('x-portfolio-name') ? tenant.companyName : null, signInAddress: signInAddress(tenant.slug) };
+  if (tenant) return { companyName: request.headers.get('x-portfolio-name') ? tenant.companyName : null, ...addresses(tenant.slug) };
   // On the platform address: the signed-in user's own company, if any.
   try {
     const { data } = await ((await createClient()) as any).rpc('me');
     const portfolio = data?.auth_user_id ? data.portfolio : null;
     if (portfolio?.company_name) {
-      return { companyName: portfolio.company_name, signInAddress: signInAddress(portfolio.slug ?? null) };
+      return { companyName: portfolio.company_name, ...addresses(portfolio.slug ?? null) };
     }
   } catch {
     // Signed out or unavailable: neutral wording below.
   }
-  return { companyName: null, signInAddress: null };
+  return { companyName: null, signInAddress: null, runbookAddress: null };
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ file: string }> }) {
