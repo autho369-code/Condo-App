@@ -228,7 +228,8 @@ describe('public endpoint abuse guards', () => {
     const service = { rpc: vi.fn(), from: vi.fn(() => associationQuery) };
     mocks.createServiceClient.mockReturnValue(service);
     const file = new File([new Uint8Array([137, 80, 78, 71])], 'photo.png', { type: 'image/png' });
-    for (const tenantHeaders of [{ 'x-portfolio-id': '22222222-2222-4222-8222-222222222222' }, {}]) {
+    const tenantCases: Record<string, string>[] = [{ 'x-portfolio-id': '22222222-2222-4222-8222-222222222222' }, {}];
+    for (const tenantHeaders of tenantCases) {
       const form = new FormData();
       form.append('file', file);
       form.append('association_id', '11111111-1111-4111-8111-111111111111');
