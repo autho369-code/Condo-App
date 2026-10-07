@@ -13,10 +13,14 @@ Back to [[Home]]. Updated 2026-10-07 (after #243).
 
 ## Open PR
 - Open: finance RPCs association scope (migration 20261007090000; apply via
-  MCP after merge and read back). 12 SECURITY DEFINER finance RPCs now also
-  require `can_view_association_row(<row's association>)`;
+  MCP after merge and read the 16 definitions back). 16 SECURITY DEFINER
+  RPCs: 15 now also require `can_view_association_row(<row's association>)`,
   post_recurring_journal_entries refuses scoped managers like
-  post_recurring_bills.
+  post_recurring_bills. Real gaps closed: save_recurring_bill (update path
+  now checks the existing row), archive_recurring_bill, advance_/hold/
+  board-vote delinquency RPCs (no scope trigger on delinquency_cases),
+  post_recurring_journal_entries; the rest add an earlier, clearer refusal
+  over existing row triggers.
 - #243 merged (df91ada): AI follow-up, ~45 confirm-first destructive buttons,
   visible company names (`hasVisibleText` + DB check generated from it),
   security sweep. Migrations 20261007070000 and 20261007080000 applied and
@@ -43,5 +47,7 @@ Back to [[Home]]. Updated 2026-10-07 (after #243).
    changed (the #243 sweep fixed ~15 destructive ones; non-destructive
    update/insert actions remain). Also `update_record_note` (portfolio-level
    check only; notes on association records).
+   Also `record_delinquency_payment_plan_offer` (second check has no
+   `can_view_association_row`).
 2. Optional: ask whether the remaining reason-required void/cancel forms
    should also confirm.
