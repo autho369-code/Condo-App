@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
-import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { NEUTRAL_COMPANY_NAME, tenantFromHeaders } from '@/lib/tenant/resolve';
 import { signInMetadata } from '@/lib/tenant/metadata';
 
 // Token pages (signing, vendor uploads, violation reports): branded and kept
@@ -12,7 +12,7 @@ export default async function PublicLayout({ children }: { children: React.React
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white px-6 py-4">
-        <Link href="/" className="text-lg font-semibold text-gray-900">{tenant?.companyName ?? 'Portier'}</Link>
+        <Link href="/" className="text-lg font-semibold text-gray-900">{tenant?.companyName ?? NEUTRAL_COMPANY_NAME}</Link>
       </header>
       <main>{children}</main>
     </div>

@@ -51,3 +51,10 @@
 - "Only error handling changed" on `app/**` pages still triggers
   design-reviewer: the error lands in an ad-hoc red div, not `<Alert>`
   (letters/templates edit, portal/profile).
+- Recurring (2nd time, #245 after #244): the caller planned with the PR as
+  "open, not merged" but it had merged (e25b1d1d). Always check REST first and
+  remind: apply + read back the PR's migration (20261007100000) before new work.
+- Public pages (`app/(public)/*`, `lib/server/public-paths.ts`) use the
+  service client: check every read is filtered by the host's tenant
+  (`tenantFromHeaders().portfolioId`). /report-violation listed every
+  company's associations to anyone (found 2026-10-07).

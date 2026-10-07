@@ -75,9 +75,12 @@ async function emailReceipt(db: any, intent: any, method: string) {
       subject: `Payment received — ${amount} for Unit ${unit?.unit_number ?? ''}`,
       body: `<p>Hello${ownerName ? ` ${ownerName}` : ''},</p><p>We received your ${method === 'ach' ? 'bank (ACH)' : 'card'} payment of <strong>${escapeHtml(amount)}</strong> for Unit ${unitNumber} at ${associationName}. It has been applied to your account.</p><p>You can view your updated ledger any time in the owner portal.</p><p>Reference: ${escapeHtml(intent.processor_payment_intent_id ?? intent.id)}</p>`,
       status: 'pending',
+      // No platform sender name: the queue sends it as the owner's management
+      // company (its name and verified sending domain) - white label.
       from_address: 'hello@portier369.com',
-      from_name: 'Portier369',
+      from_name: null,
       portfolio_id: intent.portfolio_id,
+      association_id: intent.association_id,
     });
     return !error;
   } catch {

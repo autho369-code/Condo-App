@@ -1,15 +1,18 @@
+import { headers } from 'next/headers';
 import { createServiceClient } from '@/lib/supabase/server';
+import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { Alert } from '@/components/ui/shell';
 import ReportViolationForm from './report-violation-form';
 import { submitReport } from './actions';
 
 export const dynamic = 'force-dynamic';
 
-function UnavailableReport() {
+function UnavailableReport({ children }: { children?: React.ReactNode }) {
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900" role="alert">
-        Public violation reporting is not configured for this environment. Please contact your management office directly.
-      </div>
+      <Alert tone="warning">
+        {children ?? 'Public violation reporting is not configured for this environment. Please contact your management office directly.'}
+      </Alert>
     </main>
   );
 }
@@ -20,6 +23,18 @@ export default async function ReportViolationPage({
   searchParams: Promise<{ assoc?: string; error?: string }>;
 }) {
   const sp = await searchParams;
+
+  // Reports go to one management company: the one whose address this is
+  // (its <slug>.portier369.com workspace or custom domain). Without a company
+  // host there is nothing to list - never every company's associations.
+  const tenant = tenantFromHeaders(await headers());
+  if (!tenant) {
+    return (
+      <UnavailableReport>
+        To report a violation, use the reporting link from your management company. Please contact your management office if you do not have it.
+      </UnavailableReport>
+    );
+  }
 
   // Anonymous visitors have no RLS read access to associations, so this public
   // page uses a server-only service client. Preview environments intentionally
@@ -35,6 +50,7 @@ export default async function ReportViolationPage({
   const { data: associations, error: associationsError } = await (supabase as any)
     .from('associations')
     .select('id,name')
+    .eq('portfolio_id', tenant.portfolioId)
     .is('archived_at', null)
     .order('name');
 
@@ -43,12 +59,13 @@ export default async function ReportViolationPage({
     return <UnavailableReport />;
   }
 
-  const assocId = sp.assoc;
+  // Only an association of this company can be preselected.
+  const assocId = (associations ?? []).some((a: { id: string }) => a.id === sp.assoc) ? sp.assoc : undefined;
   let rules: any[] = [];
   if (assocId) {
     const { data, error } = await (supabase as any)
       .from('house_rules')
-      .select('*')
+      .select('id, rule_number, title, description, category, penalty_type, fine_amount')
       .eq('association_id', assocId)
       .eq('active', true)
       .order('sort_order');
@@ -70,8 +87,8 @@ export default async function ReportViolationPage({
   return (
     <>
       {errorMessage && (
-        <div className="mx-auto mt-6 max-w-3xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
-          {errorMessage}
+        <div className="mx-auto mt-6 max-w-3xl px-4">
+          <Alert tone="danger">{errorMessage}</Alert>
         </div>
       )}
       <ReportViolationForm
