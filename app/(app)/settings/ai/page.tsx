@@ -1,7 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { hasPortfolioAdminAccess, requirePortfolioAdmin, requireWorkspaceStaff } from '@/lib/auth/me';
 import { encryptAICredential } from '@/lib/ai/credentials';
-import { isSupportedAIProvider } from '@/lib/ai/service';
+import { isAIConfigured, isSupportedAIProvider } from '@/lib/ai/service';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Input, Label, Select } from '@/components/ui/input';
 import { Alert, Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell';
@@ -86,7 +86,10 @@ export default async function AISettingsPage({
   const p = portfolio ?? {};
   const provider = p.ai_provider ?? 'openai';
   const currentProvider = PROVIDERS.find(pr => pr.value === provider) ?? PROVIDERS[0];
-  const configured = Boolean(p.ai_api_key_ciphertext && p.ai_provider && p.ai_model);
+  // On only when the saved key decrypts and the provider/model are valid —
+  // the same check the AI routes use.
+  const configured = await isAIConfigured(me.portfolio?.id, svc);
+  const unusableKey = Boolean(p.ai_api_key_ciphertext) && !configured;
   const providerLabel = PROVIDERS.find(pr => pr.value === p.ai_provider)?.label ?? p.ai_provider;
 
   const status = configured ? (
@@ -96,7 +99,9 @@ export default async function AISettingsPage({
   ) : (
     <Alert tone="warning" title="AI is off.">
       {canConfigure
-        ? 'Choose a provider and model and enter your API key below to turn on the AI Assistant and other AI features.'
+        ? unusableKey
+          ? 'The saved API key or model can no longer be used. Choose a provider and model and enter your API key again below.'
+          : 'Choose a provider and model and enter your API key below to turn on the AI Assistant and other AI features.'
         : 'Ask your company admin to add an AI provider key here to turn on the AI Assistant and other AI features.'}
     </Alert>
   );
@@ -165,7 +170,7 @@ export default async function AISettingsPage({
               name="ai_api_key"
               type="password"
               autoComplete="new-password"
-              placeholder={p.ai_api_key_ciphertext ? 'Configured — leave blank to keep it' : 'Enter provider API key'}
+              placeholder={configured ? 'Configured — leave blank to keep it' : 'Enter provider API key'}
             />
             <p className="mt-1 text-xs text-gray-400">
               Encrypted with AES-256-GCM before database storage. The key is used only by server-side AI features, and provider URLs are fixed by the platform.

@@ -16,7 +16,7 @@ Back to [[Home]]. Updated 2026-10-07 (after #241).
   routes accept workspace staff incl. company admins), `/settings/ai` opens
   for every workspace member (form for admins, read-only "ask your company
   admin" for managers), assistant shows "AI is off" up front, company-admin
-  nav gets AI Assistant + AI Settings. No migration.
+  nav gets AI Assistant + AI Settings. "AI is on" only when the saved key decrypts (same check as the routes); snapshot guard admits company admins, pinned to own portfolio. No migration.
 - **Mirsad to do:** Stellar has provider OpenAI / gpt-4o selected but **no
   API key saved** — enter a key at `/settings/ai` (company admin) to turn AI
   on. Decision pending: a platform `DEEPSEEK_API_KEY` exists in Vercel but is

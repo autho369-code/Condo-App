@@ -14,7 +14,7 @@
  * never dump whole tables.
  */
 import 'server-only';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
@@ -50,7 +50,10 @@ export interface PortfolioSnapshot {
 }
 
 export async function buildPortfolioSnapshot(portfolioId: string): Promise<PortfolioSnapshot> {
-  const me = await requireStaff();
+  const me = await requireWorkspaceStaff();
+  // Operators can read every company under RLS: only the caller's own
+  // portfolio may be summarised and sent to its AI provider.
+  if (!portfolioId || portfolioId !== me.portfolio?.id) throw new Error('Portfolio mismatch');
   const supabase = await createClient();
   const db = supabase as any;
   const PID = portfolioId;
