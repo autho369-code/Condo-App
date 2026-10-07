@@ -38,19 +38,35 @@ export function generateDocumentPdf(input: GeneratedDocumentPdfInput): Uint8Arra
   // The sender is the management company; with no company name the
   // association stands alone. Only the footer credits the platform.
   const company = input.companyName?.trim() || null;
+  // Long names are shortened (with "...", which the built-in font has) so
+  // the two never overlap.
+  const fit = (text: string, maxWidth: number) => {
+    if (doc.getTextWidth(text) <= maxWidth) return text;
+    let cut = text;
+    while (cut.length > 1 && doc.getTextWidth(`${cut}...`) > maxWidth) cut = cut.slice(0, -1);
+    return `${cut.trimEnd()}...`;
+  };
+  const setBodyStyle = () => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(31, 41, 55);
+  };
   const drawHeader = () => {
+    const column = company ? (contentWidth - 24) / 2 : contentWidth;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(31, 41, 55);
-    doc.text(company ?? input.associationName, margin, 42);
+    doc.text(fit(company ?? input.associationName, column), margin, 42);
     if (company) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(75, 85, 99);
-      doc.text(input.associationName, width - margin, 42, { align: 'right' });
+      doc.text(fit(input.associationName, column), width - margin, 42, { align: 'right' });
     }
     doc.setDrawColor(209, 213, 219);
     doc.line(margin, 52, width - margin, 52);
+    // Continuation pages carry on with the body text right after this.
+    setBodyStyle();
   };
   drawHeader();
 
@@ -75,8 +91,7 @@ export function generateDocumentPdf(input: GeneratedDocumentPdfInput): Uint8Arra
     y += 8;
   }
 
-  doc.setFontSize(11);
-  doc.setTextColor(31, 41, 55);
+  setBodyStyle();
   const paragraphs = plainText(input.body).split(/\n+/).filter(Boolean);
   for (const paragraph of paragraphs) {
     const lines: string[] = doc.splitTextToSize(paragraph, contentWidth);
