@@ -470,7 +470,7 @@ export async function setTenantPortalAccess(tenantId: string, ownerId: string, e
   const supabase = await createClient();
   const { data: tenant, error: tenantError } = await (supabase as any)
     .from('tenants')
-    .select('id, auth_user_id, status, archived_at')
+    .select('id, portfolio_id, auth_user_id, status, archived_at')
     .eq('id', tenantId)
     .eq('owner_id', ownerId)
     .maybeSingle();
@@ -487,7 +487,8 @@ export async function setTenantPortalAccess(tenantId: string, ownerId: string, e
     .maybeSingle();
   if (error || !updated) fail(ownerId, error?.message ?? 'Resident portal access was not updated.');
 
-  await (createServiceClient() as any).from('audit_logs').insert({
+  const { error: auditError } = await (createServiceClient() as any).from('audit_logs').insert({
+    portfolio_id: tenant.portfolio_id,
     entity_type: 'tenant',
     entity_id: tenantId,
     action: enable ? 'resident_portal_enabled' : 'resident_portal_disabled',
@@ -496,5 +497,6 @@ export async function setTenantPortalAccess(tenantId: string, ownerId: string, e
     changes: { portal_activated: enable },
   });
   revalidatePath(`/owners/${ownerId}`);
+  if (auditError) fail(ownerId, `Resident portal access was ${enable ? 'enabled' : 'disabled'}, but the audit log entry failed: ${auditError.message}`);
   redirect(`/owners/${ownerId}?saved=${enable ? 'resident_portal_enabled' : 'resident_portal_disabled'}`);
 }

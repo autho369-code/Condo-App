@@ -5,7 +5,6 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Alert, Badge } from '@/components/ui/shell';
 import { Field, Input, Select } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { ownerPayableAction } from '@/lib/rpcs/owner-payables';
 import { money, date } from '@/lib/utils';
@@ -171,7 +170,7 @@ export default async function HomeownerPayablePage({
           <form action={ownerPayableAction}>
             <input type="hidden" name="id" value={id} />
             <input type="hidden" name="op" value="void" />
-            <Button type="submit" variant="danger">Void payable</Button>
+            <PendingSubmit variant="danger" pendingLabel="Voiding…" confirm="Void this payable? This cannot be undone.">Void payable</PendingSubmit>
           </form>
         </div>
       )}

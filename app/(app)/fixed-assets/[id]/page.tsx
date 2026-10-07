@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 import { depreciationToDate } from '@/lib/fixed-assets/depreciation';
 import { todayInZone } from '@/lib/time/zoned';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,7 +113,7 @@ export default async function FixedAssetPage({
             </form>
             <form action={archiveFixedAsset} className="mt-4 border-t border-gray-100 pt-4">
               <input type="hidden" name="asset_id" value={asset.id} />
-              <Button type="submit" variant="secondary">Remove from fixed assets</Button>
+              <PendingSubmit variant="secondary" pendingLabel="Removing…" confirm="Remove this asset from the fixed assets list?">Remove from fixed assets</PendingSubmit>
               <span className="ml-3 text-xs text-gray-500">The record is kept; it no longer shows on the list or the Fixed Assets report.</span>
             </form>
           </Surface>

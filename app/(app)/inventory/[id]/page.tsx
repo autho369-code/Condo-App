@@ -12,6 +12,7 @@ import { archiveInventoryItem, recordInventoryMovement, updateInventoryItem } fr
 import { createClient } from '@/lib/supabase/server';
 import { money } from '@/lib/utils';
 import { displayTimeZone } from '@/lib/time/display-zone';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -219,7 +220,7 @@ export default async function InventoryItemPage({
           </form>
           <form action={archiveInventoryItem} className="mt-4 border-t border-gray-100 pt-4">
             <input type="hidden" name="item_id" value={item.id} />
-            <Button type="submit" variant="secondary">Remove from inventory</Button>
+            <PendingSubmit variant="secondary" pendingLabel="Removing…" confirm="Remove this item from inventory?">Remove from inventory</PendingSubmit>
             <span className="ml-3 text-xs text-gray-500">Its history stays in the Inventory Usage report.</span>
           </form>
         </Surface>}

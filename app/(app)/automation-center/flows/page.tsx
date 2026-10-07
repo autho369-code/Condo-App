@@ -16,6 +16,7 @@ import {
   type FlowAction,
   type TriggerType,
 } from '@/lib/automation/flow-defs';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -142,7 +143,7 @@ export default async function AutomationFlowsPage({
                       </form>
                       <form action={deleteAutomationFlow}>
                         <input type="hidden" name="flow_id" value={flow.id} />
-                        <Button type="submit" variant="danger" size="sm">Delete</Button>
+                        <PendingSubmit variant="danger" size="sm" pendingLabel="Deleting…" confirm="Delete this automation?">Delete</PendingSubmit>
                       </form>
                     </div>
                   </div>

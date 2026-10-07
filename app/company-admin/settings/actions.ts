@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { normalizeCompanyLogoUrl, normalizeSupportEmail } from '@/lib/company-admin/settings'
+import { hasVisibleText, normalizeCompanyLogoUrl, normalizeSupportEmail } from '@/lib/company-admin/settings'
 
 function failTo(message: string): never {
   redirect(`/company-admin/settings?error=${encodeURIComponent(message)}`)
@@ -26,7 +26,7 @@ export async function updateCompanySettings(formData: FormData) {
   // portfolios matches 0 rows for company admins (RLS), so writes go through
   // these SECURITY DEFINER functions.
   const companyName = String(formData.get('company_name') ?? '').trim()
-  if (!companyName) failTo('Company name is required.')
+  if (!hasVisibleText(companyName)) failTo('Company name is required.')
   const support = normalizeSupportEmail(formData.get('support_email'))
   if ('error' in support) failTo(support.error)
   const brandColor = (formData.get('brand_color') as string) || null

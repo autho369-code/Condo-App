@@ -519,7 +519,7 @@ export default async function CompanyDetailPage({
                             <form action={cancelInvitation as any}>
                               <input type="hidden" name="invitation_id" value={inv.id} />
                               <input type="hidden" name="return_to" value={returnTo} />
-                              <Button type="submit" variant="ghost" size="sm">Cancel</Button>
+                              <PendingSubmit variant="ghost" size="sm" pendingLabel="Cancelling…" confirm="Cancel this invitation? The link stops working.">Cancel</PendingSubmit>
                             </form>
                           )}
                           {(inv.status === 'pending' || inv.status === 'expired') && (
@@ -690,7 +690,7 @@ export default async function CompanyDetailPage({
                               <input type="hidden" name="invoice_id" value={inv.id} />
                               <input type="hidden" name="portfolio_id" value={id} />
                               <input type="hidden" name="return_to" value={returnTo} />
-                              <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Void</Button>
+                              <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:text-red-700" pendingLabel="Voiding…" confirm="Void this invoice?">Void</PendingSubmit>
                             </form>
                           </>
                         )}

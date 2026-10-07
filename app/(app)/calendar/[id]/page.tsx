@@ -10,6 +10,7 @@ import { cancelCalendarEvent, updateCalendarEvent } from '@/lib/rpcs/calendar';
 import { createClient } from '@/lib/supabase/server';
 import { formatInZone } from '@/lib/time/zoned';
 import { isValidTimeZone } from '@/lib/time/display-zone';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -124,7 +125,7 @@ export default async function CalendarEventPage({
           <form action={cancelCalendarEvent} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <input type="hidden" name="event_id" value={event.id} />
             <p className="text-sm text-gray-600">Cancel this event and its pending reminders.</p>
-            <Button type="submit" variant="secondary">Cancel event</Button>
+            <PendingSubmit variant="secondary" pendingLabel="Cancelling…" confirm="Cancel this event and its pending reminders?">Cancel event</PendingSubmit>
           </form>
         )}
       </div>

@@ -243,8 +243,9 @@ export async function deleteCalendarEvent(eventId: string) {
   if (error) return { error: error.message };
   if (!canceled || canceled.length === 0) return { error: 'Event not found or you do not have access to it.' };
   // Reminders for a canceled event must not fire.
-  await db.from('calendar_event_reminders').update({ status: 'canceled' }).eq('calendar_event_id', eventId).eq('status', 'scheduled');
+  const { error: reminderError } = await db.from('calendar_event_reminders').update({ status: 'canceled' }).eq('calendar_event_id', eventId).eq('status', 'scheduled');
   revalidatePath('/calendar');
+  if (reminderError) return { error: `Event cancelled, but its reminders were not: ${reminderError.message}` };
 }
 
 /** Form action: cancel an event from its detail page. */

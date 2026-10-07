@@ -15,6 +15,7 @@ import { addDaysToDate, todayInZone, wallDateTimeToIso } from '@/lib/time/zoned'
 import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/time/display-zone';
 import { associationZone, MAINTENANCE_CATEGORY_EVENT_TYPE, syncMaintenanceCalendarEvent } from '@/lib/maintenance/calendar';
 import { mergePrivateFields, mergePrivateFieldsOne, savePrivateFields } from '@/lib/private-fields';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -362,10 +363,10 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                         <TD>{t.vendors?.name || '—'}</TD>
                         <TD>{t.next_due_date ? <span className={over ? 'font-medium text-red-700' : 'text-gray-700'}>{date(t.next_due_date)}</span> : <span className="text-gray-400">—</span>}</TD>
                         <TD>
-                          <div className="flex gap-1">
-                            <a href={`/maintenance?tab=tasks&edit=${t.id}${sp.assoc ? `&assoc=${sp.assoc}` : ''}`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">Edit</a>
-                            <form action={completeTask} className="inline"><input type="hidden" name="id" value={t.id} /><button className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-50">Done</button></form>
-                            <form action={deleteTask} className="inline"><input type="hidden" name="id" value={t.id} /><button className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50">Delete</button></form>
+                          <div className="flex items-center gap-1">
+                            <a href={`/maintenance?tab=tasks&edit=${t.id}${sp.assoc ? `&assoc=${sp.assoc}` : ''}`}><Button variant="secondary" size="sm">Edit</Button></a>
+                            <form action={completeTask} className="inline"><input type="hidden" name="id" value={t.id} /><Button type="submit" variant="secondary" size="sm">Done</Button></form>
+                            <form action={deleteTask} className="inline"><input type="hidden" name="id" value={t.id} /><PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Deleting…" confirm="Delete this maintenance task?">Delete</PendingSubmit></form>
                           </div>
                         </TD>
                       </TR>

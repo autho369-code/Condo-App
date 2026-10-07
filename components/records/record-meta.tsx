@@ -4,6 +4,7 @@ import { Surface, SectionTitle } from '@/components/ui/shell';
 import { addRecordNote, setRecordTags, updateRecordNote } from '@/lib/rpcs/record-meta';
 import type { RecordMeta, RecordType } from '@/lib/records/types';
 import { NoteComposer } from './note-composer';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 function dateTime(v: string) {
   return new Date(v).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -124,7 +125,7 @@ export function RecordMetaPanels({
                           <Hidden type={type} id={id} />
                           <input type="hidden" name="note_id" value={n.id} />
                           <input type="hidden" name="op" value="remove" />
-                          <Button type="submit" variant="ghost" size="sm">Remove</Button>
+                          <PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this note?">Remove</PendingSubmit>
                         </form>
                       )}
                     </div>

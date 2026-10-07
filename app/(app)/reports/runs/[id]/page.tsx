@@ -5,6 +5,7 @@ import { Workspace, WorkspaceHeader, Section } from '@/components/reports/worksp
 import { Button } from '@/components/ui/button';
 import { cancelReportRun } from '@/lib/rpcs/reports';
 import { date } from '@/lib/utils';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -46,7 +47,7 @@ export default async function ReportRunDetail({ params, searchParams }: { params
                 </a>
               ) : isInFlight ? (
                 <form action={cancelReportRun.bind(null, run.id) as any}>
-                  <Button type="submit" variant="secondary" size="sm">Cancel run</Button>
+                  <PendingSubmit variant="secondary" size="sm" pendingLabel="Cancelling…" confirm="Cancel this report run?">Cancel run</PendingSubmit>
                 </form>
               ) : null
             }

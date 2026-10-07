@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { updateChargeCategory, archiveChargeCategory } from '@/lib/rpcs/charges';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,7 @@ export default async function EditChargeCategory({ params, searchParams }: { par
           <>
             {!cat.is_system && (
               <form action={archive as any}>
-                <Button type="submit" variant="danger">Archive</Button>
+                <PendingSubmit variant="danger" pendingLabel="Archiving…" confirm="Archive this charge category?">Archive</PendingSubmit>
               </form>
             )}
             <Link href="/charge-categories"><Button variant="secondary">Back</Button></Link>

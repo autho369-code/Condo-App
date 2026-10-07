@@ -39,8 +39,9 @@ export async function deletePropertyGroup(formData: FormData) {
   const me = await requirePortfolioAdmin();
   const id = formData.get('id') as string;
   const db = (await createClient()) as any;
-  const { error } = await db.from('property_groups').delete().eq('id', id).eq('portfolio_id', me.portfolio?.id);
+  const { data: removed, error } = await db.from('property_groups').delete().eq('id', id).eq('portfolio_id', me.portfolio?.id).select('id');
   if (error) fail(error.message);
+  if (!removed?.length) fail('Group was not deleted: it is gone or belongs to another company.');
   done('Group deleted. Its associations are now ungrouped.');
 }
 

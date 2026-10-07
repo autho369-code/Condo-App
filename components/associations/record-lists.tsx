@@ -8,6 +8,7 @@ import {
   archiveAssociationInsurance, archiveAssociationKey, archiveAssociationNote, deleteAdditionalFee,
 } from '@/lib/rpcs/association-record';
 import { date, money } from '@/lib/utils';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 type Common = { associationId: string; back: string };
 const Hidden = ({ associationId, back }: Common) => (<><input type="hidden" name="association_id" value={associationId} /><input type="hidden" name="back" value={back} /></>);
@@ -54,7 +55,7 @@ export function InsuranceList({ policies, associationId, back }: Common & { poli
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {exp && (exp < Date.now() ? <StatusChip tone="danger">Expired</StatusChip> : exp < soon ? <StatusChip tone="warning">Expires {date(p.expiration_date)}</StatusChip> : <StatusChip tone="success">Through {date(p.expiration_date)}</StatusChip>)}
-                  <form action={archiveAssociationInsurance}><Hidden associationId={associationId} back={back} /><input type="hidden" name="id" value={p.id} /><Button type="submit" variant="ghost" size="sm">Archive</Button></form>
+                  <form action={archiveAssociationInsurance}><Hidden associationId={associationId} back={back} /><input type="hidden" name="id" value={p.id} /><PendingSubmit variant="ghost" size="sm" pendingLabel="Archiving…" confirm="Archive this insurance policy?">Archive</PendingSubmit></form>
                 </div>
               </li>
             );
@@ -92,7 +93,7 @@ export function AdditionalFees({ fees, glAccounts, associationId, back }: Common
           {fees.map((f) => (
             <li key={f.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
               <span className="text-gray-900">{f.label}<span className="text-gray-500"> · {f.percentage != null ? `${Number(f.percentage)}%` : money(f.amount)}{f.gl_account_id ? ` of ${gl.get(f.gl_account_id) ?? 'GL'}` : ''}{f.suppress ? ' · suppressed' : ''}</span></span>
-              <form action={deleteAdditionalFee}><Hidden associationId={associationId} back={back} /><input type="hidden" name="id" value={f.id} /><Button type="submit" variant="ghost" size="sm">Remove</Button></form>
+              <form action={deleteAdditionalFee}><Hidden associationId={associationId} back={back} /><input type="hidden" name="id" value={f.id} /><PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this fee?">Remove</PendingSubmit></form>
             </li>
           ))}
         </ul>
@@ -121,7 +122,7 @@ export function KeysList({ keys, associationId, back }: Common & { keys: any[] }
           {keys.map((k) => (
             <li key={k.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
               <span className="text-gray-900">{k.label}<span className="text-gray-500">{k.key_number ? ` · #${k.key_number}` : ''}{k.held_by ? ` · held by ${k.held_by}` : ''}</span></span>
-              <form action={archiveAssociationKey}><Hidden associationId={associationId} back={back} /><input type="hidden" name="id" value={k.id} /><Button type="submit" variant="ghost" size="sm">Remove</Button></form>
+              <form action={archiveAssociationKey}><Hidden associationId={associationId} back={back} /><input type="hidden" name="id" value={k.id} /><PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this key?">Remove</PendingSubmit></form>
             </li>
           ))}
         </ul>
@@ -152,7 +153,7 @@ export function NotesList({ notes, associationId, back }: Common & { notes: any[
                 <p className="mt-1 whitespace-pre-wrap text-gray-800">{n.body}</p>
                 <div className="mt-1 text-[12px] text-gray-400">{date(n.created_at)}</div>
               </div>
-              <form action={archiveAssociationNote}><Hidden associationId={associationId} back={back} /><input type="hidden" name="id" value={n.id} /><Button type="submit" variant="ghost" size="sm">Archive</Button></form>
+              <form action={archiveAssociationNote}><Hidden associationId={associationId} back={back} /><input type="hidden" name="id" value={n.id} /><PendingSubmit variant="ghost" size="sm" pendingLabel="Archiving…" confirm="Archive this note?">Archive</PendingSubmit></form>
             </li>
           ))}
         </ul>

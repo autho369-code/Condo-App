@@ -4,6 +4,7 @@ import { PortfolioAssistant } from '@/components/ai/portfolio-assistant';
 import { Alert } from '@/components/ui/shell';
 import { hasPortfolioAdminAccess, requireWorkspaceStaff } from '@/lib/auth/me';
 import { createServiceClient } from '@/lib/supabase/server';
+import { isAIConfigured } from '@/lib/ai/service';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,16 +12,9 @@ export default async function AssistantPage() {
   const me = await requireWorkspaceStaff(); // company admins land here from their portal
   const canConfigure = hasPortfolioAdminAccess(me);
 
-  // Only whether a key exists is read here; the key itself never leaves the
-  // server and is decrypted only inside the AI routes.
-  const { data: portfolio } = me.portfolio?.id
-    ? await (createServiceClient() as any)
-        .from('portfolios')
-        .select('ai_provider, ai_model, ai_api_key_ciphertext')
-        .eq('id', me.portfolio.id)
-        .maybeSingle()
-    : { data: null };
-  const configured = Boolean(portfolio?.ai_api_key_ciphertext && portfolio?.ai_provider && portfolio?.ai_model);
+  // Same validation and decryption as the AI routes; only the yes/no
+  // answer reaches the page, never the key.
+  const configured = await isAIConfigured(me.portfolio?.id, createServiceClient());
 
   const setupHint = canConfigure ? (
     <>

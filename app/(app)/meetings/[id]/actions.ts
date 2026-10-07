@@ -181,9 +181,10 @@ export async function addMeetingAttendee(meetingId: string, formData: FormData) 
 
 export async function removeMeetingAttendee(meetingId: string, attendeeId: string) {
   const { supabase } = await editableMeeting(meetingId);
-  const { error } = await (supabase as any).from('meeting_attendees')
-    .delete().eq('id', attendeeId).eq('meeting_id', meetingId);
+  const { data: removed, error } = await (supabase as any).from('meeting_attendees')
+    .delete().eq('id', attendeeId).eq('meeting_id', meetingId).select('id');
   if (error) back(meetingId, '?error=The%20attendee%20could%20not%20be%20removed.');
+  if (!removed?.length) back(meetingId, '?error=Nothing%20was%20removed%3A%20your%20account%20cannot%20edit%20this%20meeting.');
   refresh(meetingId);
   back(meetingId, '?saved=attendee');
 }
@@ -222,9 +223,10 @@ export async function removeAgendaItem(meetingId: string, agendaItemId: string) 
   if (meeting.status === 'completed' || meeting.status === 'cancelled') {
     back(meetingId, '?error=A%20finalized%20meeting%20agenda%20cannot%20be%20changed.');
   }
-  const { error } = await (supabase as any).from('agenda_items')
-    .delete().eq('id', agendaItemId).eq('meeting_id', meetingId);
+  const { data: removed, error } = await (supabase as any).from('agenda_items')
+    .delete().eq('id', agendaItemId).eq('meeting_id', meetingId).select('id');
   if (error) back(meetingId, '?error=The%20agenda%20item%20could%20not%20be%20removed.');
+  if (!removed?.length) back(meetingId, '?error=Nothing%20was%20removed%3A%20your%20account%20cannot%20edit%20this%20meeting.');
   refresh(meetingId);
   back(meetingId, '?saved=agenda');
 }
@@ -289,12 +291,15 @@ export async function removeMeetingDocument(meetingId: string, documentId: strin
   if (readError || !document || !isScopedStoragePath(document.storage_path, 'meetings', meetingId)) {
     back(meetingId, '?error=The%20document%20is%20unavailable%20or%20outside%20your%20access.');
   }
-  const { error } = await (supabase as any).from('meeting_documents')
-    .delete().eq('id', documentId).eq('meeting_id', meetingId);
+  const { data: removed, error } = await (supabase as any).from('meeting_documents')
+    .delete().eq('id', documentId).eq('meeting_id', meetingId).select('id');
   if (error) back(meetingId, '?error=The%20document%20could%20not%20be%20removed.');
+  // RLS can refuse the delete without an error (0 rows): never delete the
+  // stored file unless the row is really gone.
+  if (!removed?.length) back(meetingId, '?error=Your%20account%20cannot%20remove%20documents%20from%20this%20meeting.');
   const service = createServiceClient() as any;
   const { error: storageError } = await service.storage.from(BUCKET).remove([document.storage_path]);
-  if (storageError) console.error('Meeting document object cleanup failed', { documentId });
+  if (storageError) back(meetingId, '?error=The%20document%20was%20removed%2C%20but%20its%20file%20could%20not%20be%20deleted.');
   refresh(meetingId);
   back(meetingId, '?saved=document');
 }
@@ -337,9 +342,10 @@ export async function updateMeetingActionStatus(meetingId: string, actionItemId:
 
 export async function removeMeetingActionItem(meetingId: string, actionItemId: string) {
   const { supabase } = await editableMeeting(meetingId);
-  const { error } = await (supabase as any).from('meeting_action_items')
-    .delete().eq('id', actionItemId).eq('meeting_id', meetingId);
+  const { data: removed, error } = await (supabase as any).from('meeting_action_items')
+    .delete().eq('id', actionItemId).eq('meeting_id', meetingId).select('id');
   if (error) back(meetingId, '?error=The%20follow-up%20action%20could%20not%20be%20removed.');
+  if (!removed?.length) back(meetingId, '?error=Nothing%20was%20removed%3A%20your%20account%20cannot%20edit%20this%20meeting.');
   refresh(meetingId);
   back(meetingId, '?saved=action');
 }

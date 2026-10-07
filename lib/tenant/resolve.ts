@@ -7,6 +7,7 @@
  *   3. Default / apex       (portier369.com → standard auth flow)
  */
 import { createClient } from '@/lib/supabase/server';
+import { hasVisibleText } from '@/lib/company-admin/settings';
 
 export type TenantBranding = {
   portfolioId: string;
@@ -58,7 +59,7 @@ function mapBranding(row: any, hostname: string): TenantBranding {
     portfolioId: row.id,
     slug: row.slug ?? null,
     hostname,
-    companyName: row.company_name?.trim() || NEUTRAL_COMPANY_NAME,
+    companyName: hasVisibleText(row.company_name) ? row.company_name.trim() : NEUTRAL_COMPANY_NAME,
     logoUrl: row.logo_url ?? null,
     brandColor: row.brand_color ?? '#10B981',
     supportEmail: row.support_email ?? null,

@@ -34,6 +34,16 @@ function validModel(value: unknown): value is string {
 }
 
 /**
+ * Whether the workspace's AI is actually usable: same validation and
+ * decryption as the AI routes. Returns only a boolean; the key never leaves
+ * the server.
+ */
+export async function isAIConfigured(portfolioId: string | null | undefined, databaseClient?: any): Promise<boolean> {
+  if (!portfolioId) return false;
+  return (await getAIConfig(portfolioId, databaseClient)) !== null;
+}
+
+/**
  * Read a portfolio AI configuration. The database stores only authenticated
  * ciphertext; decryption happens in the server runtime with a deployment key.
  * The supplied database client must already be authorized for the portfolio.

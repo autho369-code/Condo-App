@@ -5,6 +5,7 @@ import { requireStaff } from '@/lib/auth/me'
 import { DataWorkspace } from '@/components/operations/data-workspace'
 import { Alert, Badge, EmptyState, SectionTitle, Surface } from '@/components/ui/shell'
 import { CalendarCheck } from 'lucide-react'
+import { PendingSubmit } from '@/components/ui/pending-submit'
 
 export const dynamic = 'force-dynamic'
 
@@ -253,9 +254,9 @@ function ReservationTable({
                     <form action={action}>
                       <input type="hidden" name="reservation_id" value={r.id} />
                       <input type="hidden" name="next_status" value="denied" />
-                      <button type="submit" className="rounded-lg border border-gray-200 px-3 py-1.5 text-[13px] font-medium text-gray-700 transition hover:bg-gray-50">
+                      <PendingSubmit variant="secondary" size="sm" pendingLabel="Denying…" confirm="Deny this reservation?">
                         Deny
-                      </button>
+                      </PendingSubmit>
                     </form>
                   </div>
                 ) : (

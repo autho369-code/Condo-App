@@ -18,7 +18,7 @@ import { parseSenderSettings, registerSenderDomain, resendClient, storedStatus }
 import { claimSubmission, releaseSubmission, completeSubmission } from '@/lib/forms/submission';
 import { monthWindowInZone, parseDollarsToCents, parsePositiveInt } from '@/lib/platform/operator-metrics';
 import { displayTimeZone } from '@/lib/time/display-zone';
-import { normalizeSupportEmail } from '@/lib/company-admin/settings';
+import { hasVisibleText, normalizeSupportEmail } from '@/lib/company-admin/settings';
 import { todayInZone } from '@/lib/time/zoned';
 
 const COMPANIES = '/platform-operator/companies';
@@ -95,7 +95,7 @@ export async function createCompanyWithAdmin(formData: FormData) {
   const maxUnits = parsePositiveInt(maxUnitsInput);
   const plan = PLAN_BY_ID[tier as PlanId];
 
-  if (!companyName || !firstName || !lastName || !email) {
+  if (!hasVisibleText(companyName) || !firstName || !lastName || !email) {
     fail(COMPANIES, 'Company name, admin first/last name, and email are required.');
   }
   if (!plan) fail(COMPANIES, 'Select a valid plan.');
@@ -660,7 +660,7 @@ export async function updateCompanyDetails(formData: FormData) {
 
   const companyName = (formData.get('company_name') as string)?.trim();
   const phone = (formData.get('phone_number') as string)?.trim();
-  if (!companyName) fail(returnTo, 'Company name is required.');
+  if (!hasVisibleText(companyName)) fail(returnTo, 'Company name is required.');
   const support = normalizeSupportEmail(formData.get('support_email'));
   if ('error' in support) fail(returnTo, support.error);
 

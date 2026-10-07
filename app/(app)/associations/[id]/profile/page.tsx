@@ -18,6 +18,7 @@ import { loadRecordMeta } from '@/lib/records/load';
 import { mergePrivateFieldsOne } from '@/lib/private-fields';
 import { AdditionalFees, AuditLog, InsuranceList, KeysList, LinkedRecords, NotesList, UpcomingActivities } from '@/components/associations/record-lists';
 import { todayInZone } from '@/lib/time/zoned';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -232,8 +233,9 @@ export default async function AssociationProfileTab({
     await requireFinanceStaff();
     const sb = await createClient();
     const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
-    const { error } = await (sb as any).from('association_loans').update({ archived_at: new Date().toISOString() }).eq('id', loanId);
+    const { data: changed, error } = await (sb as any).from('association_loans').update({ archived_at: new Date().toISOString() }).eq('id', loanId).select('id');
     if (error) fail(error.message);
+    if (!changed?.length) fail('Loan was not archived: your account cannot edit this association.');
     revalidatePath(`/associations/${assocParam}/profile`);
     redirect(`/associations/${assocParam}/profile?saved=1`);
   }
@@ -534,7 +536,7 @@ export default async function AssociationProfileTab({
                     </div>
                   </div>
                   {canManageLoans && <form action={archiveLoan.bind(null, l.id)}>
-                    <button type="submit" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-red-600">Archive</button>
+                    <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Archiving…" confirm="Archive this loan?">Archive</PendingSubmit>
                   </form>}
                 </li>
               ))}

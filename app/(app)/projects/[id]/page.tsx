@@ -10,6 +10,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { deleteProjectBudgetLine, saveProjectBudgetLine } from '@/lib/rpcs/project-budget';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -223,7 +224,7 @@ export default async function ProjectDetailPage({
                               <form action={deleteProjectBudgetLine}>
                                 <input type="hidden" name="project_id" value={id} />
                                 <input type="hidden" name="line_id" value={c.line_id} />
-                                <Button type="submit" variant="ghost" size="sm">Remove</Button>
+                                <PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this budget line?">Remove</PendingSubmit>
                               </form>
                             )}
                           </TD>

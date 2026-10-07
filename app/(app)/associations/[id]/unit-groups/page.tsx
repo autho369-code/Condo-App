@@ -8,6 +8,7 @@ import { resolveAssociation } from '@/lib/associations/resolve';
 import { requireStaff } from '@/lib/auth/me';
 import { createUnitGroup, deleteUnitGroup, setUnitGroupMembers } from '@/lib/rpcs/association-record';
 import { createClient } from '@/lib/supabase/server';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,7 +72,7 @@ export default async function UnitGroupsTab({
                 <input type="hidden" name="association_id" value={id} />
                 <input type="hidden" name="group_id" value={g.id} />
                 <input type="hidden" name="back" value={back} />
-                <Button type="submit" variant="ghost" size="sm">Delete group</Button>
+                <PendingSubmit variant="ghost" size="sm" pendingLabel="Deleting…" confirm="Delete this unit group? Its units are not affected.">Delete group</PendingSubmit>
               </form>
             </Section>
           );

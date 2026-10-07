@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { date } from '@/lib/utils';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,7 +148,7 @@ export default async function ScheduledReportsPage({
                         </form>
                         <form action={archiveSchedule}>
                           <input type="hidden" name="id" value={s.id} />
-                          <Button type="submit" variant="secondary" size="sm">Delete</Button>
+                          <PendingSubmit variant="secondary" size="sm" pendingLabel="Deleting…" confirm="Delete this scheduled report? It will stop sending.">Delete</PendingSubmit>
                         </form>
                       </div>
                     </TD>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validatePlatformRequest, PLATFORM_REQUEST_ADMIN_COLUMNS } from '@/lib/company-admin/platform-requests';
-import { isHexColor, normalizeCompanyLogoUrl, normalizeSupportEmail, normalizeWebsiteUrl, safeHttpUrl } from '@/lib/company-admin/settings';
+import { hasVisibleText, isHexColor, normalizeCompanyLogoUrl, normalizeSupportEmail, normalizeWebsiteUrl, safeHttpUrl } from '@/lib/company-admin/settings';
 import { effectiveManagerScope } from '@/lib/company-admin/manager-scope';
 import { addDaysToDate, addMonthsToMonth } from '@/lib/time/zoned';
 import { vendorComplianceStatus } from '@/lib/company-admin/vendor-compliance';
@@ -167,6 +167,17 @@ describe('branding field checks', () => {
     expect(normalizeSupportEmail(' help@acme.example ')).toEqual({ email: 'help@acme.example' });
     for (const bad of ['help', 'a@b', 'x@y.z\nBcc: z@q.r', '"Bad" <a@b.c>', 'a b@c.d']) {
       expect(normalizeSupportEmail(bad)).toHaveProperty('error');
+    }
+  });
+});
+
+describe('hasVisibleText', () => {
+  it('accepts names with any visible character', () => {
+    for (const ok of ['Acme', ' Caf\u00E9 ', '\u00DC', '\u200BAcme\u200B', '1', '\u2764\uFE0F']) expect(hasVisibleText(ok)).toBe(true);
+  });
+  it('refuses blank, whitespace-only and invisible-only names', () => {
+    for (const bad of [null, undefined, '', '   ', '\u00A0\u00A0', '\u200B\u200C\u200D', '\uFEFF', '\u00AD', '\u2060 \u200E', '\uFE0F', '\u034F', '\u{E0100}', '\u3164']) {
+      expect(hasVisibleText(bad)).toBe(false);
     }
   });
 });

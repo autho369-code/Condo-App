@@ -235,8 +235,9 @@ export async function deleteTemplate(formData: FormData) {
   const db = supabase as any;
 
   const id = req(formData, 'id', 'the template to delete', '/sms/templates');
-  const { error } = await db.from('message_templates').delete().eq('id', id);
+  const { data: removed, error } = await db.from('message_templates').delete().eq('id', id).select('id');
   if (error) redirect(`/sms/templates?error=${encodeURIComponent(error.message)}`);
+  if (!removed?.length) redirect(`/sms/templates?error=${encodeURIComponent('Template was not deleted: it is gone or your account cannot edit it.')}`);
 
   revalidatePath('/sms/templates');
   redirect('/sms/templates');

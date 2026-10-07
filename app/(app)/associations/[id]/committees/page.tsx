@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { todayInZone } from '@/lib/time/zoned';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,8 +96,9 @@ export default async function CommitteesTab({
     await requireStaff();
     const sb = await createClient();
     const fail = (msg: string) => redirect(`/associations/${assocParam}/committees?error=${encodeURIComponent(msg)}`);
-    const { error } = await (sb as any).from('committee_members').update({ left_at: todayInZone() }).eq('id', memberId);
+    const { data: changed, error } = await (sb as any).from('committee_members').update({ left_at: todayInZone() }).eq('id', memberId).select('id');
     if (error) fail(error.message);
+    if (!changed?.length) fail('Member was not removed: your account cannot edit this committee.');
     revalidatePath(`/associations/${assocParam}/committees`);
     redirect(`/associations/${assocParam}/committees`);
   }
@@ -197,7 +199,7 @@ export default async function CommitteesTab({
                     </td>
                     <td className="px-4 py-3 text-right">
                       <form action={removeMember.bind(null, m.id)}>
-                        <button type="submit" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-red-600">Remove</button>
+                        <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Removing…" confirm="Remove this member from the committee?">Remove</PendingSubmit>
                       </form>
                     </td>
                   </tr>

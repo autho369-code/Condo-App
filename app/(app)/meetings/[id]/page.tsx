@@ -223,7 +223,7 @@ export default async function MeetingDetailPage({
                         <div className="flex shrink-0 items-center gap-1">
                           <form action={moveAgendaItem.bind(null, id, item.id, 'up')}><Button type="submit" variant="ghost" size="sm" disabled={index === 0} aria-label={`Move ${item.title} up`}>↑</Button></form>
                           <form action={moveAgendaItem.bind(null, id, item.id, 'down')}><Button type="submit" variant="ghost" size="sm" disabled={index === (agendaItems?.length ?? 0) - 1} aria-label={`Move ${item.title} down`}>↓</Button></form>
-                          <form action={removeAgendaItem.bind(null, id, item.id)}><Button type="submit" variant="ghost" size="sm" aria-label={`Remove ${item.title}`}>Remove</Button></form>
+                          <form action={removeAgendaItem.bind(null, id, item.id)}><PendingSubmit variant="ghost" size="sm" aria-label={`Remove ${item.title}`} pendingLabel="Removing…" confirm="Remove this agenda item?">Remove</PendingSubmit></form>
                         </div>
                       )}
                     </li>
@@ -277,7 +277,7 @@ export default async function MeetingDetailPage({
                             </Select>
                             <Button type="submit" variant="secondary" size="sm">Update</Button>
                           </form>
-                          <form action={removeMeetingActionItem.bind(null, id, item.id)}><Button type="submit" variant="ghost" size="sm">Remove</Button></form>
+                          <form action={removeMeetingActionItem.bind(null, id, item.id)}><PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this action item?">Remove</PendingSubmit></form>
                         </div>
                       </div>
                     </li>
@@ -315,7 +315,7 @@ export default async function MeetingDetailPage({
                 <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-4">
                   {meeting.status !== 'completed' && (
                     <form action={cancelMeeting.bind(null, id)}>
-                      <Button type="submit" variant="secondary" size="sm">Cancel meeting</Button>
+                      <PendingSubmit variant="secondary" size="sm" pendingLabel="Cancelling…" confirm="Cancel this meeting?">Cancel meeting</PendingSubmit>
                     </form>
                   )}
                   <form action={publishMeetingMinutes.bind(null, id)}>
@@ -347,7 +347,7 @@ export default async function MeetingDetailPage({
                         {attendee.voting_eligible && <span className="ml-2 text-[11px] font-medium text-blue-700">Voting</span>}
                         <div className="text-xs text-gray-400">{attendee.check_in_time ? `Checked in ${new Date(attendee.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: displayTimeZone() })}` : '—'}</div>
                       </div>
-                      <form action={removeMeetingAttendee.bind(null, id, attendee.id)}><Button type="submit" variant="ghost" size="sm">Remove</Button></form>
+                      <form action={removeMeetingAttendee.bind(null, id, attendee.id)}><PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this attendee?">Remove</PendingSubmit></form>
                     </li>
                   ))}
                 </ul>
@@ -399,7 +399,7 @@ export default async function MeetingDetailPage({
                         <a href={`/api/meeting-documents/${document.id}`} target="_blank" rel="noreferrer" className="block truncate font-medium text-gray-900 hover:underline">{document.name}</a>
                         <span className="text-xs text-gray-400">{document.file_size ? `${(document.file_size / 1024).toFixed(1)} KB · ` : ''}{date(document.uploaded_at ?? document.created_at)}</span>
                       </div>
-                      <form action={removeMeetingDocument.bind(null, id, document.id)}><Button type="submit" variant="ghost" size="sm">Remove</Button></form>
+                      <form action={removeMeetingDocument.bind(null, id, document.id)}><PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this document from the meeting?">Remove</PendingSubmit></form>
                     </li>
                   ))}
                 </ul>

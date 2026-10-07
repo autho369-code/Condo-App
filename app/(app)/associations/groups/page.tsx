@@ -9,6 +9,7 @@ import { Field, Input } from '@/components/ui/input';
 import { hasPortfolioAdminAccess, requireStaff } from '@/lib/auth/me';
 import { deletePropertyGroup, savePropertyGroup, setPropertyGroupMembers } from '@/lib/rpcs/property-groups';
 import { createClient } from '@/lib/supabase/server';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,7 +101,7 @@ export default async function PropertyGroupsPage({
                       </form>
                       <form action={deletePropertyGroup} className="mt-3">
                         <input type="hidden" name="id" value={g.id} />
-                        <Button type="submit" variant="danger" size="sm">Delete group</Button>
+                        <PendingSubmit variant="danger" size="sm" pendingLabel="Deleting…" confirm="Delete this property group? Its associations are not affected.">Delete group</PendingSubmit>
                       </form>
                     </details>
                   </div>

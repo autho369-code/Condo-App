@@ -8,6 +8,8 @@
 - Replacing `if (x) { ... }` with an early `redirect` tends to leave an orphan `{ }` block (settings/page.tsx:169) — flag as cleanup.
 - Hand-rolled h-8 controls in table action cells: the fix is `Select` (fieldBase h-10 w-full; a width class overrides via twMerge `cn`) + `Button size="sm"` (sm is h-10, not smaller). Closed in /settings team table (settings/page.tsx:368-386).
 - Destructive inline row action precedent: `variant="secondary"|"ghost"` + `text-red-600 hover:bg-red-50` (settings/page.tsx Remove, letters/[id]/edit:191); `variant="danger"` is filled red, reserved for primary destructive actions on detail pages. Not a new color.
+- Text-link -> `Button size="sm"` swaps in mixed rows (36d850ba): siblings left as text-xs links / px-2 py-1 pills give mixed 26px/40px heights (maintenance/page.tsx:367 `flex gap-1` stretches the Edit <a>); and plain ghost drops the red destructive cue the old link had. Convert the whole row, keep `text-red-600 hover:bg-red-50`.
+- Confirm sweeps: grep the touched files for leftover one-click `End`/`Cancel` submits (owners/[id] End seat :504, End :749, End tenancy :891; platform-operator companies Cancel invitation :522 were missed in 36d850ba).
 - Checkbox labels: `min-h-10` on the wrapping `<label>` satisfies the 40px target (whole label clicks the box).
 
 ## Useful checks

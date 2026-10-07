@@ -16,6 +16,7 @@ import {
 } from '@/lib/reports/builder-catalog';
 import { BuilderForm } from './builder-form';
 import { saveReportView, deleteReportView } from './actions';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -229,9 +230,9 @@ export default async function ReportBuilderPage({
                       <form action={deleteReportView}>
                         <input type="hidden" name="id" value={view.id} />
                         <input type="hidden" name="query" value={currentQuery} />
-                        <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                        <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:text-red-700" pendingLabel="Deleting…" confirm="Delete this saved view?">
                           Delete
-                        </Button>
+                        </PendingSubmit>
                       </form>
                     </div>
                   </div>
