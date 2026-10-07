@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileS
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { _chainSelect, _parameterArguments, findQueryColumnProblems, selectProblems } from '../../scripts/lib/query-columns.mjs';
+import { _firstSelect, _parameterArguments, findQueryColumnProblems, selectProblems } from '../../scripts/lib/query-columns.mjs';
 import { VENDOR_EXPIRATION_COLUMNS, VENDOR_EXPIRATION_FIELDS } from '../../lib/company-admin/vendor-compliance';
 import { BUILDER_SOURCES } from '../../lib/reports/builder-catalog';
 
@@ -45,7 +45,7 @@ describe('query columns', () => {
   });
 
   it('follows the query chain to its select (writes, filters, comments)', () => {
-    const at = (src: string) => _chainSelect(src, src.indexOf(')') + 1);
+    const at = (src: string) => _firstSelect(src);
     expect(at(`db.from('t').update({ note: 'a) b', n: f(1) }).eq('id', id).is('x', null).select('id, note')`)).toBe('id, note');
     expect(at(`db.from('t')
       // a comment with .select('nope')
@@ -66,7 +66,7 @@ describe('query columns', () => {
   it('resolves constants and concatenations passed to select', () => {
     const consts: Record<string, string> = { COLS: 'id, title', MORE: ', status' };
     const resolve = (name: string) => consts[name] ?? null;
-    const at = (src: string) => _chainSelect(src, src.indexOf(')') + 1, resolve);
+    const at = (src: string) => _firstSelect(src, resolve);
     expect(at(`db.from('t').select(COLS).eq('id', id)`)).toBe('id, title');
     expect(at(`db.from('t').select(COLS + MORE)`)).toBe('id, title, status');
     expect(at('db.from(\'t\').select(`${COLS}, notes`)')).toBe('id, title, notes');
@@ -91,12 +91,12 @@ describe('query columns', () => {
       '}',
       "load(db, 'id, number');",
     ].join('\n');
-    expect(_parameterArguments(src, src.indexOf("from('t')"), 'select')).toEqual([
+    expect(_parameterArguments(src, 't', 'select')).toEqual([
       { arg: "'id, amount'", line: 5 },
       { arg: '`id, ${COLS}`', line: 6 },
     ]);
-    expect(_parameterArguments(src, src.indexOf("from('g')"), 'columns')).toEqual([{ arg: "'id, number'", line: 10 }]);
-    expect(_parameterArguments(src, src.indexOf("from('t')"), 'nope')).toBeNull();
+    expect(_parameterArguments(src, 'g', 'columns')).toEqual([{ arg: "'id, number'", line: 10 }]);
+    expect(_parameterArguments(src, 't', 'nope')).toBeNull();
   });
 
   it('checks every branch of a conditional, through regex literals, arrows and variable tables', () => {
@@ -187,12 +187,15 @@ describe('query columns', () => {
       '/**', ' * example: db.from(table).select(cols)', ' */',
       "const url = 'https://x.test'; db.from('portfolios').select('nonexistent_c');",
       "const t = `// ${db.from('portfolios').select('nonexistent_d')}`;",
+      'if (enabled) /[/*]/.test(value);',
+      "db.from('portfolios').select('nonexistent_e');",
     ].join('\n'));
     const r = findQueryColumnProblems(dir, schema, fks);
     expect(r.problems).toEqual([
       'lib/x.ts:1  portfolios.nonexistent_a does not exist',
       'lib/x.ts:6  portfolios.nonexistent_c does not exist',
       'lib/x.ts:7  portfolios.nonexistent_d does not exist',
+      'lib/x.ts:9  portfolios.nonexistent_e does not exist',
     ]);
     expect(r.unchecked).toEqual([]);
   });
