@@ -22,12 +22,16 @@ Back to [[Home]]. Updated 2026-10-07 (after #238).
   merge too) plus checks in the Settings, Branding and Company Admin actions;
   Branding page validates logo/website/support email, never trusts a
   client-sent company id, and errors on a 0-row save.
+- Same PR (#239), third part: every save on `/settings` (policy, invite,
+  remove member, change role) redirects to `?saved=<kind>` with a success
+  banner, so an old error banner never sticks; an empty role choice errors.
 - #238 merged (b7ec661); its migration `20261007030000` is applied and verified
   (new definition live, execute service-only).
 
 ## Next gaps (pick up here, top first)
-1. `/settings` (`app/(app)/settings/page.tsx`) keeps a stale `?error=` banner
-   after a good save — redirect to `?saved=1` like the Branding page now does.
+1. `/settings` team table (`app/(app)/settings/page.tsx`, role select and
+   Apply / Send reset link / Remove buttons): hand-built 32px controls — use
+   the shared `Select`/`Button` so they meet the 40px touch target at 375px.
 2. Look for the next white-label / sign-in / data-exposure gap with the
    overseer agent (a zero-width-space-only company name still passes the DB
    check — only reachable by direct SQL).

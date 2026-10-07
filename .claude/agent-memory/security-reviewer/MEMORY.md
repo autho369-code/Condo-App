@@ -33,3 +33,4 @@
 - Other token columns: `invitations` (legacy, RLS on, no policies) and `owner_portal_invites.token` (unused by code). Neither is rendered; ignore them unless code starts using them.
 - `portfolios.slug` is CHECK-constrained (`portfolios_slug_format`, 2-32 chars) + `reserved_portfolio_slug`; a looser SQL slug regex is not a host-injection risk, just inconsistent with `lib/tenant/host.ts` PORTFOLIO_SLUG.
 - `create or replace function` keeps the existing ACL; service-only list lives in 20260726050000 (`render_invitation_email`, `queue_*`).
+- Query-param banner lookups (`MESSAGES[sp.x]` on a plain object literal) resolve `__proto__`/`constructor`/`toString` to truthy non-strings; rendering them as a React child crashes or blanks the page. Require `Object.hasOwn(...)` or a `Map` (seen `app/(app)/settings/page.tsx` SAVED_MESSAGES, 2026-10-07).

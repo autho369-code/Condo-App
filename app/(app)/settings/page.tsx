@@ -36,6 +36,7 @@ async function inviteStaff(formData: FormData) {
     redirect('/settings?invite_error=' + encodeURIComponent(error.message));
   }
   revalidatePath('/settings');
+  redirect('/settings?saved=invited');
 }
 
 async function resetStaffPassword(formData: FormData) {
@@ -155,6 +156,7 @@ async function removeStaffMember(formData: FormData) {
   });
   if (error) redirect('/settings?error=' + encodeURIComponent(error.message));
   revalidatePath('/settings');
+  redirect('/settings?saved=removed');
 }
 
 async function changeStaffRole(formData: FormData) {
@@ -163,34 +165,44 @@ async function changeStaffRole(formData: FormData) {
   const me = await guard();
   const supabase = await (await import('@/lib/supabase/server')).createClient();
   const role = formData.get('role') as string;
-  if (role) {
-    await assertStaffTarget(supabase, formData.get('profile_id') as string);
-    // assign_role takes a role id; the form submits the role name. Prefer the
-    // portfolio's own role of that name over the system default — never
-    // another company's role of the same name (assign_role would reject it).
-    const { data: roles, error: rolesError } = await (supabase as any)
-      .from('user_roles')
-      .select('id, portfolio_id')
-      .eq('name', role)
-      .or(me.portfolio?.id ? `portfolio_id.is.null,portfolio_id.eq.${me.portfolio.id}` : 'portfolio_id.is.null');
-    if (rolesError) redirect('/settings?error=' + encodeURIComponent(rolesError.message));
-    const match = (roles ?? []).sort((a: any, b: any) => (a.portfolio_id ? 0 : 1) - (b.portfolio_id ? 0 : 1))[0];
-    if (!match) redirect('/settings?error=' + encodeURIComponent(`Role "${role}" was not found.`));
-    const { error } = await (supabase as any).rpc('assign_role', {
-      p_profile_id: formData.get('profile_id') as string,
-      p_role_id: match.id,
-    });
-    if (error) redirect('/settings?error=' + encodeURIComponent(error.message));
-  }
+  if (!role) redirect('/settings?error=' + encodeURIComponent('Choose a role to assign.'));
+  await assertStaffTarget(supabase, formData.get('profile_id') as string);
+  // assign_role takes a role id; the form submits the role name. Prefer the
+  // portfolio's own role of that name over the system default — never
+  // another company's role of the same name (assign_role would reject it).
+  const { data: roles, error: rolesError } = await (supabase as any)
+    .from('user_roles')
+    .select('id, portfolio_id')
+    .eq('name', role)
+    .or(me.portfolio?.id ? `portfolio_id.is.null,portfolio_id.eq.${me.portfolio.id}` : 'portfolio_id.is.null');
+  if (rolesError) redirect('/settings?error=' + encodeURIComponent(rolesError.message));
+  const match = (roles ?? []).sort((a: any, b: any) => (a.portfolio_id ? 0 : 1) - (b.portfolio_id ? 0 : 1))[0];
+  if (!match) redirect('/settings?error=' + encodeURIComponent(`Role "${role}" was not found.`));
+  const { error } = await (supabase as any).rpc('assign_role', {
+    p_profile_id: formData.get('profile_id') as string,
+    p_role_id: match.id,
+  });
+  if (error) redirect('/settings?error=' + encodeURIComponent(error.message));
   revalidatePath('/settings');
+  redirect('/settings?saved=role');
 }
+
+// Success banners after a redirect; any error banner takes precedence.
+const SAVED_MESSAGES: Record<string, string> = {
+  policy: 'Settings saved.',
+  invited: 'Invitation sent.',
+  removed: 'Team member removed.',
+  role: 'Role updated.',
+};
 
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reset_success?: string; reset_error?: string; reason?: string; invite_error?: string; error?: string }>;
+  searchParams: Promise<{ reset_success?: string; reset_error?: string; reason?: string; invite_error?: string; error?: string; saved?: string }>;
 }) {
   const sp = await searchParams;
+  // Own keys only: ?saved=__proto__ must not reach the Alert.
+  const savedMessage = typeof sp.saved === 'string' && Object.hasOwn(SAVED_MESSAGES, sp.saved) ? SAVED_MESSAGES[sp.saved] : null;
   const me = await requirePortfolioAdmin();
   const supabase = await createClient();
   const portfolioId = me.portfolio?.id as string;
@@ -226,6 +238,9 @@ export default async function SettingsPage({
         )}
         {sp.error && (
           <Alert tone="danger" title="Could not save settings:">{sp.error}</Alert>
+        )}
+        {savedMessage && !sp.error && !sp.invite_error && !sp.reset_error && (
+          <Alert tone="success" title={savedMessage} />
         )}
 
         {/* ======== PORTFOLIO POLICY ======== */}

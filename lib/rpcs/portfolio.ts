@@ -50,4 +50,6 @@ export async function updatePortfolioPolicy(portfolioId: string, formData: FormD
   if (error) redirect(`/settings?error=${encodeURIComponent(error.message)}`);
   if (!saved?.length) redirect('/settings?error=' + encodeURIComponent('Settings were not saved: your account cannot edit this company.'));
   revalidatePath('/settings');
+  // A clean URL drops any earlier ?error= banner and confirms the save.
+  redirect('/settings?saved=policy');
 }

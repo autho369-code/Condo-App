@@ -8,7 +8,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   server-generated tokens for API writes, `html_escape` escapes `'`); company
   name can't be blank, brand color #RRGGBB (DB checks + all three settings
   actions); Branding page validates URLs/email and fails loudly; support email
-  validated in the Branding, Company Admin and Platform Operator actions.
+  validated in the Branding, Company Admin and Platform Operator actions;
+  `/settings` saves show a success banner and never keep a stale error.
 - #238 (merged b7ec661; migration 20261007030000 applied): second brain vault + hooks; Settings staff invitation email on
   the company workspace, escaped, Runbook link; company pages never fall back
   to the platform name (`NEUTRAL_COMPANY_NAME`).
