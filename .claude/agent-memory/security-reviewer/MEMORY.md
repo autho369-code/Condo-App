@@ -17,3 +17,5 @@
 
 ## Missed checks (caught later)
 - A public "prove you are us" endpoint (e.g. `/api/tenant/domain-check`) must bind its HMAC to a fresh verifier-chosen challenge; a deterministic proof can be recorded and replayed after a domain takeover. I suggested only HMAC-keying it; Codex caught the replay (PR #232).
+- A fresh challenge stops replay but not a live relay: a domain holder can forward each check to us with the right Host and pass our answer back. Domain ownership checks must also confirm public DNS points at our hosting (`lookupDomain` + `pointsAtVercel`). Codex, PR #232.
+- A "verified at" timestamp written by a cron must expire (trust only recent checks), or a stopped job/archived company leaves it trusted forever. Codex, PR #232.

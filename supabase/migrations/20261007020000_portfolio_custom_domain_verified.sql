@@ -8,8 +8,9 @@
 --    it with the service role. It resets to null whenever custom_domain
 --    changes, so a new or removed domain is never used in links before it is
 --    checked.
---  * Dues reminders (queue_payment_reminders) link to the verified custom
---    domain too, instead of always <slug>.portier369.com.
+--  * Dues reminders (queue_payment_reminders) link to the custom domain too,
+--    while its check is recent (3 hours, as in the app's companyUrl),
+--    instead of always <slug>.portier369.com.
 -- Additive only: nothing is dropped or deleted.
 
 alter table public.portfolios
@@ -62,7 +63,7 @@ begin
       'select id, company_name, slug, custom_domain, custom_domain_verified_at, coalesce(default_payment_reminder_days');
     v_def := replace(v_def,
       'v_portal := case when p.slug ~',
-      'v_portal := case when p.custom_domain is not null and p.custom_domain_verified_at is not null'
+      'v_portal := case when p.custom_domain is not null and p.custom_domain_verified_at > now() - interval ''3 hours'''
         || ' then ''https://'' || p.custom_domain || ''/portal/pay'' when p.slug ~');
     execute v_def;
   end if;

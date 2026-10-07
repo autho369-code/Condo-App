@@ -6,6 +6,7 @@
 // host that is not this app (a lapsed or taken-over domain) can neither
 // compute it nor replay an answer it recorded earlier.
 import { createHmac, randomBytes } from 'node:crypto';
+import { lookupDomain, pointsAtVercel, requiredDnsRecord } from '@/lib/tenant/custom-domain';
 import { normalizeHostname } from '@/lib/tenant/host';
 
 export const DOMAIN_CHECK_PATH = '/api/tenant/domain-check';
@@ -36,18 +37,31 @@ export function domainProof(portfolioId: string, hostname: string, challenge: st
 }
 
 /**
- * Fetch the domain-check endpoint on `domain` and say whether it answers for
+ * Whether `domain` serves the company: its public DNS points at the hosting
+ * (Vercel), so nobody else's server sits in between relaying our answers, and
+ * the domain-check endpoint answers this request's fresh challenge for
  * `portfolioId`. Redirects count as failure (a forwarded or parked domain is
  * not serving the company).
  */
 export async function domainServesCompany(
   domain: string,
   portfolioId: string,
-  { timeoutMs = 8000, fetchImpl = fetch, challenge = newDomainChallenge() }: { timeoutMs?: number; fetchImpl?: typeof fetch; challenge?: string } = {},
+  {
+    timeoutMs = 8000,
+    fetchImpl = fetch,
+    challenge = newDomainChallenge(),
+    dnsLookup = lookupDomain,
+  }: {
+    timeoutMs?: number;
+    fetchImpl?: typeof fetch;
+    challenge?: string;
+    dnsLookup?: (domain: string) => Promise<{ cnames: string[]; ipv4: string[] }>;
+  } = {},
 ): Promise<boolean> {
   const host = normalizeHostname(domain);
   const expected = host ? domainProof(portfolioId, host, challenge) : null;
   if (!host || !expected) return false;
+  if (!pointsAtVercel(await dnsLookup(host), requiredDnsRecord(host))) return false;
   try {
     const res = await fetchImpl(`https://${host}${DOMAIN_CHECK_PATH}?challenge=${challenge}`, {
       redirect: 'manual',
