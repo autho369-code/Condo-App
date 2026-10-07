@@ -776,9 +776,10 @@ export async function setupSenderDomain(formData: FormData) {
 
   // Same domain: only the address before @ changes; keep the verification.
   if (current?.domain === parsed.domain && current.provider_domain_id) {
-    const { error } = await db.from('portfolio_email_domains')
-      .update({ from_local_part: parsed.localPart }).eq('portfolio_id', portfolioId);
+    const { data: changed, error } = await db.from('portfolio_email_domains')
+      .update({ from_local_part: parsed.localPart }).eq('portfolio_id', portfolioId).select('portfolio_id');
     if (error) fail(returnTo, error.message);
+    if (!changed?.length) fail(returnTo, 'The sender address was not saved: your account cannot edit this company.');
     if (current.from_local_part !== parsed.localPart) {
       await audit(createServiceClient(), me, 'email_domain_changed', portfolioId, {
         from: `${current.from_local_part}@${current.domain}`, to: `${parsed.localPart}@${parsed.domain}`,
@@ -858,14 +859,15 @@ export async function checkSenderDomain(formData: FormData) {
   }
 
   const status = storedStatus(domain.status);
-  const { error } = await db.from('portfolio_email_domains').update({
+  const { data: changed, error } = await db.from('portfolio_email_domains').update({
     status,
     records: domain.records ?? [],
     verified_at: status === 'verified' ? (current.verified_at ?? now) : null,
     last_checked_at: now,
     last_error: verifyError?.message ?? null,
-  }).eq('portfolio_id', portfolioId);
+  }).eq('portfolio_id', portfolioId).select('portfolio_id');
   if (error) fail(returnTo, error.message);
+  if (!changed?.length) fail(returnTo, 'The domain status was not saved: your account cannot edit this company.');
   revalidatePath(returnTo);
   ok(returnTo, status === 'verified' ? 'email_domain_verified' : 'email_domain_checked');
 }

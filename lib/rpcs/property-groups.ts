@@ -28,10 +28,11 @@ export async function savePropertyGroup(formData: FormData) {
   if (description && description.length > 500) fail('Descriptions are limited to 500 characters.');
 
   const db = (await createClient()) as any;
-  const { error } = id
-    ? await db.from('property_groups').update({ name, description, updated_at: new Date().toISOString() }).eq('id', id).eq('portfolio_id', portfolioId)
-    : await db.from('property_groups').insert({ portfolio_id: portfolioId, name, description });
+  const { data: changed, error } = id
+    ? await db.from('property_groups').update({ name, description, updated_at: new Date().toISOString() }).eq('id', id).eq('portfolio_id', portfolioId).select('id')
+    : await db.from('property_groups').insert({ portfolio_id: portfolioId, name, description }).select('id');
   if (error) fail(error.message);
+  if (id && !changed?.length) fail('Group was not saved: it is gone or your account cannot edit it.');
   done(id ? 'Group updated.' : `Group "${name}" created.`);
 }
 
@@ -67,12 +68,14 @@ export async function setPropertyGroupMembers(formData: FormData) {
   const remove = (associations ?? []).filter((a: any) => !selected.has(a.id) && a.property_group_id === groupId).map((a: any) => a.id);
 
   if (add.length) {
-    const { error } = await db.from('associations').update({ property_group_id: groupId }).in('id', add).eq('portfolio_id', portfolioId);
+    const { data: added, error } = await db.from('associations').update({ property_group_id: groupId }).in('id', add).eq('portfolio_id', portfolioId).select('id');
     if (error) fail(error.message);
+    if (!added?.length) fail('Membership was not saved: your account cannot edit these associations.');
   }
   if (remove.length) {
-    const { error } = await db.from('associations').update({ property_group_id: null }).in('id', remove).eq('portfolio_id', portfolioId).eq('property_group_id', groupId);
+    const { data: removed, error } = await db.from('associations').update({ property_group_id: null }).in('id', remove).eq('portfolio_id', portfolioId).eq('property_group_id', groupId).select('id');
     if (error) fail(error.message);
+    if (!removed?.length) fail('Membership was not saved: your account cannot edit these associations.');
   }
   done(`Membership saved: ${add.length} added, ${remove.length} removed.`);
 }

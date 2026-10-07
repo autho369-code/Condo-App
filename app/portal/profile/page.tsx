@@ -18,7 +18,7 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
     'use server'
     const supabase2 = await createClient()
     const me2 = await requireOwner()
-    const { error } = await (supabase2 as any).from('owners').update({
+    const { data: changed, error } = await (supabase2 as any).from('owners').update({
       phone: formData.get('phone') as string || null,
       email: formData.get('email') as string || null,
       address_street: formData.get('address_street') as string || null,
@@ -28,8 +28,9 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
       // My Home sends owners here to add an emergency contact.
       emergency_contact_name: (formData.get('emergency_contact_name') as string)?.trim() || null,
       emergency_contact_phone: (formData.get('emergency_contact_phone') as string)?.trim() || null,
-    }).eq('id', me2.owner_id)
+    }).eq('id', me2.owner_id).select('id')
     if (error) redirect('/portal/profile?error=' + encodeURIComponent(error.message))
+    if (!changed?.length) redirect('/portal/profile?error=' + encodeURIComponent('Your profile was not saved: your account cannot edit it.'))
     revalidatePath('/portal/profile')
     redirect('/portal/profile?saved=1')
   }

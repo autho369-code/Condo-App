@@ -163,8 +163,9 @@ export async function updateAssociation(id: string, formData: FormData) {
   };
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
 
-  const { error } = await (supabase as any).from('associations').update(patch).eq('id', id);
+  const { data: changed, error } = await (supabase as any).from('associations').update(patch).eq('id', id).select('id');
   if (error) { failTo(error.message); return; }
+  if (!changed?.length) { failTo('Association was not saved: it is gone or your account cannot edit it.'); return; }
   revalidatePath(`/associations/${id}`);
   revalidatePath('/associations');
 }
@@ -172,8 +173,9 @@ export async function updateAssociation(id: string, formData: FormData) {
 export async function archiveAssociation(id: string) {
   await requirePortfolioAdmin();
   const supabase = await createClient();
-  const { error } = await (supabase as any).from('associations').update({ archived_at: new Date().toISOString() }).eq('id', id);
+  const { data: changed, error } = await (supabase as any).from('associations').update({ archived_at: new Date().toISOString() }).eq('id', id).select('id');
   if (error) { redirect(`/associations/${id}?error=${encodeURIComponent(error.message)}`); return; }
+  if (!changed?.length) { redirect(`/associations/${id}?error=${encodeURIComponent('Association was not archived: it is gone or your account cannot edit it.')}`); return; }
   revalidatePath('/associations');
   redirect('/associations');
 }
@@ -543,8 +545,9 @@ export async function updateUnit(id: string, formData: FormData) {
     notes:          str(formData, 'notes'),
   };
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
-  const { error } = await (supabase as any).from('units').update(patch).eq('id', id);
+  const { data: changed, error } = await (supabase as any).from('units').update(patch).eq('id', id).select('id');
   if (error) { failTo(error.message); return; }
+  if (!changed?.length) { failTo('Unit was not saved: it is gone or your account cannot edit it.'); return; }
   revalidatePath(`/units/${id}`);
   revalidatePath('/units');
 }

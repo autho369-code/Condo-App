@@ -39,11 +39,12 @@ async function saveVendorBankDetails(formData: FormData) {
     updated_at: new Date().toISOString(), updated_by: me.auth_user_id,
   }, { onConflict: 'vendor_id' });
   if (finError) fail(finError.message);
-  const { error } = await (supabase as any).from('vendors').update({
+  const { data: changed, error } = await (supabase as any).from('vendors').update({
     savings_account: formData.get('savings_account') === 'on',
     ach_status: 'pending',
-  }).eq('id', vendorId);
+  }).eq('id', vendorId).select('id');
   if (error) fail(error.message);
+  if (!changed?.length) fail('Bank details saved, but the vendor was not set to pending ACH: your account cannot edit this vendor.');
   redirect(`/vendors/ach?vendor=${vendorId}`);
 }
 

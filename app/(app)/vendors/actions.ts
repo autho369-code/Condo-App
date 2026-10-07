@@ -188,8 +188,9 @@ export async function updateVendorRecord(formData: FormData) {
   // Notes go straight to vendor_private so clearing them works (a NULL on
   // vendors.notes would leave the stored note in place).
   const { notes, ...vendorPatch } = patch as Record<string, unknown> & { notes: string | null }
-  const { error } = await supabase.from('vendors').update(vendorPatch).eq('id', vendorId).eq('portfolio_id', portfolioId)
+  const { data: changed, error } = await supabase.from('vendors').update(vendorPatch).eq('id', vendorId).eq('portfolio_id', portfolioId).select('id')
   if (error) failTo(error.message)
+  if (!changed?.length) failTo('Vendor was not saved: it is gone or your account cannot edit it.')
   if ((before.notes ?? null) !== (notes ?? null)) {
     const notesError = await savePrivateFields(supabase, 'vendor_private', 'vendor_id', vendorId, { notes })
     if (notesError) failTo('Saved, but the internal notes could not be saved: ' + notesError.message)

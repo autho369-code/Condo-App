@@ -60,15 +60,17 @@ export default async function AssociationProfileTab({
     await requireStaff();
     const sb = await createClient();
     const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
-    const { error } = await (sb as any)
+    const { data: changed, error } = await (sb as any)
       .from('associations')
       .update({
         remit_payee: ((formData.get('remit_payee') as string) || '').trim() || null,
         remit_address: ((formData.get('remit_address') as string) || '').trim() || null,
         payment_instructions: ((formData.get('payment_instructions') as string) || '').trim() || null,
       })
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
     if (error) fail(error.message);
+    if (!changed?.length) fail('Payment details were not saved: your account cannot edit this association.');
     revalidatePath(`/associations/${assocParam}/profile`);
     redirect(`/associations/${assocParam}/profile?saved=1`);
   }
@@ -126,11 +128,13 @@ export default async function AssociationProfileTab({
       if (!mgr) fail('Selected manager was not found.');
       displayName = mgr.full_name ?? mgr.email ?? null;
     }
-    const { error } = await (sb as any)
+    const { data: changed, error } = await (sb as any)
       .from('associations')
       .update({ site_manager_user_id: userId, site_manager: displayName })
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
     if (error) fail(error.message);
+    if (!changed?.length) fail('Site manager was not saved: your account cannot edit this association.');
     revalidatePath(`/associations/${assocParam}/profile`);
     redirect(`/associations/${assocParam}/profile?saved=1`);
   }

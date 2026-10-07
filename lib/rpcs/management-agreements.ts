@@ -47,7 +47,7 @@ export async function updateManagementAgreement(formData: FormData) {
   const feeValue = fee ? Number(fee) : null;
   if (feeValue !== null && (!Number.isFinite(feeValue) || feeValue < 0)) back(id, 'error', 'Management fee must be a positive number.');
 
-  const { error } = await db
+  const { data: changed, error } = await db
     .from('management_agreements')
     .update({
       name,
@@ -62,8 +62,10 @@ export async function updateManagementAgreement(formData: FormData) {
       terms: { ...(existing.terms ?? {}), management_fee: feeValue, fee_basis: s(formData, 'fee_basis') || null },
       updated_at: new Date().toISOString(),
     })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
   if (error) back(id, 'error', error.message);
+  if (!changed?.length) back(id, 'error', 'Agreement was not saved: it is gone or your account cannot edit it.');
   back(id, 'saved', 'Agreement saved.');
 }
 
@@ -80,7 +82,7 @@ export async function recordAgreementSignatures(formData: FormData) {
   const { data: existing } = await db.from('management_agreements').select('status').eq('id', id).maybeSingle();
   if (!existing) back(id, 'error', 'Agreement not found.');
 
-  const { error } = await db
+  const { data: changed, error } = await db
     .from('management_agreements')
     .update({
       signed_at: at,
@@ -93,7 +95,9 @@ export async function recordAgreementSignatures(formData: FormData) {
       status: existing.status === 'draft' ? 'active' : existing.status,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
   if (error) back(id, 'error', error.message);
+  if (!changed?.length) back(id, 'error', 'Signatures were not recorded: the agreement is gone or your account cannot edit it.');
   back(id, 'saved', 'Signatures recorded.');
 }

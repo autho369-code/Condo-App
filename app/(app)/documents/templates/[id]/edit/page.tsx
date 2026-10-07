@@ -98,7 +98,7 @@ export default function EditTemplatePage() {
 
     const mergeVarsObj = mergeVariables.map((v) => ({ key: v }));
 
-    const { error: updateErr } = await (supabase as any)
+    const { data: changed, error: updateErr } = await (supabase as any)
       .from('document_templates')
       .update({
         name: name.trim(),
@@ -110,13 +110,18 @@ export default function EditTemplatePage() {
         active,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
 
     setSaving(false);
 
     if (updateErr) {
       console.error('Failed to update template:', updateErr);
       setError('Failed to save changes. Please try again.');
+      return;
+    }
+    if (!changed?.length) {
+      setError('Template was not saved: it is gone or your account cannot edit it.');
       return;
     }
 

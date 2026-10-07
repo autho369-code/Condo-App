@@ -289,8 +289,9 @@ export async function toggleOptIn(formData: FormData) {
   };
 
   if (existing) {
-    const { error } = await db.from('sms_opt_ins').update(payload).eq('id', existing.id);
+    const { data: changed, error } = await db.from('sms_opt_ins').update(payload).eq('id', existing.id).select('id');
     if (error) { failTo(error.message); return; }
+    if (!changed?.length) { failTo('Consent was not saved: the record is gone or your account cannot edit it.'); return; }
   } else {
     const { error } = await db.from('sms_opt_ins').insert(payload);
     if (error) { failTo(error.message); return; }

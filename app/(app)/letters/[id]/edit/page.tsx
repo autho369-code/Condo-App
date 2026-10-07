@@ -56,7 +56,7 @@ export default function EditLetterPage() {
     setError('');
 
     const supabase = createClient();
-    const { error: err } = await supabase
+    const { data: changed, error: err } = await supabase
       .from('document_templates')
       .update({
         name: name.trim(),
@@ -66,10 +66,11 @@ export default function EditLetterPage() {
         body,
         active: newActive,
       })
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
 
-    if (err) {
-      setError(err.message);
+    if (err || !changed?.length) {
+      setError(err?.message ?? 'Template was not saved: it is gone or your account cannot edit it.');
       setSaving(false);
       return;
     }
@@ -82,11 +83,16 @@ export default function EditLetterPage() {
     if (!confirm('Archive this template? It will no longer appear in the active list.')) return;
     setSaving(true);
     const supabase = createClient();
-    const { error: err } = await supabase
+    const { data: changed, error: err } = await supabase
       .from('document_templates')
       .update({ active: false, archived_at: new Date().toISOString() })
-      .eq('id', id);
-    if (err) { setError(err.message); setSaving(false); return; }
+      .eq('id', id)
+      .select('id');
+    if (err || !changed?.length) {
+      setError(err?.message ?? 'Template was not archived: it is gone or your account cannot edit it.');
+      setSaving(false);
+      return;
+    }
     router.push('/letters');
     router.refresh();
   }

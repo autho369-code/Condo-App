@@ -65,10 +65,11 @@ function refresh(meetingId: string) {
 
 export async function saveMeetingNotes(meetingId: string, formData: FormData) {
   const { supabase } = await editableMeeting(meetingId);
-  const { error } = await (supabase as any).from('meetings').update({
+  const { data: changed, error } = await (supabase as any).from('meetings').update({
     agenda: text(formData, 'agenda', 50_000) || null,
-  }).eq('id', meetingId);
+  }).eq('id', meetingId).select('id');
   if (error) back(meetingId, '?error=Meeting%20notes%20could%20not%20be%20saved.');
+  if (!changed?.length) back(meetingId, `?error=${encodeURIComponent('Meeting notes were not saved: the meeting is gone or your account cannot edit it.')}`);
   // Minutes are a draft (staff and board only) until published.
   const { error: draftError } = await (supabase as any).from('meeting_private').upsert({
     meeting_id: meetingId,
@@ -329,13 +330,14 @@ export async function updateMeetingActionStatus(meetingId: string, actionItemId:
   const requested = text(formData, 'status', 30);
   if (!ACTION_STATUSES.has(requested)) back(meetingId, '?error=Choose%20a%20valid%20action%20status.');
   const completed = requested === 'completed';
-  const { error } = await (supabase as any).from('meeting_action_items').update({
+  const { data: changed, error } = await (supabase as any).from('meeting_action_items').update({
     status: requested,
     completed_at: completed ? new Date().toISOString() : null,
     completed_by: completed ? me.auth_user_id : null,
     updated_at: new Date().toISOString(),
-  }).eq('id', actionItemId).eq('meeting_id', meetingId);
+  }).eq('id', actionItemId).eq('meeting_id', meetingId).select('id');
   if (error) back(meetingId, '?error=The%20action%20status%20could%20not%20be%20updated.');
+  if (!changed?.length) back(meetingId, `?error=${encodeURIComponent('The action status was not updated: the item is gone or your account cannot edit it.')}`);
   refresh(meetingId);
   back(meetingId, '?saved=action');
 }
