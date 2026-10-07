@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { QUESTION_TYPE_LABEL, readQuestions, type SurveyQuestion } from '@/lib/surveys/questions';
 import { date } from '@/lib/utils';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -187,7 +188,7 @@ export default async function SurveyPage({
           {canEdit && (
             <form action={archiveSurvey}>
               <input type="hidden" name="survey_id" value={id} />
-              <Button type="submit" variant="secondary" size="sm">Remove survey</Button>
+              <PendingSubmit variant="secondary" size="sm" pendingLabel="Removing…" confirm="Remove this survey?">Remove survey</PendingSubmit>
             </form>
           )}
         </div>

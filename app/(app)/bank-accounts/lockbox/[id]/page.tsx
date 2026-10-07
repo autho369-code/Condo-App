@@ -10,6 +10,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { matchLockboxItem, postLockboxBatch, rejectLockboxItem } from '@/lib/rpcs/lockbox';
 import { date, money } from '@/lib/utils';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -120,7 +121,7 @@ export default async function LockboxBatchPage({
                     <form action={rejectLockboxItem}>
                       <input type="hidden" name="batch_id" value={id} />
                       <input type="hidden" name="item_id" value={i.id} />
-                      <Button type="submit" variant="ghost" size="sm">Reject</Button>
+                      <PendingSubmit variant="ghost" size="sm" pendingLabel="Rejecting…" confirm="Reject this lockbox item?">Reject</PendingSubmit>
                     </form>
                   )}
                 </TD>

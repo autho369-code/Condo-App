@@ -220,7 +220,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                               <input type="hidden" name="invoice_id" value={inv.id} />
                               <input type="hidden" name="portfolio_id" value={inv.portfolio_id} />
                               <input type="hidden" name="return_to" value="/platform-operator/billing" />
-                              <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Void</Button>
+                              <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:text-red-700" pendingLabel="Voiding…" confirm="Void this invoice?">Void</PendingSubmit>
                             </form>
                           </>
                         )}

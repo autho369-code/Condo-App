@@ -10,6 +10,7 @@ import { currentWorkOrder } from '@/lib/maintenance/intake';
 import { loadRequestAttachmentsByRequest } from '@/lib/maintenance/attachments';
 import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 import { cancelResidentRequest, submitResidentRequest } from '@/app/resident/actions';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -167,7 +168,7 @@ export default async function ResidentRequestsPage({
                     </div>
                     {canCancel ? (
                       <form action={cancelResidentRequest.bind(null, request.id) as any}>
-                        <Button type="submit" variant="danger" size="sm">Cancel request</Button>
+                        <PendingSubmit variant="danger" size="sm" pendingLabel="Cancelling…" confirm="Cancel this request?">Cancel request</PendingSubmit>
                       </form>
                     ) : null}
                   </div>

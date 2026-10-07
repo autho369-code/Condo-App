@@ -690,7 +690,7 @@ export default async function CompanyDetailPage({
                               <input type="hidden" name="invoice_id" value={inv.id} />
                               <input type="hidden" name="portfolio_id" value={id} />
                               <input type="hidden" name="return_to" value={returnTo} />
-                              <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Void</Button>
+                              <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:text-red-700" pendingLabel="Voiding…" confirm="Void this invoice?">Void</PendingSubmit>
                             </form>
                           </>
                         )}

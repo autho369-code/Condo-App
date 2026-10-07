@@ -18,6 +18,7 @@ import {
 } from './actions';
 import { CreateApiKeyForm } from './create-api-key-form';
 import { CreateWebhookForm } from './create-webhook-form';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -170,7 +171,7 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
                     <TD className="text-right">
                       {active ? (
                         <form action={revokeDeveloperApiKey.bind(null, key.id)}>
-                          <Button type="submit" size="sm" variant="danger">Revoke</Button>
+                          <PendingSubmit size="sm" variant="danger" pendingLabel="Revoking…" confirm="Revoke this API key? Anything using it stops working immediately.">Revoke</PendingSubmit>
                         </form>
                       ) : <span className="text-xs text-gray-400">Unavailable</span>}
                     </TD>

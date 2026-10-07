@@ -427,7 +427,7 @@ export default async function JournalEntriesPage({
                               </form>
                               <form action={deleteDraftJournalEntry}>
                                 <input type="hidden" name="entry_id" value={je.id} />
-                                <button type="submit" className="text-xs font-medium text-red-600 hover:underline">Delete</button>
+                                <PendingSubmit variant="ghost" size="sm" pendingLabel="Deleting…" confirm="Delete this draft journal entry?">Delete</PendingSubmit>
                               </form>
                             </div>
                           )}

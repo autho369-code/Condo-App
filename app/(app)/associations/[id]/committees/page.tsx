@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { todayInZone } from '@/lib/time/zoned';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -197,7 +198,7 @@ export default async function CommitteesTab({
                     </td>
                     <td className="px-4 py-3 text-right">
                       <form action={removeMember.bind(null, m.id)}>
-                        <button type="submit" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-red-600">Remove</button>
+                        <PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this member from the committee?">Remove</PendingSubmit>
                       </form>
                     </td>
                   </tr>

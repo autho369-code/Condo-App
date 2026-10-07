@@ -8,6 +8,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { signFormFiles } from '@/lib/forms/files';
 import { archiveFormTemplate, saveFormTemplate } from '@/lib/rpcs/forms';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +47,7 @@ export default async function EditFormTemplatePage({
         <form action={archiveFormTemplate} className="flex flex-col gap-3 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:flex-row sm:items-center">
           <input type="hidden" name="id" value={form.id} />
           <p className="text-sm text-gray-600">Archive this form to remove it from the list and the owner portal.</p>
-          <div className="sm:ml-auto"><Button type="submit" variant="danger">Archive form</Button></div>
+          <div className="sm:ml-auto"><PendingSubmit variant="danger" pendingLabel="Archiving…" confirm="Archive this form? Owners will no longer see it.">Archive form</PendingSubmit></div>
         </form>
       </div>
     </DataWorkspace>

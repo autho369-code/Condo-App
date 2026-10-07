@@ -9,6 +9,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { archiveHouseRule, saveViolationSchedule } from '@/lib/rpcs/violation-rules';
 import { createClient } from '@/lib/supabase/server';
 import { loadScheduleOptions, toScheduleSteps } from '@/lib/violations/rules-data';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,7 +88,7 @@ export default async function RuleDetailPage({
               <input type="hidden" name="id" value={rule.id} />
               <input type="hidden" name="association_id" value={rule.association_id} />
               <p className="text-sm text-gray-500">Existing violations keep their history. The rule can no longer be chosen.</p>
-              <Button type="submit" variant="danger">Archive</Button>
+              <PendingSubmit variant="danger" pendingLabel="Archiving…" confirm="Archive this rule? It can no longer be chosen for new violations.">Archive</PendingSubmit>
             </form>
           </Section>
         </div>

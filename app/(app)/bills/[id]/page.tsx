@@ -7,6 +7,7 @@ import { approveBill, submitBillForApproval, voidBill, voidPaidCheck } from '@/l
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -154,7 +155,7 @@ export default async function BillDetailPage({ params, searchParams }: { params:
         )}
         {['draft', 'pending_approval', 'approved'].includes(b.status) && b.paid_at === null && (
           <form action={async () => { 'use server'; await voidBill(id); }}>
-            <Button type="submit" variant="danger">Void</Button>
+            <PendingSubmit variant="danger" pendingLabel="Voiding…" confirm="Void this bill? This cannot be undone.">Void</PendingSubmit>
           </form>
         )}
         {b.status === 'approved' && b.paid_at === null && (

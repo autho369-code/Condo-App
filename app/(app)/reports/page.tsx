@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { deleteSavedReport, toggleReportFavorite, toggleSavedReportPin } from '@/lib/rpcs/reports';
 import { date } from '@/lib/utils';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -246,7 +247,7 @@ function SavedReports({ rows, returnTo }: { rows: SavedReport[]; returnTo: strin
               <form action={deleteSavedReport}>
                 <input type="hidden" name="saved_report_id" value={report.id} />
                 <input type="hidden" name="return_to" value={returnTo} />
-                <Button type="submit" variant="secondary" size="sm">Delete</Button>
+                <PendingSubmit variant="secondary" size="sm" pendingLabel="Deleting…" confirm="Delete this saved report?">Delete</PendingSubmit>
               </form>
             </div>
           </div>

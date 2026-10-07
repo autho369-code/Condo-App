@@ -8,6 +8,7 @@ import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { archiveInspectionTemplate, saveInspectionTemplate } from '@/lib/rpcs/inspection-templates';
 import { createClient } from '@/lib/supabase/server';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,7 +91,7 @@ export default async function InspectionTemplatesPage({
                       <Link href={`/inspections/templates?edit=${t.id}`}><Button variant="ghost" size="sm">Edit</Button></Link>
                       <form action={archiveInspectionTemplate}>
                         <input type="hidden" name="id" value={t.id} />
-                        <Button type="submit" variant="ghost" size="sm">Archive</Button>
+                        <PendingSubmit variant="ghost" size="sm" pendingLabel="Archiving…" confirm="Archive this inspection template?">Archive</PendingSubmit>
                       </form>
                     </div>
                   </TD>

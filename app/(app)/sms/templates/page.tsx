@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { deleteTemplate } from '@/lib/rpcs/sms';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,9 +108,9 @@ export default async function SmsTemplatesPage({
                       <Link href={`/sms/templates/${t.id}/edit`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">Edit</Link>
                       <form action={deleteTemplate as any} className="inline">
                         <input type="hidden" name="id" value={t.id} />
-                        <button type="submit" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50">
+                        <PendingSubmit variant="ghost" size="sm" pendingLabel="Deleting…" confirm="Delete this SMS template?">
                           Delete
-                        </button>
+                        </PendingSubmit>
                       </form>
                     </div>
                   </TD>

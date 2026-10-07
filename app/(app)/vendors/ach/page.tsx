@@ -15,6 +15,7 @@ import { verifyVendorAch, activateVendorAch, revokeVendorAch } from '@/lib/rpcs/
 import { Field, Input } from '@/components/ui/input';
 import { tradeLabel } from '@/lib/vendors/options';
 import { mergePrivateFields } from '@/lib/private-fields';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 async function saveVendorBankDetails(formData: FormData) {
   'use server';
@@ -303,7 +304,7 @@ export default async function VendorAchPage({
               {canRevoke && (
                 <form action={revokeVendorAch}>
                   <input type="hidden" name="vendor_id" value={focusVendor.id} />
-                  <Button type="submit" variant="danger">Revoke Authorization</Button>
+                  <PendingSubmit variant="danger" pendingLabel="Revoking…" confirm="Revoke this vendor's ACH authorization? Payments to them by ACH stop until it is set up again.">Revoke Authorization</PendingSubmit>
                 </form>
               )}
               {focusVendor.ach_status === 'active' && (
