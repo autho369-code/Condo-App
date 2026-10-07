@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-07
+- #244 (merged f0da498; migration 20261007090000 applied): 16 finance and
+  delinquency RPCs association-scoped for managers limited to some
+  associations (save/archive recurring bill and delinquency RPCs were real
+  gaps; the rest add an earlier refusal over existing row triggers).
 - #243 (merged df91ada; migrations 20261007070000 + 20261007080000 applied):
   AI follow-up (snapshot guard admits company admins, on/off from a usable
   key); ~45 destructive buttons confirm first; company names must contain a

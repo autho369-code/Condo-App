@@ -38,3 +38,9 @@
   commit, then a reviewer-fix commit widens scope (finance RPC scope PR,
   2026-10-07: vault said "12 RPCs", final migration patches 16). Count the
   final diff against the vault line.
+- Start-of-task: check the open PR's real state via REST
+  (`gh api repos/autho369-code/Condo-App/pulls/<n> --jq .merged`) before
+  accepting "open, not merged". #244 was planned as still open but had merged
+  (squash f0da498, 2026-10-07 21:01Z); plan was to edit its migration. A merged
+  migration file is never edited; new work gets a new migration + new PR. Squash
+  merges: compare trees with `git diff --stat <head> origin/main` (empty = all in).

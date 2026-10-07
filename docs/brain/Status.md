@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-07 (after #243).
+Back to [[Home]]. Updated 2026-10-07 (after #244).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,15 +12,13 @@ Back to [[Home]]. Updated 2026-10-07 (after #243).
   pilot).
 
 ## Open PR
-- Open: finance RPCs association scope (migration 20261007090000; apply via
-  MCP after merge and read the 16 definitions back). 16 SECURITY DEFINER
-  RPCs: 15 now also require `can_view_association_row(<row's association>)`,
-  post_recurring_journal_entries refuses scoped managers like
-  post_recurring_bills. Real gaps closed: save_recurring_bill (update path
-  now checks the existing row), archive_recurring_bill, advance_/hold/
-  board-vote delinquency RPCs (no scope trigger on delinquency_cases),
-  post_recurring_journal_entries; the rest add an earlier, clearer refusal
-  over existing row triggers.
+- Open: next-gap sweep. Migration 20261007100000 filters
+  `sync_owner_delinquency_cases` to the caller's associations (apply via MCP
+  after merge and read it back). Non-destructive writes that RLS can block
+  without an error now fail loudly.
+- #244 merged (f0da498); migration 20261007090000 applied and verified (16
+  RPCs: 17 association checks plus the post_recurring_journal_entries refusal;
+  grants unchanged).
 - #243 merged (df91ada): AI follow-up, ~45 confirm-first destructive buttons,
   visible company names (`hasVisibleText` + DB check generated from it),
   security sweep. Migrations 20261007070000 and 20261007080000 applied and
@@ -43,13 +41,9 @@ Back to [[Home]]. Updated 2026-10-07 (after #243).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-1. Writes that RLS can block without an error and never check whether a row
-   changed (the #243 sweep fixed ~15 destructive ones; non-destructive
-   update/insert actions remain). Also `update_record_note` (portfolio-level
-   check only; notes on association records).
-   Also `sync_owner_delinquency_cases(p_portfolio_id)`: portfolio-wide for
-   scoped staff with no association trigger behind it; refuse scoped managers
-   like post_recurring_* (low risk, cases come from open charges).
-   (`record_delinquency_payment_plan_offer` is already scoped, 20261004130000.)
+1. Client components that write to Supabase directly and API routes that
+   return JSON can still hide an RLS no-op (listed in the sweep PR).
+   `update_record_note` needs no change: the record_notes row trigger
+   (enforce_row_association_scope) already scopes it.
 2. Optional: ask whether the remaining reason-required void/cancel forms
    should also confirm.
