@@ -39,7 +39,7 @@ export async function deliverStepLetter(db: any, violationId: string, result: Ad
 
   const { data: v, error } = await db
     .from('violations')
-    .select('id, title, description, date_observed, cure_deadline, notice_sent_at, last_step_at, fines_total, association_id, owner_id, governing_document_reference, associations(name, portfolio_id, timezone), units(unit_number), owners(full_name, email)')
+    .select('id, title, description, date_observed, cure_deadline, notice_sent_at, last_step_at, fines_total, association_id, owner_id, governing_document_reference, associations(name, portfolio_id, timezone, portfolios(company_name)), units(unit_number), owners(full_name, email)')
     .eq('id', violationId)
     .maybeSingle();
   if (error || !v) throw new Error('Could not load the violation to write its letter.');
@@ -100,6 +100,7 @@ export async function deliverStepLetter(db: any, violationId: string, result: Ad
     subject,
     body,
     associationName,
+    companyName: v.associations?.portfolios?.company_name ?? null,
     preparedFor: v.owners?.full_name ? [v.owners.full_name] : [],
   });
   const path = `violations/${v.id}/letters/${today}-step${result.step}-${randomUUID()}.pdf`;

@@ -53,7 +53,7 @@ async function generateAndStore(input: GenerateDocumentInput) {
   const supabase = await createClient();
   const db = supabase as any;
   const { data: association, error: associationError } = await db.from('associations')
-    .select('id, name, portfolio_id').eq('id', associationId).is('archived_at', null).maybeSingle();
+    .select('id, name, portfolio_id, portfolios(company_name)').eq('id', associationId).is('archived_at', null).maybeSingle();
   if (associationError || !association) throw new Error('Association is unavailable or outside your access.');
 
   if (input.templateId) {
@@ -89,6 +89,8 @@ async function generateAndStore(input: GenerateDocumentInput) {
     subject,
     body,
     associationName: association.name,
+    // The association's company, not the caller's (a platform operator may generate it).
+    companyName: association.portfolios?.company_name ?? null,
     preparedFor: recipients.map((row) => row.name),
   });
   const safeType = (input.letterType || 'document').replace(/[^a-z0-9_-]/gi, '-').toLowerCase();

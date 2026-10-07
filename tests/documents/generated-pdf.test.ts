@@ -19,6 +19,19 @@ describe('generated document PDFs', () => {
     expect((source.match(/\/Type \/Page\b/g) ?? []).length).toBeGreaterThan(1);
   });
 
+  it("heads every page with the management company, never the platform", () => {
+    const text = (input: Parameters<typeof generateDocumentPdf>[0]) => Buffer.from(generateDocumentPdf(input)).toString('latin1');
+    const branded = text({ subject: 'Notice', body: 'Hello', associationName: 'Harbor View HOA', companyName: 'Stellar Property Group' });
+    expect(branded).toContain('(Stellar Property Group)');
+    expect(branded).toContain('(Harbor View HOA)');
+    expect(branded).not.toContain('(PORTIER369)');
+    expect(branded).toContain('(Generated securely by Portier369)');
+    // No company name: the association heads the page on its own.
+    const unbranded = text({ subject: 'Notice', body: 'Hello', associationName: 'Harbor View HOA' });
+    expect(unbranded).toContain('(Harbor View HOA)');
+    expect(unbranded).not.toContain('(PORTIER369)');
+  });
+
   it('stores scoped PDFs through a guarded server action instead of empty document rows', () => {
     const action = readFileSync(resolve('lib/rpcs/documents.ts'), 'utf8');
     const page = readFileSync(resolve('app/(app)/documents/generate/page.tsx'), 'utf8');

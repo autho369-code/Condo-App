@@ -4,6 +4,8 @@ export type GeneratedDocumentPdfInput = {
   subject: string;
   body: string;
   associationName: string;
+  /** The management company the letter comes from (white label: never the platform). */
+  companyName?: string | null;
   preparedFor?: string[];
   generatedAt?: Date;
 };
@@ -33,15 +35,20 @@ export function generateDocumentPdf(input: GeneratedDocumentPdfInput): Uint8Arra
   const contentWidth = width - margin * 2;
   const generatedAt = input.generatedAt ?? new Date();
 
+  // The sender is the management company; with no company name the
+  // association stands alone. Only the footer credits the platform.
+  const company = input.companyName?.trim() || null;
   const drawHeader = () => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(31, 41, 55);
-    doc.text('PORTIER369', margin, 42);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(75, 85, 99);
-    doc.text(input.associationName, width - margin, 42, { align: 'right' });
+    doc.text(company ?? input.associationName, margin, 42);
+    if (company) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(75, 85, 99);
+      doc.text(input.associationName, width - margin, 42, { align: 'right' });
+    }
     doc.setDrawColor(209, 213, 219);
     doc.line(margin, 52, width - margin, 52);
   };
