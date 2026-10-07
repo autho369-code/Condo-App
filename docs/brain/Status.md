@@ -13,9 +13,12 @@ Back to [[Home]]. Updated 2026-10-07 (after #244).
 
 ## Open PR
 - Open: next-gap sweep. Migration 20261007100000 filters
-  `sync_owner_delinquency_cases` to the caller's associations (apply via MCP
-  after merge and read it back). Non-destructive writes that RLS can block
-  without an error now fail loudly.
+  `sync_owner_delinquency_cases` (upsert, conflict update, cured sweep) to the
+  caller's associations (apply via MCP after merge and read it back). 35
+  saves that RLS could silently skip now fail loudly (server actions, owner
+  and vendor portals, letter/template editors); vendor ACH sets pending before
+  saving bank details; property-group membership checks exact counts; site
+  manager must be a manager of the company.
 - #244 merged (f0da498); migration 20261007090000 applied and verified (16
   RPCs: 17 association checks plus the post_recurring_journal_entries refusal;
   grants unchanged).
@@ -41,9 +44,12 @@ Back to [[Home]]. Updated 2026-10-07 (after #244).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-1. Client components that write to Supabase directly and API routes that
-   return JSON can still hide an RLS no-op (listed in the sweep PR).
-   `update_record_note` needs no change: the record_notes row trigger
-   (enforce_row_association_scope) already scopes it.
+1. Leftovers from the silent-save sweep (security review, low):
+   `acknowledgeReminder` / `resendMaintenanceNotification` in
+   `lib/rpcs/calendar.ts` return `{ error }` (no caller today; redirect if
+   ever wired to a form). Maintenance "complete" writes history and the
+   calendar event before the task update; its error says what was recorded.
+   Next: look for the next white-label / sign-in / data-exposure gap with
+   the overseer.
 2. Optional: ask whether the remaining reason-required void/cancel forms
    should also confirm.
