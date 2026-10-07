@@ -13,4 +13,7 @@ Back to [[Home]].
 - After a merge: `git fetch origin main`, then
   `git checkout -B <branch> origin/main && git push --force-with-lease`. If a
   PR merged before your last push, cherry-pick the missed commit into a
-  follow-up PR. Apply any additive migration from it.
+  follow-up PR. Apply any additive migration from it, then **verify it in
+  production** (read the constraint/function definition back). Write
+  non-ASCII characters in SQL as `chr(n)` — they can be lost when applied
+  through the MCP.

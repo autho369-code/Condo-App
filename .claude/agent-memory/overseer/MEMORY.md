@@ -29,3 +29,4 @@
   (incl. platform-operator actions, service client) and compare: #239
   validated support_email in Branding + Company Admin but not in
   platform-operator `updateCompanyDetails`.
+- After a merge, check main has every commit pushed before the merge — #239 merged before its third commit; cherry-pick the rest into a follow-up PR. After applying a migration, read the definition back from production.
