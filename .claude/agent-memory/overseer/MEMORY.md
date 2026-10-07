@@ -21,3 +21,11 @@
   clean for invite_* / provision_portfolio / app inserts (2026-10-07).
 - A gap the PR closes belongs under "Open PR", not still as Next gaps #1
   ("In PR: ..."); the next session would pick it up again.
+- After a new push to an open PR, check the Codex summary's commit column
+  equals the head SHA; if not, "@codex review" must be posted again (#239:
+  Codex had only reviewed 71dcf09, head was baef97e).
+- A stacked second part makes the PR *title* stale too, not only the body.
+- When a PR adds validation/DB checks for a column, grep every writer of it
+  (incl. platform-operator actions, service client) and compare: #239
+  validated support_email in Branding + Company Admin but not in
+  platform-operator `updateCompanyDetails`.

@@ -18,6 +18,7 @@ import { parseSenderSettings, registerSenderDomain, resendClient, storedStatus }
 import { claimSubmission, releaseSubmission, completeSubmission } from '@/lib/forms/submission';
 import { monthWindowInZone, parseDollarsToCents, parsePositiveInt } from '@/lib/platform/operator-metrics';
 import { displayTimeZone } from '@/lib/time/display-zone';
+import { normalizeSupportEmail } from '@/lib/company-admin/settings';
 import { todayInZone } from '@/lib/time/zoned';
 
 const COMPANIES = '/platform-operator/companies';
@@ -659,13 +660,14 @@ export async function updateCompanyDetails(formData: FormData) {
 
   const companyName = (formData.get('company_name') as string)?.trim();
   const phone = (formData.get('phone_number') as string)?.trim();
-  const supportEmail = (formData.get('support_email') as string)?.trim();
   if (!companyName) fail(returnTo, 'Company name is required.');
+  const support = normalizeSupportEmail(formData.get('support_email'));
+  if ('error' in support) fail(returnTo, support.error);
 
   const update: Record<string, unknown> = {
-    company_name: companyName,
+    company_name: companyName.slice(0, 200),
     phone_number: phone || null,
-    support_email: supportEmail || null,
+    support_email: (support as { email: string | null }).email,
   };
 
   const svc = createServiceClient() as any;
