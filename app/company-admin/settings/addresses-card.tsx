@@ -9,7 +9,7 @@ import { EMAIL_FROM } from '@/lib/email/queue';
 import { brandedFromAddress, dnsRecords, type SenderDomainRow } from '@/lib/email/sender-domains';
 import { recordTone, senderStatus } from '@/lib/email/sender-status';
 import { isRootDomain } from '@/lib/tenant/custom-domain';
-import { customDomainStatus } from '@/lib/tenant/domain-status';
+import { customDomainStatus, isConfirmedLive } from '@/lib/tenant/domain-status';
 import { apexDomain, tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { date } from '@/lib/utils';
 
@@ -76,7 +76,11 @@ export function AddressesCard({
                 {status && <StatusChip tone={status.tone}>{status.label}</StatusChip>}
                 {!sender.enabled && <StatusChip tone="neutral">Switched off</StatusChip>}
                 <span className="text-xs text-gray-500">
-                  {sending ? `Your email is sent from ${sending}.` : `Your email is sent from ${EMAIL_FROM} until ${sender.domain} is verified.`}
+                  {sending
+                    ? `Your email is sent from ${sending}.`
+                    : !sender.enabled
+                      ? `Your email is sent from ${EMAIL_FROM} while the sender is switched off.`
+                      : `Your email is sent from ${EMAIL_FROM} until ${sender.domain} is verified.`}
                   {sender.last_checked_at ? ` Last checked ${date(sender.last_checked_at)}.` : ''}
                 </span>
               </div>
@@ -116,10 +120,11 @@ export function AddressesCard({
 }
 
 async function CustomDomainStatus({ domain }: { domain: string }) {
-  const { tone, current, pendingRecords } = await customDomainStatus(domain);
+  const status = await customDomainStatus(domain);
+  const { current, pendingRecords } = status;
   // Hosting details (Vercel) are the platform's to fix; the company sees
   // whether the domain is live and which DNS records it still has to add.
-  const live = tone === 'success' && pendingRecords.length === 0;
+  const live = isConfirmedLive(status);
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">

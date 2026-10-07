@@ -48,3 +48,12 @@ export async function customDomainStatus(domain: string): Promise<CustomDomainSt
 
   return { tone, label, current, pendingRecords: needsRecords ? records : [], vercel, vercelConfigured: !!env };
 }
+
+/**
+ * Whether the domain is confirmed live: the hosting has it attached and
+ * verified and no records are missing. DNS pointing the right way alone
+ * (no Vercel credentials, or Vercel unreachable) is not confirmation.
+ */
+export function isConfirmedLive(status: Pick<CustomDomainStatus, 'vercel' | 'pendingRecords'>): boolean {
+  return status.vercel?.state === 'attached' && status.vercel.verified && status.pendingRecords.length === 0;
+}
