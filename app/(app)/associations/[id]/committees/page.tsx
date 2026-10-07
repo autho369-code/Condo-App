@@ -96,8 +96,9 @@ export default async function CommitteesTab({
     await requireStaff();
     const sb = await createClient();
     const fail = (msg: string) => redirect(`/associations/${assocParam}/committees?error=${encodeURIComponent(msg)}`);
-    const { error } = await (sb as any).from('committee_members').update({ left_at: todayInZone() }).eq('id', memberId);
+    const { data: changed, error } = await (sb as any).from('committee_members').update({ left_at: todayInZone() }).eq('id', memberId).select('id');
     if (error) fail(error.message);
+    if (!changed?.length) fail('Member was not removed: your account cannot edit this committee.');
     revalidatePath(`/associations/${assocParam}/committees`);
     redirect(`/associations/${assocParam}/committees`);
   }

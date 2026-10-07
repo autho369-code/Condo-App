@@ -6,10 +6,12 @@
 -- application checks the same thing (hasVisibleText in
 -- lib/company-admin/settings.ts). Every invisible character is written with
 -- chr(n) so the class survives copy/paste and the MCP.
---   173 soft hyphen · 6158 Mongolian vowel separator · 8203-8207 zero-width
---   space/non-joiner/joiner, LRM, RLM · 8234-8238 bidi embeddings ·
---   8288-8292 word joiner, invisible operators · 8294-8303 bidi isolates and
---   deprecated format chars · 65279 BOM · 160 no-break space
+--   173 soft hyphen - 6158 Mongolian vowel separator - 8203-8207 zero-width
+--   space/non-joiner/joiner, LRM, RLM - 8234-8238 bidi embeddings -
+--   8288-8292 word joiner, invisible operators - 8294-8303 bidi isolates and
+--   deprecated format chars - 65279 BOM - 160 no-break space - 1564 Arabic
+--   letter mark - Unicode spaces (5760, 8192-8202, 8232, 8233, 8239, 8287,
+--   12288) - tag characters (917505, 917536-917631)
 -- Guarded; additive only: no DROP, no DELETE. The older two constraints stay.
 
 do $$
@@ -26,7 +28,12 @@ begin
         || chr(8234) || '-' || chr(8238)
         || chr(8288) || '-' || chr(8292)
         || chr(8294) || '-' || chr(8303)
-        || chr(65279) || ']'
+        || chr(65279) || chr(1564)
+        -- Unicode spaces listed explicitly: [:space:] depends on the collation.
+        || chr(5760) || chr(8192) || '-' || chr(8202)
+        || chr(8232) || chr(8233) || chr(8239) || chr(8287) || chr(12288)
+        -- Tag characters (U+E0001, U+E0020-E007F).
+        || chr(917505) || chr(917536) || '-' || chr(917631) || ']'
     );
   end if;
 end $$;

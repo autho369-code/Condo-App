@@ -12,6 +12,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { isScopedStoragePath } from '@/lib/security/storage-paths';
 
 const BUCKET = 'association-documents';
 
@@ -98,14 +99,25 @@ export async function removeOwnerAttachment(ownerId: string, attachmentId: strin
     .from('owner_attachments')
     .select('id, file_path')
     .eq('id', attachmentId)
+    .eq('owner_id', ownerId)
     .maybeSingle();
   if (readErr || !row) fail(ownerId, 'Attachment not found.');
 
-  const { error } = await (supabase as any).from('owner_attachments').delete().eq('id', attachmentId);
+  const { data: removed, error } = await (supabase as any)
+    .from('owner_attachments')
+    .delete()
+    .eq('id', attachmentId)
+    .eq('owner_id', ownerId)
+    .select('id');
   if (error) fail(ownerId, `Could not remove attachment: ${error.message}`);
+  if (!removed?.length) fail(ownerId, 'Attachment was not removed: your account cannot edit this owner.');
 
-  const svc = createServiceClient() as any;
-  await svc.storage.from(BUCKET).remove([row.file_path]);
+  // The service client may only delete this owner's own object: file_path is
+  // row data and must never point the delete at someone else's file.
+  if (isScopedStoragePath(row.file_path, 'owners', ownerId)) {
+    const { error: storageErr } = await createServiceClient().storage.from(BUCKET).remove([row.file_path]);
+    if (storageErr) fail(ownerId, `Attachment removed, but its file could not be deleted: ${storageErr.message}`);
+  }
   revalidatePath(`/owners/${ownerId}`);
   redirect(`/owners/${ownerId}`);
 }

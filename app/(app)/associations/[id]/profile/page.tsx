@@ -233,8 +233,9 @@ export default async function AssociationProfileTab({
     await requireFinanceStaff();
     const sb = await createClient();
     const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
-    const { error } = await (sb as any).from('association_loans').update({ archived_at: new Date().toISOString() }).eq('id', loanId);
+    const { data: changed, error } = await (sb as any).from('association_loans').update({ archived_at: new Date().toISOString() }).eq('id', loanId).select('id');
     if (error) fail(error.message);
+    if (!changed?.length) fail('Loan was not archived: your account cannot edit this association.');
     revalidatePath(`/associations/${assocParam}/profile`);
     redirect(`/associations/${assocParam}/profile?saved=1`);
   }

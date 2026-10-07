@@ -51,8 +51,9 @@ export async function deleteReportView(formData: FormData) {
   if (!id) failTo(query, 'Missing report id.');
 
   const supabase = await createClient();
-  const { error } = await (supabase as any).from('saved_report_views').delete().eq('id', id);
+  const { data: removed, error } = await (supabase as any).from('saved_report_views').delete().eq('id', id).select('id');
   if (error) failTo(query, error.message);
+  if (!removed?.length) failTo(query, 'Report view was not deleted: it is gone or your account cannot edit it.');
 
   revalidatePath('/reports/builder');
   const sep = query ? '&' : '';

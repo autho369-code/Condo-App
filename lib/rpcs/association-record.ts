@@ -5,6 +5,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { ASSOCIATION_SECTIONS } from '@/lib/associations/settings-fields';
 import { createClient } from '@/lib/supabase/server';
 import { savePrivateFields } from '@/lib/private-fields';
+import { safeInternalNext } from '@/lib/security/redirects';
 
 // Settings stored off the association row (which owners, tenants, board and
 // vendors read): written to their side tables directly so clearing works.
@@ -19,7 +20,7 @@ const PRIVATE_SETTINGS: Record<string, string> = {
 // (can_manage_association) on the owning association.
 
 const s = (fd: FormData, k: string) => ((fd.get(k) as string) ?? '').trim();
-const back = (fd: FormData) => s(fd, 'back') || `/associations/${s(fd, 'association_id')}/profile`;
+const back = (fd: FormData) => safeInternalNext(s(fd, 'back')) ?? `/associations/${encodeURIComponent(s(fd, 'association_id'))}/profile`;
 function go(path: string, key: 'error' | 'saved', msg: string): never {
   revalidatePath(path.split('?')[0]);
   redirect(`${path}${path.includes('?') ? '&' : '?'}${key}=${encodeURIComponent(msg)}`);
@@ -76,9 +77,10 @@ export async function archiveAssociationKey(formData: FormData) {
   await requireStaff();
   const to = back(formData);
   const db = (await createClient()) as any;
-  const { error } = await db.from('association_keys').update({ archived_at: new Date().toISOString() })
-    .eq('id', s(formData, 'id')).eq('association_id', s(formData, 'association_id'));
+  const { data: changed, error } = await db.from('association_keys').update({ archived_at: new Date().toISOString() })
+    .eq('id', s(formData, 'id')).eq('association_id', s(formData, 'association_id')).select('id');
   if (error) go(to, 'error', error.message);
+  if (!changed?.length) go(to, 'error', 'Nothing changed: the record is gone or your account cannot edit this association.');
   go(to, 'saved', 'Key removed.');
 }
 
@@ -101,9 +103,10 @@ export async function archiveAssociationNote(formData: FormData) {
   await requireStaff();
   const to = back(formData);
   const db = (await createClient()) as any;
-  const { error } = await db.from('association_notes').update({ archived_at: new Date().toISOString() })
-    .eq('id', s(formData, 'id')).eq('association_id', s(formData, 'association_id'));
+  const { data: changed, error } = await db.from('association_notes').update({ archived_at: new Date().toISOString() })
+    .eq('id', s(formData, 'id')).eq('association_id', s(formData, 'association_id')).select('id');
   if (error) go(to, 'error', error.message);
+  if (!changed?.length) go(to, 'error', 'Nothing changed: the record is gone or your account cannot edit this association.');
   go(to, 'saved', 'Note archived.');
 }
 
@@ -131,8 +134,9 @@ export async function deleteAdditionalFee(formData: FormData) {
   await requireStaff();
   const to = back(formData);
   const db = (await createClient()) as any;
-  const { error } = await db.from('association_additional_fees').delete().eq('id', s(formData, 'id')).eq('association_id', s(formData, 'association_id'));
+  const { data: changed, error } = await db.from('association_additional_fees').delete().eq('id', s(formData, 'id')).eq('association_id', s(formData, 'association_id')).select('id');
   if (error) go(to, 'error', error.message);
+  if (!changed?.length) go(to, 'error', 'Nothing changed: the record is gone or your account cannot edit this association.');
   go(to, 'saved', 'Additional fee removed.');
 }
 
@@ -169,9 +173,10 @@ export async function archiveAssociationInsurance(formData: FormData) {
   await requireStaff();
   const to = back(formData);
   const db = (await createClient()) as any;
-  const { error } = await db.from('association_insurance_policies').update({ archived_at: new Date().toISOString() })
-    .eq('id', s(formData, 'id')).eq('association_id', s(formData, 'association_id'));
+  const { data: changed, error } = await db.from('association_insurance_policies').update({ archived_at: new Date().toISOString() })
+    .eq('id', s(formData, 'id')).eq('association_id', s(formData, 'association_id')).select('id');
   if (error) go(to, 'error', error.message);
+  if (!changed?.length) go(to, 'error', 'Nothing changed: the record is gone or your account cannot edit this association.');
   go(to, 'saved', 'Policy archived.');
 }
 
@@ -191,8 +196,9 @@ export async function deleteUnitGroup(formData: FormData) {
   await requireStaff();
   const to = back(formData);
   const db = (await createClient()) as any;
-  const { error } = await db.from('unit_groups').delete().eq('id', s(formData, 'group_id')).eq('association_id', s(formData, 'association_id'));
+  const { data: changed, error } = await db.from('unit_groups').delete().eq('id', s(formData, 'group_id')).eq('association_id', s(formData, 'association_id')).select('id');
   if (error) go(to, 'error', error.message);
+  if (!changed?.length) go(to, 'error', 'Nothing changed: the record is gone or your account cannot edit this association.');
   go(to, 'saved', 'Group deleted.');
 }
 
