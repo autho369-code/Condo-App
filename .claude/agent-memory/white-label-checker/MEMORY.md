@@ -31,3 +31,6 @@
 - Writers of company_name to check when it changes: settings/branding/page.tsx, lib/rpcs/portfolio.ts, company-admin/settings (RPC update_company_profile), platform-operator/companies/actions.ts (createCompanyWithAdmin -> provision_portfolio, updateCompanyDetails).
 - Branding page copy must not contrast with the platform ("not ours" removed Oct 2026); avatar fallback is '?' not 'P'.
 - Layout `?? 'Portier369'` chains (app/(app)/layout.tsx:26, portal/vendor/resident/company-admin layouts, components/nav/sidebar.tsx:130) only fire when me.portfolio is missing; `??` does not catch '' or whitespace.
+
+## Audited pages
+- app/(app)/settings/page.tsx (Oct 2026): clean. Success banners via SAVED_MESSAGES (?saved=policy from lib/rpcs/portfolio.ts:54, invited/removed/role); reset mail uses company_name + tenantWorkspaceUrl (auth link, allowed); metadata from (app)/layout workspaceMetadata. Re-check only new strings/links.

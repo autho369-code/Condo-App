@@ -4,11 +4,13 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-07
-- Open (#239): invitation token hardening (token format CHECK,
+- #239 (merged 0e8f398; migrations applied): invitation token hardening (token format CHECK,
   server-generated tokens for API writes, `html_escape` escapes `'`); company
   name can't be blank, brand color #RRGGBB (DB checks + all three settings
   actions); Branding page validates URLs/email and fails loudly; support email
   validated in the Branding, Company Admin and Platform Operator actions.
+- Open (follow-up): `/settings` saves show a success banner and never keep a
+  stale error; NBSP-safe company-name check.
 - #238 (merged b7ec661; migration 20261007030000 applied): second brain vault + hooks; Settings staff invitation email on
   the company workspace, escaped, Runbook link; company pages never fall back
   to the platform name (`NEUTRAL_COMPANY_NAME`).

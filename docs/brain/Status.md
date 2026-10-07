@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-07 (after #238).
+Back to [[Home]]. Updated 2026-10-07 (after #239).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,22 +12,23 @@ Back to [[Home]]. Updated 2026-10-07 (after #238).
   pilot).
 
 ## Open PR
-- Invitation token hardening (this branch) — migration
-  `20261007040000_invitation_token_format_and_html_escape_quote.sql`.
-  **After Mirsad merges: apply it with `apply_migration` on
-  termxngysvotnfbzbgrv** and verify the constraint + trigger exist.
-- Same PR (#239), second part: company name can't be blank and brand color
-  must be #RRGGBB — migration
-  `20261007050000_portfolio_name_and_brand_color_checks.sql` (apply after
-  merge too) plus checks in the Settings, Branding and Company Admin actions;
-  Branding page validates logo/website/support email, never trusts a
-  client-sent company id, and errors on a 0-row save.
-- #238 merged (b7ec661); its migration `20261007030000` is applied and verified
-  (new definition live, execute service-only).
+- Follow-up to #239 (this branch): `/settings` save feedback (part 3 of #239,
+  pushed after #239 was merged) + migration
+  `20261007060000_portfolio_company_name_visible_nbsp.sql`. **After Mirsad
+  merges: apply it with `apply_migration` and verify
+  `portfolios_company_name_visible` contains chr(160).**
+- #239 merged (0e8f398); migrations `20261007040000` and `20261007050000`
+  applied and verified (token CHECK + trigger, brand-color CHECK,
+  `html_escape` escapes quotes). Note: production's
+  `portfolios_company_name_not_blank` got a plain space instead of NBSP
+  through the MCP; the follow-up fixes that. Dropping the old constraint is
+  optional and Mirsad's call (DROP).
+- #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-1. `/settings` (`app/(app)/settings/page.tsx`) keeps a stale `?error=` banner
-   after a good save — redirect to `?saved=1` like the Branding page now does.
+1. `/settings` team table (`app/(app)/settings/page.tsx`, role select and
+   Apply / Send reset link / Remove buttons): hand-built 32px controls — use
+   the shared `Select`/`Button` so they meet the 40px touch target at 375px.
 2. Look for the next white-label / sign-in / data-exposure gap with the
    overseer agent (a zero-width-space-only company name still passes the DB
    check — only reachable by direct SQL).
