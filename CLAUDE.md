@@ -2,7 +2,8 @@
 
 **Second brain: `docs/CLAUDE_MEMORY.md` is loaded into every session
 automatically (`scripts/brain/session-start.mjs`, SessionStart hook) and a Stop
-hook (`scripts/brain/stop-guard.mjs`) blocks finishing until it is updated.
+hook (`scripts/brain/stop-guard.mjs`) reminds Claude when the session committed
+work without updating it.
 Follow it; update it and commit it with the work.**
 
 HOA/community-association management SaaS replicating AppFolio Property Manager's
