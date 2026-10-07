@@ -15,11 +15,18 @@ exists), then `git diff $base` (committed, staged and unstaged changes) plus
 
 Check every change for:
 
-1. **Authorization inside the action.** Every `'use server'` function and every
-   `app/api/**/route.ts` handler re-checks the caller itself (`requireStaff`,
-   `requireOwner`, `requirePortfolioAdmin`, `requirePlatformOperator`, … in
-   `lib/auth/me.ts`). A page-level guard is not enough: actions are callable
-   endpoints.
+1. **Authentication inside every endpoint.** Every `'use server'` function and
+   every `app/api/**/route.ts` handler authenticates the caller itself; a
+   page-level guard is not enough, because actions are callable endpoints.
+   Use the check that fits the endpoint:
+   - signed-in users: `requireStaff`, `requireOwner`,
+     `requirePortfolioAdmin`, `requirePlatformOperator`, … (`lib/auth/me.ts`);
+   - scheduled jobs: `requireCronSecret` (`lib/server/cron-auth.ts`);
+   - webhooks: a verified provider signature on the raw body (e.g.
+     `verifyStripeSignature` in `app/api/stripe/webhook/route.ts`);
+   - intentionally public routes: listed in `lib/server/public-paths.ts`,
+     and they expose nothing private and change nothing beyond their purpose.
+   Flag an endpoint with none of these, or with the wrong kind.
 2. **Caller-scoped IDs.** Every ID that comes from `formData`, the URL or a
    request body is proven to belong to the caller's company before use
    (`managesAssociation` / `checkLinkedRecords` in
@@ -28,10 +35,13 @@ Check every change for:
 3. **Service client.** `createServiceClient()` bypasses RLS. Every use must be
    narrowed to rows the caller was already shown to own (exact id plus
    `portfolio_id`), never driven by unchecked input.
-4. **Role boundaries.** Owners, vendors and the board can never change anything
-   they were not explicitly given (the board portal is read-only) and never see
-   manager notes, internal comments, other owners' private fields, or other
-   companies' data. Check selects in `app/portal`, `app/vendor`, `app/board`.
+4. **Role boundaries.** The board portal is read-only: no board action changes
+   data. Owners and vendors may change only what their portal explicitly
+   offers, and only their own records (e.g. a vendor updating the status of a
+   work order assigned to them; an owner editing their profile, paying,
+   reserving, or uploading insurance). None of them ever see manager notes,
+   internal comments, other owners' private fields, or other companies' data.
+   Check selects and actions in `app/portal`, `app/vendor`, `app/board`.
 5. **Redirects.** User-supplied return paths go through `safeInternalNext`
    (`lib/security/redirects.ts`).
 6. **Failing loudly.** Errors are not swallowed; plain form actions redirect
