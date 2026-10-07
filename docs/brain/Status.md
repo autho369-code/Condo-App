@@ -20,13 +20,9 @@ Back to [[Home]]. Updated 2026-10-07 (after #238).
   (new definition live, execute service-only).
 
 ## Next gaps (pick up here, top first)
-1. In PR: invitation token hardening — tokens must be 64 lowercase hex; rows
-   written through the API always get a server-generated token and can't
-   change it (trigger `user_invitations_server_token`); `html_escape` also
-   escapes `'`.
-2. Decide wording: on a company workspace with no readable name, the app
+1. Decide wording: on a company workspace with no readable name, the app
    manifest / link-preview image now show "Your management company"
    (`NEUTRAL_COMPANY_NAME`). Only reachable with bad data; consider a
    `btrim(company_name) <> ''` check on `portfolios`.
-3. Then: look for the next white-label / sign-in / data-exposure gap with the
+2. Then: look for the next white-label / sign-in / data-exposure gap with the
    overseer agent.
