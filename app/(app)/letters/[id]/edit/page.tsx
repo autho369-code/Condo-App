@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import MergeFieldEditor, { MERGE_FIELDS } from '@/components/letters/merge-field-editor';
+import { Alert } from '@/components/ui/shell';
 
 const CATEGORIES = ['association', 'owner', 'vendor', 'applicant', 'statement', 'generic'];
 
@@ -138,7 +139,7 @@ export default function EditLetterPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</div>
+        <Alert tone="danger" className="mb-4">{error}</Alert>
       )}
 
       <div className="space-y-6">

@@ -44,3 +44,10 @@
   (squash f0da498, 2026-10-07 21:01Z); plan was to edit its migration. A merged
   migration file is never edited; new work gets a new migration + new PR. Squash
   merges: compare trees with `git diff --stat <head> origin/main` (empty = all in).
+- When Next gaps is rewritten, diff the old gap text item by item against the
+  final code: the sweep PR (2026-10-07) dropped `update_record_note`
+  (portfolio-only check) from the gap list without fixing it. Also count the
+  vault's "N fixed" against the diff (vault said 35 saves, diff has 30 checks).
+- "Only error handling changed" on `app/**` pages still triggers
+  design-reviewer: the error lands in an ad-hoc red div, not `<Alert>`
+  (letters/templates edit, portal/profile).

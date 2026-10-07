@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
+import { Alert } from '@/components/ui/shell';
 
 const LETTER_TYPES = [
   { value: 'violation_notice', label: 'Violation Notice' },
@@ -170,7 +171,7 @@ export default function EditTemplatePage() {
 
         <div className="max-w-3xl space-y-6">
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</div>
+            <Alert tone="danger">{error}</Alert>
           )}
 
           {/* Basic info */}

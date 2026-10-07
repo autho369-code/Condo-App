@@ -14,7 +14,7 @@ Back to [[Home]]. Updated 2026-10-07 (after #244).
 ## Open PR
 - Open: next-gap sweep. Migration 20261007100000 filters
   `sync_owner_delinquency_cases` (upsert, conflict update, cured sweep) to the
-  caller's associations (apply via MCP after merge and read it back). 35
+  caller's associations (apply via MCP after merge and read it back). 30
   saves that RLS could silently skip now fail loudly (server actions, owner
   and vendor portals, letter/template editors); vendor ACH sets pending before
   saving bank details; property-group membership checks exact counts; site
@@ -49,6 +49,10 @@ Back to [[Home]]. Updated 2026-10-07 (after #244).
    `lib/rpcs/calendar.ts` return `{ error }` (no caller today; redirect if
    ever wired to a form). Maintenance "complete" writes history and the
    calendar event before the task update; its error says what was recorded.
+   `update_record_note` (portfolio check only in the RPC) needs no change:
+   the record_notes row trigger `enforce_row_association_scope`
+   (20261004130000) already refuses association/unit/owner notes outside a
+   scoped manager's associations; vendor notes are portfolio-level.
    Next: look for the next white-label / sign-in / data-exposure gap with
    the overseer.
 2. Optional: ask whether the remaining reason-required void/cancel forms
