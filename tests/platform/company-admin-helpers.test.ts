@@ -173,10 +173,10 @@ describe('branding field checks', () => {
 
 describe('hasVisibleText', () => {
   it('accepts names with any visible character', () => {
-    for (const ok of ['Acme', ' Café ', 'Ü', '​Acme​', '1']) expect(hasVisibleText(ok)).toBe(true);
+    for (const ok of ['Acme', ' Caf\u00E9 ', '\u00DC', '\u200BAcme\u200B', '1', '\u2764\uFE0F']) expect(hasVisibleText(ok)).toBe(true);
   });
   it('refuses blank, whitespace-only and invisible-only names', () => {
-    for (const bad of [null, undefined, '', '   ', '  ', '​‌‍', '﻿', '­', '⁠ ‎']) {
+    for (const bad of [null, undefined, '', '   ', '\u00A0\u00A0', '\u200B\u200C\u200D', '\uFEFF', '\u00AD', '\u2060 \u200E', '\uFE0F', '\u034F', '\u{E0100}', '\u3164']) {
       expect(hasVisibleText(bad)).toBe(false);
     }
   });

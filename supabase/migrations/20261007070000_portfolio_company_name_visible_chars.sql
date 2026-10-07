@@ -11,7 +11,7 @@
 --   8288-8292 word joiner, invisible operators - 8294-8303 bidi isolates and
 --   deprecated format chars - 65279 BOM - 160 no-break space - 1564 Arabic
 --   letter mark - Unicode spaces (5760, 8192-8202, 8232, 8233, 8239, 8287,
---   12288) - tag characters (917505, 917536-917631)
+--   12288) - other default-ignorable code points (listed below)
 -- Guarded; additive only: no DROP, no DELETE. The older two constraints stay.
 
 do $$
@@ -32,8 +32,16 @@ begin
         -- Unicode spaces listed explicitly: [:space:] depends on the collation.
         || chr(5760) || chr(8192) || '-' || chr(8202)
         || chr(8232) || chr(8233) || chr(8239) || chr(8287) || chr(12288)
-        -- Tag characters (U+E0001, U+E0020-E007F).
-        || chr(917505) || chr(917536) || '-' || chr(917631) || ']'
+        -- Other default-ignorable code points: combining grapheme joiner,
+        -- Hangul fillers, Khmer inherent vowels, Mongolian variation
+        -- selectors, variation selectors, U+2065, shorthand format controls,
+        -- musical format controls, and the whole U+E0000-E0FFF block (tags,
+        -- variation selectors supplement).
+        || chr(847) || chr(4447) || chr(4448) || chr(6068) || chr(6069)
+        || chr(6155) || '-' || chr(6159) || chr(8293) || chr(12644)
+        || chr(65024) || '-' || chr(65039) || chr(65440)
+        || chr(113824) || '-' || chr(113827) || chr(119155) || '-' || chr(119162)
+        || chr(917504) || '-' || chr(921599) || ']'
     );
   end if;
 end $$;
