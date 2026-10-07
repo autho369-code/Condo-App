@@ -12,7 +12,7 @@ import {
   parseAutopayConfiguration,
 } from '@/lib/payments/guards';
 import { RefreshCcw, PauseCircle, PlayCircle, XCircle } from 'lucide-react';
-import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { sameHostCompanyUrl } from '@/lib/tenant/request-url';
 import { todayInZone } from '@/lib/time/zoned';
 import { associationZone } from '../_lib/tenure';
 
@@ -102,8 +102,8 @@ async function startAutopaySetup(formData: FormData) {
   try {
     const session = await createSetupCheckoutSession({
       customerEmail: me.profile?.email ?? null,
-      successUrl: tenantWorkspaceUrl(me.portfolio?.slug, `/portal/autopay?setup=${attempt.id}`),
-      cancelUrl: tenantWorkspaceUrl(me.portfolio?.slug, `/portal/autopay?canceled=1&setup=${attempt.id}`),
+      successUrl: await sameHostCompanyUrl(me.portfolio, `/portal/autopay?setup=${attempt.id}`),
+      cancelUrl: await sameHostCompanyUrl(me.portfolio, `/portal/autopay?canceled=1&setup=${attempt.id}`),
       stripeAccount: occ.associations.stripe_account_id,
       idempotencyKey: `autopay-setup-${attempt.id}`,
       metadata: {

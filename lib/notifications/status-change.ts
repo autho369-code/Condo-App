@@ -19,7 +19,7 @@
 
 import { createServiceClient } from '@/lib/supabase/server';
 import { queueEmails } from '@/lib/email/queue';
-import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { companyUrl, type CompanyAddress } from '@/lib/tenant/host';
 import { todayInZone } from '@/lib/time/zoned';
 
 
@@ -159,14 +159,14 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }
     // insurance reminders). Only the sending address stays on portier369.com.
     let companyName: string | null = null;
     let supportEmail: string | null = null;
-    let portfolioSlug: string | null = null;
+    let address: CompanyAddress | null = null;
     if (portfolioId) {
-      const { data: pf } = await svc.from('portfolios').select('company_name, support_email, slug').eq('id', portfolioId).maybeSingle();
+      const { data: pf } = await svc.from('portfolios').select('company_name, support_email, slug, custom_domain, custom_domain_verified_at').eq('id', portfolioId).maybeSingle();
       companyName = pf?.company_name ?? null;
       supportEmail = pf?.support_email ?? null;
-      portfolioSlug = pf?.slug ?? null;
+      address = pf ?? null;
     }
-    const link = tenantWorkspaceUrl(portfolioSlug, linkPath);
+    const link = companyUrl(address, linkPath);
     const brandName = companyName ?? associationName ?? 'Your management team';
 
     const label = statusLabel(newStatus);

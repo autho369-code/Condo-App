@@ -8,7 +8,7 @@ import { processReportRun } from '@/lib/reports/process';
 import { requireCronSecret } from '@/lib/server/cron-auth';
 import { queueEmails } from '@/lib/email/queue';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
-import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { companyUrl } from '@/lib/tenant/host';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
     // idempotency key makes repeats no-ops, so older ones still get a notice.
     const { rows: failedRuns, error: failedLookupError } = await fetchAllRows<any>(() => svc
       .from('report_runs')
-      .select('id, portfolio_id, error_message, triggered_by, portfolios(company_name, slug), scheduled_reports:scheduled_report_id(name)')
+      .select('id, portfolio_id, error_message, triggered_by, portfolios(company_name, slug, custom_domain, custom_domain_verified_at), scheduled_reports:scheduled_report_id(name)')
       .eq('status', 'failed')
       .not('scheduled_report_id', 'is', null)
       .gte('finished_at', new Date(Date.now() - 2 * 86400000).toISOString())
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
         to,
         toName: owner?.full_name ?? null,
         subject: `Scheduled report failed: ${run.scheduled_reports?.name ?? 'report'}`,
-        text: `Your scheduled report "${run.scheduled_reports?.name ?? 'report'}" could not be generated.\n\nReason: ${run.error_message ?? 'Unknown error'}\n\nDetails: ${tenantWorkspaceUrl(run.portfolios?.slug, `/reports/runs/${run.id}`)}`,
+        text: `Your scheduled report "${run.scheduled_reports?.name ?? 'report'}" could not be generated.\n\nReason: ${run.error_message ?? 'Unknown error'}\n\nDetails: ${companyUrl(run.portfolios, `/reports/runs/${run.id}`)}`,
         portfolioId: run.portfolio_id,
         fromName: run.portfolios?.company_name ?? null,
         idempotencyKey: `scheduled-report-failed:${run.id}`,

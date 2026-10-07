@@ -9,7 +9,7 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { date } from '@/lib/utils';
 import { CreditCard, ExternalLink, RefreshCcw } from 'lucide-react';
 import { isStripeAccountId } from '@/lib/payments/guards';
-import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { sameHostCompanyUrl } from '@/lib/tenant/request-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,11 +74,11 @@ async function connectStripe(formData: FormData) {
       if (saveError) throw saveError;
     }
     const associationPath = encodeURIComponent(assoc.slug ?? assoc.id);
-    const workspaceSlug = me.is_platform_operator ? null : me.portfolio?.slug;
+    const company = me.is_platform_operator ? null : me.portfolio;
     const link = await createAccountLink(
       accountId!,
-      tenantWorkspaceUrl(workspaceSlug, `/associations/${associationPath}/payments?refresh=1`),
-      tenantWorkspaceUrl(workspaceSlug, `/associations/${associationPath}/payments?returned=1`),
+      await sameHostCompanyUrl(company, `/associations/${associationPath}/payments?refresh=1`),
+      await sameHostCompanyUrl(company, `/associations/${associationPath}/payments?returned=1`),
     );
     redirect(link.url);
   } catch (err: any) {

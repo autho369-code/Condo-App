@@ -1,6 +1,6 @@
 import 'server-only';
 import type { QueuedEmail } from '@/lib/email/queue';
-import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { companyUrl, type CompanyAddress } from '@/lib/tenant/host';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -8,18 +8,18 @@ function shell(body: string) {
   return `<div style="font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;line-height:1.6;color:#111827;max-width:560px">${body}<p style="margin-top:28px;font-size:12px;color:#6b7280">Sent through your management company&rsquo;s e-signature service. If you did not expect this request, you can ignore this email.</p></div>`;
 }
 
-/** The signing page on the sending company's own workspace address. */
-export function signingLink(token: string, workspaceSlug: string | null | undefined) {
-  return tenantWorkspaceUrl(workspaceSlug, `/sign/${token}`);
+/** The signing page on the sending company's own address. */
+export function signingLink(token: string, company: CompanyAddress | null | undefined) {
+  return companyUrl(company, `/sign/${token}`);
 }
 
 export function signatureRequestEmail(args: {
   to: string; toName: string; title: string; company: string | null; message: string | null;
   token: string; expiresAt: string; portfolioId: string; associationId: string | null; idempotencyKey: string; reminder?: boolean;
-  /** The sending company's workspace slug (its own address). */
-  workspaceSlug: string | null | undefined;
+  /** The sending company's address (slug and custom domain). */
+  companyAddress: CompanyAddress | null | undefined;
 }): QueuedEmail {
-  const link = signingLink(args.token, args.workspaceSlug);
+  const link = signingLink(args.token, args.companyAddress);
   const expires = new Date(args.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const from = args.company ?? 'Your management company';
   return {

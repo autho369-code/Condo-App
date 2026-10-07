@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { companyUrl } from '@/lib/tenant/host';
 import { RECORD_TYPES, type RecordType } from '@/lib/records/types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -47,7 +47,7 @@ export async function addRecordNote(formData: FormData) {
     .getAll('mention_ids')
     .map((v) => String(v))
     .filter((v) => UUID_RE.test(v));
-  const appUrl = tenantWorkspaceUrl(me.portfolio?.slug, '/').replace(/\/$/, '');
+  const appUrl = companyUrl(me.portfolio, '/').replace(/\/$/, '');
   const db = (await createClient()) as any;
   const { error } = await db.rpc('add_record_note', {
     p_entity_type: type,
