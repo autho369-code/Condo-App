@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validatePlatformRequest, PLATFORM_REQUEST_ADMIN_COLUMNS } from '@/lib/company-admin/platform-requests';
-import { normalizeCompanyLogoUrl, safeHttpUrl } from '@/lib/company-admin/settings';
+import { isHexColor, normalizeCompanyLogoUrl, normalizeSupportEmail, normalizeWebsiteUrl, safeHttpUrl } from '@/lib/company-admin/settings';
 import { effectiveManagerScope } from '@/lib/company-admin/manager-scope';
 import { addDaysToDate, addMonthsToMonth } from '@/lib/time/zoned';
 import { vendorComplianceStatus } from '@/lib/company-admin/vendor-compliance';
@@ -141,5 +141,32 @@ describe('collectLoadErrors', () => {
       Fine: { error: null },
       Missing: null,
     })).toEqual(['Owners: permission denied', 'Units: timeout']);
+  });
+});
+
+describe('branding field checks', () => {
+  it('accepts only #RRGGBB brand colors (sent as a request header)', () => {
+    expect(isHexColor('#10B981')).toBe(true);
+    expect(isHexColor('#abcdef')).toBe(true);
+    for (const bad of ['10B981', '#fff', '#10B9811', 'red', '#10B981\r\nX-Evil: 1', '#10B98é']) {
+      expect(isHexColor(bad)).toBe(false);
+    }
+  });
+
+  it('normalizes the public website to an http(s) URL or nothing', () => {
+    expect(normalizeWebsiteUrl('  ')).toEqual({ website: null });
+    expect(normalizeWebsiteUrl(null)).toEqual({ website: null });
+    expect(normalizeWebsiteUrl(' https://acme.example ')).toEqual({ website: 'https://acme.example/' });
+    for (const bad of ['javascript:alert(1)', 'data:text/html,hi', 'acme.example']) {
+      expect(normalizeWebsiteUrl(bad)).toHaveProperty('error');
+    }
+  });
+
+  it('accepts a plain support email or nothing', () => {
+    expect(normalizeSupportEmail(' ')).toEqual({ email: null });
+    expect(normalizeSupportEmail(' help@acme.example ')).toEqual({ email: 'help@acme.example' });
+    for (const bad of ['help', 'a@b', 'x@y.z\nBcc: z@q.r', '"Bad" <a@b.c>', 'a b@c.d']) {
+      expect(normalizeSupportEmail(bad)).toHaveProperty('error');
+    }
   });
 });

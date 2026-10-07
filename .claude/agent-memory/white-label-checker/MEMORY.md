@@ -25,3 +25,9 @@
 
 ## False alarms
 - Flagged `add_record_note` from_name 'Portier369' from its original migration, but 20261005094500_client_mail_sender_name_unset.sql had already patched it. Before flagging a SQL function, check later migrations that patch it in place via pg_get_functiondef/replace (grep the function name across all migrations), or the live definition.
+
+## Company-name blank guard (Oct 2026, 20261007050000)
+- Final form: CHECK `company_name ~ '[^[:space:]\u00a0]'` (literal NBSP; verify bytes with `od -c`, look for 302 240). Postgres `btrim(x)` strips only spaces, so never accept a btrim-based blank check. All app writers now JS-`.trim()` + require the name (branding page, lib/rpcs/portfolio.ts, company-admin settings, operator create/update). Residual, accepted: zero-width space (U+200B) passes both JS trim and DB; exotic Unicode spaces (U+2003, U+3000) depend on DB ctype but app trim catches them.
+- Writers of company_name to check when it changes: settings/branding/page.tsx, lib/rpcs/portfolio.ts, company-admin/settings (RPC update_company_profile), platform-operator/companies/actions.ts (createCompanyWithAdmin -> provision_portfolio, updateCompanyDetails).
+- Branding page copy must not contrast with the platform ("not ours" removed Oct 2026); avatar fallback is '?' not 'P'.
+- Layout `?? 'Portier369'` chains (app/(app)/layout.tsx:26, portal/vendor/resident/company-admin layouts, components/nav/sidebar.tsx:130) only fire when me.portfolio is missing; `??` does not catch '' or whitespace.
