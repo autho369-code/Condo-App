@@ -9,7 +9,14 @@ with the work.
   checked; board and company-admin already use the shared Sidebar + light body.
 - Claude build queue in `docs/TODO.md`: done except the resale/estoppel
   certificate (declined by Mirsad — build only if he asks).
-- Open items are blocked on Mirsad: test login + Supabase network access for
+- 2026-10-07: TODO cleanup #1 done — legacy `app/platform/*` catch-all page
+  removed; `/platform` and `/platform/*` now permanently redirect to
+  `/platform-operator` from `next.config.mjs`.
+- docs/TODO.md still has open boxes — read it fully, never say "all done".
+  Claude-doable next: drop the unused `'stripe'` `payment_processor` enum value
+  (write the migration; Mirsad runs the SQL) and tick the stale e-signature and
+  operator-analytics roadmap boxes (both already built).
+- Other open items are blocked on Mirsad: test login + Supabase network access for
   cloud sessions, provider accounts (Twilio, Lob, Stripe Connect keys, Plaid),
   decisions (tenant portal, platform remittance, legal sign-off, pilot client).
 - Mirsad's older memory lives on his Windows PC at
@@ -31,3 +38,5 @@ with the work.
 ## How Mirsad wants to work
 - Stay on Portier369 unless he says otherwise.
 - Check this file, `CLAUDE.md` and `docs/TODO.md` before answering "what's next".
+- He has project review agents (`.claude/agents/`, run via `/portier-review`).
+  Run the matching ones on EVERY change BEFORE committing — don't wait to be told.

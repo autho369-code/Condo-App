@@ -39,7 +39,9 @@ access, accounts, approval or decisions.
        may change).
 
 Cleanup needing Mirsad's approval:
-- [ ] Fold the legacy `app/platform/*` redirect shim into `app/platform-operator/*`.
+- [x] Fold the legacy `app/platform/*` redirect shim into `app/platform-operator/*`.
+      DONE 2026-10-07: the catch-all page is gone; `/platform` and `/platform/*`
+      are permanent redirects in `next.config.mjs`.
 - [ ] Drop the unused `'stripe'` value from the `payment_processor` enum
       (DROP/recreate → Mirsad runs the SQL; cosmetic).
 
@@ -209,7 +211,7 @@ but a few worth addressing before scale:
 ## 🟢 Optional / cleanup (no rush)
 - [x] Orphaned `/platform-operator/overview` command center — linked from the
       operator sidebar and the root dashboard's Quick Navigation (2026-10-05).
-- [ ] `app/platform/*` vs `app/platform-operator/*` consolidation (needs approval).
+- [x] `app/platform/*` vs `app/platform-operator/*` consolidation (done 2026-10-07).
 - [ ] Drop the inert `'stripe'` value from the `payment_processor` enum (cosmetic;
       requires recreating the enum + retyping columns — low value).
 

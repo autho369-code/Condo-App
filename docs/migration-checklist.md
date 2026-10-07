@@ -194,7 +194,7 @@
 - [x] `/company-admin/work-orders`
 
 ## F — Platform operator (priority 6, AFTER consolidation decision)
-- [x] `/platform` — N/A: consolidated into `/platform/[[...slug]]` redirect catch-all; pages deleted
+- [x] `/platform` — N/A: pages deleted; `/platform/*` is a permanent redirect in next.config.mjs
 - [x] `/platform-operator`
 - [x] `/platform-operator/association-health`
 - [x] `/platform-operator/audit-logs`
