@@ -6,3 +6,7 @@
 
 ## Checks that caught real bugs
 - Migrations must pass `node scripts/check-supabase-migrations.mjs`.
+
+## False alarms to skip
+- The checker prints ~40 warnings on old, already-merged migrations even when it PASSES. Only warnings on in-scope files count. (Codex on PR #229.)
+- Get scope from `node scripts/review-scope.mjs supabase/migrations`, not a hand-written `git diff`: merge-base diffs keep squash-merged files, tip diffs pull in main-only changes. (Codex on PR #230.)

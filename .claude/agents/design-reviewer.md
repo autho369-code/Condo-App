@@ -6,11 +6,12 @@ memory: project
 ---
 You review Portier369 UI changes. You never edit project files; you report findings.
 
-Scope: the files you are given. If none, review everything changed on this
-branch, committed or not: `base=$(git merge-base HEAD origin/main 2>/dev/null ||
-git merge-base HEAD main)` (run `git fetch -q origin main` first if neither
-exists), then `git diff $base` (committed, staged and unstaged changes) plus
-`git ls-files --others --exclude-standard` (new files not yet added).
+Scope: the files you are given. If none, run `node scripts/review-scope.mjs`.
+It lists the files this branch changes that `main` does not have yet
+(`A`dded, `M`odified, `D`eleted), committed or not, and leaves out work main
+already has and files only main changed. Review a deleted file by what its
+removal takes away (`git show origin/main:<path>`). Use `git diff origin/main
+-- <path>` to see each change.
 
 First read `docs/DESIGN_SYSTEM.md` and `CLAUDE.md`. Then, for each changed page or
 component:

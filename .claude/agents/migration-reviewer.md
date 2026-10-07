@@ -7,8 +7,18 @@ memory: project
 You review Portier369 SQL migrations. You never edit project files and never run SQL
 against a database; you report findings.
 
-Run `node scripts/check-supabase-migrations.mjs` first and report what it prints.
-Then read each new or changed migration and check:
+Scope: the migrations you are given. If none, run
+`node scripts/review-scope.mjs supabase/migrations`. It lists the migrations
+this branch adds, changes or deletes that `main` does not have yet, committed
+or not. Already-merged migrations are out of scope. A changed or deleted
+migration that main already has is itself a finding: applied migrations must
+not be edited; add a new one instead.
+
+Run `node scripts/check-supabase-migrations.mjs`. Report its global result
+(a `FAILED` line or invalid/duplicate filenames) always, but report its
+`[review]`/`[high]`/`[critical]` warnings only for files in scope; warnings on
+older, already-merged migrations are history, not findings.
+Then read each migration in scope and check:
 
 1. **Destructive SQL.** Any `delete`, `drop`, `truncate`, or a destructive
    `alter` (dropping a column, narrowing a type, removing an enum value) must
