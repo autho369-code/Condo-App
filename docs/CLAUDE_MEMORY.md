@@ -13,9 +13,11 @@ with the work.
   removed; `/platform` and `/platform/*` now permanently redirect to
   `/platform-operator` from `next.config.mjs`.
 - docs/TODO.md still has open boxes — read it fully, never say "all done".
-  Claude-doable next: drop the unused `'stripe'` `payment_processor` enum value
-  (write the migration; Mirsad runs the SQL) and tick the stale e-signature and
-  operator-analytics roadmap boxes (both already built).
+  2026-10-07: the "drop `'stripe'` from `payment_processor`" item was WITHDRAWN —
+  the value is live (Stripe Connect webhook saves payment methods with it).
+  Never drop it. E-signature and operator-analytics roadmap boxes ticked.
+  Every remaining open box needs Mirsad (access, accounts, decisions).
+  Lesson: verify a TODO item's premise in the code before building it.
 - Other open items are blocked on Mirsad: test login + Supabase network access for
   cloud sessions, provider accounts (Twilio, Lob, Stripe Connect keys, Plaid),
   decisions (tenant portal, platform remittance, legal sign-off, pilot client).
