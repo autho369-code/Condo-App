@@ -7,7 +7,7 @@ import ActionCenterShell from '@/components/workspace/action-center-shell';
 import { hasPortfolioAdminAccess, requireAuth, roleHome } from '@/lib/auth/me';
 import { appModules } from '@/lib/navigation/modules';
 import { companyAdminModules } from '@/lib/navigation/role-modules';
-import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { NEUTRAL_COMPANY_NAME, tenantFromHeaders } from '@/lib/tenant/resolve';
 import { CommandPalette, type PaletteLink } from '@/components/search/command-palette';
 import { workspaceMetadata } from '@/lib/tenant/metadata';
 
@@ -22,7 +22,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) redirect(roleHome(me));
   const h = await headers();
   const tenant = tenantFromHeaders(h);
-  const displayName = tenant?.companyName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier369';
+  const tenantName = tenant && tenant.companyName !== NEUTRAL_COMPANY_NAME ? tenant.companyName : null;
+  const displayName = tenantName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? tenant?.companyName ?? 'Portier369';
   const logoUrl = tenant?.logoUrl ?? me.portfolio?.logo_url ?? null;
   const brandColor = tenant?.brandColor ?? me.portfolio?.brand_color ?? '#10B981';
   // /settings is company-admin/operator only (requirePortfolioAdmin), so plain

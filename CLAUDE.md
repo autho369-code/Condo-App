@@ -1,8 +1,11 @@
 # CLAUDE.md — Portier369 (Condo-App)
 
-**Start of every session: read `docs/CLAUDE_MEMORY.md` (Claude's
-memory — cloud sessions keep nothing else). Update it and commit it before the
-session ends.**
+**Second brain: `docs/brain/` (an Obsidian vault — Home, How Mirsad Works,
+Product Rules, PR Rules, Status, Decisions, Agents) is loaded into every
+session automatically (`scripts/brain/session-start.mjs`). Run the `overseer`
+agent at the start of every task and before every PR. Record what shipped, new
+rules and the next gap there and commit it with the work (Stop hook
+`scripts/brain/stop-guard.mjs` reminds).**
 
 HOA/community-association management SaaS replicating AppFolio Property Manager's
 functionality with an original design. Next.js 15 (App Router) + Supabase
@@ -61,7 +64,8 @@ functionality with an original design. Next.js 15 (App Router) + Supabase
   all accounts are invitation-based.
 
 ## Review agents (`.claude/agents/`)
-Before opening a PR, run the reviewers that match the change (they report,
+Run `overseer` at the start of every task and before every PR. Before opening
+a PR, run the reviewers that match the change (they report,
 and write only to their own memory): `design-reviewer` (pages/components),
 `security-reviewer` (actions, API routes, data access), `schema-checker`
 (queries), `migration-reviewer` (`supabase/migrations/`),

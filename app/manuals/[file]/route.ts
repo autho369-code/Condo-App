@@ -3,7 +3,7 @@ import { GUIDES } from '@/lib/guides/content';
 import { renderGuidePdf, type GuideBranding } from '@/lib/guides/pdf';
 import { createClient } from '@/lib/supabase/server';
 import { tenantWorkspaceUrl } from '@/lib/tenant/host';
-import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { NEUTRAL_COMPANY_NAME, tenantFromHeaders } from '@/lib/tenant/resolve';
 
 // The staff guides, generated per company so each client sees its own name
 // and sign-in address (white label). Public, like the static files they
@@ -41,9 +41,9 @@ function addresses(slug: string | null) {
 
 async function branding(request: NextRequest): Promise<GuideBranding> {
   const tenant = tenantFromHeaders(request.headers);
-  // Read the name header itself: tenantFromHeaders substitutes the platform
-  // name when it is missing, which must never head a company's guide.
-  if (tenant) return { companyName: request.headers.get('x-portfolio-name') ? tenant.companyName : null, ...addresses(tenant.slug) };
+  // No real name (missing or unreadable header): the guide renders its own
+  // neutral wording rather than tenantFromHeaders' generic substitute.
+  if (tenant) return { companyName: tenant.companyName === NEUTRAL_COMPANY_NAME ? null : tenant.companyName, ...addresses(tenant.slug) };
   // On the platform address: the signed-in user's own company, if any.
   try {
     const { data } = await ((await createClient()) as any).rpc('me');

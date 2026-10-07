@@ -1,7 +1,7 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-10-05.
+Last updated: 2026-10-07.
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
 
@@ -42,8 +42,11 @@ Cleanup needing Mirsad's approval:
 - [x] Fold the legacy `app/platform/*` redirect shim into `app/platform-operator/*`.
       DONE 2026-10-07: the catch-all page is gone; `/platform` and `/platform/*`
       are permanent redirects in `next.config.mjs`.
-- [ ] Drop the unused `'stripe'` value from the `payment_processor` enum
-      (DROP/recreate → Mirsad runs the SQL; cosmetic).
+- [x] ~~Drop the unused `'stripe'` value from the `payment_processor` enum~~
+      WITHDRAWN 2026-10-07 — the value is NOT unused: Stripe Connect (added back
+      2026-07-06) saves owner payment methods with `processor: 'stripe'`
+      (`app/api/stripe/webhook/route.ts`), and `select_payment_processor()`
+      falls back to it. Dropping it would break online payments. Do not do this.
 
 Sample-data housekeeping (not code):
 - [ ] 5 sample bank accounts show "not reconciled in over 60 days" on the
@@ -217,17 +220,17 @@ but a few worth addressing before scale:
 - [x] Orphaned `/platform-operator/overview` command center — linked from the
       operator sidebar and the root dashboard's Quick Navigation (2026-10-05).
 - [x] `app/platform/*` vs `app/platform-operator/*` consolidation (done 2026-10-07).
-- [ ] Drop the inert `'stripe'` value from the `payment_processor` enum (cosmetic;
-      requires recreating the enum + retyping columns — low value).
+- [x] ~~Drop the inert `'stripe'` value from the `payment_processor` enum~~ —
+      withdrawn 2026-10-07: the value is live (see the cleanup note above).
 
 ## 🚀 Exceed-AppFolio roadmap (future bets, optional)
 Detail + rationale in `docs/appfolio-gap-analysis.md`.
 
 - [x] Upgrade the Portfolio Assistant to **tool-calling** (live queries) beyond the
       current data-snapshot grounding. (2026-10-05)
-- [ ] **Real e-signature** for board resolutions / ARC approvals / vendor contracts
+- [x] **Real e-signature** (built — see build queue item 3) for board resolutions / ARC approvals / vendor contracts
       (current board sign-off is a typed-name signature, not a vendor e-sign).
-- [ ] **Operator cross-company analytics** + partner **API / webhooks** (leans into
+- [x] **Operator cross-company analytics** + partner **API / webhooks** (built — see build queue item 4) (leans into
       the multi-tenant cockpit).
 - [ ] *(Deliberately NOT pursuing — by design):* third-party integration
       marketplace. *(Formerly on this list but since BUILT: online owner payments
