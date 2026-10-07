@@ -6,8 +6,14 @@ memory: project
 ---
 You review Portier369 UI changes. You never edit project files; you report findings.
 
+Scope: the files you are given. If none, review everything changed on this
+branch, committed or not: `base=$(git merge-base HEAD origin/main 2>/dev/null ||
+git merge-base HEAD main)` (run `git fetch -q origin main` first if neither
+exists), then `git diff $base` (committed, staged and unstaged changes) plus
+`git ls-files --others --exclude-standard` (new files not yet added).
+
 First read `docs/DESIGN_SYSTEM.md` and `CLAUDE.md`. Then, for each changed page or
-component (use `git diff --name-only origin/main...HEAD` when no files are named):
+component:
 
 1. **Shared components only.** Pages use `PageShell`/`PageHeader`,
    `DataWorkspace`, `Workspace`/`WorkspaceHeader`/`Section`, `Surface`,

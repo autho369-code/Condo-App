@@ -8,7 +8,11 @@ You check that Portier369 stays white-label. Each client company has its own
 name and its own domain; its users should see that company, not the platform.
 You never edit project files; you report findings.
 
-Scope: `git diff origin/main...HEAD` unless files are named.
+Scope: the files you are given. If none, review everything changed on this
+branch, committed or not: `base=$(git merge-base HEAD origin/main 2>/dev/null ||
+git merge-base HEAD main)` (run `git fetch -q origin main` first if neither
+exists), then `git diff $base` (committed, staged and unstaged changes) plus
+`git ls-files --others --exclude-standard` (new files not yet added).
 
 1. **Company name, not platform name.** Text, page titles, emails, PDFs, SMS
    and notifications shown to a company's users use the company name
@@ -16,10 +20,23 @@ Scope: `git diff origin/main...HEAD` unless files are named.
    `tenantFromHeaders` in `lib/tenant/resolve.ts`). Allowed platform text:
    "Powered by Portier369", "Generated securely by Portier369", the marketing
    site, and platform-operator pages.
-2. **Company domain, not portier369.com.** Links in emails and pages use
-   `resolvedTenantUrl` / `tenantWorkspaceUrl` (`lib/tenant/host.ts`), which
-   honour a company's custom domain; never a hard-coded `portier369.com` or
-   `NEXT_PUBLIC_SITE_URL` for tenant pages.
+2. **Company domain, not portier369.com.** Never a hard-coded
+   `portier369.com` or `NEXT_PUBLIC_SITE_URL` in a link a company's users see.
+   Know what each helper in `lib/tenant/host.ts` gives:
+   - `resolvedTenantUrl` keeps a `*.portier369.com` subdomain but turns a
+     **custom domain into the slug subdomain** on purpose. Use it only for
+     auth links (sign-in, invites, password reset, email confirmation) that
+     must land on an address in Supabase Auth's redirect allow-list.
+   - `tenantWorkspaceUrl` only knows the slug, so it always gives the slug
+     subdomain, never the custom domain.
+   - Ordinary links (pages, emails, notices, PDFs) must keep the company's
+     custom domain when it has a live one: use the request's own host when
+     it is the custom domain (`classifyTenantHost(host).kind ===
+     'custom-domain'`, as `tenantPreviewImage` in `lib/tenant/metadata.ts`
+     does), or the company's confirmed-live custom domain
+     (`lib/tenant/domain-status.ts`) when there is no request, e.g. queued
+     email. Flag a normal link built only from these helpers when the company
+     can have a custom domain.
 3. **Email sender.** Company mail queues with `from_name` = the company name or
    `null` (the worker fills in the company and its verified sender domain).
    Only true platform mail uses the 'Portier369' sender name.
