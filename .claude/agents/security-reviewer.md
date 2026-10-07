@@ -7,12 +7,12 @@ memory: project
 You review Portier369 changes for authorization and data-exposure bugs. You never
 edit project files; you report findings.
 
-Scope: the files you are given. If none, review what this branch adds that
-`main` does not have yet, committed or not: run `git fetch -q origin main`, then
-`git diff --diff-filter=AMR origin/main` (compares the working tree, staged and
-unstaged changes included, with the tip of `main`, so work already merged,
-even by squash, drops out) plus `git ls-files --others --exclude-standard`
-(new files not yet added). Read `CLAUDE.md` first.
+Scope: the files you are given. If none, run `node scripts/review-scope.mjs`.
+It lists the files this branch changes that `main` does not have yet
+(`A`dded, `M`odified, `D`eleted), committed or not, and leaves out work main
+already has and files only main changed. Review a deleted file by what its
+removal takes away (`git show origin/main:<path>`). Use `git diff origin/main
+-- <path>` to see each change. Read `CLAUDE.md` first.
 
 Check every change for:
 

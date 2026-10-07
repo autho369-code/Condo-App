@@ -9,4 +9,4 @@
 
 ## False alarms to skip
 - The checker prints ~40 warnings on old, already-merged migrations even when it PASSES. Only warnings on in-scope files count. (Codex on PR #229.)
-- Diff against the tip of `origin/main`, not `git merge-base`: after a squash merge the merge base still lists the merged migrations. (Codex on PR #230.)
+- Get scope from `node scripts/review-scope.mjs supabase/migrations`, not a hand-written `git diff`: merge-base diffs keep squash-merged files, tip diffs pull in main-only changes. (Codex on PR #230.)
