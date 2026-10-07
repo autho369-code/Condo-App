@@ -15,6 +15,9 @@ describe('company administrator manager lifecycle', () => {
     expect(actions).toContain("from('user_invitations').delete().eq('id', invitationId)");
     expect(actions).toContain("rpc('create_manager_invitation'");
     expect(actions).toContain('p_association_ids: associationIds');
+    // The emailed invite itself carries the Runbook link (managers cannot
+    // open the admin-only Onboarding page to find it later).
+    expect(actions).toMatch(/text: \[[\s\S]*companyUrl\(me\.portfolio, '\/manuals\/manager-runbook\.pdf'\)[\s\S]*\]\.join/);
     expect(invitationMigration).toContain("jsonb_build_object('email_delivery', 'application')");
     expect(invitationMigration).toContain("new.metadata ->> 'email_delivery' = 'application'");
     expect(invitationMigration).toContain("role.name = 'Property Manager'");
