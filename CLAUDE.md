@@ -62,7 +62,7 @@ and write only to their own memory): `design-reviewer` (pages/components),
 `security-reviewer` (actions, API routes, data access), `schema-checker`
 (queries), `migration-reviewer` (`supabase/migrations/`),
 `white-label-checker` (user-facing text, emails, links). Fix what they find
-before pushing.
+before pushing. `/portier-review` runs the matching ones, fixes and verifies.
 They learn: each keeps notes in `.claude/agent-memory/<name>/MEMORY.md`
 (committed). When Codex, CI or Mirsad catches something a reviewer missed,
 or a reviewer finding was wrong, tell that reviewer so it records the lesson,

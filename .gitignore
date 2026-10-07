@@ -14,6 +14,7 @@ supabase/.temp/
 .claude/*
 !.claude/agents/
 !.claude/agent-memory/
+!.claude/commands/
 
 # local data backups + analysis artifacts
 backups/
