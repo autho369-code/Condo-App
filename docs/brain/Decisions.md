@@ -10,3 +10,6 @@ Back to [[Home]]. Don't redo these.
   (`next.config.mjs`), 2026-10-07.
 - **Invitation emails** link to `<slug>.portier369.com` (sign-in rule); the
   Runbook link may use the verified custom domain.
+- **Invitation tokens are always server-generated** (64 lowercase hex). Rows
+  written through the API get a fresh token from the trigger and can't change
+  it; a new SECURITY DEFINER RPC must never write a caller-supplied token.

@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-07.
+Back to [[Home]]. Updated 2026-10-07 (after #238).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,15 +12,18 @@ Back to [[Home]]. Updated 2026-10-07.
   pilot).
 
 ## Open PR
-- **#238** — second brain + staff invitation email + no platform-name fallback.
-  **After Mirsad merges: apply
-  `supabase/migrations/20261007030000_invitation_email_company_workspace.sql`
-  with Supabase MCP `apply_migration` on termxngysvotnfbzbgrv.**
+- Invitation token hardening (this branch) — migration
+  `20261007040000_invitation_token_format_and_html_escape_quote.sql`.
+  **After Mirsad merges: apply it with `apply_migration` on
+  termxngysvotnfbzbgrv** and verify the constraint + trigger exist.
+- #238 merged (b7ec661); its migration `20261007030000` is applied and verified
+  (new definition live, execute service-only).
 
 ## Next gaps (pick up here, top first)
-1. Hardening (security reviewer): CHECK constraint on `user_invitations.token`
-   format (verify existing rows first); `public.html_escape` should also escape
-   `'`.
+1. In PR: invitation token hardening — tokens must be 64 lowercase hex; rows
+   written through the API always get a server-generated token and can't
+   change it (trigger `user_invitations_server_token`); `html_escape` also
+   escapes `'`.
 2. Decide wording: on a company workspace with no readable name, the app
    manifest / link-preview image now show "Your management company"
    (`NEUTRAL_COMPANY_NAME`). Only reachable with bad data; consider a
