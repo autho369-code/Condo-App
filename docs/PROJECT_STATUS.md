@@ -26,8 +26,9 @@ Build **Portier369** — a multi-tenant HOA/condo management SaaS for **Stellar 
     company (not Portier369); fixed the dead maintenance-reminder cron and the
     maintenance-comms `company_name` bug.
   - **Operating manuals delivered to clients** — Manager Runbook + Company
-    Admin Guide published at `/manuals/*` (`public/manuals/`), linked in staff
-    invite emails and on `/onboard`.
+    Admin Guide at `/manuals/*`, linked in staff invite emails and on
+    `/onboard`; since 2026-10-07 generated per company (its name and sign-in
+    address) by `app/manuals/[file]/route.ts` from `lib/guides/content.ts`.
   - **Owner portal nav** — Account Ledger entry + prominent Pay Assessments CTA.
 - **2026-07-12: ship-readiness security re-review** — 46 unguarded server
   actions given in-action authorization guards, API auth + scope checks, no

@@ -25,7 +25,7 @@ export async function inviteManager(formData: FormData) {
   const { data: result, error } = await (supabase as any).rpc('create_manager_invitation', {
     p_email: email,
     p_association_ids: associationIds,
-    p_message: `You have been invited to manage associations for ${me.portfolio?.company_name ?? 'your company'}. Your operating document (Manager Runbook): ${companyUrl(me.portfolio, '/manuals/Portier369-Manager-Runbook.pdf')}`,
+    p_message: `You have been invited to manage associations for ${me.portfolio?.company_name ?? 'your company'}. Your operating document (Manager Runbook): ${companyUrl(me.portfolio, '/manuals/manager-runbook.pdf')}`,
   })
   if (error) fail(error.message)
 

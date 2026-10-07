@@ -12,7 +12,6 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requirePlatformAdmin, requirePlatformOperator, type MeResult } from '@/lib/auth/me';
 import { PLAN_BY_ID, type PlanId } from '@/lib/billing/plans';
 import { safeInternalNext } from '@/lib/security/redirects';
-import { siteUrl } from '@/lib/url/site-url';
 import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { attachDomainToVercel, parseCustomDomain, vercelDomainsEnv } from '@/lib/tenant/custom-domain';
 import { parseSenderSettings, registerSenderDomain, resendClient, storedStatus } from '@/lib/email/sender-domains';
@@ -58,7 +57,6 @@ async function audit(
 }
 
 function inviteEmailBody(companyName: string, token: string, expiresAt: string | null, slug?: string | null) {
-  const publicUrl = siteUrl();
   const workspaceUrl = tenantWorkspaceUrl(slug);
   const url = tenantWorkspaceUrl(slug, `/invite?token=${encodeURIComponent(token)}`);
   const expiry = expiresAt
@@ -72,8 +70,8 @@ function inviteEmailBody(companyName: string, token: string, expiresAt: string |
 <p>This invitation expires ${expiry}.</p>
 <p>Your operating documents — keep these handy while you get set up:</p>
 <ul>
-<li><a href="${publicUrl}/manuals/Portier369-Company-Admin-Guide.pdf">Company Admin Guide</a> — step-by-step setup and day-to-day administration</li>
-<li><a href="${publicUrl}/manuals/Portier369-Manager-Runbook.pdf">Manager Runbook</a> — daily operations for your property managers</li>
+<li><a href="${tenantWorkspaceUrl(slug, '/manuals/company-admin-guide.pdf')}">Company Admin Guide</a> — step-by-step setup and day-to-day administration</li>
+<li><a href="${tenantWorkspaceUrl(slug, '/manuals/manager-runbook.pdf')}">Manager Runbook</a> — daily operations for your property managers</li>
 </ul>
 <p>— The Portier369 team</p>`.trim();
 }
