@@ -440,7 +440,9 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
   }
 
   const html = textToHtml(body);
-  const fromName = me.portfolio?.company_name ?? 'Portier369';
+  // Unset when the company has no name: delivery brands it from the portfolio
+  // (a 'Portier369' name would be sent as platform mail).
+  const fromName = me.portfolio?.company_name ?? null;
 
   // Log one communication_messages row per recipient (queued) and deliver via email_queue.
   const commRows = recipients.map((r: any) => ({

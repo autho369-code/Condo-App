@@ -5,14 +5,15 @@
 // bank_accounts.balance, portfolios.name). Used by tests/database and
 // `npm run check:columns`.
 //
-// Coverage: the select list written at the query (a string, a constant —
-// local or imported — or a `+`/`${}` concatenation of those), or passed in
-// as a parameter of a function in the same file, in which case each call's
-// argument is checked. Every select that still can't be checked statically
-// (columns chosen at run time, `cols.join(', ')`, conditional pieces) must be
-// listed in supabase/unchecked-selects.json: the test fails on an unlisted
-// one, so nothing is skipped silently, and the list shows reviewers exactly
-// which queries rely on `npm run check:queries` (the live API probe) instead.
+// Files are read with the TypeScript parser. Coverage: the table and select
+// list written at the query (a string, a constant — local or imported — a
+// `+`/`${}` concatenation or a `? :` conditional, every branch checked), or
+// passed in as a parameter of a function in the same file, in which case each
+// call's argument is checked. Every select that still can't be checked
+// statically (columns chosen at run time, `cols.join(', ')`) must be
+// listed in supabase/unchecked-selects.json with how it is covered instead
+// (a dedicated test): the test fails on an unlisted one or an entry without a
+// reason, so nothing is skipped silently.
 //
 // Refresh the snapshot after a migration adds or renames columns: run this in
 // the Supabase SQL editor and save the result as supabase/schema-columns.json
@@ -37,7 +38,8 @@
 //     group by 1) t;
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, join, relative } from 'node:path';
+import ts from 'typescript';
 
 const SKIP_DIRS = new Set(['node_modules', '.next', 'mobile', 'tests', 'scripts']);
 
@@ -101,266 +103,76 @@ export function selectProblems(schema, table, select, fks = {}) {
   return problems;
 }
 
-/** Skip whitespace and comments from `i`; returns the next index. */
-function skipSpace(src, i) {
-  for (;;) {
-    while (i < src.length && /\s/.test(src[i])) i++;
-    if (src.startsWith('//', i)) { const e = src.indexOf('\n', i); i = e === -1 ? src.length : e + 1; continue; }
-    if (src.startsWith('/*', i)) { const e = src.indexOf('*/', i + 2); i = e === -1 ? src.length : e + 2; continue; }
-    return i;
+// ── Reading the code ─────────────────────────────────────────────────────
+// Files are parsed with the TypeScript compiler, so comments, strings,
+// template literals and regular expressions are exactly what the language
+// says they are; queries, functions, calls and constants come from the
+// syntax tree rather than from pattern matching.
+
+const parsed = new Map();
+/** The parsed source file at `path` (cached), or null when it doesn't exist. */
+function parse(path) {
+  if (!parsed.has(path)) {
+    let sf = null;
+    try {
+      const text = readFileSync(path, 'utf8');
+      sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    } catch { /* missing */ }
+    parsed.set(path, sf);
   }
+  return parsed.get(path);
 }
 
-/** Index just past the `)` matching the `(` at `open`, skipping strings and comments. */
-function closeParen(src, open) {
-  let depth = 0;
-  for (let i = open; i < src.length; i++) {
-    const ch = src[i];
-    if (ch === "'" || ch === '"' || ch === '`') {
-      for (i++; i < src.length && src[i] !== ch; i++) if (src[i] === '\\') i++;
-    } else if (src.startsWith('//', i)) {
-      const e = src.indexOf('\n', i); i = e === -1 ? src.length : e;
-    } else if (src.startsWith('/*', i)) {
-      const e = src.indexOf('*/', i + 2); i = e === -1 ? src.length : e + 1;
-    } else if (ch === '(') depth++;
-    else if (ch === ')' && --depth === 0) return i + 1;
-  }
-  return -1;
+/** Visit every node of `sf`. */
+function walk(node, visit) {
+  visit(node);
+  ts.forEachChild(node, (child) => walk(child, visit));
 }
 
-/**
- * If a regular-expression literal starts at `i` (a `/` where an expression
- * can begin), the index just past it; otherwise -1. Keeps quotes and brackets
- * inside patterns like /"/g from confusing the bracket matching.
- */
-function regexEnd(src, i) {
-  if (src[i] !== '/' || src[i + 1] === '/' || src[i + 1] === '*') return -1;
-  let k = i - 1;
-  while (k >= 0 && /\s/.test(src[k])) k--;
-  if (k >= 0 && !/[(,=:[!&|?{};+\-*%<>~^]/.test(src[k]) && !/\b(return|typeof|case|in|of)$/.test(src.slice(Math.max(0, k - 6), k + 1))) return -1;
-  let inClass = false;
-  for (let j = i + 1; j < src.length; j++) {
-    const ch = src[j];
-    if (ch === '\\') { j++; continue; }
-    if (ch === '\n') return -1;
-    if (ch === '[') inClass = true;
-    else if (ch === ']') inClass = false;
-    else if (ch === '/' && !inClass) {
-      let e = j + 1;
-      while (/[a-z]/i.test(src[e] ?? '')) e++;
-      return e;
-    }
-  }
-  return -1;
-}
-
-/** Index just past the closing bracket matching the one at `open` (strings and comments skipped). */
-function closeBracket(src, open) {
-  const pairs = { '(': ')', '[': ']', '{': '}' };
-  const stack = [];
-  for (let i = open; i < src.length; i++) {
-    const ch = src[i];
-    const re = ch === '/' ? regexEnd(src, i) : -1;
-    if (re !== -1) { i = re - 1; continue; }
-    if (ch === "'" || ch === '"') {
-      for (i++; i < src.length && src[i] !== ch; i++) if (src[i] === '\\') i++;
-    } else if (ch === '`') {
-      for (i++; i < src.length && src[i] !== '`'; i++) {
-        if (src[i] === '\\') i++;
-        else if (src[i] === '$' && src[i + 1] === '{') { const e = closeBracket(src, i + 1); if (e === -1) return -1; i = e - 1; }
-      }
-    } else if (src.startsWith('//', i)) {
-      const e = src.indexOf('\n', i); i = e === -1 ? src.length : e;
-    } else if (src.startsWith('/*', i)) {
-      const e = src.indexOf('*/', i + 2); i = e === -1 ? src.length : e + 1;
-    } else if (pairs[ch]) stack.push(pairs[ch]);
-    else if (ch === ')' || ch === ']' || ch === '}') {
-      if (stack.pop() !== ch) return -1;
-      if (!stack.length) return i + 1;
-    }
-  }
-  return -1;
+/** Strip wrappers that don't change a value: parentheses, `as`, `!`, `satisfies`. */
+function unwrap(node) {
+  while (node && (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isNonNullExpression(node)
+    || ts.isTypeAssertionExpression(node) || (ts.isSatisfiesExpression && ts.isSatisfiesExpression(node)))) node = node.expression;
+  return node;
 }
 
 /**
- * Index of the first top-level occurrence (outside brackets, strings and
- * comments) of any of `chars` in `text` from `from`, or -1.
+ * A string expression as parts: { text }, { id } for an identifier, and
+ * { alt: [parts, parts] } for `cond ? a : b` (both branches are checked).
+ * Literals, identifiers, `+`, template `${…}` holes and conditionals are
+ * understood; anything else (calls, property access, `.join()`) gives null.
  */
-function topLevel(text, chars, from = 0) {
-  for (let i = from; i < text.length; i++) {
-    const ch = text[i];
-    const re = ch === '/' ? regexEnd(text, i) : -1;
-    if (re !== -1) { i = re - 1; continue; }
-    if (ch === "'" || ch === '"' || ch === '`' || ch === '(' || ch === '[' || ch === '{') {
-      if (ch === "'" || ch === '"') { for (i++; i < text.length && text[i] !== ch; i++) if (text[i] === '\\') i++; continue; }
-      const e = ch === '`' ? closeTemplate(text, i) : closeBracket(text, i);
-      if (e === -1) return -1;
-      i = e - 1;
-      continue;
+function partsOf(node) {
+  node = unwrap(node);
+  if (!node) return null;
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return [{ text: node.text }];
+  if (ts.isIdentifier(node)) return [{ id: node.text }];
+  if (ts.isTemplateExpression(node)) {
+    const parts = [{ text: node.head.text }];
+    for (const span of node.templateSpans) {
+      const hole = partsOf(span.expression);
+      if (!hole) return null;
+      parts.push(...hole, { text: span.literal.text });
     }
-    if (chars.includes(ch)) return i;
+    return parts;
   }
-  return -1;
-}
-
-/** Index just past the template literal starting at `open`. */
-function closeTemplate(src, open) {
-  for (let i = open + 1; i < src.length; i++) {
-    if (src[i] === '\\') { i++; continue; }
-    if (src[i] === '`') return i + 1;
-    if (src[i] === '$' && src[i + 1] === '{') { const e = closeBracket(src, i + 1); if (e === -1) return -1; i = e - 1; }
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+    const a = partsOf(node.left);
+    const b = partsOf(node.right);
+    return a && b ? [...a, ...b] : null;
   }
-  return -1;
-}
-
-/** Split text on top-level commas. */
-function splitArgs(text) {
-  const out = [];
-  let start = 0;
-  for (;;) {
-    const k = topLevel(text, ',', start);
-    if (k === -1) { out.push(text.slice(start)); break; }
-    out.push(text.slice(start, k));
-    start = k + 1;
-  }
-  return out.map((a) => a.trim()).filter((a, i, all) => a || i < all.length - 1);
-}
-
-/**
- * Parse a string expression into parts: { text } for literal text, { id } for
- * an identifier, and { alt: [parts, parts] } for `cond ? a : b` (both
- * branches are checked). Literals, identifiers, `+` concatenation and
- * template `${…}` holes holding any of these are understood; anything else
- * (calls, property access, `.join()`) gives null.
- */
-function parseExpr(text) {
-  text = text.trim();
-  if (!text) return null;
-  while (text.startsWith('(') && closeBracket(text, 0) === text.length) text = text.slice(1, -1).trim();
-  const q = topLevel(text, '?');
-  if (q !== -1 && text[q + 1] !== '?' && text[q + 1] !== '.') {
-    const c = topLevel(text, ':', q + 1);
-    if (c === -1) return null;
-    const a = parseExpr(text.slice(q + 1, c));
-    const b = parseExpr(text.slice(c + 1));
+  if (ts.isConditionalExpression(node)) {
+    const a = partsOf(node.whenTrue);
+    const b = partsOf(node.whenFalse);
     return a && b ? [{ alt: [a, b] }] : null;
   }
-  const parts = [];
-  let i = 0;
-  for (;;) {
-    i = skipSpace(text, i);
-    const ch = text[i];
-    if (ch === "'" || ch === '"') {
-      let j = i + 1;
-      let lit = '';
-      for (; j < text.length && text[j] !== ch; j++) { if (text[j] === '\\') j++; lit += text[j]; }
-      parts.push({ text: lit });
-      i = j + 1;
-    } else if (ch === '`') {
-      const end = closeTemplate(text, i);
-      if (end === -1) return null;
-      let lit = '';
-      for (let j = i + 1; j < end - 1; j++) {
-        if (text[j] === '\\') { j++; lit += text[j]; continue; }
-        if (text[j] === '$' && text[j + 1] === '{') {
-          const close = closeBracket(text, j + 1);
-          const hole = parseExpr(text.slice(j + 2, close - 1));
-          if (!hole) return null;
-          parts.push({ text: lit }, ...hole);
-          lit = '';
-          j = close - 1;
-          continue;
-        }
-        lit += text[j];
-      }
-      parts.push({ text: lit });
-      i = end;
-    } else {
-      const id = /^[A-Za-z_$][\w$]*/.exec(text.slice(i));
-      if (!id) return null;
-      parts.push({ id: id[0] });
-      i += id[0].length;
-    }
-    i = skipSpace(text, i);
-    if (i >= text.length) return parts;
-    if (text[i] !== '+') return null;
-    i++;
-  }
-}
-
-/** End of the expression statement starting at `i` (first top-level `;` or line end). */
-function statementEnd(src, i) {
-  for (let j = i; j < src.length; j++) {
-    const ch = src[j];
-    const re = ch === '/' ? regexEnd(src, j) : -1;
-    if (re !== -1) { j = re - 1; continue; }
-    if (ch === "'" || ch === '"') { for (j++; j < src.length && src[j] !== ch; j++) if (src[j] === '\\') j++; continue; }
-    if (ch === '`') { const e = closeTemplate(src, j); if (e === -1) return src.length; j = e - 1; continue; }
-    if (ch === '(' || ch === '[' || ch === '{') { const e = closeBracket(src, j); if (e === -1) return src.length; j = e - 1; continue; }
-    if (ch === ';' || ch === ')' || ch === '}' || ch === ']') return j;
-    if (ch === ',') return j;
-    if (ch === '\n') {
-      // A line that continues the expression starts with an operator.
-      const next = skipSpace(src, j);
-      if (!/^(\?|:|\+|\|\||&&|\.(?!\.\.))/.test(src.slice(next, next + 3))) return j;
-    }
-  }
-  return src.length;
-}
-
-/**
- * Resolves string constants by name for one file: `const X = …` in the file
- * itself (built from literals, other constants, `+`, `${}` or `? :`), or a
- * named import of an exported constant from another app file. Returns the
- * possible values (several when a conditional is involved), or null.
- */
-function constantResolver(root, file, cache = new Map()) {
-  const load = (path) => {
-    if (!cache.has(path)) {
-      let src = null;
-      for (const candidate of [path, `${path}.ts`, `${path}.tsx`, join(path, 'index.ts')]) {
-        try { if (statSync(candidate).isFile()) { src = readFileSync(candidate, 'utf8'); path = candidate; break; } } catch { /* next */ }
-      }
-      const consts = new Map();
-      const imports = new Map();
-      if (src != null) {
-        for (const m of src.matchAll(/(?:^|[\s;])(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*(?::\s*string\s*)?=\s*/g)) {
-          const start = m.index + m[0].length;
-          const parts = parseExpr(src.slice(start, statementEnd(src, start)));
-          if (parts && !consts.has(m[1])) consts.set(m[1], parts);
-        }
-        for (const m of src.matchAll(/import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g)) {
-          const spec = m[2];
-          const base = spec.startsWith('@/') ? join(root, spec.slice(2)) : spec.startsWith('.') ? join(path, '..', spec) : null;
-          if (!base) continue;
-          for (const name of m[1].split(',')) {
-            const [orig, local] = name.trim().split(/\s+as\s+/);
-            if (orig) imports.set((local ?? orig).trim(), { path: base, name: orig.trim() });
-          }
-        }
-      }
-      cache.set(path, { consts, imports });
-    }
-    return cache.get(path);
-  };
-
-  const resolve = (path, name, depth = 0) => {
-    if (depth > 8) return null;
-    const { consts, imports } = load(path);
-    if (consts.has(name)) {
-      const vs = variants(consts.get(name), (n) => resolve(path, n, depth + 1));
-      return vs.every((v) => v.complete) ? vs.map((v) => v.text) : null;
-    }
-    const imp = imports.get(name);
-    return imp ? resolve(imp.path, imp.name, depth + 1) : null;
-  };
-  return (name) => resolve(file, name);
+  return null;
 }
 
 /**
  * Every value `parts` can take: { text, complete }. An unresolved identifier
- * stops a variant (complete: false, text = what came before it). Capped at
- * 32 variants.
+ * stops a variant (complete: false, text = what came before it). `resolve`
+ * returns a name's possible values or null. Capped at 32 variants.
  */
 function variants(parts, resolve) {
   let acc = [{ text: '', complete: true }];
@@ -374,7 +186,7 @@ function variants(parts, resolve) {
       if (options == null) { next.push({ text: a.text, complete: false }); continue; }
       for (const o of options) {
         if (typeof o === 'string') next.push({ text: a.text + o, complete: true });
-        else next.push({ text: a.text + o.text, complete: a.complete && o.complete });
+        else next.push({ text: a.text + o.text, complete: o.complete });
       }
     }
     acc = next.slice(0, 32);
@@ -382,95 +194,123 @@ function variants(parts, resolve) {
   return acc;
 }
 
-/**
- * The `.select(…)` call of the query chain starting at `i` (just past
- * `.from(…)`): follows the builder calls (.insert/.update/.eq/…, comments
- * allowed) to the first `.select(`. Returns its first argument's text and
- * parsed parts (null parts when it isn't a string expression), or null when
- * the chain has no select.
- */
-function chainSelectArg(src, i) {
-  for (let calls = 0; calls < 40; calls++) {
-    i = skipSpace(src, i);
-    const call = /^\.\s*([A-Za-z_]+)\s*\(/.exec(src.slice(i, i + 60));
-    if (!call) return null;
-    const open = i + call[0].length - 1;
-    const end = closeBracket(src, open);
-    if (end === -1) return null;
-    if (call[1] === 'select') {
-      const text = splitArgs(src.slice(open + 1, end - 1))[0] ?? '';
-      return { text, parts: parseExpr(text) };
-    }
-    i = end;
+/** Resolve a module specifier from `file` to a path (`@/…` is the repo root). */
+function resolveImport(root, file, spec) {
+  const base = spec.startsWith('@/') ? join(root, spec.slice(2)) : spec.startsWith('.') ? join(dirname(file), spec) : null;
+  if (!base) return null;
+  for (const candidate of [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts')]) {
+    try { if (statSync(candidate).isFile()) return candidate; } catch { /* next */ }
   }
   return null;
 }
 
 /**
- * The checkable select list of the query chain at `i` with constants from
- * `resolve` (test helper): the first variant, or what precedes an unknown
- * trailing piece; null when nothing static precedes it.
- *
- * @param {string} src
- * @param {number} i
- * @param {(name: string) => string | string[] | null} [resolve]
- * @returns {string | null}
+ * Resolves string constants by name for one file: a top-level or local
+ * `const X = …` whose value is a string expression, or a named import of an
+ * exported constant from another app file. Returns the possible values, or
+ * null.
  */
-function chainSelect(src, i, resolve = () => null) {
-  const arg = chainSelectArg(src, i);
-  if (!arg?.parts) return null;
-  const r = (n) => { const v = resolve(n); return v == null ? null : Array.isArray(v) ? v : [v]; };
-  const v = variants(arg.parts, r)[0];
-  return v && v.text.trim() ? v.text : null;
+function constantResolver(root, file) {
+  const tables = new Map();
+  const load = (path) => {
+    if (!tables.has(path)) {
+      const consts = new Map();
+      const imports = new Map();
+      const sf = parse(path);
+      if (sf) {
+        walk(sf, (n) => {
+          if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer
+            && n.parent && (n.parent.flags & ts.NodeFlags.Const)) {
+            const parts = partsOf(n.initializer);
+            if (parts && !consts.has(n.name.text)) consts.set(n.name.text, parts);
+          }
+          if (ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier) && n.importClause?.namedBindings
+            && ts.isNamedImports(n.importClause.namedBindings)) {
+            const target = resolveImport(root, path, n.moduleSpecifier.text);
+            if (target) for (const el of n.importClause.namedBindings.elements) {
+              imports.set(el.name.text, { path: target, name: (el.propertyName ?? el.name).text });
+            }
+          }
+        });
+      }
+      tables.set(path, { consts, imports });
+    }
+    return tables.get(path);
+  };
+  const resolve = (path, name, depth = 0) => {
+    if (depth > 8) return null;
+    const { consts, imports } = load(path);
+    if (consts.has(name)) {
+      const vs = variants(consts.get(name), (n) => resolve(path, n, depth + 1));
+      return vs.every((v) => v.complete) ? vs.map((v) => v.text) : null;
+    }
+    const imp = imports.get(name);
+    return imp ? resolve(imp.path, imp.name, depth + 1) : null;
+  };
+  return (name) => resolve(file, name);
+}
+
+/** The callee name of a call: `foo(…)` → foo, `x.foo(…)` → foo. */
+function calleeName(call) {
+  const e = call.expression;
+  if (ts.isIdentifier(e)) return e.text;
+  if (ts.isPropertyAccessExpression(e)) return e.name.text;
+  return null;
 }
 
 /**
- * When `name` is a parameter of a function around `pos` (`const base =
- * (select: string) => …`, `function load(db, columns) { … }`, or an arrow
- * with an expression body), that parameter's position and default, and each
- * call to the function in the same file with its arguments and line. Null
- * when `name` isn't such a parameter.
+ * The `.select(…)` call in the builder chain that starts at the `.from(…)`
+ * call `fromCall`: walks outwards through `.eq()`, `.insert()`, … calls to
+ * the first `.select(`. Returns its first argument node, or null when the
+ * chain has no select.
  */
-function parameterSite(src, pos, name) {
-  const header = /(?:function\s+([A-Za-z_$][\w$]*)\s*\(|(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\()/g;
-  let best = null;
-  for (const m of src.matchAll(header)) {
-    if (m.index > pos) break;
-    const open = m.index + m[0].length - 1;
-    const close = closeBracket(src, open);
-    if (close === -1 || close > pos) continue;
-    const params = splitArgs(src.slice(open + 1, close - 1));
-    const index = params.findIndex((p) => /^([A-Za-z_$][\w$]*)/.exec(p)?.[1] === name);
-    if (index === -1) continue;
-    // Body: after the parameters (optionally `: Type`), a block or an arrow's expression.
-    let b = close;
-    while (b < src.length && src[b] !== '{' && src[b] !== ';' && src.slice(b, b + 2) !== '=>') b++;
-    let end;
-    if (src.slice(b, b + 2) === '=>') {
-      b = skipSpace(src, b + 2);
-      end = src[b] === '{' ? closeBracket(src, b) : statementEnd(src, b);
-    } else if (src[b] === '{') end = closeBracket(src, b);
-    else continue;
-    if (end === -1 || end < pos) continue;
-    const eq = topLevel(params[index], '=');
-    best = { fn: m[1] ?? m[2], index, dflt: eq === -1 ? null : params[index].slice(eq + 1).trim(), headerAt: m.index };
+function chainSelect(fromCall) {
+  let node = fromCall;
+  for (let i = 0; i < 40; i++) {
+    const access = node.parent;
+    if (!access || !ts.isPropertyAccessExpression(access) || access.expression !== node) return null;
+    const call = access.parent;
+    if (!call || !ts.isCallExpression(call) || call.expression !== access) return null;
+    if (access.name.text === 'select') return call.arguments[0] ?? null;
+    node = call;
   }
-  if (!best) return null;
-  const calls = [];
-  for (const m of src.matchAll(new RegExp(`(?<![\\w$.])${best.fn.replace(/\$/g, '\\$')}\\s*\\(`, 'g'))) {
-    if (m.index === best.headerAt || /(function|const|let)\s*$/.test(src.slice(Math.max(0, m.index - 10), m.index))) continue;
-    const open = m.index + m[0].length - 1;
-    const close = closeBracket(src, open);
-    if (close === -1) continue;
-    calls.push({ args: splitArgs(src.slice(open + 1, close - 1)), line: src.slice(0, m.index).split('\n').length });
-  }
-  return { ...best, calls };
+  return null;
 }
 
-/** The argument passed for `name` at each call (test helper; see parameterSite). */
-function parameterArguments(src, pos, name) {
-  const site = parameterSite(src, pos, name);
-  return site ? site.calls.map((c) => ({ arg: c.args[site.index] ?? '', line: c.line })) : null;
+/** Functions are where parameters live. */
+function isFunction(n) {
+  return ts.isFunctionDeclaration(n) || ts.isFunctionExpression(n) || ts.isArrowFunction(n) || ts.isMethodDeclaration(n);
+}
+
+/** The name a function is called by: `function f`, `const f = (…) =>`, a method. */
+function functionName(fn) {
+  if ((ts.isFunctionDeclaration(fn) || ts.isMethodDeclaration(fn)) && fn.name && ts.isIdentifier(fn.name)) return fn.name.text;
+  const p = fn.parent;
+  if (p && ts.isVariableDeclaration(p) && ts.isIdentifier(p.name)) return p.name.text;
+  return null;
+}
+
+/**
+ * When `name` is a parameter of a function around `node`, that function's
+ * name, the parameter's position and default, and every call to it in the
+ * file (arguments as nodes, with the call's line). Null otherwise.
+ */
+function parameterSite(sf, node, name) {
+  for (let n = node.parent; n; n = n.parent) {
+    if (!isFunction(n)) continue;
+    const index = n.parameters.findIndex((p) => ts.isIdentifier(p.name) && p.name.text === name);
+    if (index === -1) continue;
+    const fn = functionName(n);
+    if (!fn) return null;
+    const calls = [];
+    walk(sf, (c) => {
+      if (ts.isCallExpression(c) && calleeName(c) === fn && ts.isIdentifier(c.expression)) {
+        calls.push({ args: c.arguments, line: sf.getLineAndCharacterOfPosition(c.getStart(sf)).line + 1, text: c.getText(sf) });
+      }
+    });
+    return { fn, index, dflt: n.parameters[index].initializer ?? null, calls, at: n.pos };
+  }
+  return null;
 }
 
 /** Normalized key for a query the scanner can't fully check (see unchecked-selects.json). */
@@ -478,77 +318,127 @@ function uncheckedKey(file, table, text) {
   return `${file}  ${table}  ${text.replace(/\s+/g, ' ').trim().slice(0, 160)}`;
 }
 
+/** Identifiers used in parts (including inside conditional branches). */
+function idsOf(parts) {
+  return parts.flatMap((p) => ('id' in p ? [p.id] : 'alt' in p ? p.alt.flatMap(idsOf) : []));
+}
+
+/**
+ * Check one source file: every `.from(table)…select(columns)` query. The
+ * table and the column list may each be a string, a constant (local or
+ * imported), a `+`/`${}` concatenation, a conditional (every branch is
+ * checked) or a parameter of the enclosing function, in which case every
+ * call in the file is checked with the values it passes (or the default).
+ */
+function checkFile(root, file, schema, fks, out) {
+  const sf = parse(file);
+  if (!sf) return;
+  const rel = relative(root, file);
+  const constants = constantResolver(root, file);
+  const lineOf = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+  walk(sf, (call) => {
+    if (!ts.isCallExpression(call) || !ts.isPropertyAccessExpression(call.expression) || call.expression.name.text !== 'from') return;
+    const tableNode = call.arguments[0];
+    const selectNode = chainSelect(call);
+    if (!tableNode || !selectNode) return; // not a query with a select (storage, plain writes)
+    const tableText = tableNode.getText(sf);
+    const selectText = selectNode.getText(sf);
+    const label = ts.isStringLiteral(tableNode) ? tableNode.text : `from(${tableText})`;
+    const notChecked = (extra = '') => out.unchecked.add(uncheckedKey(rel, label, selectText + extra));
+    const tableParts = partsOf(tableNode);
+    const selectParts = partsOf(selectNode);
+    if (!tableParts || !selectParts) { notChecked(); return; }
+
+    const run = (resolve, line, extra = '') => {
+      const tables = variants(tableParts, resolve);
+      const selects = variants(selectParts, resolve);
+      for (const t of tables) {
+        if (!t.complete) continue;
+        for (const v of selects) {
+          if (!v.text.trim()) continue;
+          out.checked++;
+          for (const p of selectProblems(schema, t.text, v.text.replace(/\s+/g, ' '), fks)) out.found.add(`${rel}:${line}  ${p}`);
+        }
+      }
+      if (!(tables.every((t) => t.complete) && selects.every((v) => v.complete))) notChecked(extra);
+    };
+
+    // Identifiers no constant explains must be parameters of one enclosing
+    // function; each call to it supplies their values.
+    const ids = [...new Set(idsOf([...tableParts, ...selectParts]).filter((id) => constants(id) == null))];
+    const sites = ids.map((id) => parameterSite(sf, call, id));
+    if (!ids.length || sites.some((x) => !x) || new Set(sites.map((x) => x.at)).size !== 1 || !sites[0].calls.length) {
+      run(constants, lineOf(call));
+      return;
+    }
+    for (const c of sites[0].calls) {
+      const values = {};
+      ids.forEach((id, k) => {
+        const passed = c.args[sites[k].index] ?? sites[k].dflt;
+        const parts = passed ? partsOf(passed) : null;
+        const vs = parts ? variants(parts, constants) : null;
+        values[id] = vs && vs.every((v) => v.complete) ? vs.map((v) => v.text) : null;
+      });
+      run((n) => (n in values ? values[n] : constants(n)), c.line, ` ← ${c.text.replace(/\s+/g, ' ').slice(0, 120)}`);
+    }
+  });
+}
+
 /**
  * Every problem across app/, components/ and lib/, as "file:line  message",
  * plus the queries that couldn't be fully checked statically (as stable keys,
  * for the reviewed list in supabase/unchecked-selects.json).
- *
- * The table name and the select list may each be a string, a constant (local
- * or imported), a `+`/`${}` concatenation, a `cond ? a : b` (every branch is
- * checked) or a parameter of the enclosing function, in which case every call
- * in the file is checked with the values it passes (or the default).
  */
 export function findQueryColumnProblems(root, schema, fks = {}) {
-  const found = new Set();
-  const unchecked = new Set();
-  const cache = new Map();
-  let checked = 0;
+  parsed.clear();
+  const out = { found: new Set(), unchecked: new Set(), checked: 0 };
   for (const dir of ['app', 'components', 'lib']) {
-    for (const file of sourceFiles(join(root, dir))) {
-      const src = readFileSync(file, 'utf8');
-      const rel = relative(root, file);
-      const constants = constantResolver(root, file, cache);
-      for (const m of src.matchAll(/\.from\(/g)) {
-        const open = m.index + m[0].length - 1;
-        const close = closeBracket(src, open);
-        if (close === -1) continue;
-        const tableText = src.slice(open + 1, close - 1).trim();
-        const arg = chainSelectArg(src, close);
-        if (!arg) continue; // no select in this chain (storage, plain writes)
-        const line = src.slice(0, m.index).split('\n').length;
-        const label = /^['"][a-z_0-9]+['"]$/.test(tableText) ? tableText.slice(1, -1) : `from(${tableText})`;
-        const tableParts = parseExpr(tableText);
-        const notChecked = (extra = '') => unchecked.add(uncheckedKey(rel, label, arg.text + extra));
-        if (!tableParts || !arg.parts) { notChecked(); continue; }
-
-        const check = (table, select, at) => {
-          checked++;
-          for (const p of selectProblems(schema, table, select.replace(/\s+/g, ' '), fks)) found.add(`${rel}:${at}  ${p}`);
-        };
-        const run = (resolve, at, extra = '') => {
-          const tables = variants(tableParts, resolve);
-          const selects = variants(arg.parts, resolve);
-          let complete = tables.every((t) => t.complete) && selects.every((v) => v.complete);
-          for (const t of tables) {
-            if (!t.complete) continue;
-            for (const v of selects) if (v.text.trim()) check(t.text, v.text, at);
-          }
-          if (!complete) notChecked(extra);
-        };
-
-        // Identifiers no constant explains must be parameters of one enclosing
-        // function; each call to it supplies their values.
-        const idsOf = (parts) => parts.flatMap((p) => ('id' in p ? [p.id] : 'alt' in p ? p.alt.flatMap(idsOf) : []));
-        const ids = [...new Set(idsOf([...tableParts, ...arg.parts]).filter((id) => constants(id) == null))];
-        const sites = ids.map((id) => parameterSite(src, m.index, id));
-        if (!ids.length || sites.some((x) => !x) || new Set(sites.map((x) => x.headerAt)).size !== 1 || !sites[0].calls.length) {
-          run(constants, line);
-          continue;
-        }
-        for (const call of sites[0].calls) {
-          const values = {};
-          ids.forEach((id, k) => {
-            const passed = call.args[sites[k].index] ?? sites[k].dflt ?? null;
-            const parts = passed == null ? null : parseExpr(passed);
-            const vs = parts ? variants(parts, constants) : null;
-            values[id] = vs && vs.every((v) => v.complete) ? vs.map((v) => v.text) : null;
-          });
-          run((n) => (n in values ? values[n] : constants(n)), call.line, ` ← ${sites[0].fn}(${call.args.join(', ')})`);
-        }
-      }
-    }
+    for (const file of sourceFiles(join(root, dir))) checkFile(root, file, schema, fks, out);
   }
-  return { problems: [...found].sort(), unchecked: [...unchecked].sort(), checked };
+  return { problems: [...out.found].sort(), unchecked: [...out.unchecked].sort(), checked: out.checked };
 }
 
-export { chainSelect as _chainSelect, parameterArguments as _parameterArguments };
+// ── Test helpers ─────────────────────────────────────────────────────────
+
+/** Parse a snippet as a file (test helper). */
+function snippet(src) {
+  return ts.createSourceFile('snippet.ts', src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+}
+
+/** The first `.from()` call in a parsed file (on `table`, when given). */
+function firstFrom(sf, table) {
+  let found = null;
+  walk(sf, (n) => {
+    if (!found && ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'from'
+      && (table == null || (n.arguments[0] && ts.isStringLiteral(n.arguments[0]) && n.arguments[0].text === table))) found = n;
+  });
+  return found;
+}
+
+/**
+ * The checkable select list of the first query in `src` (test helper): the
+ * first variant, or what precedes an unknown trailing piece; null when it
+ * isn't a string expression or nothing static precedes the unknown piece.
+ *
+ * @param {string} src
+ * @param {(name: string) => string | string[] | null} [resolve]
+ * @returns {string | null}
+ */
+function firstSelect(src, resolve = () => null) {
+  const call = firstFrom(snippet(src));
+  const arg = call && chainSelect(call);
+  const parts = arg && partsOf(arg);
+  if (!parts) return null;
+  const v = variants(parts, (n) => { const r = resolve(n); return r == null ? null : Array.isArray(r) ? r : [r]; })[0];
+  return v && v.text.trim() ? v.text : null;
+}
+
+/** The argument text passed for `name` at each call of the function around the query on `table` (test helper). */
+function parameterArguments(src, table, name) {
+  const sf = snippet(src);
+  const call = firstFrom(sf, table);
+  const site = call && parameterSite(sf, call, name);
+  return site ? site.calls.map((c) => ({ arg: c.args[site.index]?.getText(sf) ?? '', line: c.line })) : null;
+}
+
+export { firstSelect as _firstSelect, parameterArguments as _parameterArguments };

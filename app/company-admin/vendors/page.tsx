@@ -5,7 +5,7 @@ import { StatusChip } from '@/components/operations/status-chip'
 import { Truck, ShieldAlert, Shield, Banknote } from 'lucide-react'
 import { buildVendorPerformanceScorecard, type VendorPerformanceScorecard } from '@/lib/vendors/performance'
 import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query'
-import { vendorComplianceStatus, VENDOR_EXPIRATION_FIELDS } from '@/lib/company-admin/vendor-compliance'
+import { vendorComplianceStatus, VENDOR_EXPIRATION_COLUMNS } from '@/lib/company-admin/vendor-compliance'
 import { todayInZone } from '@/lib/time/zoned'
 import { Alert } from '@/components/ui/shell'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
@@ -73,7 +73,7 @@ export default async function VendorsPage({
       .from('vendors')
       // Explicit columns: vendors also holds bank and taxpayer numbers this
       // list never shows.
-      .select(`id, name, vendor_type, trade, phone_numbers, emails, ach_status, ${VENDOR_EXPIRATION_FIELDS.join(', ')}`)
+      .select(`id, name, vendor_type, trade, phone_numbers, emails, ach_status, ${VENDOR_EXPIRATION_COLUMNS}`)
       .eq('portfolio_id', portfolioId)
       .is('archived_at', null)
       .order('name')
