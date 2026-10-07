@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { findQueryColumnProblems, selectProblems } from '../../scripts/lib/query-columns.mjs';
+import { _chainSelect, findQueryColumnProblems, selectProblems } from '../../scripts/lib/query-columns.mjs';
 
 const schema = JSON.parse(readFileSync(join(process.cwd(), 'supabase/schema-columns.json'), 'utf8'));
 
@@ -26,5 +26,16 @@ describe('query columns', () => {
     expect(selectProblems(schema, 'dues_increases', 'id, dues_increase_lines(count)')).toEqual([]);
     expect(selectProblems(schema, 'service_requests', 'id, tenant_id(first_name)')).toEqual([]);
     expect(selectProblems(schema, 'no_such_table', 'id')).toEqual(["table or view 'no_such_table' not found"]);
+  });
+
+  it('follows the query chain to its select (writes, filters, comments)', () => {
+    const at = (src: string) => _chainSelect(src, src.indexOf(')') + 1);
+    expect(at(`db.from('t').update({ note: 'a) b', n: f(1) }).eq('id', id).is('x', null).select('id, note')`)).toBe('id, note');
+    expect(at(`db.from('t')
+      // a comment with .select('nope')
+      /* and another */
+      .select('*, owners(full_name)')`)).toBe('*, owners(full_name)');
+    expect(at(`db.from('t').insert(row);`)).toBeNull();
+    expect(at('db.from(\'t\').select(`id, ${cols}`)')).toBeNull();
   });
 });

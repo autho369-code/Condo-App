@@ -74,19 +74,70 @@ export function selectProblems(schema, table, select) {
   return problems;
 }
 
+/** Skip whitespace and comments from `i`; returns the next index. */
+function skipSpace(src, i) {
+  for (;;) {
+    while (i < src.length && /\s/.test(src[i])) i++;
+    if (src.startsWith('//', i)) { const e = src.indexOf('\n', i); i = e === -1 ? src.length : e + 1; continue; }
+    if (src.startsWith('/*', i)) { const e = src.indexOf('*/', i + 2); i = e === -1 ? src.length : e + 2; continue; }
+    return i;
+  }
+}
+
+/** Index just past the `)` matching the `(` at `open`, skipping strings and comments. */
+function closeParen(src, open) {
+  let depth = 0;
+  for (let i = open; i < src.length; i++) {
+    const ch = src[i];
+    if (ch === "'" || ch === '"' || ch === '`') {
+      for (i++; i < src.length && src[i] !== ch; i++) if (src[i] === '\\') i++;
+    } else if (src.startsWith('//', i)) {
+      const e = src.indexOf('\n', i); i = e === -1 ? src.length : e;
+    } else if (src.startsWith('/*', i)) {
+      const e = src.indexOf('*/', i + 2); i = e === -1 ? src.length : e + 1;
+    } else if (ch === '(') depth++;
+    else if (ch === ')' && --depth === 0) return i + 1;
+  }
+  return -1;
+}
+
+/**
+ * The static select list of the query chain starting at `i` (just past
+ * `.from('table')`): follows the builder calls (.insert/.update/.eq/…,
+ * comments allowed) to the first `.select('…')`. Null when the chain has no
+ * select or its select isn't a plain string.
+ */
+function chainSelect(src, i) {
+  for (let calls = 0; calls < 40; calls++) {
+    i = skipSpace(src, i);
+    const call = /^\.\s*([A-Za-z_]+)\s*\(/.exec(src.slice(i, i + 60));
+    if (!call) return null;
+    const open = i + call[0].length - 1;
+    if (call[1] === 'select') {
+      const arg = /^\(\s*(['"`])([\s\S]*?)\1/.exec(src.slice(open));
+      return arg && !arg[2].includes('${') ? arg[2] : null;
+    }
+    const end = closeParen(src, open);
+    if (end === -1) return null;
+    i = end;
+  }
+  return null;
+}
+
 /** Every problem across app/, components/ and lib/, as "file:line  message". */
 export function findQueryColumnProblems(root, schema) {
-  const query = /\.from\(\s*['"]([a-z_0-9]+)['"]\s*\)\s*\.select\(\s*(['"`])([\s\S]*?)\2/g;
+  const from = /\.from\(\s*['"]([a-z_0-9]+)['"]\s*\)/g;
   const found = new Set();
   let checked = 0;
   for (const dir of ['app', 'components', 'lib']) {
     for (const file of sourceFiles(join(root, dir))) {
       const src = readFileSync(file, 'utf8');
-      for (const m of src.matchAll(query)) {
-        if (m[3].includes('${')) continue;
+      for (const m of src.matchAll(from)) {
+        const select = chainSelect(src, m.index + m[0].length);
+        if (select == null) continue;
         checked++;
         const line = src.slice(0, m.index).split('\n').length;
-        for (const p of selectProblems(schema, m[1], m[3].replace(/\s+/g, ' '))) {
+        for (const p of selectProblems(schema, m[1], select.replace(/\s+/g, ' '))) {
           found.add(`${relative(root, file)}:${line}  ${p}`);
         }
       }
@@ -94,3 +145,5 @@ export function findQueryColumnProblems(root, schema) {
   }
   return { problems: [...found].sort(), checked };
 }
+
+export { chainSelect as _chainSelect };
