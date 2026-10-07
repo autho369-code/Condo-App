@@ -33,10 +33,8 @@ Back to [[Home]]. Updated 2026-10-07 (after #242).
   and Mirsad's call (DROP).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
-## Prepared locally (next PR, after #243 merges)
-Commits stacked on #243's head (251258d); after #243 merges rebase with
-`git rebase --onto origin/main 251258d`, push, open the PR, then apply
-migrations 20261007070000 and 20261007080000 and read them back.
+## Also in #243 (pushed; after merge apply migrations 20261007070000 and
+## 20261007080000 via MCP and read them back)
 - About 45 one-click destructive buttons now confirm first (`PendingSubmit
   confirm`). Forms that already require a typed reason or a checkbox are
   unchanged.
