@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,9 @@ export default function EditTemplatePage() {
   const [mergeVarInput, setMergeVarInput] = useState('');
   const [mergeVariables, setMergeVariables] = useState<string[]>([]);
   const [error, setError] = useState('');
+  // Long form: bring a save error into view (Save is at the bottom).
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [error]);
 
   useEffect(() => {
     let cancelled = false;
@@ -171,7 +174,7 @@ export default function EditTemplatePage() {
 
         <div className="max-w-3xl space-y-6">
           {error && (
-            <Alert tone="danger">{error}</Alert>
+            <div ref={errorRef}><Alert tone="danger">{error}</Alert></div>
           )}
 
           {/* Basic info */}

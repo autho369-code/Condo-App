@@ -128,9 +128,7 @@ export default async function SmsOptInsPage({
     >
       <div className="space-y-6">
         {sp.error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-            <span className="font-semibold">Could not update opt-in:</span> {sp.error}
-          </div>
+          <Alert tone="danger" title="Could not update opt-in:">{sp.error}</Alert>
         )}
 
         {recipientLoadError && <Alert tone="danger" title="Could not load recipients.">{recipientLoadError}</Alert>}

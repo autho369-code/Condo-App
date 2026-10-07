@@ -18,3 +18,10 @@
 - Role-bounce check: companyAdminModules feeds BOTH app/company-admin/layout.tsx (unfiltered) and app/(app)/layout.tsx (filtered by NAV_ACCESS for company-admin-only users). A new entry must pass the target page's guard for company admins AND operators (requireWorkspaceStaff and requirePortfolioAdmin both do). tasks-rail.tsx no longer has a PANELS map; route panels live in lib/navigation/action-center.ts.
 - Pattern (settings/ai, 2026-10): page guard widened to requireWorkspaceStaff + read-only branch for non-admins so AI links from manager surfaces (bills/new, drafters) don't bounce; action keeps requirePortfolioAdmin. Breadcrumb must differ per branch (non-admins can't open /settings).
 - Alert (components/ui/shell.tsx) always sets role="alert"; persistent status banners ("AI is on") get announced on every load - nit, not a blocker.
+
+## ?error= sweeps (zero-row `.select()` checks, 2026-10)
+- For every action redirect, open the TARGET page and check every render branch, not just one: vendors/ach has 3 returns and only the two focus views render sp.error (list view at :371 drops it, so `Vendor not found.` is silent).
+- Redirect-only routes swallow query strings: app/(app)/associations/[id]/page.tsx redirects to /units without `?error=` (lib/rpcs/entities.ts:130,173 target it; dead today). Check that `page.tsx` isn't a bare redirect.
+- Grep callers before reviewing lib/rpcs changes: updateAssociation, archiveAssociation, updateUnit, acknowledgeReminder, resendMaintenanceNotification had no callers (dead code).
+- Target pages still using hand-rolled red boxes: sms/opt-ins/page.tsx:130 (open as of 2026-10-07). associations/[id]/profile renders sp.error twice (:319 and :374); `saved=1` from Site Manager shows "Payment instructions updated."
+- Client edit pages (letters/[id]/edit, documents/templates/[id]/edit) put the error Alert at the top and Save at the bottom: on a long form at 375px the error is off-screen. Suggest scrollIntoView or an Alert next to Save.

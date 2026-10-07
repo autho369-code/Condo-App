@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { Alert } from '@/components/ui/shell';
+import { Alert } from '@/components/ui/shell'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +47,7 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
         <Alert tone="danger">{banner.error}</Alert>
       )}
       {banner.saved === '1' && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your profile was saved.</div>
+        <Alert tone="success">Your profile was saved.</Alert>
       )}
 
       <form action={saveProfile} className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">

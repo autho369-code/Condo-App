@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -24,6 +24,9 @@ export default function EditLetterPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Long form: bring a save error into view (Save is at the bottom).
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [error]);
 
   useEffect(() => {
     async function load() {
@@ -139,7 +142,7 @@ export default function EditLetterPage() {
       </div>
 
       {error && (
-        <Alert tone="danger" className="mb-4">{error}</Alert>
+        <div ref={errorRef}><Alert tone="danger" className="mb-4">{error}</Alert></div>
       )}
 
       <div className="space-y-6">

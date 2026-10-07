@@ -375,6 +375,7 @@ export default async function VendorAchPage({
       description="Review bank readiness, payout method, auto-pay flags, and authorization status before enabling vendor ACH."
       actions={<Link href="/vendors"><Button variant="secondary">Back to vendors</Button></Link>}
     >
+      {sp.error && <Alert tone="danger" title="Could not save bank details:" className="mb-4">{sp.error}</Alert>}
       <div className="space-y-4">
         <MetricStrip metrics={[
           { label: 'Vendors reviewed', value: rows.length },
