@@ -19,8 +19,8 @@ describe('login mode routing', () => {
     expect(getLoginNext({ mode: 'manager' })).toBe('/dashboard');
     expect(getLoginNext({ mode: 'owner' })).toBe('/portal');
     expect(getLoginNext({ mode: 'resident' })).toBe('/resident');
-    // Operators land in the current operator portal, NOT the legacy
-    // app/platform/* section (duplicated — consolidation pending).
+    // Operators land in the operator portal; old /platform/* URLs are a
+    // permanent redirect in next.config.mjs.
     expect(getLoginNext({ mode: 'admin' })).toBe('/platform-operator');
   });
 

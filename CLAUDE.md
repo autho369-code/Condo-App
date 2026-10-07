@@ -49,7 +49,7 @@ functionality with an original design. Next.js 15 (App Router) + Supabase
 - `app/(app)/*` — manager workspace (dark left sidebar + content + right TasksRail)
 - `app/board/*` — board portal · `app/portal/*` — owner portal
 - `app/company-admin/*` — company admin · `app/platform-operator/*` — platform
-  operator (`app/platform/*` is only a legacy redirect shim to /platform-operator)
+  operator (old `/platform/*` URLs redirect there via `next.config.mjs`)
 - `app/vendor/*` — vendor portal (dashboard, work orders + status updates,
   compliance, profile) — built on the unified shell
 - Shared UI: `components/ui/*` (primitives), `components/operations/*` (list-page

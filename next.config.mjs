@@ -43,6 +43,14 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // Legacy platform area, consolidated into /platform-operator (2026-06-11).
+      // Keeps old bookmarks and deep links working.
+      { source: '/platform', destination: '/platform-operator', permanent: true },
+      { source: '/platform/:path*', destination: '/platform-operator', permanent: true },
+    ];
+  },
   async rewrites() {
     return [
       { source: '/report-card', destination: '/report-card.html' },
