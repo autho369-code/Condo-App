@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && echo '=== Portier369 memory (docs/CLAUDE_MEMORY.md) — follow it; update and commit it before the session ends ===' && cat docs/CLAUDE_MEMORY.md"
+          }
+        ]
+      }
+    ]
+  }
+}
