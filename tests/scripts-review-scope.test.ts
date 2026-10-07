@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { chmodSync, mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -51,6 +51,34 @@ describe('review scope', () => {
       expect(reviewScope(dir, { target: 'main', paths: ['supabase/migrations'] })).toEqual([
         { status: 'A', path: 'supabase/migrations/002_new.sql' },
       ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps staged changes the working tree undid, and mode-only changes', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'scope-'));
+    git(dir, 'init', '-q', '-b', 'main');
+    git(dir, 'config', 'core.fileMode', 'true');
+    write(dir, 'staged.ts', 'v1\n');
+    write(dir, 'run.sh', 'echo hi\n');
+    git(dir, 'add', '-A'); git(dir, 'commit', '-qm', 'base');
+    git(dir, 'checkout', '-qb', 'topic');
+
+    write(dir, 'staged.ts', 'v2\n');
+    git(dir, 'add', 'staged.ts');
+    write(dir, 'staged.ts', 'v1\n'); // undone on disk only; v2 is still staged
+    chmodSync(join(dir, 'run.sh'), 0o755);
+
+    try {
+      // No origin remote: falls back to the local main branch.
+      expect(reviewScope(dir)).toEqual([
+        { status: 'M', path: 'run.sh' },
+        { status: 'M', path: 'staged.ts' },
+      ]);
+      // Where git ignores the executable bit (Windows), a chmod is not a change.
+      git(dir, 'config', 'core.fileMode', 'false');
+      expect(reviewScope(dir)).toEqual([{ status: 'M', path: 'staged.ts' }]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

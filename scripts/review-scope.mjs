@@ -4,7 +4,7 @@
 //   node scripts/review-scope.mjs supabase/migrations
 // Fetches origin/main first so "main" means the current tip.
 import { execFileSync } from 'node:child_process';
-import { reviewScope } from './lib/review-scope.mjs';
+import { defaultTarget, reviewScope } from './lib/review-scope.mjs';
 
 const cwd = process.cwd();
 try {
@@ -12,6 +12,8 @@ try {
 } catch {
   console.error('warning: could not fetch origin/main; using the local copy');
 }
-for (const { status, path } of reviewScope(cwd, { paths: process.argv.slice(2) })) {
+const target = defaultTarget(cwd);
+if (target !== 'origin/main') console.error(`warning: no origin/main; comparing with ${target}`);
+for (const { status, path } of reviewScope(cwd, { target, paths: process.argv.slice(2) })) {
   console.log(`${status}\t${path}`);
 }
