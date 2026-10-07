@@ -2,7 +2,7 @@ import { verifiedAuthLink } from '@/lib/auth/email-links';
 import { createClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { Input, Label, Select } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Alert, PageHeader, PageShell, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { updatePortfolioPolicy } from '@/lib/rpcs/portfolio';
@@ -297,11 +297,11 @@ export default async function SettingsPage({
             <div className="border-t border-gray-100 pt-4 sm:col-span-2">
               <h3 className="mb-3 text-sm font-semibold text-gray-700">Security</h3>
             </div>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex min-h-10 items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" name="require_mfa_for_admins" defaultChecked={portfolio?.require_mfa_for_admins} className="h-4 w-4 rounded border-gray-300" />
               Require MFA for portfolio admins
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex min-h-10 items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" name="require_mfa_for_staff" defaultChecked={portfolio?.require_mfa_for_staff} className="h-4 w-4 rounded border-gray-300" />
               Require MFA for all staff
             </label>
@@ -325,7 +325,7 @@ export default async function SettingsPage({
                 defaultValue={portfolio?.convenience_fee_card_pct ?? 2.9} />
             </div>
 
-            <div className="sm:col-span-2"><Button type="submit">Save policy</Button></div>
+            <div className="sm:col-span-2"><PendingSubmit pendingLabel="Saving…">Save policy</PendingSubmit></div>
           </form>
         </Surface>
 
@@ -333,7 +333,6 @@ export default async function SettingsPage({
         <Surface>
           <SectionTitle title="Invite a staff member" />
           <form action={inviteStaff as any} className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-            <input type="hidden" name="portfolio_id" value={portfolioId} />
             <div className="sm:col-span-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" required />
@@ -345,7 +344,7 @@ export default async function SettingsPage({
                 <option>On-Site Manager</option>
               </Select>
             </div>
-            <div className="flex items-end"><Button type="submit" className="w-full">Send invite</Button></div>
+            <div className="flex items-end"><PendingSubmit className="w-full" pendingLabel="Sending…">Send invite</PendingSubmit></div>
             <div className="sm:col-span-4">
               <Label htmlFor="message">Message (optional)</Label>
               <Input id="message" name="message" />
@@ -366,29 +365,24 @@ export default async function SettingsPage({
                   <TD className="uppercase">{m.hoa_role}</TD>
                   <TD>{date(m.last_login_at) ?? '—'}</TD>
                   <TD>
-                    <div className="flex flex-wrap items-center gap-1">
-                      <form action={changeStaffRole} className="flex items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <form action={changeStaffRole} className="flex items-center gap-2">
                         <input type="hidden" name="profile_id" value={m.id} />
-                        <select
-                          name="role"
-                          defaultValue=""
-                          aria-label="Change role"
-                          className="h-8 rounded-lg border border-gray-300 bg-white px-1 text-xs text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                        >
+                        <Select name="role" defaultValue="" required aria-label="Change role" className="w-44">
                           <option value="">Change role</option>
                           <option>President</option><option>Property Manager</option><option>Accountant</option>
                           <option>On-Site Manager</option>
-                        </select>
-                        <button type="submit" className="h-8 rounded-lg border border-gray-300 bg-white px-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">Apply</button>
+                        </Select>
+                        <PendingSubmit variant="secondary" size="sm" pendingLabel="Applying…" confirm={`Apply the selected role to ${m.email}? Their permissions change right away.`}>Apply</PendingSubmit>
                       </form>
                       <form action={resetStaffPassword}>
                         <input type="hidden" name="auth_user_id" value={m.id} />
                         <input type="hidden" name="email" value={m.email} />
-                        <button type="submit" className="h-8 rounded-lg border border-gray-300 bg-white px-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">Send reset link</button>
+                        <PendingSubmit variant="secondary" size="sm" pendingLabel="Sending…" confirm={`Email a password reset link to ${m.email}?`}>Send reset link</PendingSubmit>
                       </form>
                       <form action={removeStaffMember}>
                         <input type="hidden" name="profile_id" value={m.id} />
-                        <button type="submit" className="h-8 rounded-lg border border-gray-300 bg-white px-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50">Remove</button>
+                        <PendingSubmit variant="secondary" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Removing…" confirm={`Remove ${m.email} from the team? They lose staff access until invited again.`}>Remove</PendingSubmit>
                       </form>
                     </div>
                   </TD>

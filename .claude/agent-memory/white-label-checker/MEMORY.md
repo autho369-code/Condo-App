@@ -33,4 +33,4 @@
 - Layout `?? 'Portier369'` chains (app/(app)/layout.tsx:26, portal/vendor/resident/company-admin layouts, components/nav/sidebar.tsx:130) only fire when me.portfolio is missing; `??` does not catch '' or whitespace.
 
 ## Audited pages
-- app/(app)/settings/page.tsx (Oct 2026): clean. Success banners via SAVED_MESSAGES (?saved=policy from lib/rpcs/portfolio.ts:54, invited/removed/role); reset mail uses company_name + tenantWorkspaceUrl (auth link, allowed); metadata from (app)/layout workspaceMetadata. Re-check only new strings/links.
+- app/(app)/settings/page.tsx (Oct 2026): clean. Success banners via SAVED_MESSAGES (?saved=policy from lib/rpcs/portfolio.ts:54, invited/removed/role); reset mail uses company_name + tenantWorkspaceUrl (auth link, allowed); metadata from (app)/layout workspaceMetadata. Re-check only new strings/links. PendingSubmit confirm/pending labels (components/ui/pending-submit.tsx, no platform text) re-checked Oct 2026: clean.
