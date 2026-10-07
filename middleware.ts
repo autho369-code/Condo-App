@@ -129,7 +129,9 @@ export async function middleware(request: NextRequest) {
     if (tenantPortfolio.slug) requestHeaders.set('x-portfolio-slug', tenantPortfolio.slug)
     setEncodedHeader(requestHeaders, 'x-portfolio-name', tenantPortfolio.company_name)
     setEncodedHeader(requestHeaders, 'x-portfolio-logo', tenantPortfolio.logo_url)
-    requestHeaders.set('x-portfolio-color', tenantPortfolio.brand_color ?? '#10B981')
+    // Sent raw: anything other than #RRGGBB could break header parsing.
+    const brandColor = tenantPortfolio.brand_color
+    requestHeaders.set('x-portfolio-color', typeof brandColor === 'string' && /^#[0-9A-Fa-f]{6}$/.test(brandColor) ? brandColor : '#10B981')
     setEncodedHeader(requestHeaders, 'x-portfolio-support-email', tenantPortfolio.support_email)
     setEncodedHeader(requestHeaders, 'x-portfolio-support-phone', tenantPortfolio.support_phone)
     setEncodedHeader(requestHeaders, 'x-portfolio-website', tenantPortfolio.public_website)

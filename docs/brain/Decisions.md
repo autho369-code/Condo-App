@@ -10,3 +10,13 @@ Back to [[Home]]. Don't redo these.
   (`next.config.mjs`), 2026-10-07.
 - **Invitation emails** link to `<slug>.portier369.com` (sign-in rule); the
   Runbook link may use the verified custom domain.
+- **Invitation tokens are always server-generated** (64 lowercase hex). Rows
+  written through the API get a fresh token from the trigger and can't change
+  it; a new SECURITY DEFINER RPC must never write a caller-supplied token.
+- **Neutral company-name fallback stays "Your management company"**; blank
+  names are now impossible (DB check + every settings action), so it is only a
+  last resort.
+- **Brand color is always #RRGGBB** (DB check; middleware falls back to
+  #10B981) because it is sent to every page as a request header.
+- **Server actions never fall back to a client-sent (bound) id** — use the
+  caller's own portfolio and error if it's missing.

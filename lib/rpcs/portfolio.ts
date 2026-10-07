@@ -9,14 +9,24 @@ export async function updatePortfolioPolicy(portfolioId: string, formData: FormD
   // convenience fees) always target the CALLER's portfolio — the bound
   // parameter is ignored in favor of the session's portfolio.
   const me = await requirePortfolioAdmin();
-  portfolioId = me.portfolio?.id ?? portfolioId;
+  // Bound arguments come from the client: never fall back to it.
+  void portfolioId;
+  const ownPortfolioId: string | undefined = me.portfolio?.id;
+  if (!ownPortfolioId) redirect('/settings?error=' + encodeURIComponent('Your account is not linked to a company.'));
   const supabase = await createClient();
+
+  // Company name is what every client-facing page, email and document shows:
+  // never store a blank or whitespace-only one.
+  const companyName = formData.has('company_name')
+    ? String(formData.get('company_name') ?? '').trim().slice(0, 200)
+    : null;
+  if (companyName === '') redirect('/settings?error=' + encodeURIComponent('Company name is required.'));
 
   const reminderDays = (formData.get('reminder_days') as string || '14,7,1,-7,-30')
     .split(',').map((s) => parseInt(s.trim())).filter((n) => !Number.isNaN(n));
 
-  const { error } = await (supabase as any).from('portfolios').update({
-    company_name:                     formData.get('company_name') as string,
+  const { data: saved, error } = await (supabase as any).from('portfolios').update({
+    ...(companyName ? { company_name: companyName } : {}),
     phone_number:                     (formData.get('phone_number') as string) || null,
     texting_phone_number:             (formData.get('texting_phone_number') as string) || null,
     default_nsf_fee_amount:           parseFloat(formData.get('nsf_fee_amount') as string) || 0,
@@ -35,8 +45,9 @@ export async function updatePortfolioPolicy(portfolioId: string, formData: FormD
     ...(formData.has('late_fee_grace_days')
       ? { default_late_fee_grace_days: Math.max(0, parseInt(formData.get('late_fee_grace_days') as string) || 0) }
       : {}),
-  }).eq('id', portfolioId);
+  }).eq('id', ownPortfolioId).select('id');
 
   if (error) redirect(`/settings?error=${encodeURIComponent(error.message)}`);
+  if (!saved?.length) redirect('/settings?error=' + encodeURIComponent('Settings were not saved: your account cannot edit this company.'));
   revalidatePath('/settings');
 }

@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-07.
+Back to [[Home]]. Updated 2026-10-07 (after #238).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,18 +12,22 @@ Back to [[Home]]. Updated 2026-10-07.
   pilot).
 
 ## Open PR
-- **#238** — second brain + staff invitation email + no platform-name fallback.
-  **After Mirsad merges: apply
-  `supabase/migrations/20261007030000_invitation_email_company_workspace.sql`
-  with Supabase MCP `apply_migration` on termxngysvotnfbzbgrv.**
+- Invitation token hardening (this branch) — migration
+  `20261007040000_invitation_token_format_and_html_escape_quote.sql`.
+  **After Mirsad merges: apply it with `apply_migration` on
+  termxngysvotnfbzbgrv** and verify the constraint + trigger exist.
+- Same PR (#239), second part: company name can't be blank and brand color
+  must be #RRGGBB — migration
+  `20261007050000_portfolio_name_and_brand_color_checks.sql` (apply after
+  merge too) plus checks in the Settings, Branding and Company Admin actions;
+  Branding page validates logo/website/support email, never trusts a
+  client-sent company id, and errors on a 0-row save.
+- #238 merged (b7ec661); its migration `20261007030000` is applied and verified
+  (new definition live, execute service-only).
 
 ## Next gaps (pick up here, top first)
-1. Hardening (security reviewer): CHECK constraint on `user_invitations.token`
-   format (verify existing rows first); `public.html_escape` should also escape
-   `'`.
-2. Decide wording: on a company workspace with no readable name, the app
-   manifest / link-preview image now show "Your management company"
-   (`NEUTRAL_COMPANY_NAME`). Only reachable with bad data; consider a
-   `btrim(company_name) <> ''` check on `portfolios`.
-3. Then: look for the next white-label / sign-in / data-exposure gap with the
-   overseer agent.
+1. `/settings` (`app/(app)/settings/page.tsx`) keeps a stale `?error=` banner
+   after a good save — redirect to `?saved=1` like the Branding page now does.
+2. Look for the next white-label / sign-in / data-exposure gap with the
+   overseer agent (a zero-width-space-only company name still passes the DB
+   check — only reachable by direct SQL).
