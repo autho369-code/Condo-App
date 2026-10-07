@@ -70,12 +70,12 @@ export async function setPropertyGroupMembers(formData: FormData) {
   if (add.length) {
     const { data: added, error } = await db.from('associations').update({ property_group_id: groupId }).in('id', add).eq('portfolio_id', portfolioId).select('id');
     if (error) fail(error.message);
-    if (!added?.length) fail('Membership was not saved: your account cannot edit these associations.');
+    if ((added?.length ?? 0) !== add.length) fail(`Membership was only partly saved: ${added?.length ?? 0} of ${add.length} associations were added. Your account cannot edit the others.`);
   }
   if (remove.length) {
     const { data: removed, error } = await db.from('associations').update({ property_group_id: null }).in('id', remove).eq('portfolio_id', portfolioId).eq('property_group_id', groupId).select('id');
     if (error) fail(error.message);
-    if (!removed?.length) fail('Membership was not saved: your account cannot edit these associations.');
+    if ((removed?.length ?? 0) !== remove.length) fail(`Membership was only partly saved: ${add.length} added, ${removed?.length ?? 0} of ${remove.length} removed. Refresh and try again.`);
   }
   done(`Membership saved: ${add.length} added, ${remove.length} removed.`);
 }

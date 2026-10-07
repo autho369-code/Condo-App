@@ -124,7 +124,9 @@ export default async function AssociationProfileTab({
     const userId = ((formData.get('site_manager_user_id') as string) || '').trim() || null;
     let displayName: string | null = null;
     if (userId) {
-      const { data: mgr } = await (sb as any).from('profiles').select('full_name, email').eq('id', userId).maybeSingle();
+      // Only a manager of this association's company can be its site manager.
+      const { data: mgr } = await (sb as any).from('profiles').select('full_name, email')
+        .eq('id', userId).eq('portfolio_id', assoc.portfolio_id).eq('hoa_role', 'manager').maybeSingle();
       if (!mgr) fail('Selected manager was not found.');
       displayName = mgr.full_name ?? mgr.email ?? null;
     }
