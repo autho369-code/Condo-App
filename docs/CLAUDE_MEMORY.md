@@ -24,6 +24,32 @@ with the work.
   — not reachable from cloud sessions. Anything worth keeping from it should be
   pasted into this file.
 
+## Shipped 2026-10-07 (session_014oDSoRCaVdCEGUtH1N3QYg)
+- #229–#231: review agents in `.claude/agents/` (design, security, schema,
+  migration, white-label) with committed self-learning memory in
+  `.claude/agent-memory/<name>/MEMORY.md`; `/portier-review` runs them;
+  `scripts/review-scope.mjs` gives each review its file list.
+- #232: company links use the company's verified custom domain
+  (`companyUrl` in `lib/tenant/host.ts`); hourly `/api/tenant/verify-domains`
+  sets `portfolios.custom_domain_verified_at` (HMAC + fresh challenge + DNS
+  must point at Vercel; trusted 3 h). Migration applied to termxngysvotnfbzbgrv.
+- #233: generated PDF letters headed by the company, not "PORTIER369".
+- #234: staff guides (Manager Runbook, Company Admin Guide) generated per
+  company at `/manuals/*.pdf` from `lib/guides/content.ts`.
+
+## Standing rules from Mirsad (keep following)
+- White label: clients see their company name and domain; only "Powered by
+  Portier369" / "Generated securely by Portier369" credits stay.
+- **All sign-ins go through Portier369's own Supabase sign-in**: auth links
+  (sign-in, reset, invites, callbacks) stay on `<slug>.portier369.com`, never
+  a custom domain.
+- Build for new clients; don't migrate or backfill the sample data.
+- Open PRs, never merge. Post "clear to merge" on the PR only when CI is
+  green, Codex found no issues and every thread is resolved; Mirsad merges
+  after that. Run the matching review agents before opening a PR.
+- SQL with delete/drop goes to Mirsad for the SQL editor; additive
+  migrations Claude applies after merge (Supabase MCP, termxngysvotnfbzbgrv only).
+
 ## Small-business plugin connectors
 - The small-business and customer-support plugins are installed on the account.
 - In cloud sessions only Gmail, Google Calendar and Google Drive connect. The
