@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { _chainSelect, _parameterArguments, findQueryColumnProblems, selectProblems } from '../../scripts/lib/query-columns.mjs';
@@ -91,5 +92,29 @@ describe('query columns', () => {
     ]);
     expect(_parameterArguments(src, src.indexOf("from('g')"), 'columns')).toEqual([{ arg: "'id, number'", line: 10 }]);
     expect(_parameterArguments(src, src.indexOf("from('t')"), 'nope')).toBeNull();
+  });
+
+  it('checks every branch of a conditional, through regex literals, arrows and variable tables', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'qcols-'));
+    mkdirSync(join(dir, 'app'));
+    writeFileSync(join(dir, 'app', 'page.tsx'), [
+      "const join = assoc ? ', units!inner(unit_number)' : ', units(unit_numbr)';",
+      "db.from('payments').select(`id${join}`);",
+      "const headCount = (table: string) => db.from(table).select('id', { count: 'exact', head: true });",
+      "headCount('payments'); headCount('no_such_table');",
+      'const list = (extra = \'\') => {',
+      "  const like = q.replace(/\"/g, '\\\\\"');",
+      "  return db.from('owners').select('id, full_name' + extra);",
+      '};',
+      "list(); list(', emial');",
+      "db.from(source.table).select(cols);",
+    ].join('\n'));
+    const r = findQueryColumnProblems(dir, schema, fks);
+    expect(r.problems).toEqual([
+      'app/page.tsx:2  units.unit_numbr does not exist',
+      "app/page.tsx:4  table or view 'no_such_table' not found",
+      'app/page.tsx:9  owners.emial does not exist',
+    ]);
+    expect(r.unchecked).toEqual(['app/page.tsx  from(source.table)  cols']);
   });
 });

@@ -36,12 +36,13 @@
 //       and c.confrelid::regclass::text not like '%.%'
 //     group by 1) t;
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const SKIP_DIRS = new Set(['node_modules', '.next', 'mobile', 'tests', 'scripts']);
 
 function sourceFiles(dir, out = []) {
+  if (!existsSync(dir)) return out;
   for (const name of readdirSync(dir)) {
     if (SKIP_DIRS.has(name)) continue;
     const p = join(dir, name);
@@ -128,58 +129,190 @@ function closeParen(src, open) {
 }
 
 /**
- * Parse a string expression at `i`: string/template literals and identifiers
- * joined by `+`. Returns its parts and the index after it, or null.
- * Template literals keep their `${…}` holes as identifier parts when the
- * hole is a bare identifier, and fail otherwise.
+ * If a regular-expression literal starts at `i` (a `/` where an expression
+ * can begin), the index just past it; otherwise -1. Keeps quotes and brackets
+ * inside patterns like /"/g from confusing the bracket matching.
  */
-function parseConcat(src, i) {
-  const parts = [];
-  for (;;) {
-    i = skipSpace(src, i);
+function regexEnd(src, i) {
+  if (src[i] !== '/' || src[i + 1] === '/' || src[i + 1] === '*') return -1;
+  let k = i - 1;
+  while (k >= 0 && /\s/.test(src[k])) k--;
+  if (k >= 0 && !/[(,=:[!&|?{};+\-*%<>~^]/.test(src[k]) && !/\b(return|typeof|case|in|of)$/.test(src.slice(Math.max(0, k - 6), k + 1))) return -1;
+  let inClass = false;
+  for (let j = i + 1; j < src.length; j++) {
+    const ch = src[j];
+    if (ch === '\\') { j++; continue; }
+    if (ch === '\n') return -1;
+    if (ch === '[') inClass = true;
+    else if (ch === ']') inClass = false;
+    else if (ch === '/' && !inClass) {
+      let e = j + 1;
+      while (/[a-z]/i.test(src[e] ?? '')) e++;
+      return e;
+    }
+  }
+  return -1;
+}
+
+/** Index just past the closing bracket matching the one at `open` (strings and comments skipped). */
+function closeBracket(src, open) {
+  const pairs = { '(': ')', '[': ']', '{': '}' };
+  const stack = [];
+  for (let i = open; i < src.length; i++) {
     const ch = src[i];
+    const re = ch === '/' ? regexEnd(src, i) : -1;
+    if (re !== -1) { i = re - 1; continue; }
+    if (ch === "'" || ch === '"') {
+      for (i++; i < src.length && src[i] !== ch; i++) if (src[i] === '\\') i++;
+    } else if (ch === '`') {
+      for (i++; i < src.length && src[i] !== '`'; i++) {
+        if (src[i] === '\\') i++;
+        else if (src[i] === '$' && src[i + 1] === '{') { const e = closeBracket(src, i + 1); if (e === -1) return -1; i = e - 1; }
+      }
+    } else if (src.startsWith('//', i)) {
+      const e = src.indexOf('\n', i); i = e === -1 ? src.length : e;
+    } else if (src.startsWith('/*', i)) {
+      const e = src.indexOf('*/', i + 2); i = e === -1 ? src.length : e + 1;
+    } else if (pairs[ch]) stack.push(pairs[ch]);
+    else if (ch === ')' || ch === ']' || ch === '}') {
+      if (stack.pop() !== ch) return -1;
+      if (!stack.length) return i + 1;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Index of the first top-level occurrence (outside brackets, strings and
+ * comments) of any of `chars` in `text` from `from`, or -1.
+ */
+function topLevel(text, chars, from = 0) {
+  for (let i = from; i < text.length; i++) {
+    const ch = text[i];
+    const re = ch === '/' ? regexEnd(text, i) : -1;
+    if (re !== -1) { i = re - 1; continue; }
+    if (ch === "'" || ch === '"' || ch === '`' || ch === '(' || ch === '[' || ch === '{') {
+      if (ch === "'" || ch === '"') { for (i++; i < text.length && text[i] !== ch; i++) if (text[i] === '\\') i++; continue; }
+      const e = ch === '`' ? closeTemplate(text, i) : closeBracket(text, i);
+      if (e === -1) return -1;
+      i = e - 1;
+      continue;
+    }
+    if (chars.includes(ch)) return i;
+  }
+  return -1;
+}
+
+/** Index just past the template literal starting at `open`. */
+function closeTemplate(src, open) {
+  for (let i = open + 1; i < src.length; i++) {
+    if (src[i] === '\\') { i++; continue; }
+    if (src[i] === '`') return i + 1;
+    if (src[i] === '$' && src[i + 1] === '{') { const e = closeBracket(src, i + 1); if (e === -1) return -1; i = e - 1; }
+  }
+  return -1;
+}
+
+/** Split text on top-level commas. */
+function splitArgs(text) {
+  const out = [];
+  let start = 0;
+  for (;;) {
+    const k = topLevel(text, ',', start);
+    if (k === -1) { out.push(text.slice(start)); break; }
+    out.push(text.slice(start, k));
+    start = k + 1;
+  }
+  return out.map((a) => a.trim()).filter((a, i, all) => a || i < all.length - 1);
+}
+
+/**
+ * Parse a string expression into parts: { text } for literal text, { id } for
+ * an identifier, and { alt: [parts, parts] } for `cond ? a : b` (both
+ * branches are checked). Literals, identifiers, `+` concatenation and
+ * template `${…}` holes holding any of these are understood; anything else
+ * (calls, property access, `.join()`) gives null.
+ */
+function parseExpr(text) {
+  text = text.trim();
+  if (!text) return null;
+  while (text.startsWith('(') && closeBracket(text, 0) === text.length) text = text.slice(1, -1).trim();
+  const q = topLevel(text, '?');
+  if (q !== -1 && text[q + 1] !== '?' && text[q + 1] !== '.') {
+    const c = topLevel(text, ':', q + 1);
+    if (c === -1) return null;
+    const a = parseExpr(text.slice(q + 1, c));
+    const b = parseExpr(text.slice(c + 1));
+    return a && b ? [{ alt: [a, b] }] : null;
+  }
+  const parts = [];
+  let i = 0;
+  for (;;) {
+    i = skipSpace(text, i);
+    const ch = text[i];
     if (ch === "'" || ch === '"') {
       let j = i + 1;
-      let text = '';
-      for (; j < src.length && src[j] !== ch; j++) {
-        if (src[j] === '\\') { j++; text += src[j]; } else text += src[j];
-      }
-      parts.push({ text });
+      let lit = '';
+      for (; j < text.length && text[j] !== ch; j++) { if (text[j] === '\\') j++; lit += text[j]; }
+      parts.push({ text: lit });
       i = j + 1;
     } else if (ch === '`') {
-      let j = i + 1;
-      let text = '';
-      for (; j < src.length && src[j] !== '`'; j++) {
-        if (src[j] === '\\') { j++; text += src[j]; continue; }
-        if (src[j] === '$' && src[j + 1] === '{') {
-          const close = src.indexOf('}', j);
-          const name = src.slice(j + 2, close).trim();
-          if (!/^[A-Za-z_$][\w$]*$/.test(name)) return null;
-          parts.push({ text }, { id: name });
-          text = '';
-          j = close;
+      const end = closeTemplate(text, i);
+      if (end === -1) return null;
+      let lit = '';
+      for (let j = i + 1; j < end - 1; j++) {
+        if (text[j] === '\\') { j++; lit += text[j]; continue; }
+        if (text[j] === '$' && text[j + 1] === '{') {
+          const close = closeBracket(text, j + 1);
+          const hole = parseExpr(text.slice(j + 2, close - 1));
+          if (!hole) return null;
+          parts.push({ text: lit }, ...hole);
+          lit = '';
+          j = close - 1;
           continue;
         }
-        text += src[j];
+        lit += text[j];
       }
-      parts.push({ text });
-      i = j + 1;
+      parts.push({ text: lit });
+      i = end;
     } else {
-      const id = /^[A-Za-z_$][\w$]*/.exec(src.slice(i, i + 80));
+      const id = /^[A-Za-z_$][\w$]*/.exec(text.slice(i));
       if (!id) return null;
       parts.push({ id: id[0] });
       i += id[0].length;
     }
-    const next = skipSpace(src, i);
-    if (src[next] !== '+') return { parts, end: i };
-    i = next + 1;
+    i = skipSpace(text, i);
+    if (i >= text.length) return parts;
+    if (text[i] !== '+') return null;
+    i++;
   }
 }
 
+/** End of the expression statement starting at `i` (first top-level `;` or line end). */
+function statementEnd(src, i) {
+  for (let j = i; j < src.length; j++) {
+    const ch = src[j];
+    const re = ch === '/' ? regexEnd(src, j) : -1;
+    if (re !== -1) { j = re - 1; continue; }
+    if (ch === "'" || ch === '"') { for (j++; j < src.length && src[j] !== ch; j++) if (src[j] === '\\') j++; continue; }
+    if (ch === '`') { const e = closeTemplate(src, j); if (e === -1) return src.length; j = e - 1; continue; }
+    if (ch === '(' || ch === '[' || ch === '{') { const e = closeBracket(src, j); if (e === -1) return src.length; j = e - 1; continue; }
+    if (ch === ';' || ch === ')' || ch === '}' || ch === ']') return j;
+    if (ch === ',') return j;
+    if (ch === '\n') {
+      // A line that continues the expression starts with an operator.
+      const next = skipSpace(src, j);
+      if (!/^(\?|:|\+|\|\||&&|\.(?!\.\.))/.test(src.slice(next, next + 3))) return j;
+    }
+  }
+  return src.length;
+}
+
 /**
- * Resolves string constants by name for one file: `const X = '…'` (possibly
- * built from other constants with `+` or `${}`) in the file itself, or a
- * named import of an exported constant from another app file.
+ * Resolves string constants by name for one file: `const X = …` in the file
+ * itself (built from literals, other constants, `+`, `${}` or `? :`), or a
+ * named import of an exported constant from another app file. Returns the
+ * possible values (several when a conditional is involved), or null.
  */
 function constantResolver(root, file, cache = new Map()) {
   const load = (path) => {
@@ -191,12 +324,10 @@ function constantResolver(root, file, cache = new Map()) {
       const consts = new Map();
       const imports = new Map();
       if (src != null) {
-        for (const m of src.matchAll(/(?:^|[\s;])(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*/g)) {
-          const expr = parseConcat(src, m.index + m[0].length);
-          if (!expr) continue;
-          const after = skipSpace(src, expr.end);
-          if (!/[;,)\n]|^$/.test(src[after] ?? '') && !/^(const|let|export|function|return|\})/.test(src.slice(after, after + 8))) continue;
-          if (!consts.has(m[1])) consts.set(m[1], expr.parts);
+        for (const m of src.matchAll(/(?:^|[\s;])(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*(?::\s*string\s*)?=\s*/g)) {
+          const start = m.index + m[0].length;
+          const parts = parseExpr(src.slice(start, statementEnd(src, start)));
+          if (parts && !consts.has(m[1])) consts.set(m[1], parts);
         }
         for (const m of src.matchAll(/import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g)) {
           const spec = m[2];
@@ -216,33 +347,47 @@ function constantResolver(root, file, cache = new Map()) {
   const resolve = (path, name, depth = 0) => {
     if (depth > 8) return null;
     const { consts, imports } = load(path);
-    if (consts.has(name)) return joinParts(consts.get(name), (n) => resolve(path, n, depth + 1));
+    if (consts.has(name)) {
+      const vs = variants(consts.get(name), (n) => resolve(path, n, depth + 1));
+      return vs.every((v) => v.complete) ? vs.map((v) => v.text) : null;
+    }
     const imp = imports.get(name);
     return imp ? resolve(imp.path, imp.name, depth + 1) : null;
   };
   return (name) => resolve(file, name);
 }
 
-/** Join parsed parts; null if any identifier doesn't resolve. */
-function joinParts(parts, resolve) {
-  let out = '';
+/**
+ * Every value `parts` can take: { text, complete }. An unresolved identifier
+ * stops a variant (complete: false, text = what came before it). Capped at
+ * 32 variants.
+ */
+function variants(parts, resolve) {
+  let acc = [{ text: '', complete: true }];
   for (const p of parts) {
-    if ('text' in p) out += p.text;
-    else {
-      const v = resolve(p.id);
-      if (v == null) return null;
-      out += v;
+    const options = 'text' in p ? [p.text]
+      : 'alt' in p ? p.alt.flatMap((branch) => variants(branch, resolve))
+      : resolve(p.id);
+    const next = [];
+    for (const a of acc) {
+      if (!a.complete) { next.push(a); continue; }
+      if (options == null) { next.push({ text: a.text, complete: false }); continue; }
+      for (const o of options) {
+        if (typeof o === 'string') next.push({ text: a.text + o, complete: true });
+        else next.push({ text: a.text + o.text, complete: a.complete && o.complete });
+      }
     }
+    acc = next.slice(0, 32);
   }
-  return out;
+  return acc;
 }
 
 /**
- * The `.select(…)` argument of the query chain starting at `i` (just past
- * `.from('table')`): follows the builder calls (.insert/.update/.eq/…,
- * comments allowed) to the first `.select(`. Returns the argument's source
- * range and, when it is a string expression, its parsed parts. Null when the
- * chain has no select.
+ * The `.select(…)` call of the query chain starting at `i` (just past
+ * `.from(…)`): follows the builder calls (.insert/.update/.eq/…, comments
+ * allowed) to the first `.select(`. Returns its first argument's text and
+ * parsed parts (null parts when it isn't a string expression), or null when
+ * the chain has no select.
  */
 function chainSelectArg(src, i) {
   for (let calls = 0; calls < 40; calls++) {
@@ -250,148 +395,100 @@ function chainSelectArg(src, i) {
     const call = /^\.\s*([A-Za-z_]+)\s*\(/.exec(src.slice(i, i + 60));
     if (!call) return null;
     const open = i + call[0].length - 1;
-    const end = closeParen(src, open);
-    if (call[1] === 'select') {
-      const expr = parseConcat(src, open + 1);
-      const after = expr ? skipSpace(src, expr.end) : -1;
-      const whole = expr && (src[after] === ')' || src[after] === ',');
-      return { text: src.slice(open + 1, end === -1 ? open + 1 : end - 1), parts: whole ? expr.parts : null };
-    }
+    const end = closeBracket(src, open);
     if (end === -1) return null;
+    if (call[1] === 'select') {
+      const text = splitArgs(src.slice(open + 1, end - 1))[0] ?? '';
+      return { text, parts: parseExpr(text) };
+    }
     i = end;
   }
   return null;
 }
 
 /**
- * Evaluate parsed parts: unresolved trailing parts (an optional extra-columns
- * parameter) are dropped; an unresolved part before a resolved one, or an
- * empty result, gives null.
- */
-function evaluateParts(parts, resolve) {
-  let out = '';
-  let unresolved = false;
-  for (const p of parts) {
-    if ('text' in p && p.text === '') continue;
-    const v = 'text' in p ? p.text : resolve(p.id);
-    if (v == null) { unresolved = true; continue; }
-    if (unresolved) return null;
-    out += v;
-  }
-  return out.trim() ? out : null;
-}
-
-/**
- * The static select list of the query chain at `i`, or null (see
- * chainSelectArg and evaluateParts).
+ * The checkable select list of the query chain at `i` with constants from
+ * `resolve` (test helper): the first variant, or what precedes an unknown
+ * trailing piece; null when nothing static precedes it.
  *
  * @param {string} src
  * @param {number} i
- * @param {(name: string) => string | null} [resolve]
+ * @param {(name: string) => string | string[] | null} [resolve]
  * @returns {string | null}
  */
 function chainSelect(src, i, resolve = () => null) {
   const arg = chainSelectArg(src, i);
-  return arg?.parts ? evaluateParts(arg.parts, resolve) : null;
-}
-
-/** Index just past the `}` matching the `{` at `open` (strings and comments skipped). */
-function closeBrace(src, open) {
-  let depth = 0;
-  for (let i = open; i < src.length; i++) {
-    const ch = src[i];
-    if (ch === "'" || ch === '"' || ch === '`') {
-      for (i++; i < src.length && src[i] !== ch; i++) if (src[i] === '\\') i++;
-    } else if (src.startsWith('//', i)) {
-      const e = src.indexOf('\n', i); i = e === -1 ? src.length : e;
-    } else if (src.startsWith('/*', i)) {
-      const e = src.indexOf('*/', i + 2); i = e === -1 ? src.length : e + 1;
-    } else if (ch === '{') depth++;
-    else if (ch === '}' && --depth === 0) return i + 1;
-  }
-  return -1;
-}
-
-/** Split a call's argument text on top-level commas. */
-function splitArgs(text) {
-  const out = [];
-  let depth = 0;
-  let cur = '';
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === "'" || ch === '"' || ch === '`') {
-      let j = i + 1;
-      for (; j < text.length && text[j] !== ch; j++) if (text[j] === '\\') j++;
-      cur += text.slice(i, j + 1);
-      i = j;
-      continue;
-    }
-    if ('([{'.includes(ch)) depth++;
-    else if (')]}'.includes(ch)) depth--;
-    if (ch === ',' && depth === 0) { out.push(cur); cur = ''; } else cur += ch;
-  }
-  if (cur.trim()) out.push(cur);
-  return out.map((a) => a.trim());
+  if (!arg?.parts) return null;
+  const r = (n) => { const v = resolve(n); return v == null ? null : Array.isArray(v) ? v : [v]; };
+  const v = variants(arg.parts, r)[0];
+  return v && v.text.trim() ? v.text : null;
 }
 
 /**
- * When a select list is a parameter of the function around `pos`
- * (`const base = (select: string) => db.from('t').select(select)` or
- * `function load(db, columns) { … .select(columns) … }`), the arguments
- * passed for it at that function's call sites in the same file, with the
- * line of each call. Null when `name` isn't such a parameter.
+ * When `name` is a parameter of a function around `pos` (`const base =
+ * (select: string) => …`, `function load(db, columns) { … }`, or an arrow
+ * with an expression body), that parameter's position and default, and each
+ * call to the function in the same file with its arguments and line. Null
+ * when `name` isn't such a parameter.
  */
-function parameterArguments(src, pos, name) {
+function parameterSite(src, pos, name) {
   const header = /(?:function\s+([A-Za-z_$][\w$]*)\s*\(|(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\()/g;
   let best = null;
   for (const m of src.matchAll(header)) {
     if (m.index > pos) break;
     const open = m.index + m[0].length - 1;
-    const close = closeParen(src, open);
+    const close = closeBracket(src, open);
     if (close === -1 || close > pos) continue;
-    const params = splitArgs(src.slice(open + 1, close - 1)).map((p) => /^([A-Za-z_$][\w$]*)/.exec(p)?.[1]);
-    const index = params.indexOf(name);
+    const params = splitArgs(src.slice(open + 1, close - 1));
+    const index = params.findIndex((p) => /^([A-Za-z_$][\w$]*)/.exec(p)?.[1] === name);
     if (index === -1) continue;
-    // Body: the block after the parameters (optionally `: Type` and `=>`).
+    // Body: after the parameters (optionally `: Type`), a block or an arrow's expression.
     let b = close;
     while (b < src.length && src[b] !== '{' && src[b] !== ';' && src.slice(b, b + 2) !== '=>') b++;
-    if (src.slice(b, b + 2) === '=>') { b = skipSpace(src, b + 2); }
-    if (src[b] !== '{') continue;
-    const end = closeBrace(src, b);
+    let end;
+    if (src.slice(b, b + 2) === '=>') {
+      b = skipSpace(src, b + 2);
+      end = src[b] === '{' ? closeBracket(src, b) : statementEnd(src, b);
+    } else if (src[b] === '{') end = closeBracket(src, b);
+    else continue;
     if (end === -1 || end < pos) continue;
-    best = { fn: m[1] ?? m[2], index, headerAt: m.index };
+    const eq = topLevel(params[index], '=');
+    best = { fn: m[1] ?? m[2], index, dflt: eq === -1 ? null : params[index].slice(eq + 1).trim(), headerAt: m.index };
   }
   if (!best) return null;
   const calls = [];
-  for (const m of src.matchAll(new RegExp(`\\b${best.fn.replace(/\$/g, '\\$')}\\s*\\(`, 'g'))) {
-    if (m.index === best.headerAt || src.slice(Math.max(0, m.index - 9), m.index).includes('function')) continue;
+  for (const m of src.matchAll(new RegExp(`(?<![\\w$.])${best.fn.replace(/\$/g, '\\$')}\\s*\\(`, 'g'))) {
+    if (m.index === best.headerAt || /(function|const|let)\s*$/.test(src.slice(Math.max(0, m.index - 10), m.index))) continue;
     const open = m.index + m[0].length - 1;
-    const close = closeParen(src, open);
+    const close = closeBracket(src, open);
     if (close === -1) continue;
-    const arg = splitArgs(src.slice(open + 1, close - 1))[best.index];
-    calls.push({ arg: arg ?? '', line: src.slice(0, m.index).split('\n').length });
+    calls.push({ args: splitArgs(src.slice(open + 1, close - 1)), line: src.slice(0, m.index).split('\n').length });
   }
-  return calls;
+  return { ...best, calls };
 }
 
-/** Parse a whole argument text as a string expression (null if it isn't one). */
-function parseWholeArg(text) {
-  const expr = parseConcat(text, 0);
-  return expr && skipSpace(text, expr.end) >= text.length ? expr.parts : null;
+/** The argument passed for `name` at each call (test helper; see parameterSite). */
+function parameterArguments(src, pos, name) {
+  const site = parameterSite(src, pos, name);
+  return site ? site.calls.map((c) => ({ arg: c.args[site.index] ?? '', line: c.line })) : null;
 }
 
-/** Normalized key for a select the scanner can't check (see unchecked-selects.json). */
+/** Normalized key for a query the scanner can't fully check (see unchecked-selects.json). */
 function uncheckedKey(file, table, text) {
   return `${file}  ${table}  ${text.replace(/\s+/g, ' ').trim().slice(0, 160)}`;
 }
 
 /**
  * Every problem across app/, components/ and lib/, as "file:line  message",
- * plus the selects that couldn't be checked statically (as stable keys, for
- * the reviewed list in supabase/unchecked-selects.json).
+ * plus the queries that couldn't be fully checked statically (as stable keys,
+ * for the reviewed list in supabase/unchecked-selects.json).
+ *
+ * The table name and the select list may each be a string, a constant (local
+ * or imported), a `+`/`${}` concatenation, a `cond ? a : b` (every branch is
+ * checked) or a parameter of the enclosing function, in which case every call
+ * in the file is checked with the values it passes (or the default).
  */
 export function findQueryColumnProblems(root, schema, fks = {}) {
-  const from = /\.from\(\s*['"]([a-z_0-9]+)['"]\s*\)/g;
   const found = new Set();
   const unchecked = new Set();
   const cache = new Map();
@@ -400,30 +497,54 @@ export function findQueryColumnProblems(root, schema, fks = {}) {
     for (const file of sourceFiles(join(root, dir))) {
       const src = readFileSync(file, 'utf8');
       const rel = relative(root, file);
-      const resolve = constantResolver(root, file, cache);
-      const check = (table, select, line) => {
-        checked++;
-        for (const p of selectProblems(schema, table, select.replace(/\s+/g, ' '), fks)) found.add(`${rel}:${line}  ${p}`);
-      };
-      for (const m of src.matchAll(from)) {
-        const arg = chainSelectArg(src, m.index + m[0].length);
-        if (!arg) continue; // no select in this chain
+      const constants = constantResolver(root, file, cache);
+      for (const m of src.matchAll(/\.from\(/g)) {
+        const open = m.index + m[0].length - 1;
+        const close = closeBracket(src, open);
+        if (close === -1) continue;
+        const tableText = src.slice(open + 1, close - 1).trim();
+        const arg = chainSelectArg(src, close);
+        if (!arg) continue; // no select in this chain (storage, plain writes)
         const line = src.slice(0, m.index).split('\n').length;
-        const value = arg.parts ? evaluateParts(arg.parts, resolve) : null;
-        if (value != null) { check(m[1], value, line); continue; }
-        // A select list passed in as a parameter: check what each call passes.
-        const single = arg.parts?.length === 1 && 'id' in arg.parts[0] ? arg.parts[0].id : null;
-        const calls = single ? parameterArguments(src, m.index, single) : null;
-        if (calls?.length) {
-          for (const call of calls) {
-            const parts = parseWholeArg(call.arg);
-            const v = parts ? evaluateParts(parts, resolve) : null;
-            if (v != null) check(m[1], v, call.line);
-            else unchecked.add(uncheckedKey(rel, m[1], `${single} = ${call.arg}`));
+        const label = /^['"][a-z_0-9]+['"]$/.test(tableText) ? tableText.slice(1, -1) : `from(${tableText})`;
+        const tableParts = parseExpr(tableText);
+        const notChecked = (extra = '') => unchecked.add(uncheckedKey(rel, label, arg.text + extra));
+        if (!tableParts || !arg.parts) { notChecked(); continue; }
+
+        const check = (table, select, at) => {
+          checked++;
+          for (const p of selectProblems(schema, table, select.replace(/\s+/g, ' '), fks)) found.add(`${rel}:${at}  ${p}`);
+        };
+        const run = (resolve, at, extra = '') => {
+          const tables = variants(tableParts, resolve);
+          const selects = variants(arg.parts, resolve);
+          let complete = tables.every((t) => t.complete) && selects.every((v) => v.complete);
+          for (const t of tables) {
+            if (!t.complete) continue;
+            for (const v of selects) if (v.text.trim()) check(t.text, v.text, at);
           }
+          if (!complete) notChecked(extra);
+        };
+
+        // Identifiers no constant explains must be parameters of one enclosing
+        // function; each call to it supplies their values.
+        const idsOf = (parts) => parts.flatMap((p) => ('id' in p ? [p.id] : 'alt' in p ? p.alt.flatMap(idsOf) : []));
+        const ids = [...new Set(idsOf([...tableParts, ...arg.parts]).filter((id) => constants(id) == null))];
+        const sites = ids.map((id) => parameterSite(src, m.index, id));
+        if (!ids.length || sites.some((x) => !x) || new Set(sites.map((x) => x.headerAt)).size !== 1 || !sites[0].calls.length) {
+          run(constants, line);
           continue;
         }
-        unchecked.add(uncheckedKey(rel, m[1], arg.text));
+        for (const call of sites[0].calls) {
+          const values = {};
+          ids.forEach((id, k) => {
+            const passed = call.args[sites[k].index] ?? sites[k].dflt ?? null;
+            const parts = passed == null ? null : parseExpr(passed);
+            const vs = parts ? variants(parts, constants) : null;
+            values[id] = vs && vs.every((v) => v.complete) ? vs.map((v) => v.text) : null;
+          });
+          run((n) => (n in values ? values[n] : constants(n)), call.line, ` ← ${sites[0].fn}(${call.args.join(', ')})`);
+        }
       }
     }
   }
