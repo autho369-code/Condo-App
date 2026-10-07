@@ -116,10 +116,10 @@ export default async function OnboardPage({
             Keep these open while you set up — they walk through every step below and the day-to-day operations after launch.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <a href="/manuals/Portier369-Company-Admin-Guide.pdf" target="_blank" rel="noopener noreferrer">
+            <a href="/manuals/company-admin-guide.pdf" target="_blank" rel="noopener noreferrer">
               <Button variant="secondary">Company Admin Guide (PDF)</Button>
             </a>
-            <a href="/manuals/Portier369-Manager-Runbook.pdf" target="_blank" rel="noopener noreferrer">
+            <a href="/manuals/manager-runbook.pdf" target="_blank" rel="noopener noreferrer">
               <Button variant="secondary">Manager Runbook (PDF)</Button>
             </a>
           </div>

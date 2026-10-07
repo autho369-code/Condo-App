@@ -122,7 +122,12 @@ Mostly on Mirsad / external; not code.
       **UPDATE 2026-07-14: the manuals are now DELIVERED to clients** — published
       at `public/manuals/` (served at `/manuals/Portier369-Manager-Runbook.pdf`
       and `/manuals/Portier369-Company-Admin-Guide.pdf`), linked in the staff
-      invite emails, and linked from the `/onboard` page. Covered:
+      invite emails, and linked from the `/onboard` page.
+      **UPDATE 2026-10-07: rebranded per company** (Mirsad) — the guides are
+      generated per company from `lib/guides/content.ts` by `app/manuals/[file]/route.ts`
+      at `/manuals/manager-runbook.pdf` and `/manuals/company-admin-guide.pdf`
+      (company name + its Portier369 sign-in address; footer "Powered by Portier369").
+      The old `Portier369-*.pdf` links redirect. Covered:
       - Assign a **site manager on every association** — that field drives where
         owner-portal "Send a message" emails land (fallback: company admins, then
         portfolio support email). Manager replies from their own inbox (reply-to

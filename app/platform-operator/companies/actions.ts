@@ -12,8 +12,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requirePlatformAdmin, requirePlatformOperator, type MeResult } from '@/lib/auth/me';
 import { PLAN_BY_ID, type PlanId } from '@/lib/billing/plans';
 import { safeInternalNext } from '@/lib/security/redirects';
-import { siteUrl } from '@/lib/url/site-url';
-import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { COMPANY_ADDRESS_COLUMNS, companyUrl, tenantWorkspaceUrl, type CompanyAddress } from '@/lib/tenant/host';
 import { attachDomainToVercel, parseCustomDomain, vercelDomainsEnv } from '@/lib/tenant/custom-domain';
 import { parseSenderSettings, registerSenderDomain, resendClient, storedStatus } from '@/lib/email/sender-domains';
 import { claimSubmission, releaseSubmission, completeSubmission } from '@/lib/forms/submission';
@@ -57,8 +56,10 @@ async function audit(
   });
 }
 
-function inviteEmailBody(companyName: string, token: string, expiresAt: string | null, slug?: string | null) {
-  const publicUrl = siteUrl();
+function inviteEmailBody(companyName: string, token: string, expiresAt: string | null, company?: CompanyAddress | null) {
+  // Sign-in and the invite stay on the Portier369 workspace address (Supabase
+  // allow-list); the guides use the company's own verified domain if it has one.
+  const slug = company?.slug ?? null;
   const workspaceUrl = tenantWorkspaceUrl(slug);
   const url = tenantWorkspaceUrl(slug, `/invite?token=${encodeURIComponent(token)}`);
   const expiry = expiresAt
@@ -72,8 +73,8 @@ function inviteEmailBody(companyName: string, token: string, expiresAt: string |
 <p>This invitation expires ${expiry}.</p>
 <p>Your operating documents — keep these handy while you get set up:</p>
 <ul>
-<li><a href="${publicUrl}/manuals/Portier369-Company-Admin-Guide.pdf">Company Admin Guide</a> — step-by-step setup and day-to-day administration</li>
-<li><a href="${publicUrl}/manuals/Portier369-Manager-Runbook.pdf">Manager Runbook</a> — daily operations for your property managers</li>
+<li><a href="${companyUrl(company, '/manuals/company-admin-guide.pdf')}">Company Admin Guide</a> — step-by-step setup and day-to-day administration</li>
+<li><a href="${companyUrl(company, '/manuals/manager-runbook.pdf')}">Manager Runbook</a> — daily operations for your property managers</li>
 </ul>
 <p>— The Portier369 team</p>`.trim();
 }
@@ -134,7 +135,7 @@ export async function createCompanyWithAdmin(formData: FormData) {
   // released either, so a replay can't provision the company a second time.)
 
   const { data: provisionedPortfolio } = await svc.from('portfolios')
-    .select('slug')
+    .select(COMPANY_ADDRESS_COLUMNS)
     .eq('id', portfolioId)
     .maybeSingle();
 
@@ -168,7 +169,7 @@ export async function createCompanyWithAdmin(formData: FormData) {
     to_email: email,
     to_name: fullName,
     subject: `Welcome to Portier369 — set up ${companyName}`,
-    body: inviteEmailBody(companyName, token, expiresAt, provisionedPortfolio?.slug),
+    body: inviteEmailBody(companyName, token, expiresAt, provisionedPortfolio),
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
@@ -198,7 +199,7 @@ export async function inviteAdmin(formData: FormData) {
   const fullName = `${firstName} ${lastName}`;
   const svc = createServiceClient() as any;
 
-  const { data: portfolio } = await svc.from('portfolios').select('company_name, slug, archived_at').eq('id', portfolioId).maybeSingle();
+  const { data: portfolio } = await svc.from('portfolios').select(`company_name, archived_at, ${COMPANY_ADDRESS_COLUMNS}`).eq('id', portfolioId).maybeSingle();
   if (!portfolio) fail(returnTo, 'Company not found.');
   if (portfolio.archived_at) fail(returnTo, 'This company is archived; it cannot take new admins.');
 
@@ -224,7 +225,7 @@ export async function inviteAdmin(formData: FormData) {
     to_email: email,
     to_name: fullName,
     subject: `You're invited to administer ${portfolio.company_name} on Portier369`,
-    body: inviteEmailBody(portfolio.company_name, invite.token, invite.expires_at, portfolio.slug),
+    body: inviteEmailBody(portfolio.company_name, invite.token, invite.expires_at, portfolio),
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
@@ -254,7 +255,7 @@ export async function resendInvitation(formData: FormData) {
   if (inv.expires_at && new Date(inv.expires_at) < new Date()) fail(returnTo, 'This invitation has expired. Use Regenerate to send a fresh link.');
 
   const { data: portfolio } = inv.portfolio_id
-    ? await svc.from('portfolios').select('company_name, slug').eq('id', inv.portfolio_id).maybeSingle()
+    ? await svc.from('portfolios').select(`company_name, ${COMPANY_ADDRESS_COLUMNS}`).eq('id', inv.portfolio_id).maybeSingle()
     : { data: null };
   const companyName = portfolio?.company_name ?? 'your company';
 
@@ -262,7 +263,7 @@ export async function resendInvitation(formData: FormData) {
     to_email: inv.email,
     to_name: inv.full_name,
     subject: `Reminder: set up your ${companyName} Portier369 account`,
-    body: inviteEmailBody(companyName, inv.token, inv.expires_at, portfolio?.slug),
+    body: inviteEmailBody(companyName, inv.token, inv.expires_at, portfolio),
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
@@ -336,7 +337,7 @@ export async function regenerateInvitation(formData: FormData) {
   if (error) fail(returnTo, `Could not generate a new invitation: ${error.message}`);
 
   const { data: portfolio } = old.portfolio_id
-    ? await svc.from('portfolios').select('company_name, slug').eq('id', old.portfolio_id).maybeSingle()
+    ? await svc.from('portfolios').select(`company_name, ${COMPANY_ADDRESS_COLUMNS}`).eq('id', old.portfolio_id).maybeSingle()
     : { data: null };
   const companyName = portfolio?.company_name ?? 'your company';
 
@@ -344,7 +345,7 @@ export async function regenerateInvitation(formData: FormData) {
     to_email: old.email,
     to_name: old.full_name,
     subject: `Your new ${companyName} invitation link`,
-    body: inviteEmailBody(companyName, fresh.token, fresh.expires_at, portfolio?.slug),
+    body: inviteEmailBody(companyName, fresh.token, fresh.expires_at, portfolio),
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
