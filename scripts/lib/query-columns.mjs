@@ -5,6 +5,12 @@
 // bank_accounts.balance, portfolios.name). Used by tests/database and
 // `npm run check:columns`.
 //
+// Coverage is the select list written at the query: a string, a constant
+// (local or imported) or a `+`/`${}` concatenation of those. A select list
+// handed in through a function parameter (`base(select)`), built at run time
+// (`cols.join(', ')`) or queried through `.rpc()` isn't followed; such
+// queries are still covered by `npm run check:queries` against the live API.
+//
 // Refresh the snapshot after a migration adds or renames columns: run this in
 // the Supabase SQL editor and save the result as supabase/schema-columns.json
 // (any JSON formatting works; the committed file keeps one table per line):
