@@ -19,8 +19,9 @@ const commit = (cwd: string, file: string, msg: string) => {
 function repo() {
   const dir = mkdtempSync(join(tmpdir(), 'brain-'));
   git(dir, 'init', '-q', '-b', 'main');
-  mkdirSync(join(dir, 'docs'));
-  writeFileSync(join(dir, 'docs/CLAUDE_MEMORY.md'), '# memory\n');
+  mkdirSync(join(dir, 'docs/brain'), { recursive: true });
+  writeFileSync(join(dir, 'docs/brain/Home.md'), '# memory home\n');
+  writeFileSync(join(dir, 'docs/brain/Status.md'), '# status note\n');
   writeFileSync(join(dir, 'docs/TODO.md'), '- [ ] open item\n- [x] done item\n');
   writeFileSync(join(dir, 'app.ts'), 'v1\n');
   git(dir, 'add', '-A'); git(dir, 'commit', '-qm', 'base');
@@ -31,7 +32,8 @@ describe('second brain hooks', () => {
   it('loads the memory file and the open TODO boxes at session start', () => {
     const dir = repo();
     const out = hook(dir, START, { session_id: 'A', source: 'startup' }).stdout;
-    expect(out).toContain('# memory');
+    expect(out).toContain('# memory home');
+    expect(out).toContain('# status note');
     expect(out).toContain('- [ ] open item');
     expect(out).not.toContain('done item');
     expect(existsSync(join(dir, '.claude/brain-baselines/A.json'))).toBe(true);
@@ -46,7 +48,7 @@ describe('second brain hooks', () => {
     expect(hook(dir, GUARD, { session_id: 'A' }).status).toBe(2);
     expect(hook(dir, GUARD, { session_id: 'A', stop_hook_active: true }).status).toBe(0); // one reminder only
 
-    appendFileSync(join(dir, 'docs/CLAUDE_MEMORY.md'), 'uncommitted\n');
+    appendFileSync(join(dir, 'docs/brain/Status.md'), 'uncommitted\n');
     expect(hook(dir, GUARD, { session_id: 'A' }).status).toBe(2); // an uncommitted edit doesn't count
 
     git(dir, 'commit', '-qam', 'memory');

@@ -4,7 +4,7 @@
 // file plus live facts read from git and docs, so no session starts blank and
 // nothing depends on Claude remembering to look.
 import { execSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 
 const sh = (cmd) => {
   try { return execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
@@ -32,10 +32,14 @@ try {
 } catch {}
 
 const out = [];
-out.push('=== PORTIER369 SECOND BRAIN — loaded automatically. Follow it. ===');
-out.push('Update docs/CLAUDE_MEMORY.md and commit it with the work before the session ends (a Stop hook reminds you).');
-out.push('');
-out.push(read('docs/CLAUDE_MEMORY.md') || '(docs/CLAUDE_MEMORY.md is missing — recreate it.)');
+out.push('=== PORTIER369 SECOND BRAIN (docs/brain/, an Obsidian vault) — loaded automatically. Follow it. ===');
+out.push('Run the overseer agent at the start of every task and before every PR. Record what shipped, new rules and the next gap in docs/brain/ and commit it with the work (a Stop hook reminds you).');
+const VAULT = 'docs/brain';
+const notes = existsSync(VAULT)
+  ? readdirSync(VAULT).filter((f) => f.endsWith('.md')).sort((a, b) => (a === 'Home.md' ? -1 : b === 'Home.md' ? 1 : a.localeCompare(b)))
+  : [];
+if (!notes.length) out.push('', '(docs/brain/ is missing — recreate the vault.)');
+for (const note of notes) out.push('', `----- docs/brain/${note} -----`, read(`${VAULT}/${note}`).trim());
 
 out.push('', '=== Latest work merged to main (live from git) ===');
 out.push(sh('git log origin/main -15 --format="%h %cs %s"') || '(could not read git log)');
