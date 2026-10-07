@@ -36,12 +36,16 @@ describe('review scope', () => {
     git(dir, 'add', '-A'); git(dir, 'commit', '-qm', 'main work');
     git(dir, 'checkout', '-q', 'topic');
 
+    // Deleted on both sides, then recreated here: new relative to main.
+    write(dir, 'both-gone.ts', 'replacement\n');
+
     // Uncommitted work counts too.
     write(dir, 'keep.ts', 'keep.ts edited\n');
     write(dir, 'untracked.ts', 'new\n');
 
     try {
       expect(reviewScope(dir, { target: 'main' })).toEqual([
+        { status: 'A', path: 'both-gone.ts' },
         { status: 'D', path: 'gone.ts' },
         { status: 'M', path: 'keep.ts' },
         { status: 'M', path: 'mine.ts' },

@@ -105,8 +105,10 @@ export function reviewScope(cwd, { target = defaultTarget(cwd), paths = [] } = {
     // Out of scope only if both what is on disk and what would be committed
     // match main exactly (same content, same mode, or absent on all sides).
     if (onDisk === onTarget && indexMatches) continue;
-    const status = staged === null && !newUntracked ? 'D'
-      : onTarget === null ? 'A'
+    // D only when main still has the file the next commit removes; with main
+    // lacking it too, whatever is on disk is new relative to main.
+    const status = onTarget === null ? 'A'
+      : staged === null && !newUntracked ? 'D'
       : 'M';
     scope.push({ status, path });
   }
