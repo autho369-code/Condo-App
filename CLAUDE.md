@@ -1,8 +1,9 @@
 # CLAUDE.md — Portier369 (Condo-App)
 
-**Start of every session: read `docs/CLAUDE_MEMORY.md` (Claude's
-memory — cloud sessions keep nothing else). Update it and commit it before the
-session ends.**
+**Second brain: `docs/CLAUDE_MEMORY.md` is loaded into every session
+automatically (`scripts/brain/session-start.mjs`, SessionStart hook) and a Stop
+hook (`scripts/brain/stop-guard.mjs`) blocks finishing until it is updated.
+Follow it; update it and commit it with the work.**
 
 HOA/community-association management SaaS replicating AppFolio Property Manager's
 functionality with an original design. Next.js 15 (App Router) + Supabase

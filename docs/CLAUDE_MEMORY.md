@@ -1,9 +1,14 @@
 # Claude memory — Portier369 (the second brain)
 
-This file is loaded into every Claude session automatically by the
-SessionStart hook in `.claude/settings.json`. Cloud sessions start from a fresh
-clone and keep nothing else. **Before a session ends, update this file and
-commit it with the work** (shipped items, new rules, next gap).
+The system (no step depends on Claude remembering):
+- **Load:** `.claude/settings.json` SessionStart hook runs
+  `scripts/brain/session-start.mjs` — prints this file, the latest 15 merges on
+  main (live from git), this branch's state and every open box in
+  `docs/TODO.md` into every new session.
+- **Save:** Stop hook `scripts/brain/stop-guard.mjs` blocks a session from
+  finishing if it changed files but did not update this file.
+- Cloud sessions start from a fresh clone and keep nothing else. **Update this
+  file and commit it with the work** (shipped items, new rules, next gap).
 
 ## How Mirsad works — follow without being told
 - He says **"go to next gap"** → pick the highest-value gap yourself and build
@@ -86,7 +91,8 @@ commit it with the work** (shipped items, new rules, next gap).
 ## Sessions (where older context lives)
 - `session_014oDSoRCaVdCEGUtH1N3QYg` "Portier369 setup and context" — the main
   build session (#229–#237). Its transcript holds the full history.
-- `session_01Qxam3bJdrKVz5fkBpEHUsQ` — memory file, #236, second-brain hook.
+- `session_01Qxam3bJdrKVz5fkBpEHUsQ` — memory file, #236, the second-brain system
+  (`scripts/brain/`, hooks in `.claude/settings.json`).
 - Mirsad's older local memory: `C:\Users\autho\.claude\projects\C--Users-autho-Portier369\memory\project-state.md`
   on his PC (not reachable from the cloud — paste anything useful here).
 
