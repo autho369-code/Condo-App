@@ -86,7 +86,7 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
       .eq('owner_id', me2.owner_id)
       .select('id')
     if (error) redirect('/portal/insurance?error=' + encodeURIComponent(error.message))
-    if (!changed?.length) redirect('/portal/insurance?error=' + encodeURIComponent('Reminders were not saved: the policy is gone or your account cannot edit it.'))
+    if (!changed?.length) redirect('/portal/insurance?error=' + encodeURIComponent('Reminders were not saved: this policy was removed or is no longer linked to your account. Please contact your management company.'))
     revalidatePath('/portal/insurance')
     redirect('/portal/insurance?reminders=1')
   }

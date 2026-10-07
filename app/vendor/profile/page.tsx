@@ -55,7 +55,7 @@ export default async function VendorProfile({
     };
     const { data: changed, error } = await (supabase2 as any).from('vendors').update(patch).eq('id', me2.vendor_id).select('id');
     if (error) redirect(`/vendor/profile?error=${encodeURIComponent(error.message)}`);
-    if (!changed?.length) redirect(`/vendor/profile?error=${encodeURIComponent('Your profile was not saved: your account cannot edit it.')}`);
+    if (!changed?.length) redirect(`/vendor/profile?error=${encodeURIComponent('Your profile was not saved. Please contact your management company if this keeps happening.')}`);
     revalidatePath('/vendor/profile');
     redirect('/vendor/profile?saved=1');
   }

@@ -30,7 +30,7 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
       emergency_contact_phone: (formData.get('emergency_contact_phone') as string)?.trim() || null,
     }).eq('id', me2.owner_id).select('id')
     if (error) redirect('/portal/profile?error=' + encodeURIComponent(error.message))
-    if (!changed?.length) redirect('/portal/profile?error=' + encodeURIComponent('Your profile was not saved: your account cannot edit it.'))
+    if (!changed?.length) redirect('/portal/profile?error=' + encodeURIComponent('Your profile was not saved. Please contact your management company if this keeps happening.'))
     revalidatePath('/portal/profile')
     redirect('/portal/profile?saved=1')
   }
