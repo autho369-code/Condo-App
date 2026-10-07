@@ -87,7 +87,7 @@ export function AddressesCard({
               {sender.status !== 'verified' && records.length > 0 && (
                 <div>
                   <p className="mb-2 text-xs text-gray-600">
-                    Add these DNS records for {sender.domain} at your domain provider. Verification is checked again after they are added; DNS changes can take a few hours.
+                    Add these DNS records for {sender.domain} at your domain provider, then send a platform request so the records are checked. DNS changes can take a few hours.
                   </p>
                   <div className="overflow-x-auto">
                     <Table>

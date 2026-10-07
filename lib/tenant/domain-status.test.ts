@@ -48,7 +48,8 @@ describe('customDomainStatus', () => {
     const { customDomainStatus } = await import('./domain-status');
     const s = await customDomainStatus('portal.stellar.com');
     expect(s.label).toBe('Waiting for Vercel verification');
-    expect(s.pendingRecords).toContainEqual({ type: 'TXT', name: '_vercel.stellar.com', value: 'vc-domain-verify=abc' });
+    // Routing is already configured (misconfigured: false): only the ownership record is missing.
+    expect(s.pendingRecords).toEqual([{ type: 'TXT', name: '_vercel.stellar.com', value: 'vc-domain-verify=abc' }]);
   });
 
   it('is not confirmed live when only DNS points at Vercel (no Vercel credentials)', async () => {

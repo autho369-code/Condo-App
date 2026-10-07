@@ -41,12 +41,16 @@ export async function customDomainStatus(domain: string): Promise<CustomDomainSt
   else if (attached && !attached.verified) { tone = 'warning'; label = 'Waiting for Vercel verification'; }
   else if (dnsReady) { tone = 'success'; label = attached ? 'Live' : 'DNS points to Vercel'; }
 
-  const records: DnsRecord[] = [record, ...(attached?.verification ?? []).map((v) => ({
-    type: v.type, name: v.domain, value: v.value,
-  }))];
-  const needsRecords = !dnsReady || (!!attached && !attached.verified);
+  // Only what is still missing: the routing record until DNS points at
+  // Vercel, and Vercel's ownership records until it has verified the domain.
+  const pendingRecords: DnsRecord[] = [
+    ...(dnsReady ? [] : [record]),
+    ...(attached && !attached.verified ? attached.verification : []).map((v) => ({
+      type: v.type, name: v.domain, value: v.value,
+    })),
+  ];
 
-  return { tone, label, current, pendingRecords: needsRecords ? records : [], vercel, vercelConfigured: !!env };
+  return { tone, label, current, pendingRecords, vercel, vercelConfigured: !!env };
 }
 
 /**
