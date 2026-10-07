@@ -177,4 +177,23 @@ describe('query columns', () => {
     expect(BUILDER_SOURCES.length).toBeGreaterThan(3);
     expect(problems).toEqual([]);
   });
+
+  it('skips queries only when they are really inside a comment', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'qcols-'));
+    mkdirSync(join(dir, 'lib'));
+    writeFileSync(join(dir, 'lib', 'x.ts'), [
+      "/* note */ db.from('portfolios').select('nonexistent_a');",
+      "// db.from('portfolios').select('nonexistent_b');",
+      '/**', ' * example: db.from(table).select(cols)', ' */',
+      "const url = 'https://x.test'; db.from('portfolios').select('nonexistent_c');",
+      "const t = `// ${db.from('portfolios').select('nonexistent_d')}`;",
+    ].join('\n'));
+    const r = findQueryColumnProblems(dir, schema, fks);
+    expect(r.problems).toEqual([
+      'lib/x.ts:1  portfolios.nonexistent_a does not exist',
+      'lib/x.ts:6  portfolios.nonexistent_c does not exist',
+      'lib/x.ts:7  portfolios.nonexistent_d does not exist',
+    ]);
+    expect(r.unchecked).toEqual([]);
+  });
 });

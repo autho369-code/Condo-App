@@ -473,6 +473,50 @@ function parameterArguments(src, pos, name) {
   return site ? site.calls.map((c) => ({ arg: c.args[site.index] ?? '', line: c.line })) : null;
 }
 
+/**
+ * Marks every character of `src` that is inside a comment (1) by scanning the
+ * file once, aware of strings, template literals (with `${…}`) and regex
+ * literals, so code after a closed block comment on the same line still counts
+ * as code and a `//` inside
+ * a string doesn't hide the rest of the line.
+ */
+function commentMask(src) {
+  const mask = new Uint8Array(src.length);
+  const scan = (from, to) => {
+    for (let i = from; i < to; i++) {
+      const ch = src[i];
+      if (ch === '/' && src[i + 1] === '/') {
+        const e = src.indexOf('\n', i);
+        const end = e === -1 ? to : Math.min(e, to);
+        mask.fill(1, i, end);
+        i = end;
+      } else if (ch === '/' && src[i + 1] === '*') {
+        const e = src.indexOf('*/', i + 2);
+        const end = e === -1 ? to : Math.min(e + 2, to);
+        mask.fill(1, i, end);
+        i = end - 1;
+      } else if (ch === "'" || ch === '"') {
+        for (i++; i < to && src[i] !== ch && src[i] !== '\n'; i++) if (src[i] === '\\') i++;
+      } else if (ch === '`') {
+        for (i++; i < to && src[i] !== '`'; i++) {
+          if (src[i] === '\\') { i++; continue; }
+          if (src[i] === '$' && src[i + 1] === '{') {
+            const close = closeBracket(src, i + 1);
+            const end = close === -1 ? to : close - 1;
+            scan(i + 2, end);
+            i = end;
+          }
+        }
+      } else if (ch === '/') {
+        const re = regexEnd(src, i);
+        if (re !== -1) i = re - 1;
+      }
+    }
+  };
+  scan(0, src.length);
+  return mask;
+}
+
 /** Normalized key for a query the scanner can't fully check (see unchecked-selects.json). */
 function uncheckedKey(file, table, text) {
   return `${file}  ${table}  ${text.replace(/\s+/g, ' ').trim().slice(0, 160)}`;
@@ -498,11 +542,9 @@ export function findQueryColumnProblems(root, schema, fks = {}) {
       const src = readFileSync(file, 'utf8');
       const rel = relative(root, file);
       const constants = constantResolver(root, file, cache);
+      const inComment = commentMask(src);
       for (const m of src.matchAll(/\.from\(/g)) {
-        // Skip examples in comments (`// … .from(table) …`, ` * …`).
-        const lineStart = src.lastIndexOf('\n', m.index) + 1;
-        const before = src.slice(lineStart, m.index);
-        if (/^\s*(\*|\/\*)/.test(before) || /(^|[^:'"`])\/\//.test(before)) continue;
+        if (inComment[m.index]) continue; // an example in a comment, not a query
         const open = m.index + m[0].length - 1;
         const close = closeBracket(src, open);
         if (close === -1) continue;
