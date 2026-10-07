@@ -158,7 +158,7 @@ describe('public endpoint abuse guards', () => {
     mocks.consumePublic.mockResolvedValueOnce(denied);
     const request = new Request('http://localhost/api/ai/analyze-violation-photo', {
       method: 'POST',
-      headers: { 'x-forwarded-for': '203.0.113.4' },
+      headers: { 'x-forwarded-for': '203.0.113.4', 'x-portfolio-id': '22222222-2222-4222-8222-222222222222' },
     });
 
     const response = await photoPost(request as any);
@@ -268,7 +268,7 @@ describe('public endpoint abuse guards', () => {
       ack_share_info: 'on', ack_true_accurate: 'on', ack_may_contact: 'on',
     })) form.append(k, v);
 
-    await expect(submitReport(form)).rejects.toThrow('REDIRECT:/report-violation?error=missing');
+    await expect(submitReport(form)).rejects.toThrow('REDIRECT:/report-violation?error=association');
 
     expect(associationQuery.eq).toHaveBeenCalledWith('portfolio_id', '22222222-2222-4222-8222-222222222222');
     expect(mocks.consumeScoped).not.toHaveBeenCalled();

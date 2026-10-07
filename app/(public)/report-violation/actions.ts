@@ -95,7 +95,7 @@ export async function submitReport(formData: FormData) {
     .eq('portfolio_id', tenant!.portfolioId)
     .is('archived_at', null)
     .maybeSingle();
-  if (!association) redirect('/report-violation?error=missing');
+  if (!association) redirect('/report-violation?error=association');
 
   const associationLimit = await consumeScopedRateLimit(service, association.id, ASSOCIATION_POLICY);
   if (!associationLimit.allowed) {

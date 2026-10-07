@@ -37,6 +37,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
     }
 
+    // Reporting belongs to the company whose address this is; on an address
+    // with no company there is nothing to analyse (see report-violation).
+    const tenant = tenantFromHeaders(request.headers);
+    if (!tenant) return NextResponse.json({ error: 'Association not found' }, { status: 404 });
+
     let db: any;
     try {
       db = createServiceClient() as any;
@@ -77,13 +82,8 @@ export async function POST(request: NextRequest) {
     // Only the company whose address this is: its AI key and house rules are
     // never used for another company's association. Checked before the
     // association's rate limit is spent.
-    const tenant = tenantFromHeaders(request.headers);
-    if (!tenant || association?.portfolio_id !== tenant.portfolioId) {
+    if (!association || association.portfolio_id !== tenant.portfolioId) {
       return NextResponse.json({ error: 'Association not found' }, { status: 404 });
-    }
-
-    if (!association?.portfolio_id) {
-      return NextResponse.json({ error: 'Association not found or has no portfolio' }, { status: 400 });
     }
 
     const associationLimit = await consumeScopedRateLimit(db, associationId, ASSOCIATION_POLICY);

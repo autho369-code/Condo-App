@@ -9,11 +9,11 @@ export const dynamic = 'force-dynamic';
 
 function UnavailableReport({ children }: { children?: React.ReactNode }) {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12">
+    <div className="mx-auto max-w-3xl px-4 py-12">
       <Alert tone="warning">
         {children ?? 'Public violation reporting is not configured for this environment. Please contact your management office directly.'}
       </Alert>
-    </main>
+    </div>
   );
 }
 
@@ -79,6 +79,7 @@ export default async function ReportViolationPage({
 
   const errorMessage =
     sp.error === 'missing' ? 'Please complete all required fields and sign the report.' :
+    sp.error === 'association' ? 'That association is not managed here. Choose your association from the list.' :
     sp.error === 'save' ? 'We could not save your report. Please try again, or contact your management office directly.' :
     sp.error === 'rate-limit' ? 'Too many reports were received. Please wait and try again, or contact your management office directly.' :
     sp.error === 'unavailable' ? 'Reporting is temporarily unavailable. Please try again shortly, or contact your management office directly.' :
