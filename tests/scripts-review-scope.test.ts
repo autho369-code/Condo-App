@@ -69,7 +69,16 @@ describe('review scope', () => {
     write(dir, 'guard.ts', 'guard v1\n');
     git(dir, 'add', '-A'); git(dir, 'commit', '-qm', 'base');
     git(dir, 'checkout', '-qb', 'topic');
+    // Added by both sides; then staged for deletion here and left on disk
+    // untracked with main's bytes: the next commit still deletes it.
+    git(dir, 'checkout', '-q', 'main');
+    write(dir, 'shared.ts', 'shared\n');
+    git(dir, 'add', 'shared.ts'); git(dir, 'commit', '-qm', 'main adds shared');
+    git(dir, 'checkout', '-q', 'topic');
+    write(dir, 'shared.ts', 'shared\n');
+    git(dir, 'add', 'shared.ts'); git(dir, 'commit', '-qm', 'topic adds shared');
     git(dir, 'rm', '-q', 'guard.ts'); git(dir, 'commit', '-qm', 'drop guard');
+    git(dir, 'rm', '-q', '--cached', 'shared.ts');
     write(dir, 'guard.ts', 'guard v1\n'); // recreated, untracked, same bytes as main
 
     write(dir, 'staged.ts', 'v2\n');
@@ -82,12 +91,14 @@ describe('review scope', () => {
       expect(reviewScope(dir)).toEqual([
         { status: 'D', path: 'guard.ts' },
         { status: 'M', path: 'run.sh' },
+        { status: 'D', path: 'shared.ts' },
         { status: 'M', path: 'staged.ts' },
       ]);
       // Where git ignores the executable bit (Windows), a chmod is not a change.
       git(dir, 'config', 'core.fileMode', 'false');
       expect(reviewScope(dir)).toEqual([
         { status: 'D', path: 'guard.ts' },
+        { status: 'D', path: 'shared.ts' },
         { status: 'M', path: 'staged.ts' },
       ]);
     } finally {
