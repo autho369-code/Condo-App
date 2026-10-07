@@ -119,20 +119,149 @@ function closeParen(src, open) {
 }
 
 /**
+ * Parse a string expression at `i`: string/template literals and identifiers
+ * joined by `+`. Returns its parts and the index after it, or null.
+ * Template literals keep their `${…}` holes as identifier parts when the
+ * hole is a bare identifier, and fail otherwise.
+ */
+function parseConcat(src, i) {
+  const parts = [];
+  for (;;) {
+    i = skipSpace(src, i);
+    const ch = src[i];
+    if (ch === "'" || ch === '"') {
+      let j = i + 1;
+      let text = '';
+      for (; j < src.length && src[j] !== ch; j++) {
+        if (src[j] === '\\') { j++; text += src[j]; } else text += src[j];
+      }
+      parts.push({ text });
+      i = j + 1;
+    } else if (ch === '`') {
+      let j = i + 1;
+      let text = '';
+      for (; j < src.length && src[j] !== '`'; j++) {
+        if (src[j] === '\\') { j++; text += src[j]; continue; }
+        if (src[j] === '$' && src[j + 1] === '{') {
+          const close = src.indexOf('}', j);
+          const name = src.slice(j + 2, close).trim();
+          if (!/^[A-Za-z_$][\w$]*$/.test(name)) return null;
+          parts.push({ text }, { id: name });
+          text = '';
+          j = close;
+          continue;
+        }
+        text += src[j];
+      }
+      parts.push({ text });
+      i = j + 1;
+    } else {
+      const id = /^[A-Za-z_$][\w$]*/.exec(src.slice(i, i + 80));
+      if (!id) return null;
+      parts.push({ id: id[0] });
+      i += id[0].length;
+    }
+    const next = skipSpace(src, i);
+    if (src[next] !== '+') return { parts, end: i };
+    i = next + 1;
+  }
+}
+
+/**
+ * Resolves string constants by name for one file: `const X = '…'` (possibly
+ * built from other constants with `+` or `${}`) in the file itself, or a
+ * named import of an exported constant from another app file.
+ */
+function constantResolver(root, file, cache = new Map()) {
+  const load = (path) => {
+    if (!cache.has(path)) {
+      let src = null;
+      for (const candidate of [path, `${path}.ts`, `${path}.tsx`, join(path, 'index.ts')]) {
+        try { if (statSync(candidate).isFile()) { src = readFileSync(candidate, 'utf8'); path = candidate; break; } } catch { /* next */ }
+      }
+      const consts = new Map();
+      const imports = new Map();
+      if (src != null) {
+        for (const m of src.matchAll(/(?:^|[\s;])(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*/g)) {
+          const expr = parseConcat(src, m.index + m[0].length);
+          if (!expr) continue;
+          const after = skipSpace(src, expr.end);
+          if (!/[;,)\n]|^$/.test(src[after] ?? '') && !/^(const|let|export|function|return|\})/.test(src.slice(after, after + 8))) continue;
+          if (!consts.has(m[1])) consts.set(m[1], expr.parts);
+        }
+        for (const m of src.matchAll(/import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g)) {
+          const spec = m[2];
+          const base = spec.startsWith('@/') ? join(root, spec.slice(2)) : spec.startsWith('.') ? join(path, '..', spec) : null;
+          if (!base) continue;
+          for (const name of m[1].split(',')) {
+            const [orig, local] = name.trim().split(/\s+as\s+/);
+            if (orig) imports.set((local ?? orig).trim(), { path: base, name: orig.trim() });
+          }
+        }
+      }
+      cache.set(path, { consts, imports });
+    }
+    return cache.get(path);
+  };
+
+  const resolve = (path, name, depth = 0) => {
+    if (depth > 8) return null;
+    const { consts, imports } = load(path);
+    if (consts.has(name)) return joinParts(consts.get(name), (n) => resolve(path, n, depth + 1));
+    const imp = imports.get(name);
+    return imp ? resolve(imp.path, imp.name, depth + 1) : null;
+  };
+  return (name) => resolve(file, name);
+}
+
+/** Join parsed parts; null if any identifier doesn't resolve. */
+function joinParts(parts, resolve) {
+  let out = '';
+  for (const p of parts) {
+    if ('text' in p) out += p.text;
+    else {
+      const v = resolve(p.id);
+      if (v == null) return null;
+      out += v;
+    }
+  }
+  return out;
+}
+
+/**
  * The static select list of the query chain starting at `i` (just past
  * `.from('table')`): follows the builder calls (.insert/.update/.eq/…,
- * comments allowed) to the first `.select('…')`. Null when the chain has no
- * select or its select isn't a plain string.
+ * comments allowed) to the first `.select(…)`. The argument may be a string,
+ * a constant `resolve` can look up, or a `+` concatenation of those; trailing
+ * parts that don't resolve (such as an optional extra-columns parameter) are
+ * dropped and the rest is checked. Null when there's no select or nothing
+ * static to check.
+ *
+ * @param {string} src
+ * @param {number} i
+ * @param {(name: string) => string | null} [resolve]
+ * @returns {string | null}
  */
-function chainSelect(src, i) {
+function chainSelect(src, i, resolve = () => null) {
   for (let calls = 0; calls < 40; calls++) {
     i = skipSpace(src, i);
     const call = /^\.\s*([A-Za-z_]+)\s*\(/.exec(src.slice(i, i + 60));
     if (!call) return null;
     const open = i + call[0].length - 1;
     if (call[1] === 'select') {
-      const arg = /^\(\s*(['"`])([\s\S]*?)\1/.exec(src.slice(open));
-      return arg && !arg[2].includes('${') ? arg[2] : null;
+      const expr = parseConcat(src, open + 1);
+      if (!expr) return null;
+      const after = skipSpace(src, expr.end);
+      if (src[after] !== ')' && src[after] !== ',') return null;
+      let out = '';
+      let unresolved = false;
+      for (const p of expr.parts) {
+        const v = 'text' in p ? p.text : resolve(p.id);
+        if (v == null) { unresolved = true; continue; }
+        if (unresolved) return null; // a resolved part after an unknown one
+        out += v;
+      }
+      return out.trim() ? out : null;
     }
     const end = closeParen(src, open);
     if (end === -1) return null;
@@ -145,12 +274,14 @@ function chainSelect(src, i) {
 export function findQueryColumnProblems(root, schema, fks = {}) {
   const from = /\.from\(\s*['"]([a-z_0-9]+)['"]\s*\)/g;
   const found = new Set();
+  const cache = new Map();
   let checked = 0;
   for (const dir of ['app', 'components', 'lib']) {
     for (const file of sourceFiles(join(root, dir))) {
       const src = readFileSync(file, 'utf8');
+      const resolve = constantResolver(root, file, cache);
       for (const m of src.matchAll(from)) {
-        const select = chainSelect(src, m.index + m[0].length);
+        const select = chainSelect(src, m.index + m[0].length, resolve);
         if (select == null) continue;
         checked++;
         const line = src.slice(0, m.index).split('\n').length;

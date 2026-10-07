@@ -46,4 +46,18 @@ describe('query columns', () => {
     expect(selectProblems(schema, 'service_requests', 'created_by(full_name)', fks))
       .toEqual(["service_requests.created_by is not a foreign key to a public table, so it can't be embedded"]);
   });
+
+  it('resolves constants and concatenations passed to select', () => {
+    const consts: Record<string, string> = { COLS: 'id, title', MORE: ', status' };
+    const resolve = (name: string) => consts[name] ?? null;
+    const at = (src: string) => _chainSelect(src, src.indexOf(')') + 1, resolve);
+    expect(at(`db.from('t').select(COLS).eq('id', id)`)).toBe('id, title');
+    expect(at(`db.from('t').select(COLS + MORE)`)).toBe('id, title, status');
+    expect(at('db.from(\'t\').select(`${COLS}, notes`)')).toBe('id, title, notes');
+    // An unknown trailing part (an optional extra-columns parameter) is dropped.
+    expect(at(`db.from('t').select(COLS + extraColumns)`)).toBe('id, title');
+    // An unknown part before a known one can't be checked.
+    expect(at(`db.from('t').select(prefix + COLS)`)).toBeNull();
+    expect(at(`db.from('t').select(cols.join(', '))`)).toBeNull();
+  });
 });
