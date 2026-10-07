@@ -5,7 +5,6 @@
 // nothing depends on Claude remembering to look.
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { createHash } from 'node:crypto';
 
 const sh = (cmd) => {
   try { return execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
@@ -15,14 +14,25 @@ const read = (p) => (existsSync(p) ? readFileSync(p, 'utf8') : '');
 
 sh('git fetch -q origin main');
 
-// Baseline for the Stop guard: what HEAD and the memory file looked like when
-// this session began (kept out of git by the .claude/* ignore rule).
+// Baseline for the Stop guard: HEAD when this session began (kept out of git
+// by the .claude/* ignore rule). Written once per session: SessionStart also
+// fires on resume/clear/compact, and those must not move the baseline.
+let hookInput = {};
+if (!process.stdin.isTTY) {
+  try { hookInput = JSON.parse(readFileSync(0, 'utf8') || '{}'); } catch {}
+}
 try {
-  mkdirSync('.claude', { recursive: true });
-  writeFileSync('.claude/brain-baseline.json', JSON.stringify({
-    head: sh('git rev-parse HEAD'),
-    memoryHash: createHash('sha256').update(read('docs/CLAUDE_MEMORY.md')).digest('hex'),
-  }));
+  const BASELINE = '.claude/brain-baseline.json';
+  let existing = null;
+  try { existing = JSON.parse(read(BASELINE) || 'null'); } catch {}
+  const sameSession = existing?.sessionId && existing.sessionId === hookInput.session_id;
+  if (!sameSession && hookInput.source !== 'compact') {
+    mkdirSync('.claude', { recursive: true });
+    writeFileSync(BASELINE, JSON.stringify({
+      sessionId: hookInput.session_id ?? null,
+      head: sh('git rev-parse HEAD'),
+    }));
+  }
 } catch {}
 const out = [];
 out.push('=== PORTIER369 SECOND BRAIN — loaded automatically. Follow it. ===');

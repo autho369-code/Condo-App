@@ -6,8 +6,9 @@ The system (no step depends on Claude remembering):
   main (live from git), this branch's state and every open box in
   `docs/TODO.md` into every new session.
 - **Save:** Stop hook `scripts/brain/stop-guard.mjs` reminds Claude (once) when
-  this session has committed work but this file is unchanged since the session
-  started (baseline in `.claude/brain-baseline.json`, written at start).
+  this session has committed work but no commit since the session started
+  updated this file (baseline in `.claude/brain-baseline.json`, written once
+  per session; compaction doesn't reset it).
 - Cloud sessions start from a fresh clone and keep nothing else. **Update this
   file and commit it with the work** (shipped items, new rules, next gap).
 
