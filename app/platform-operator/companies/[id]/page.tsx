@@ -519,7 +519,7 @@ export default async function CompanyDetailPage({
                             <form action={cancelInvitation as any}>
                               <input type="hidden" name="invitation_id" value={inv.id} />
                               <input type="hidden" name="return_to" value={returnTo} />
-                              <Button type="submit" variant="ghost" size="sm">Cancel</Button>
+                              <PendingSubmit variant="ghost" size="sm" pendingLabel="Cancelling…" confirm="Cancel this invitation? The link stops working.">Cancel</PendingSubmit>
                             </form>
                           )}
                           {(inv.status === 'pending' || inv.status === 'expired') && (

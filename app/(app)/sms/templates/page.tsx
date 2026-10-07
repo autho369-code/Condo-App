@@ -105,10 +105,10 @@ export default async function SmsTemplatesPage({
                   <TD className="text-gray-500">{formatDate(t.updated_at)}</TD>
                   <TD>
                     <div className="flex items-center gap-1">
-                      <Link href={`/sms/templates/${t.id}/edit`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">Edit</Link>
+                      <Link href={`/sms/templates/${t.id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>
                       <form action={deleteTemplate as any} className="inline">
                         <input type="hidden" name="id" value={t.id} />
-                        <PendingSubmit variant="ghost" size="sm" pendingLabel="Deleting…" confirm="Delete this SMS template?">
+                        <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Deleting…" confirm="Delete this SMS template?">
                           Delete
                         </PendingSubmit>
                       </form>

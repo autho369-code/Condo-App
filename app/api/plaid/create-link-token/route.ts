@@ -8,6 +8,13 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { Products, CountryCode } from 'plaid';
 import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { plaidErrorSummary, plaidPublicMessage } from '@/lib/plaid/errors';
+import { hasVisibleText } from '@/lib/company-admin/settings';
+import { NEUTRAL_COMPANY_NAME } from '@/lib/tenant/resolve';
+
+function plaidClientName(name: string | null | undefined): string {
+  const trimmed = String(name ?? '').trim().slice(0, 30).trim();
+  return hasVisibleText(trimmed) ? trimmed : NEUTRAL_COMPANY_NAME;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +57,8 @@ export async function POST(request: NextRequest) {
         legal_name: profile.full_name || profile.email || 'User',
       },
       // Plaid shows this name to the person linking the account (max 30 characters).
-      client_name: String(user.portfolio?.company_name ?? user.portfolio?.name ?? '').trim().slice(0, 30) || 'Portier369',
+      // White label: never the platform name; neutral fallback.
+      client_name: plaidClientName(user.portfolio?.company_name ?? user.portfolio?.name),
       products: [Products.Transactions],
       country_codes: [CountryCode.Us],
       language: 'en',

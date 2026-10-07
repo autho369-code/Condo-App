@@ -7,7 +7,7 @@ import { Alert, Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell'
 import { Section } from '@/components/workspace/shell';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { isHexColor, normalizeCompanyLogoUrl, normalizeSupportEmail, normalizeWebsiteUrl } from '@/lib/company-admin/settings';
+import { hasVisibleText, isHexColor, normalizeCompanyLogoUrl, normalizeSupportEmail, normalizeWebsiteUrl } from '@/lib/company-admin/settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +22,7 @@ async function saveBranding(formData: FormData) {
   // Never store a blank or whitespace-only company name: it heads every
   // client-facing page, email and document.
   const companyName = String(formData.get('company_name') ?? '').trim().slice(0, 200);
-  if (!companyName) fail('Company name is required.');
+  if (!hasVisibleText(companyName)) fail('Company name is required.');
 
   // The color is sent to every page as a request header: #RRGGBB only.
   const brandColor = String(formData.get('brand_color') ?? '').trim() || '#10B981';

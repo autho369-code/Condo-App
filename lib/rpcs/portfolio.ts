@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { hasVisibleText } from '@/lib/company-admin/settings';
 
 export async function updatePortfolioPolicy(portfolioId: string, formData: FormData) {
   // In-action guard + scope: policy edits (late fees, MFA requirements,
@@ -20,7 +21,7 @@ export async function updatePortfolioPolicy(portfolioId: string, formData: FormD
   const companyName = formData.has('company_name')
     ? String(formData.get('company_name') ?? '').trim().slice(0, 200)
     : null;
-  if (companyName === '') redirect('/settings?error=' + encodeURIComponent('Company name is required.'));
+  if (companyName !== null && !hasVisibleText(companyName)) redirect('/settings?error=' + encodeURIComponent('Company name is required.'));
 
   const reminderDays = (formData.get('reminder_days') as string || '14,7,1,-7,-30')
     .split(',').map((s) => parseInt(s.trim())).filter((n) => !Number.isNaN(n));

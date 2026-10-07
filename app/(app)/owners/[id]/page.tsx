@@ -501,7 +501,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                     </div>
                     <form action={endBoardSeat.bind(null, id) as any}>
                       <input type="hidden" name="seat_id" value={s.id} />
-                      <button type="submit" className="text-xs font-medium text-red-600 hover:underline">End seat</button>
+                      <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Ending…" confirm="End this board seat?">End seat</PendingSubmit>
                     </form>
                   </li>
                 ))}
@@ -746,7 +746,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                     <td className="px-4 py-2 text-right">
                       {o.status === 'current' && (
                         <form action={endOccupancy.bind(null, o.id, id) as any}>
-                          <button type="submit" className="text-xs text-red-600 hover:underline">End</button>
+                          <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Ending…" confirm="End this occupancy?">End</PendingSubmit>
                         </form>
                       )}
                     </td>
@@ -866,15 +866,15 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                               <span className="text-[11px] text-gray-500">Nonfinancial resident access</span>
                             </div>
                           </div>
-                          <div className="flex flex-wrap items-center justify-end gap-3">
+                          <div className="flex flex-wrap items-center justify-end gap-1">
                             {!t.auth_user_id ? (
                               <form action={sendTenantPortalInvitation.bind(null, t.id, id) as any}>
-                                <button type="submit" disabled={!t.email} className="text-xs font-medium text-blue-700 hover:underline disabled:cursor-not-allowed disabled:text-gray-400">Invite resident</button>
+                                <Button type="submit" variant="ghost" size="sm" disabled={!t.email}>Invite resident</Button>
                               </form>
                             ) : (
                               <>
                                 <form action={sendTenantPasswordReset.bind(null, t.id, id) as any}>
-                                  <button type="submit" className="text-xs font-medium text-blue-700 hover:underline">Reset password</button>
+                                  <Button type="submit" variant="ghost" size="sm">Reset password</Button>
                                 </form>
                                 {t.portal_activated ? (
                                   <form action={setTenantPortalAccess.bind(null, t.id, id, false) as any}>
@@ -882,13 +882,13 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                                   </form>
                                 ) : (
                                   <form action={setTenantPortalAccess.bind(null, t.id, id, true) as any}>
-                                    <button type="submit" className="text-xs font-medium text-emerald-700 hover:underline">Enable portal</button>
+                                    <Button type="submit" variant="ghost" size="sm">Enable portal</Button>
                                   </form>
                                 )}
                               </>
                             )}
                             <form action={endTenancy.bind(null, t.id, id) as any}>
-                              <button type="submit" className="text-xs text-red-600 hover:underline">End tenancy</button>
+                              <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Ending…" confirm="End this tenancy?">End tenancy</PendingSubmit>
                             </form>
                           </div>
                         </div>
@@ -1009,7 +1009,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                                 <span className="text-gray-500"> — {p.pet_type}{p.breed ? `, ${p.breed}` : ''}{p.tenant_id ? ' (tenant’s)' : ''}</span>
                               </span>
                               <form action={removePet.bind(null, p.id, id) as any}>
-                                <PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this pet?">Remove</PendingSubmit>
+                                <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Removing…" confirm="Remove this pet?">Remove</PendingSubmit>
                               </form>
                             </li>
                           ))}
@@ -1330,7 +1330,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                       {v.license_plate && <span className="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-700">{v.license_plate}{v.plate_state ? ` (${v.plate_state})` : ''}</span>}
                     </div>
                     <form action={removeVehicle.bind(null, v.id, id)}>
-                      <PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this vehicle?">Remove</PendingSubmit>
+                      <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Removing…" confirm="Remove this vehicle?">Remove</PendingSubmit>
                     </form>
                   </li>
                 ))}
@@ -1399,7 +1399,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                     </div>
                   </div>
                   <form action={removeOwnerAttachment.bind(null, id, a.id)}>
-                    <PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this attachment?">Remove</PendingSubmit>
+                    <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Removing…" confirm="Remove this attachment?">Remove</PendingSubmit>
                   </form>
                 </div>
               ))}
@@ -1452,7 +1452,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                 </form>
                 {owner.portal_activated ? (
                   <form action={setOwnerPortalAccess.bind(null, id, false)}>
-                    <PendingSubmit variant="danger" size="sm" pendingLabel="Disabling…" confirm="Disable this owner's portal access? They will be signed out of the portal.">Disable portal access</PendingSubmit>
+                    <PendingSubmit variant="secondary" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Disabling…" confirm="Disable this owner's portal access? They lose portal access right away.">Disable portal access</PendingSubmit>
                   </form>
                 ) : (
                   <form action={setOwnerPortalAccess.bind(null, id, true)}>

@@ -420,14 +420,14 @@ export default async function JournalEntriesPage({
                         </TD>
                         <TD className="whitespace-nowrap text-right">
                           {!je.posted && (
-                            <div className="flex items-center justify-end gap-3">
+                            <div className="flex items-center justify-end gap-1">
                               <form action={postDraftJournalEntry}>
                                 <input type="hidden" name="entry_id" value={je.id} />
-                                <button type="submit" className="text-xs font-medium text-gray-900 hover:underline">Post</button>
+                                <Button type="submit" variant="ghost" size="sm">Post</Button>
                               </form>
                               <form action={deleteDraftJournalEntry}>
                                 <input type="hidden" name="entry_id" value={je.id} />
-                                <PendingSubmit variant="ghost" size="sm" pendingLabel="Deleting…" confirm="Delete this draft journal entry?">Delete</PendingSubmit>
+                                <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Deleting…" confirm="Delete this draft journal entry?">Delete</PendingSubmit>
                               </form>
                             </div>
                           )}

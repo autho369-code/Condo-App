@@ -198,7 +198,7 @@ export default async function CommitteesTab({
                     </td>
                     <td className="px-4 py-3 text-right">
                       <form action={removeMember.bind(null, m.id)}>
-                        <PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this member from the committee?">Remove</PendingSubmit>
+                        <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Removing…" confirm="Remove this member from the committee?">Remove</PendingSubmit>
                       </form>
                     </td>
                   </tr>

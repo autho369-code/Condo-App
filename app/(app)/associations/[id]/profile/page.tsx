@@ -535,7 +535,7 @@ export default async function AssociationProfileTab({
                     </div>
                   </div>
                   {canManageLoans && <form action={archiveLoan.bind(null, l.id)}>
-                    <PendingSubmit variant="ghost" size="sm" pendingLabel="Archiving…" confirm="Archive this loan?">Archive</PendingSubmit>
+                    <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Archiving…" confirm="Archive this loan?">Archive</PendingSubmit>
                   </form>}
                 </li>
               ))}

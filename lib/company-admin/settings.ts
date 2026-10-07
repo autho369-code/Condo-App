@@ -49,3 +49,12 @@ export function normalizeSupportEmail(value: FormDataEntryValue | null): { email
   }
   return { email: raw }
 }
+
+/**
+ * True when the text has at least one character a reader can see: not only
+ * whitespace (incl. non-breaking) or invisible format characters such as
+ * zero-width spaces. Company names head every client-facing page and email.
+ */
+export function hasVisibleText(value: string | null | undefined): boolean {
+  return /[^\s\p{Cf}]/u.test(value ?? '');
+}
