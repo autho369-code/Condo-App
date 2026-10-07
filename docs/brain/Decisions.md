@@ -20,3 +20,5 @@ Back to [[Home]]. Don't redo these.
   #10B981) because it is sent to every page as a request header.
 - **Server actions never fall back to a client-sent (bound) id** — use the
   caller's own portfolio and error if it's missing.
+- **Destructive or access-changing one-click actions use `PendingSubmit` with
+  `confirm`** (remove staff, send reset link, change role).

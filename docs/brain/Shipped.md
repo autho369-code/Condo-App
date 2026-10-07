@@ -9,7 +9,9 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   name can't be blank, brand color #RRGGBB (DB checks + all three settings
   actions); Branding page validates URLs/email and fails loudly; support email
   validated in the Branding, Company Admin and Platform Operator actions.
-- Open: `/settings` team table and MFA rows meet the 40px touch target.
+- Open (#241): `/settings` team table and MFA rows meet the 40px touch
+  target; every submit uses `PendingSubmit`, with confirms before Remove,
+  Send reset link and Apply role.
 - #240 (merged 79e91ab; migration 20261007060000 applied): `/settings` saves
   show a success banner and never keep a stale error; NBSP-safe company-name
   check.

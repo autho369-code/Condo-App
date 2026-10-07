@@ -2,7 +2,7 @@ import { verifiedAuthLink } from '@/lib/auth/email-links';
 import { createClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { Input, Label, Select } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Alert, PageHeader, PageShell, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { updatePortfolioPolicy } from '@/lib/rpcs/portfolio';
@@ -325,7 +325,7 @@ export default async function SettingsPage({
                 defaultValue={portfolio?.convenience_fee_card_pct ?? 2.9} />
             </div>
 
-            <div className="sm:col-span-2"><Button type="submit">Save policy</Button></div>
+            <div className="sm:col-span-2"><PendingSubmit pendingLabel="Saving…">Save policy</PendingSubmit></div>
           </form>
         </Surface>
 
@@ -344,7 +344,7 @@ export default async function SettingsPage({
                 <option>On-Site Manager</option>
               </Select>
             </div>
-            <div className="flex items-end"><Button type="submit" className="w-full">Send invite</Button></div>
+            <div className="flex items-end"><PendingSubmit className="w-full" pendingLabel="Sending…">Send invite</PendingSubmit></div>
             <div className="sm:col-span-4">
               <Label htmlFor="message">Message (optional)</Label>
               <Input id="message" name="message" />
@@ -373,16 +373,16 @@ export default async function SettingsPage({
                           <option>President</option><option>Property Manager</option><option>Accountant</option>
                           <option>On-Site Manager</option>
                         </Select>
-                        <Button type="submit" variant="secondary" size="sm">Apply</Button>
+                        <PendingSubmit variant="secondary" size="sm" pendingLabel="Applying…" confirm={`Apply the selected role to ${m.email}? Their permissions change right away.`}>Apply</PendingSubmit>
                       </form>
                       <form action={resetStaffPassword}>
                         <input type="hidden" name="auth_user_id" value={m.id} />
                         <input type="hidden" name="email" value={m.email} />
-                        <Button type="submit" variant="secondary" size="sm">Send reset link</Button>
+                        <PendingSubmit variant="secondary" size="sm" pendingLabel="Sending…" confirm={`Email a password reset link to ${m.email}?`}>Send reset link</PendingSubmit>
                       </form>
                       <form action={removeStaffMember}>
                         <input type="hidden" name="profile_id" value={m.id} />
-                        <Button type="submit" variant="secondary" size="sm" className="text-red-600 hover:bg-red-50">Remove</Button>
+                        <PendingSubmit variant="secondary" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Removing…" confirm={`Remove ${m.email} from the team? They lose staff access until invited again.`}>Remove</PendingSubmit>
                       </form>
                     </div>
                   </TD>

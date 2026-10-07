@@ -12,8 +12,10 @@ Back to [[Home]]. Updated 2026-10-07 (after #240).
   pilot).
 
 ## Open PR
-- `/settings` team table + MFA rows use shared controls (40px touch targets);
-  dead hidden `portfolio_id` input removed from the invite form. No migration.
+- #241 (open): `/settings` team table + MFA rows use shared controls (40px
+  touch targets); dead hidden `portfolio_id` input removed; every submit on
+  the page uses `PendingSubmit` (no double submits) and Remove / Send reset
+  link / Apply role ask for confirmation first. No migration.
 - #240 merged (79e91ab); migration `20261007060000` applied and verified
   (`portfolios_company_name_visible` contains chr(160)).
 - #239 merged (0e8f398); migrations `20261007040000` and `20261007050000`
@@ -23,9 +25,7 @@ Back to [[Home]]. Updated 2026-10-07 (after #240).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-1. `/settings` team table "Remove" deletes a staff member with no confirmation
-   step — add a confirm (shared dialog/confirm pattern) before
-   `removeStaffMember` runs.
-2. Look for the next white-label / sign-in / data-exposure gap with the
+1. Look for the next white-label / sign-in / data-exposure gap with the
    overseer agent (a zero-width-space-only company name still passes the DB
-   check — only reachable by direct SQL).
+   check — only reachable by direct SQL). Also: other pages with one-click
+   destructive actions without `PendingSubmit confirm`.
