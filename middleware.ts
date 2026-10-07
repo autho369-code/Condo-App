@@ -127,7 +127,7 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-tenant-host', host.hostname)
     requestHeaders.set('x-portfolio-id', tenantPortfolio.id)
     if (tenantPortfolio.slug) requestHeaders.set('x-portfolio-slug', tenantPortfolio.slug)
-    setEncodedHeader(requestHeaders, 'x-portfolio-name', tenantPortfolio.company_name ?? 'Portier369')
+    setEncodedHeader(requestHeaders, 'x-portfolio-name', tenantPortfolio.company_name)
     setEncodedHeader(requestHeaders, 'x-portfolio-logo', tenantPortfolio.logo_url)
     requestHeaders.set('x-portfolio-color', tenantPortfolio.brand_color ?? '#10B981')
     setEncodedHeader(requestHeaders, 'x-portfolio-support-email', tenantPortfolio.support_email)

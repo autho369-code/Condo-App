@@ -87,11 +87,10 @@ The system (no step depends on Claude remembering):
    link (verified custom domain else workspace), company name in plain text.
    Tested in PGlite. **After Mirsad merges: apply it with Supabase MCP
    `apply_migration` on termxngysvotnfbzbgrv.**
-2. `'Portier369'` fallback for the company name in `lib/tenant/resolve.ts`
-   (~55, ~74) and `middleware.ts` (`x-portfolio-name`). `company_name` is NOT
-   NULL, so it only shows if the header is missing/garbled — use neutral
-   wording and don't set the header with a fake value (the manuals route
-   relies on the header being absent).
+2. DONE (PR #238): company-name fallback on company workspaces is
+   `NEUTRAL_COMPANY_NAME` ('Your management company', trimmed) in
+   `lib/tenant/resolve.ts`; middleware sets `x-portfolio-name` only with a
+   real name; manuals route and `(app)/layout` skip the neutral substitute.
 3. Optional hardening from the security reviewer: CHECK constraint on
    `user_invitations.token` format; `html_escape` should also escape `'`.
 

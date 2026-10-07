@@ -23,6 +23,13 @@ export type TenantBranding = {
 const APEX_DOMAIN = process.env.NEXT_PUBLIC_APEX_DOMAIN || 'portier369.com';
 
 /**
+ * Shown on a company's own pages only if its name is somehow unavailable
+ * (company_name is NOT NULL, so this means a missing or garbled header).
+ * White label: never fall back to the platform's name on a client's pages.
+ */
+export const NEUTRAL_COMPANY_NAME = 'Your management company';
+
+/**
  * Resolve a tenant from the request hostname.
  * Returns null for apex domain (no tenant-specific branding — use default Portier branding).
  */
@@ -51,7 +58,7 @@ function mapBranding(row: any, hostname: string): TenantBranding {
     portfolioId: row.id,
     slug: row.slug ?? null,
     hostname,
-    companyName: row.company_name ?? 'Portier369',
+    companyName: row.company_name?.trim() || NEUTRAL_COMPANY_NAME,
     logoUrl: row.logo_url ?? null,
     brandColor: row.brand_color ?? '#10B981',
     supportEmail: row.support_email ?? null,
@@ -71,7 +78,7 @@ export function tenantFromHeaders(headers: Headers): TenantBranding | null {
     portfolioId: id,
     slug: headers.get('x-portfolio-slug') || null,
     hostname: headers.get('x-tenant-host') || null,
-    companyName: readHeader(headers, 'x-portfolio-name') ?? 'Portier369',
+    companyName: readHeader(headers, 'x-portfolio-name')?.trim() || NEUTRAL_COMPANY_NAME,
     logoUrl: readHeader(headers, 'x-portfolio-logo'),
     brandColor: headers.get('x-portfolio-color') ?? '#10B981',
     supportEmail: readHeader(headers, 'x-portfolio-support-email'),
