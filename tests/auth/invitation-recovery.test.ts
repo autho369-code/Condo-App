@@ -22,4 +22,13 @@ describe('invitation and password recovery surfaces', () => {
     expect(forgot).toContain('If an account exists for that email');
     expect(reset).toContain('placeholder="At least 12 characters"');
   });
+
+  it("sends a company's password reset under the company's name (white label)", () => {
+    expect(forgot).toContain("subject: brand ? `Reset your ${brand} password` : 'Reset your password'");
+    expect(forgot).toContain('from_name: portfolioId ? null : PLATFORM_NAME');
+    // portfolios has company_name only (no name column).
+    expect(forgot).toContain(".from('portfolios').select('company_name')");
+    expect(forgot).not.toContain("'Reset your Portier369 password'");
+    expect(reset).not.toContain('Portier369');
+  });
 });

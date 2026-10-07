@@ -143,7 +143,7 @@ export default async function AISettingsPage({
               placeholder={p.ai_api_key_ciphertext ? 'Configured — leave blank to keep it' : 'Enter provider API key'}
             />
             <p className="mt-1 text-xs text-gray-400">
-              Encrypted with AES-256-GCM before database storage. The key is used only by server-side AI features, and provider URLs are fixed by Portier369.
+              Encrypted with AES-256-GCM before database storage. The key is used only by server-side AI features, and provider URLs are fixed by the platform.
             </p>
             {p.ai_api_key_ciphertext && (
               <label className="mt-3 flex items-center gap-2 text-xs text-gray-600">

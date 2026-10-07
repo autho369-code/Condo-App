@@ -36,7 +36,7 @@ export default async function LockboxPage() {
   return (
     <DataWorkspace
       title="Lockbox"
-      description="Import the bank's lockbox file, let Portier369 match each check to a unit, review, and post them as receipts."
+      description="Import the bank's lockbox file, match each check to a unit automatically, review, and post them as receipts."
     >
       <div className="space-y-6">
         <Surface>

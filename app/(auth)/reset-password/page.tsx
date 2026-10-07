@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
           Choose a new password
         </h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">
-          Set a new password for your Portier369 account.
+          Set a new password for your account.
         </p>
       </header>
 

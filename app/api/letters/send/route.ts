@@ -75,7 +75,8 @@ export async function POST(request: NextRequest) {
       templateId: template.id,
       sentBy: me.auth_user_id,
       fromName: me.portfolio?.company_name ?? null,
-      replyTo: me.portfolio?.support_email ?? 'hello@portier369.com',
+      // Replies reach the company (its support address, else the sender), never the platform.
+      replyTo: me.portfolio?.support_email || me.email || null,
       idempotencyKey: `letter:${requestKey}`,
     });
     const { data: queued, error } = await db
