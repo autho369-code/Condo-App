@@ -16,7 +16,8 @@ Back to [[Home]]. Updated 2026-10-07 (after #245).
   `/report-violation`, its submit action and the AI photo route listed and
   accepted every company's associations (and spent any company's AI key);
   now only the host company's (tenantFromHeaders). Stripe receipts no longer
-  send as the platform. No migration.
+  send as the platform; the public layout falls back to "Your management
+  company" instead of the platform name. No migration.
 - #245 merged (e25b1d1); migration 20261007100000 applied and verified
   (sync_owner_delinquency_cases: 3 association checks, grants unchanged). 30
   silent saves fail loudly.

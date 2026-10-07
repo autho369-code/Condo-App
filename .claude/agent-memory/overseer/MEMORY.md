@@ -58,3 +58,6 @@
   service client: check every read is filtered by the host's tenant
   (`tenantFromHeaders().portfolioId`). /report-violation listed every
   company's associations to anyone (found 2026-10-07).
+- A rule found in review that applies to future work (e.g. "public pages filter
+  every service-client read by the host's tenant", 2026-10-07) belongs in
+  docs/brain/Product Rules.md too, not only in reviewer/overseer memory.

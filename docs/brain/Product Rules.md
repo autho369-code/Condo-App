@@ -9,6 +9,10 @@ Back to [[Home]].
 - **White label everywhere:** clients see their own company name and domain
   ("EACH CLIENT MUST HAVE ITS OWN DOMAIN"). Only "Powered by Portier369" /
   "Generated securely by Portier369" credits stay.
+- **Public pages are one company's:** a public page or route that reads with
+  the service client filters every read and write by the host's company
+  (`tenantFromHeaders(headers).portfolioId`, set by middleware) - never lists
+  or accepts another company's data; an address with no company fails closed.
 - **All sign-ins go through Portier369's own Supabase sign-in:** auth links
   (sign-in, reset, invites, callbacks) stay on `<slug>.portier369.com`, never a
   custom domain.
