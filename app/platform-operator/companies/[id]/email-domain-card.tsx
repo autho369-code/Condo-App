@@ -3,21 +3,13 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { Alert } from '@/components/ui/shell';
-import { StatusChip, type Tone } from '@/components/operations/status-chip';
+import { StatusChip } from '@/components/operations/status-chip';
+import { recordTone, senderStatus } from '@/lib/email/sender-status';
 import { EMAIL_FROM } from '@/lib/email/queue';
 import { DEFAULT_FROM_LOCAL_PART, brandedFromAddress, dnsRecords, type SenderDomainRow } from '@/lib/email/sender-domains';
 import { date } from '@/lib/utils';
 import { checkSenderDomain, setSenderDomainEnabled, setupSenderDomain } from '../actions';
 
-const STATUS: Record<string, { tone: Tone; label: string }> = {
-  verified: { tone: 'success', label: 'Verified' },
-  pending: { tone: 'warning', label: 'Checking DNS' },
-  not_started: { tone: 'warning', label: 'Waiting for DNS records' },
-  partially_verified: { tone: 'warning', label: 'Partly verified' },
-  partially_failed: { tone: 'danger', label: 'Some records failed' },
-  failed: { tone: 'danger', label: 'Verification failed' },
-  temporary_failure: { tone: 'warning', label: 'Temporary failure' },
-};
 
 export function EmailDomainCard({
   portfolioId,
@@ -32,7 +24,7 @@ export function EmailDomainCard({
 }) {
   const sending = brandedFromAddress(row);
   const records = dnsRecords(row?.records);
-  const status = row ? STATUS[row.status] ?? { tone: 'neutral' as Tone, label: row.status } : null;
+  const status = row ? senderStatus(row.status) : null;
 
   return (
     <Card id="email-domain">
@@ -124,7 +116,7 @@ export function EmailDomainCard({
                           <TD className="font-mono text-xs">{r.name}</TD>
                           <TD className="font-mono text-xs break-all">{r.value}</TD>
                           <TD>{r.priority ?? '—'}</TD>
-                          <TD><StatusChip tone={r.status === 'verified' ? 'success' : r.status === 'failed' ? 'danger' : 'warning'}>{r.status.replace(/_/g, ' ') || 'pending'}</StatusChip></TD>
+                          <TD><StatusChip tone={recordTone(r.status)}>{r.status.replace(/_/g, ' ') || 'pending'}</StatusChip></TD>
                         </TR>
                       ))}
                     </tbody>

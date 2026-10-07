@@ -3,6 +3,7 @@ import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Alert } from '@/components/ui/shell'
 import { PendingSubmit } from '@/components/ui/pending-submit'
 import { updateCompanySettings } from './actions'
+import { AddressesCard, type CompanySenderRow } from './addresses-card'
 import { Building2, Palette, Save } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -23,11 +24,19 @@ export default async function SettingsPage({
 
   // Explicit columns: portfolios also holds secrets (AI API keys) that this
   // page never needs.
-  const { data: portfolio, error: portfolioError } = await db
-    .from('portfolios')
-    .select('id, company_name, phone_number, support_email, address_street, address_city, address_state, address_zip, brand_color, logo_url')
-    .eq('id', portfolioId)
-    .maybeSingle()
+  const [{ data: portfolio, error: portfolioError }, { data: sender, error: senderError }] = await Promise.all([
+    db
+      .from('portfolios')
+      .select('id, company_name, phone_number, support_email, address_street, address_city, address_state, address_zip, brand_color, logo_url, slug, custom_domain')
+      .eq('id', portfolioId)
+      .maybeSingle(),
+    // RLS lets the company's admins read their own row only.
+    db
+      .from('portfolio_email_domains')
+      .select('domain, from_local_part, status, records, enabled, last_checked_at')
+      .eq('portfolio_id', portfolioId)
+      .maybeSingle(),
+  ])
   // Saving a form rendered from a failed load would blank every field.
   const loadError = !portfolioId
     ? 'Your account is not linked to a company.'
@@ -135,6 +144,15 @@ export default async function SettingsPage({
           </PendingSubmit>
         </div>
       </form>}
+
+      {!loadError && (
+        <AddressesCard
+          slug={p.slug ?? null}
+          customDomain={p.custom_domain ?? null}
+          sender={(sender as CompanySenderRow | null) ?? null}
+          senderError={senderError?.message ?? null}
+        />
+      )}
     </div>
   )
 }

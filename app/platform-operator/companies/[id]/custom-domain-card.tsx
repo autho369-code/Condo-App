@@ -5,17 +5,10 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { Alert } from '@/components/ui/shell';
-import { StatusChip, type Tone } from '@/components/operations/status-chip';
+import { StatusChip } from '@/components/operations/status-chip';
 import { apexDomain } from '@/lib/tenant/host';
-import {
-  isRootDomain,
-  lookupDomain,
-  pointsAtVercel,
-  requiredDnsRecord,
-  vercelDomainStatus,
-  vercelDomainsEnv,
-  type DnsRecord,
-} from '@/lib/tenant/custom-domain';
+import { isRootDomain } from '@/lib/tenant/custom-domain';
+import { customDomainStatus } from '@/lib/tenant/domain-status';
 import { updateCustomDomain } from '../actions';
 
 export function CustomDomainCard({
@@ -68,25 +61,7 @@ export function CustomDomainCard({
 }
 
 async function DomainStatus({ domain }: { domain: string }) {
-  const env = vercelDomainsEnv();
-  const [vercel, answer] = await Promise.all([
-    env ? vercelDomainStatus(env, domain) : Promise.resolve(null),
-    lookupDomain(domain),
-  ]);
-  const attached = vercel?.state === 'attached' ? vercel : null;
-  const record = requiredDnsRecord(domain, attached?.recommended);
-  const dnsReady = attached?.misconfigured != null ? !attached.misconfigured : pointsAtVercel(answer, record);
-  const current = [...answer.cnames.map((c) => `CNAME ${c}`), ...answer.ipv4.map((ip) => `A ${ip}`)];
-
-  let tone: Tone = 'warning';
-  let label = 'DNS not pointed yet';
-  if (vercel?.state === 'not-attached') { tone = 'danger'; label = 'Not added to Vercel'; }
-  else if (attached && !attached.verified) { tone = 'warning'; label = 'Waiting for Vercel verification'; }
-  else if (dnsReady) { tone = 'success'; label = attached ? 'Live' : 'DNS points to Vercel'; }
-
-  const records: DnsRecord[] = [record, ...(attached?.verification ?? []).map((v) => ({
-    type: v.type, name: v.domain, value: v.value,
-  }))];
+  const { tone, label, current, pendingRecords: records, vercel, vercelConfigured } = await customDomainStatus(domain);
 
   return (
     <div className="mt-4 space-y-3">
@@ -103,13 +78,13 @@ async function DomainStatus({ domain }: { domain: string }) {
           Save the domain again to add it, or add {domain} under Vercel → Project → Domains.
         </Alert>
       )}
-      {!env && (
+      {!vercelConfigured && (
         <p className="text-xs text-gray-500">
           Add {domain} under Vercel → Project → Domains (set VERCEL_API_TOKEN and VERCEL_PROJECT_ID to do this automatically on save).
         </p>
       )}
 
-      {!dnsReady || (attached && !attached.verified) ? (
+      {records.length > 0 ? (
         <div>
           <p className="mb-2 text-xs text-gray-600">Send the company these DNS records for their domain provider:</p>
           <div className="overflow-x-auto">
