@@ -14,29 +14,26 @@ const read = (p) => (existsSync(p) ? readFileSync(p, 'utf8') : '');
 
 sh('git fetch -q origin main');
 
-// Baseline for the Stop guard: HEAD when this session began (kept out of git
-// by the .claude/* ignore rule). Written once per session: SessionStart also
-// fires on resume/clear/compact, and those must not move the baseline.
+// Baseline for the Stop guard: HEAD when this session began, one file per
+// session id under .claude/brain-baselines/ (kept out of git by the .claude/*
+// ignore rule) so parallel sessions in one checkout don't overwrite each
+// other. Written once: SessionStart also fires on resume/clear/compact.
 let hookInput = {};
 if (!process.stdin.isTTY) {
   try { hookInput = JSON.parse(readFileSync(0, 'utf8') || '{}'); } catch {}
 }
 try {
-  const BASELINE = '.claude/brain-baseline.json';
-  let existing = null;
-  try { existing = JSON.parse(read(BASELINE) || 'null'); } catch {}
-  const sameSession = existing?.sessionId && existing.sessionId === hookInput.session_id;
-  if (!sameSession && hookInput.source !== 'compact') {
-    mkdirSync('.claude', { recursive: true });
-    writeFileSync(BASELINE, JSON.stringify({
-      sessionId: hookInput.session_id ?? null,
-      head: sh('git rev-parse HEAD'),
-    }));
+  const id = String(hookInput.session_id ?? '').replace(/[^A-Za-z0-9_-]/g, '');
+  const file = `.claude/brain-baselines/${id}.json`;
+  if (id && !existsSync(file)) {
+    mkdirSync('.claude/brain-baselines', { recursive: true });
+    writeFileSync(file, JSON.stringify({ head: sh('git rev-parse HEAD') }));
   }
 } catch {}
+
 const out = [];
 out.push('=== PORTIER369 SECOND BRAIN — loaded automatically. Follow it. ===');
-out.push('Update docs/CLAUDE_MEMORY.md and commit it with the work before the session ends (a Stop hook enforces this).');
+out.push('Update docs/CLAUDE_MEMORY.md and commit it with the work before the session ends (a Stop hook reminds you).');
 out.push('');
 out.push(read('docs/CLAUDE_MEMORY.md') || '(docs/CLAUDE_MEMORY.md is missing — recreate it.)');
 

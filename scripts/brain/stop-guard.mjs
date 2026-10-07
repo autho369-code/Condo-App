@@ -12,8 +12,10 @@ let input = {};
 try { input = JSON.parse(readFileSync(0, 'utf8') || '{}'); } catch {}
 if (input.stop_hook_active) process.exit(0);
 
-const BASELINE = '.claude/brain-baseline.json';
 const MEMORY = 'docs/CLAUDE_MEMORY.md';
+const id = String(input.session_id ?? '').replace(/[^A-Za-z0-9_-]/g, '');
+if (!id) process.exit(0);
+const BASELINE = `.claude/brain-baselines/${id}.json`;
 if (!existsSync(BASELINE)) process.exit(0);
 
 let baseline;
