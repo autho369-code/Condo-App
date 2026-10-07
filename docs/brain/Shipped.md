@@ -4,12 +4,14 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-07
+- Open: AI Assistant setup reachable for company admins; managers see an
+  "ask your company admin" note instead of a bounce; AI on/off status.
 - #239 (merged 0e8f398; migrations applied): invitation token hardening (token format CHECK,
   server-generated tokens for API writes, `html_escape` escapes `'`); company
   name can't be blank, brand color #RRGGBB (DB checks + all three settings
   actions); Branding page validates URLs/email and fails loudly; support email
   validated in the Branding, Company Admin and Platform Operator actions.
-- Open (#241): `/settings` team table and MFA rows meet the 40px touch
+- #241 (merged 11ad690): `/settings` team table and MFA rows meet the 40px touch
   target; every submit uses `PendingSubmit`, with confirms before Remove,
   Send reset link and Apply role.
 - #240 (merged 79e91ab; migration 20261007060000 applied): `/settings` saves

@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-07 (after #240).
+Back to [[Home]]. Updated 2026-10-07 (after #241).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,10 +12,17 @@ Back to [[Home]]. Updated 2026-10-07 (after #240).
   pilot).
 
 ## Open PR
-- #241 (open): `/settings` team table + MFA rows use shared controls (40px
-  touch targets); dead hidden `portfolio_id` input removed; every submit on
-  the page uses `PendingSubmit` (no double submits) and Remove / Send reset
-  link / Apply role ask for confirmation first. No migration.
+- Open: AI Assistant setup — company admins can use the assistant (AI
+  routes accept workspace staff incl. company admins), `/settings/ai` opens
+  for every workspace member (form for admins, read-only "ask your company
+  admin" for managers), assistant shows "AI is off" up front, company-admin
+  nav gets AI Assistant + AI Settings. No migration.
+- **Mirsad to do:** Stellar has provider OpenAI / gpt-4o selected but **no
+  API key saved** — enter a key at `/settings/ai` (company admin) to turn AI
+  on. Decision pending: a platform `DEEPSEEK_API_KEY` exists in Vercel but is
+  only used by `/api/piper`; companies currently must bring their own key.
+- #241 merged (11ad690): `/settings` touch targets, confirms, no double
+  submits. No migration.
 - #240 merged (79e91ab); migration `20261007060000` applied and verified
   (`portfolios_company_name_visible` contains chr(160)).
 - #239 merged (0e8f398); migrations `20261007040000` and `20261007050000`

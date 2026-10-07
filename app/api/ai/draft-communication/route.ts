@@ -7,7 +7,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIConfig, chatCompletion } from '@/lib/ai/service';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 
 type Tone = 'professional' | 'friendly' | 'urgent' | 'formal';
 const VALID_TONES: Tone[] = ['professional', 'friendly', 'urgent', 'formal'];
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   // Require staff
   let me;
   try {
-    me = await requireStaff();
+    me = await requireWorkspaceStaff();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

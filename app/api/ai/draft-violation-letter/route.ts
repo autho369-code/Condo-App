@@ -6,14 +6,14 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIConfig, chatCompletion } from '@/lib/ai/service';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { todayInZone } from '@/lib/time/zoned';
 
 export async function POST(request: NextRequest) {
   // Require an authenticated staff user.
   try {
-    await requireStaff();
+    await requireWorkspaceStaff();
   } catch {
     return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
   }

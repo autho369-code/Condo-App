@@ -16,7 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIConfig, toolCompletion } from '@/lib/ai/service';
 import { portfolioToolsFor, runPortfolioTool } from '@/lib/ai/portfolio-tools';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { buildPortfolioSnapshot } from '@/lib/ai/portfolio-snapshot';
 import {
   MAX_ASSISTANT_MESSAGE_CHARS,
@@ -47,7 +47,7 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   let me;
   try {
-    me = await requireStaff();
+    me = await requireWorkspaceStaff();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
