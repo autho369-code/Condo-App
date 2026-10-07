@@ -13,6 +13,14 @@
 -- covers the rows those triggers don't.
 -- post_recurring_journal_entries covers every association, so scoped
 -- managers are refused, as post_recurring_bills already does.
+-- Also scoped here (security review): save_recurring_bill's update path now
+-- checks the existing row's association (it only checked the new one), and
+-- advance_delinquency_case, set_delinquency_case_hold and
+-- record_delinquency_board_referral_vote check the case's association
+-- (delinquency_cases has no scope trigger).
+-- Real gaps closed: save_/archive_recurring_bill, the delinquency RPCs and
+-- post_recurring_journal_entries; for the rest the existing row triggers
+-- already blocked the write and this adds an earlier, clearer refusal.
 --
 -- Already scoped and unchanged: post_manual_journal_entry and
 -- save_/archive_recurring_journal_entry (app_normalize_je_lines /
@@ -225,6 +233,46 @@ begin
   if not public.can_view_association_row(pkg.association_id) then
     raise exception 'Permission denied' using errcode = '42501';
   end if;$q$);
+  end if;
+  if n <> d then execute n; end if;
+
+  d := pg_get_functiondef('public.save_recurring_bill(uuid,uuid,uuid,uuid,uuid,text,text,numeric,text,integer,date,date,integer,boolean)'::regprocedure);
+  n := d;
+  if position($q$if not found then raise exception 'Recurring bill not found' using errcode = 'P0002'; end if;$q$ || $q$
+    if not public.can_view_association_row(v_existing.association_id) then raise exception 'Recurring bill not found' using errcode = 'P0002'; end if;$q$ in n) = 0 then
+    if position($q$if not found then raise exception 'Recurring bill not found' using errcode = 'P0002'; end if;$q$ in n) = 0 then raise exception 'anchor not found in save_recurring_bill'; end if;
+    n := replace(n, $q$if not found then raise exception 'Recurring bill not found' using errcode = 'P0002'; end if;$q$, $q$if not found then raise exception 'Recurring bill not found' using errcode = 'P0002'; end if;$q$ || $q$
+    if not public.can_view_association_row(v_existing.association_id) then raise exception 'Recurring bill not found' using errcode = 'P0002'; end if;$q$);
+  end if;
+  if n <> d then execute n; end if;
+
+  d := pg_get_functiondef('public.advance_delinquency_case(uuid,text)'::regprocedure);
+  n := d;
+  if position($q$if not found then raise exception 'Delinquency case not found'; end if;$q$ || $q$
+  if not public.can_view_association_row(case_row.association_id) then raise exception 'Delinquency case not found'; end if;$q$ in n) = 0 then
+    if position($q$if not found then raise exception 'Delinquency case not found'; end if;$q$ in n) = 0 then raise exception 'anchor not found in advance_delinquency_case'; end if;
+    n := replace(n, $q$if not found then raise exception 'Delinquency case not found'; end if;$q$, $q$if not found then raise exception 'Delinquency case not found'; end if;$q$ || $q$
+  if not public.can_view_association_row(case_row.association_id) then raise exception 'Delinquency case not found'; end if;$q$);
+  end if;
+  if n <> d then execute n; end if;
+
+  d := pg_get_functiondef('public.set_delinquency_case_hold(uuid,boolean,text)'::regprocedure);
+  n := d;
+  if position($q$if not found then raise exception 'Delinquency case not found'; end if;$q$ || $q$
+  if not public.can_view_association_row(case_row.association_id) then raise exception 'Delinquency case not found'; end if;$q$ in n) = 0 then
+    if position($q$if not found then raise exception 'Delinquency case not found'; end if;$q$ in n) = 0 then raise exception 'anchor not found in set_delinquency_case_hold'; end if;
+    n := replace(n, $q$if not found then raise exception 'Delinquency case not found'; end if;$q$, $q$if not found then raise exception 'Delinquency case not found'; end if;$q$ || $q$
+  if not public.can_view_association_row(case_row.association_id) then raise exception 'Delinquency case not found'; end if;$q$);
+  end if;
+  if n <> d then execute n; end if;
+
+  d := pg_get_functiondef('public.record_delinquency_board_referral_vote(uuid,date,integer,integer,text)'::regprocedure);
+  n := d;
+  if position($q$if not found then raise exception 'Delinquency case not found'; end if;$q$ || $q$
+  if not public.can_view_association_row(c.association_id) then raise exception 'Delinquency case not found'; end if;$q$ in n) = 0 then
+    if position($q$if not found then raise exception 'Delinquency case not found'; end if;$q$ in n) = 0 then raise exception 'anchor not found in record_delinquency_board_referral_vote'; end if;
+    n := replace(n, $q$if not found then raise exception 'Delinquency case not found'; end if;$q$, $q$if not found then raise exception 'Delinquency case not found'; end if;$q$ || $q$
+  if not public.can_view_association_row(c.association_id) then raise exception 'Delinquency case not found'; end if;$q$);
   end if;
   if n <> d then execute n; end if;
 end $mig$;
