@@ -1,5 +1,9 @@
 # CLAUDE.md — Portier369 (Condo-App)
 
+**Start of every session: read `docs/CLAUDE_MEMORY.md` (Claude's
+memory — cloud sessions keep nothing else). Update it and commit it before the
+session ends.**
+
 HOA/community-association management SaaS replicating AppFolio Property Manager's
 functionality with an original design. Next.js 15 (App Router) + Supabase
 (project `termxngysvotnfbzbgrv`, ~190 tables) + Tailwind. Deployed on Vercel
