@@ -14,6 +14,10 @@ export const VENDOR_EXPIRATION_FIELDS = [
   'contract_expiration',
 ] as const
 
+/** The same columns as one select list (kept as a literal so the column check can read it). */
+export const VENDOR_EXPIRATION_COLUMNS =
+  'workers_comp_expiration, general_liability_expiration, auto_insurance_expiration, epa_certification_expiration, state_license_expiration, contract_expiration'
+
 export type VendorComplianceStatus = 'none' | 'expired' | 'expiring' | 'compliant'
 
 export function vendorComplianceStatus(vendor: Record<string, unknown>, today: string, windowDays = 30): VendorComplianceStatus {

@@ -126,7 +126,9 @@ export async function sendEmail(formData: FormData) {
   }
 
   const fullBody = body;
-  const fromName = me.portfolio?.company_name ?? 'Portier369';
+  // Unset when the company has no name: delivery brands it from the portfolio
+  // (a 'Portier369' name would be sent as platform mail).
+  const fromName = me.portfolio?.company_name ?? null;
 
   // Publish the resident announcement FIRST: if it fails nothing else has been
   // written (previously the per-recipient rows were left 'queued' forever).

@@ -10,9 +10,9 @@
 // as a parameter of a function in the same file, in which case each call's
 // argument is checked. Every select that still can't be checked statically
 // (columns chosen at run time, `cols.join(', ')`, conditional pieces) must be
-// listed in supabase/unchecked-selects.json: the test fails on an unlisted
-// one, so nothing is skipped silently, and the list shows reviewers exactly
-// which queries rely on `npm run check:queries` (the live API probe) instead.
+// listed in supabase/unchecked-selects.json with how it is covered instead
+// (a dedicated test): the test fails on an unlisted one or an entry without a
+// reason, so nothing is skipped silently.
 //
 // Refresh the snapshot after a migration adds or renames columns: run this in
 // the Supabase SQL editor and save the result as supabase/schema-columns.json
@@ -499,6 +499,10 @@ export function findQueryColumnProblems(root, schema, fks = {}) {
       const rel = relative(root, file);
       const constants = constantResolver(root, file, cache);
       for (const m of src.matchAll(/\.from\(/g)) {
+        // Skip examples in comments (`// … .from(table) …`, ` * …`).
+        const lineStart = src.lastIndexOf('\n', m.index) + 1;
+        const before = src.slice(lineStart, m.index);
+        if (/^\s*(\*|\/\*)/.test(before) || /(^|[^:'"`])\/\//.test(before)) continue;
         const open = m.index + m[0].length - 1;
         const close = closeBracket(src, open);
         if (close === -1) continue;

@@ -1,6 +1,4 @@
-[
-  "app/company-admin/vendors/page.tsx  vendors  `id, name, vendor_type, trade, phone_numbers, emails, ach_status, ${VENDOR_EXPIRATION_FIELDS.join(', ')}`",
-  "lib/private-fields.ts  from(privateTable)  [key, ...columns].join(', ')",
-  "lib/reports/builder-catalog.ts  from(source.table)  cols",
-  "lib/reports/builder-catalog.ts  from(table)  cols"
-]
+{
+  "lib/private-fields.ts  from(privateTable)  [key, ...columns].join(', ')": "Every mergePrivateFields/mergePrivateFieldsOne call: tests/database/query-columns.test.ts (private-fields calls)",
+  "lib/reports/builder-catalog.ts  from(source.table)  cols": "Fixed catalog BUILDER_SOURCES: tests/database/query-columns.test.ts (report builder catalog)"
+}
