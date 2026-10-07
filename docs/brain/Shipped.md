@@ -9,8 +9,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   name can't be blank, brand color #RRGGBB (DB checks + all three settings
   actions); Branding page validates URLs/email and fails loudly; support email
   validated in the Branding, Company Admin and Platform Operator actions.
-- Open (follow-up): `/settings` saves show a success banner and never keep a
-  stale error; NBSP-safe company-name check.
+- Open: `/settings` team table and MFA rows meet the 40px touch target.
+- #240 (merged 79e91ab; migration 20261007060000 applied): `/settings` saves
+  show a success banner and never keep a stale error; NBSP-safe company-name
+  check.
 - #238 (merged b7ec661; migration 20261007030000 applied): second brain vault + hooks; Settings staff invitation email on
   the company workspace, escaped, Runbook link; company pages never fall back
   to the platform name (`NEUTRAL_COMPANY_NAME`).

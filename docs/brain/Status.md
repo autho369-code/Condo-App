@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-07 (after #239).
+Back to [[Home]]. Updated 2026-10-07 (after #240).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,23 +12,20 @@ Back to [[Home]]. Updated 2026-10-07 (after #239).
   pilot).
 
 ## Open PR
-- Follow-up to #239 (this branch): `/settings` save feedback (part 3 of #239,
-  pushed after #239 was merged) + migration
-  `20261007060000_portfolio_company_name_visible_nbsp.sql`. **After Mirsad
-  merges: apply it with `apply_migration` and verify
-  `portfolios_company_name_visible` contains chr(160).**
+- `/settings` team table + MFA rows use shared controls (40px touch targets);
+  dead hidden `portfolio_id` input removed from the invite form. No migration.
+- #240 merged (79e91ab); migration `20261007060000` applied and verified
+  (`portfolios_company_name_visible` contains chr(160)).
 - #239 merged (0e8f398); migrations `20261007040000` and `20261007050000`
-  applied and verified (token CHECK + trigger, brand-color CHECK,
-  `html_escape` escapes quotes). Note: production's
-  `portfolios_company_name_not_blank` got a plain space instead of NBSP
-  through the MCP; the follow-up fixes that. Dropping the old constraint is
-  optional and Mirsad's call (DROP).
+  applied and verified. Production's older `portfolios_company_name_not_blank`
+  has a plain space instead of NBSP — redundant now; dropping it is optional
+  and Mirsad's call (DROP).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-1. `/settings` team table (`app/(app)/settings/page.tsx`, role select and
-   Apply / Send reset link / Remove buttons): hand-built 32px controls — use
-   the shared `Select`/`Button` so they meet the 40px touch target at 375px.
+1. `/settings` team table "Remove" deletes a staff member with no confirmation
+   step — add a confirm (shared dialog/confirm pattern) before
+   `removeStaffMember` runs.
 2. Look for the next white-label / sign-in / data-exposure gap with the
    overseer agent (a zero-width-space-only company name still passes the DB
    check — only reachable by direct SQL).
