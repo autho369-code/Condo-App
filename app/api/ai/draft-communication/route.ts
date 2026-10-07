@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   if (!portfolioId) {
     return NextResponse.json({
       error: 'AI not configured',
-      hint: 'Set up AI in Settings → AI.',
+      hint: 'AI isn\'t set up yet — see AI settings.',
     }, { status: 400 });
   }
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   if (!config) {
     return NextResponse.json({
       error: 'AI not configured',
-      hint: 'Set up AI in Settings → AI.',
+      hint: 'AI isn\'t set up yet — see AI settings.',
     }, { status: 400 });
   }
 

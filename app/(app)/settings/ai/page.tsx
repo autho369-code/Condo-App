@@ -2,7 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { hasPortfolioAdminAccess, requirePortfolioAdmin, requireWorkspaceStaff } from '@/lib/auth/me';
 import { encryptAICredential } from '@/lib/ai/credentials';
 import { isSupportedAIProvider } from '@/lib/ai/service';
-import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Input, Label, Select } from '@/components/ui/input';
 import { Alert, Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell';
 import { StatusChip } from '@/components/operations/status-chip';
@@ -191,7 +191,7 @@ export default async function AISettingsPage({
         </Section>
 
         <div className="flex items-center gap-3">
-          <Button type="submit" size="lg">Save AI settings</Button>
+          <PendingSubmit size="lg" pendingLabel="Saving…">Save AI settings</PendingSubmit>
           <Link href="/settings" className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900">Back to settings</Link>
         </div>
       </form>

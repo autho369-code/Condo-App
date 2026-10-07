@@ -75,7 +75,7 @@ export function ViolationLetterDrafter({ violationId }: { violationId: string })
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           AI is not configured for this association.{' '}
           <Link href="/settings/ai" className="font-medium underline underline-offset-2">
-            Set it up in Settings → AI
+            See AI settings
           </Link>
           .
         </div>

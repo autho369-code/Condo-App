@@ -30,3 +30,7 @@
   validated support_email in Branding + Company Admin but not in
   platform-operator `updateCompanyDetails`.
 - After a merge, check main has every commit pushed before the merge — #239 merged before its third commit; cherry-pick the rest into a follow-up PR. After applying a migration, read the definition back from production.
+- When a page guard is widened with a read-only branch (e.g. /settings/ai,
+  2026-10-07), grep every inbound link + API `hint` text for admin-only wording
+  ("Set up AI in Settings → AI") still shown to non-admins, and check the save
+  form uses `PendingSubmit` (+ `confirm` if it can remove access/keys).

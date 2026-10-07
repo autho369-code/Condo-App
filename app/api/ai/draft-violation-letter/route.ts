@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     const config = await getAIConfig(portfolioId);
     if (!config) {
       return NextResponse.json(
-        { error: 'AI not configured', hint: 'Set up AI in Settings → AI.' },
+        { error: 'AI not configured', hint: 'AI isn\'t set up yet — see AI settings.' },
         { status: 400 }
       );
     }
