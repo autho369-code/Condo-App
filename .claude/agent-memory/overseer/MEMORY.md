@@ -34,3 +34,7 @@
   2026-10-07), grep every inbound link + API `hint` text for admin-only wording
   ("Set up AI in Settings → AI") still shown to non-admins, and check the save
   form uses `PendingSubmit` (+ `confirm` if it can remove access/keys).
+- The vault's Open PR line goes stale like the PR body: written in the first
+  commit, then a reviewer-fix commit widens scope (finance RPC scope PR,
+  2026-10-07: vault said "12 RPCs", final migration patches 16). Count the
+  final diff against the vault line.

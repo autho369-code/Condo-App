@@ -4,8 +4,13 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-07
-- Open: #242 follow-up — snapshot guard admits company admins (own portfolio
-  only); AI on/off reflects a key that actually decrypts.
+- #243 (merged df91ada; migrations 20261007070000 + 20261007080000 applied):
+  AI follow-up (snapshot guard admits company admins, on/off from a usable
+  key); ~45 destructive buttons confirm first; company names must contain a
+  visible character (app + DB check kept in sync by a test); Plaid Link no
+  platform-name fallback; security sweep (owner attachment delete scoped to
+  the owner's storage path, meeting-document delete, ~15 silent RLS no-ops
+  fail loudly, safe `back=`, bill RPCs association-scoped).
 - #242 (merged 32bd9b5): AI Assistant setup reachable for company admins;
   managers see an "ask your company admin" note instead of a bounce; AI
   on/off status. Merged before the Codex fixes — those ride the follow-up.
