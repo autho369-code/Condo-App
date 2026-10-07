@@ -20,7 +20,10 @@ functionality with an original design. Next.js 15 (App Router) + Supabase
    `supabase/migrations/` or ask the user to confirm schema. Money flows through
    `journal_entries`/`journal_lines` (double-entry); payments→owner is via the
    `receivable_payments_ledger` view; work orders link to owners through
-   `unit_owners` → `unit_id`.
+   `unit_owners` → `unit_id`. `npm test` checks every static `.select()`
+   against `supabase/schema-columns.json` (a snapshot of the live columns);
+   refresh it after a migration adds columns (SQL in
+   `scripts/lib/query-columns.mjs`).
 3. **Server actions must fail loudly.** Never `return { error }` from a plain
    `<form action>` — redirect back with `?error=...` and render an `<Alert>`
    (see `lib/rpcs/calendar.ts` `failTo` pattern).
