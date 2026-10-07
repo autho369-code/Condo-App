@@ -19,8 +19,31 @@ const fill = (text: string, b: GuideBranding) =>
       .replaceAll('{address}', b.signInAddress ?? 'your company\'s sign-in page'),
   );
 
+// Characters Windows-1252 (the built-in fonts' encoding) can print, beyond
+// Latin-1: curly quotes, dashes, bullet, euro and a few more.
+const CP1252_EXTRA = new Set('€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ');
+
+/** Whether the built-in PDF font can draw every character of `text`. */
+export function printableInBuiltInFont(text: string): boolean {
+  for (const ch of text) {
+    const code = ch.codePointAt(0)!;
+    if (code >= 0x20 && code <= 0x7e) continue;
+    if (code >= 0xa0 && code <= 0xff) continue;
+    if (CP1252_EXTRA.has(ch)) continue;
+    return false;
+  }
+  return true;
+}
+
 /** A guide as a Letter-size PDF branded for one company. */
-export function renderGuidePdf(guide: Guide, branding: GuideBranding): Uint8Array {
+export function renderGuidePdf(guide: Guide, rawBranding: GuideBranding): Uint8Array {
+  // A name the built-in font cannot draw (another script, emoji) would print
+  // as garbage; use the neutral wording instead.
+  const name = rawBranding.companyName?.trim() || null;
+  const branding: GuideBranding = {
+    ...rawBranding,
+    companyName: name && printableInBuiltInFont(name) ? name : null,
+  };
   const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
   const margin = 60;
   const width = 612;
@@ -28,7 +51,7 @@ export function renderGuidePdf(guide: Guide, branding: GuideBranding): Uint8Arra
   const contentWidth = width - margin * 2;
   const bottom = height - 70;
   const title = fill(guide.title, branding);
-  const company = branding.companyName?.trim() || null;
+  const company = branding.companyName;
   let y = 0;
 
   const fit = (text: string, maxWidth: number) => {

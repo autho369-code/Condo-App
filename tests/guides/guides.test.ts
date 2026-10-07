@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { describe, expect, it, vi } from 'vitest';
 import { GUIDES } from '@/lib/guides/content';
-import { renderGuidePdf } from '@/lib/guides/pdf';
+import { printableInBuiltInFont, renderGuidePdf } from '@/lib/guides/pdf';
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({ rpc: async () => ({ data: null, error: null }) }) }));
 
@@ -28,6 +28,15 @@ describe('staff guides', () => {
       expect(src).not.toContain('{company}');
       expect(src).not.toContain('{address}');
     }
+  });
+
+  it('fall back to neutral wording for names the built-in font cannot draw', () => {
+    expect(printableInBuiltInFont('Société Générale — “Gestion”')).toBe(true);
+    expect(printableInBuiltInFont('東京管理')).toBe(false);
+    expect(printableInBuiltInFont('Sunny HOA 🌴')).toBe(false);
+    const src = text(renderGuidePdf(GUIDES['manager-runbook'], { companyName: '東京管理', signInAddress: 'tokyo.portier369.com/login' }));
+    expect(src).toContain('tokyo.portier369.com/login');
+    expect(src).not.toContain('{company}');
   });
 
   it('use neutral wording when the company is unknown', () => {
