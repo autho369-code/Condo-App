@@ -1,10 +1,10 @@
 import { createServiceClient } from '@/lib/supabase/server';
-import { requirePortfolioAdmin } from '@/lib/auth/me';
+import { hasPortfolioAdminAccess, requirePortfolioAdmin, requireWorkspaceStaff } from '@/lib/auth/me';
 import { encryptAICredential } from '@/lib/ai/credentials';
 import { isSupportedAIProvider } from '@/lib/ai/service';
-import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Input, Label, Select } from '@/components/ui/input';
-import { Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell';
+import { Alert, Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Section } from '@/components/workspace/shell';
 import { revalidatePath } from 'next/cache';
@@ -68,39 +68,64 @@ export default async function AISettingsPage({
 }: {
   searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
-  const me = await requirePortfolioAdmin();
+  // Any workspace member may open this page so links from AI features never
+  // bounce; only company admins (and operators) see and save the form.
+  const me = await requireWorkspaceStaff();
+  const canConfigure = hasPortfolioAdminAccess(me);
   const svc = createServiceClient() as any;
   const params = await searchParams;
 
-  const { data: portfolio } = await svc
-    .from('portfolios')
-    .select('ai_provider, ai_model, ai_api_key_ciphertext')
-    .eq('id', me.portfolio.id)
-    .single();
+  const { data: portfolio } = me.portfolio?.id
+    ? await svc
+        .from('portfolios')
+        .select('ai_provider, ai_model, ai_api_key_ciphertext')
+        .eq('id', me.portfolio.id)
+        .maybeSingle()
+    : { data: null };
 
   const p = portfolio ?? {};
   const provider = p.ai_provider ?? 'openai';
   const currentProvider = PROVIDERS.find(pr => pr.value === provider) ?? PROVIDERS[0];
+  const configured = Boolean(p.ai_api_key_ciphertext && p.ai_provider && p.ai_model);
+  const providerLabel = PROVIDERS.find(pr => pr.value === p.ai_provider)?.label ?? p.ai_provider;
+
+  const status = configured ? (
+    <Alert tone="success" title="AI is on.">
+      Using {providerLabel} ({p.ai_model}). The AI Assistant, letter drafting and document extraction are available.
+    </Alert>
+  ) : (
+    <Alert tone="warning" title="AI is off.">
+      {canConfigure
+        ? 'Choose a provider and model and enter your API key below to turn on the AI Assistant and other AI features.'
+        : 'Ask your company admin to add an AI provider key here to turn on the AI Assistant and other AI features.'}
+    </Alert>
+  );
+
+  if (!canConfigure) {
+    return (
+      <PageShell className="max-w-3xl">
+        <Breadcrumb items={[{ label: 'AI Assistant', href: '/assistant' }, { label: 'AI configuration' }]} />
+        <PageHeader title="AI provider" description="AI features use your company's own AI provider account. Only company admins can change this setting." />
+        {status}
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell className="max-w-3xl">
       <Breadcrumb items={[{ label: 'Settings', href: '/settings' }, { label: 'AI configuration' }]} />
       <PageHeader
         title="AI provider"
-        description="Connect your own AI provider to power automated certificate extraction, violation drafting, maintenance scheduling, and Copilot features. You bring the API key — we provide the infrastructure."
+        description="Connect your company's own AI provider to power the AI Assistant, document extraction and drafting features. Your API key is stored encrypted and used only for your workspace's AI features."
       />
 
       <form action={saveAIProvider as any} className="space-y-6">
-        {params.saved === '1' && (
-          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            AI settings saved securely.
-          </p>
-        )}
-        {params.error && (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
-            {params.error}
-          </p>
-        )}
+        {params.error ? (
+          <Alert tone="danger" title="Could not save AI settings:">{params.error}</Alert>
+        ) : params.saved === '1' ? (
+          <Alert tone="success" title="AI settings saved securely." />
+        ) : null}
+        {status}
         <Section title="Provider" padded>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
@@ -146,7 +171,7 @@ export default async function AISettingsPage({
               Encrypted with AES-256-GCM before database storage. The key is used only by server-side AI features, and provider URLs are fixed by the platform.
             </p>
             {p.ai_api_key_ciphertext && (
-              <label className="mt-3 flex items-center gap-2 text-xs text-gray-600">
+              <label className="mt-3 flex min-h-10 items-center gap-2 text-xs text-gray-600">
                 <input type="checkbox" name="remove_ai_key" />
                 Remove the configured API key
               </label>
@@ -156,16 +181,17 @@ export default async function AISettingsPage({
 
         <Section title="Available AI features" padded>
           <div className="space-y-3 text-sm text-gray-600">
-            <FeatureRow icon="📄" title="Certificate extraction" desc="Auto-extract policy number, coverage, dates from uploaded HO6 certificates." status="ready" />
-            <FeatureRow icon="⚠️" title="Violation drafting" desc="AI generates violation notices from photo evidence and rule references." status="coming" />
-            <FeatureRow icon="🔧" title="Maintenance scheduling" desc="Auto-schedule recurring maintenance from property calendar and vendor availability." status="coming" />
-            <FeatureRow icon="📧" title="Communication Copilot" desc="Draft owner emails, vendor instructions, and board communications." status="coming" />
-            <FeatureRow icon="📊" title="Financial analysis" desc="Spending trend analysis, budget recommendations, delinquency predictions." status="coming" />
+            <FeatureRow title="AI Assistant" desc="Ask questions about your portfolio in plain language; answers use only your live, access-scoped data." status={configured ? 'ready' : 'needs-key'} />
+            <FeatureRow title="Certificate and invoice extraction" desc="Auto-extract policy details from insurance certificates and line items from vendor invoices." status={configured ? 'ready' : 'needs-key'} />
+            <FeatureRow title="Violation letter drafting" desc="Draft violation notices from the violation record and rule references." status={configured ? 'ready' : 'needs-key'} />
+            <FeatureRow title="Communication drafting" desc="Draft owner emails, vendor instructions and board communications." status={configured ? 'ready' : 'needs-key'} />
+            <FeatureRow title="Maintenance scheduling" desc="Auto-schedule recurring maintenance from the property calendar and vendor availability." status="coming" />
+            <FeatureRow title="Financial analysis" desc="Spending trends, budget recommendations and delinquency predictions." status="coming" />
           </div>
         </Section>
 
         <div className="flex items-center gap-3">
-          <Button type="submit" size="lg">Save AI settings</Button>
+          <PendingSubmit size="lg" pendingLabel="Saving…">Save AI settings</PendingSubmit>
           <Link href="/settings" className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900">Back to settings</Link>
         </div>
       </form>
@@ -173,15 +199,14 @@ export default async function AISettingsPage({
   );
 }
 
-function FeatureRow({ icon, title, desc, status }: { icon: string; title: string; desc: string; status: 'ready' | 'coming' }) {
+function FeatureRow({ title, desc, status }: { title: string; desc: string; status: 'ready' | 'needs-key' | 'coming' }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
-      <span className="text-xl">{icon}</span>
-      <div className="flex-1">
+    <div className="rounded-lg border border-gray-200 p-3">
+      <div>
         <div className="flex items-center gap-2">
           <span className="font-medium text-gray-900">{title}</span>
-          <StatusChip tone={status === 'ready' ? 'success' : 'warning'}>
-            {status === 'ready' ? 'Ready' : 'Soon'}
+          <StatusChip tone={status === 'ready' ? 'success' : status === 'needs-key' ? 'neutral' : 'warning'}>
+            {status === 'ready' ? 'Ready' : status === 'needs-key' ? 'Needs key' : 'Soon'}
           </StatusChip>
         </div>
         <p className="mt-0.5 text-xs text-gray-500">{desc}</p>

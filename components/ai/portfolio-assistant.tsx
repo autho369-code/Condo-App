@@ -175,7 +175,7 @@ export function PortfolioAssistant({
               <>
                 AI isn&apos;t set up yet.{' '}
                 <a href="/settings/ai" className="font-medium text-blue-600 underline-offset-4 hover:underline">
-                  Set up AI in Settings → AI
+                  See AI settings
                 </a>
                 .
               </>

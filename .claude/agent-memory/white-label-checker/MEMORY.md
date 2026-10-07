@@ -34,3 +34,4 @@
 
 ## Audited pages
 - app/(app)/settings/page.tsx (Oct 2026): clean. Success banners via SAVED_MESSAGES (?saved=policy from lib/rpcs/portfolio.ts:54, invited/removed/role); reset mail uses company_name + tenantWorkspaceUrl (auth link, allowed); metadata from (app)/layout workspaceMetadata. Re-check only new strings/links. PendingSubmit confirm/pending labels (components/ui/pending-submit.tsx, no platform text) re-checked Oct 2026: clean.
+- AI pages (settings/ai, assistant; Oct 2026): clean of platform name; metadata inherited from (app)/layout. Watch first-person "we" in client-facing copy (settings/ai:117 "we provide the infrastructure") - it speaks as the platform vendor; reword to neutral. `portier369:` strings in lib/ai/credentials.ts are crypto AAD/KDF labels, never shown: not a leak.

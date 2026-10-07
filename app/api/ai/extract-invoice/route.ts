@@ -7,14 +7,14 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIConfig, visionCompletion, chatCompletion } from '@/lib/ai/service';
-import { requireStaff, type MeResult } from '@/lib/auth/me';
+import { requireWorkspaceStaff, type MeResult } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   // Require an authenticated staff user (server routes are callable endpoints).
   let me: MeResult;
   try {
-    me = await requireStaff();
+    me = await requireWorkspaceStaff();
   } catch {
     return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
   }

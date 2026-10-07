@@ -51,6 +51,7 @@ export const residentModules: AppModule[] = [
 export const companyAdminModules: AppModule[] = [
   { label: 'Overview', href: '/company-admin/overview' },
   { label: 'AI Command Center', href: '/company-admin/insights' },
+  { label: 'AI Assistant', href: '/assistant' },
   { label: 'Associations', href: '/company-admin/associations' },
   { label: 'Meetings', href: '/meetings' },
   { label: 'Managers', href: '/company-admin/managers' },
@@ -73,6 +74,7 @@ export const companyAdminModules: AppModule[] = [
   { label: 'Communications', href: '/company-admin/communications' },
   { label: 'Platform Requests', href: '/company-admin/platform-requests' },
   { label: 'Audit Logs', href: '/company-admin/audit-logs' },
+  { label: 'AI Settings', href: '/settings/ai' },
   { label: 'Developer Hub', href: '/settings/developer' },
   { label: 'Settings', href: '/company-admin/settings' },
 ];

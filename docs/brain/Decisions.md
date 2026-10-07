@@ -23,3 +23,6 @@ Back to [[Home]]. Don't redo these.
 - **Destructive or access-changing one-click actions use `PendingSubmit` with
   `confirm`** (remove staff, send reset link, change role). The confirm runs
   only after the form is valid, so mark choices that must be made `required`.
+- **AI setup is company-admin only; every company brings its own provider
+  key** (no platform fallback key yet). Managers see an "ask your company
+  admin" note, never a bouncing link.

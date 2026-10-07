@@ -16,7 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIConfig, toolCompletion } from '@/lib/ai/service';
 import { portfolioToolsFor, runPortfolioTool } from '@/lib/ai/portfolio-tools';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { buildPortfolioSnapshot } from '@/lib/ai/portfolio-snapshot';
 import {
   MAX_ASSISTANT_MESSAGE_CHARS,
@@ -47,7 +47,7 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   let me;
   try {
-    me = await requireStaff();
+    me = await requireWorkspaceStaff();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   const portfolioId = me.portfolio?.id;
   if (!portfolioId) {
     return NextResponse.json(
-      { error: 'AI not configured', hint: 'Set up AI in Settings → AI.' },
+      { error: 'AI not configured', hint: 'AI isn\'t set up yet — see AI settings.' },
       { status: 400 },
     );
   }
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
   const config = await getAIConfig(portfolioId);
   if (!config) {
     return NextResponse.json(
-      { error: 'AI not configured', hint: 'Set up AI in Settings → AI.' },
+      { error: 'AI not configured', hint: 'AI isn\'t set up yet — see AI settings.' },
       { status: 400 },
     );
   }
