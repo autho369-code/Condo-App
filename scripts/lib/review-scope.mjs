@@ -97,13 +97,21 @@ export function reviewScope(cwd, { target = defaultTarget(cwd), paths = [] } = {
     const onTarget = treeEntry(cwd, target, path);
     const staged = indexEntry(cwd, path);
     const onDisk = diskEntry(cwd, path, fileMode, (staged ?? onTarget)?.split(' ')[0]);
+    // Scope is the branch's net change since the branch point. An untracked
+    // file absent at the branch point leaves the next commit where the branch
+    // started, so its missing index entry is not a change (if main has the
+    // file, a merge keeps main's copy). One present at the branch point that
+    // the index no longer has is a deletion the next commit makes.
+    const newUntracked = staged === null && onDisk !== null && treeEntry(cwd, base, path) === null;
+    const indexMatches = newUntracked || staged === onTarget;
     // Out of scope only if both what is on disk and what would be committed
     // match main exactly (same content, same mode, or absent on all sides).
-    const untracked = staged === null && onDisk !== null && treeEntry(cwd, 'HEAD', path) === null;
-    const indexMatches = untracked || staged === onTarget;
     if (onDisk === onTarget && indexMatches) continue;
-    const current = onDisk ?? staged;
-    const status = current === null ? 'D' : onTarget === null ? 'A' : 'M';
+    // D only when main still has the file the next commit removes; with main
+    // lacking it too, whatever is on disk is new relative to main.
+    const status = onTarget === null ? 'A'
+      : staged === null && !newUntracked ? 'D'
+      : 'M';
     scope.push({ status, path });
   }
   return scope.sort((a, b) => a.path.localeCompare(b.path));

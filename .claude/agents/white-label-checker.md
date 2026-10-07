@@ -11,9 +11,13 @@ You never edit project files; you report findings.
 Scope: the files you are given. If none, run `node scripts/review-scope.mjs`.
 It lists the files this branch changes that `main` does not have yet
 (`A`dded, `M`odified, `D`eleted), committed or not, and leaves out work main
-already has and files only main changed. Review a deleted file by what its
-removal takes away (`git show origin/main:<path>`). Use `git diff origin/main
--- <path>` to see each change.
+already has and files only main changed. For each listed path, read
+every version that exists rather than relying on one diff: main's
+(`git show origin/main:<path>`), the one the next commit will contain
+(`git show :<path>`), and the file on disk (read it directly; it may be an
+untracked replacement). Review what changes from main's version to each of
+the others; a `D` means the next commit removes main's version, so judge what
+that removal takes away.
 
 1. **Company name, not platform name.** Text, page titles, emails, PDFs, SMS
    and notifications shown to a company's users use the company name

@@ -36,12 +36,16 @@ describe('review scope', () => {
     git(dir, 'add', '-A'); git(dir, 'commit', '-qm', 'main work');
     git(dir, 'checkout', '-q', 'topic');
 
+    // Deleted on both sides, then recreated here: new relative to main.
+    write(dir, 'both-gone.ts', 'replacement\n');
+
     // Uncommitted work counts too.
     write(dir, 'keep.ts', 'keep.ts edited\n');
     write(dir, 'untracked.ts', 'new\n');
 
     try {
       expect(reviewScope(dir, { target: 'main' })).toEqual([
+        { status: 'A', path: 'both-gone.ts' },
         { status: 'D', path: 'gone.ts' },
         { status: 'M', path: 'keep.ts' },
         { status: 'M', path: 'mine.ts' },
@@ -62,8 +66,21 @@ describe('review scope', () => {
     git(dir, 'config', 'core.fileMode', 'true');
     write(dir, 'staged.ts', 'v1\n');
     write(dir, 'run.sh', 'echo hi\n');
+    write(dir, 'guard.ts', 'guard v1\n');
     git(dir, 'add', '-A'); git(dir, 'commit', '-qm', 'base');
     git(dir, 'checkout', '-qb', 'topic');
+    // Added by both sides, then removed again here (staged) with an untracked
+    // copy matching main: the branch's net change is nothing and a merge keeps
+    // main's file, so it is out of scope.
+    git(dir, 'checkout', '-q', 'main');
+    write(dir, 'shared.ts', 'shared\n');
+    git(dir, 'add', 'shared.ts'); git(dir, 'commit', '-qm', 'main adds shared');
+    git(dir, 'checkout', '-q', 'topic');
+    write(dir, 'shared.ts', 'shared\n');
+    git(dir, 'add', 'shared.ts'); git(dir, 'commit', '-qm', 'topic adds shared');
+    git(dir, 'rm', '-q', 'guard.ts'); git(dir, 'commit', '-qm', 'drop guard');
+    git(dir, 'rm', '-q', '--cached', 'shared.ts');
+    write(dir, 'guard.ts', 'guard v1\n'); // recreated, untracked, same bytes as main
 
     write(dir, 'staged.ts', 'v2\n');
     git(dir, 'add', 'staged.ts');
@@ -73,12 +90,16 @@ describe('review scope', () => {
     try {
       // No origin remote: falls back to the local main branch.
       expect(reviewScope(dir)).toEqual([
+        { status: 'D', path: 'guard.ts' },
         { status: 'M', path: 'run.sh' },
         { status: 'M', path: 'staged.ts' },
       ]);
       // Where git ignores the executable bit (Windows), a chmod is not a change.
       git(dir, 'config', 'core.fileMode', 'false');
-      expect(reviewScope(dir)).toEqual([{ status: 'M', path: 'staged.ts' }]);
+      expect(reviewScope(dir)).toEqual([
+        { status: 'D', path: 'guard.ts' },
+        { status: 'M', path: 'staged.ts' },
+      ]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
