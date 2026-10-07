@@ -20,5 +20,8 @@
 - `tenantFromHeaders`/`mapBranding` (lib/tenant/resolve.ts) and middleware.ts x-portfolio-name fall back to 'Portier369' when company_name is empty; consumers that print companyName inherit it.
 - Operator -> company-admin mail (platform-operator/companies/actions.ts, FROM_NAME 'Portier369', "The Portier369 team") is true platform mail: allowed.
 
+- SQL-rendered mail: verified custom domain = `custom_domain is not null and custom_domain_verified_at > now() - interval '3 hours'` (pattern in 20261007020000); slug host via `'https://'||slug||'.portier369.com'` (slug CHECK + reserved list make it safe). Non-auth links in SQL mail (e.g. runbook in render_invitation_email, 20261007030000) need the custom-domain case; accept/invite links stay on slug.
+- queue_invitation_email (20260731010000): from 'noreply@portier369.com' + from_name company_name is OK; worker (app/api/email/process-queue/route.ts) swaps a platform-domain from_address to the company's verified sender domain. But a non-platform `email_settings.from_address` makes the worker fall back to the platform address, skipping the verified domain.
+
 ## False alarms
 - Flagged `add_record_note` from_name 'Portier369' from its original migration, but 20261005094500_client_mail_sender_name_unset.sql had already patched it. Before flagging a SQL function, check later migrations that patch it in place via pg_get_functiondef/replace (grep the function name across all migrations), or the live definition.

@@ -78,16 +78,21 @@ The system (no step depends on Claude remembering):
   permanent redirects in `next.config.mjs` (old catch-all page removed).
 
 ## Next gaps (pick up here)
-1. **Settings → "Invite a staff member"** (`app/(app)/settings/page.tsx`
-   `inviteStaff`) calls `invite_staff`; the email is queued by DB trigger
-   `trg_queue_invitation_email` → `render_invitation_email`. Check that email:
-   white-labeled, sign-in on `<slug>.portier369.com`, and it should link the
-   Manager Runbook like `app/company-admin/managers/actions.ts` does.
+1. **Invitation email (in PR #238, migration `20261007030000_invitation_email_company_workspace.sql`)**
+   — Settings "Invite a staff member" email (DB trigger
+   `trg_queue_invitation_email` → `render_invitation_email`) linked to
+   www.portier369.com and didn't escape the message. Fixed: accept link on
+   `<slug>.portier369.com`, everything escaped, bad tokens refused, Runbook
+   link (verified custom domain else workspace), company name in plain text.
+   Tested in PGlite. **After Mirsad merges: apply it with Supabase MCP
+   `apply_migration` on termxngysvotnfbzbgrv.**
 2. `'Portier369'` fallback for the company name in `lib/tenant/resolve.ts`
-   (lines ~55, ~74) and `middleware.ts` (`x-portfolio-name`). `company_name`
-   is NOT NULL, so it only shows if the header is missing/garbled — use
-   neutral wording, and don't set the header with a fake value (the manuals
-   route relies on the header being absent).
+   (~55, ~74) and `middleware.ts` (`x-portfolio-name`). `company_name` is NOT
+   NULL, so it only shows if the header is missing/garbled — use neutral
+   wording and don't set the header with a fake value (the manuals route
+   relies on the header being absent).
+3. Optional hardening from the security reviewer: CHECK constraint on
+   `user_invitations.token` format; `html_escape` should also escape `'`.
 
 ## Sessions (where older context lives)
 - `session_014oDSoRCaVdCEGUtH1N3QYg` "Portier369 setup and context" — the main
