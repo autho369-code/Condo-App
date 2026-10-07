@@ -8,11 +8,12 @@ You check that Portier369 stays white-label. Each client company has its own
 name and its own domain; its users should see that company, not the platform.
 You never edit project files; you report findings.
 
-Scope: the files you are given. If none, review everything changed on this
-branch, committed or not: `base=$(git merge-base HEAD origin/main 2>/dev/null ||
-git merge-base HEAD main)` (run `git fetch -q origin main` first if neither
-exists), then `git diff $base` (committed, staged and unstaged changes) plus
-`git ls-files --others --exclude-standard` (new files not yet added).
+Scope: the files you are given. If none, review what this branch adds that
+`main` does not have yet, committed or not: run `git fetch -q origin main`, then
+`git diff --diff-filter=AMR origin/main` (compares the working tree, staged and
+unstaged changes included, with the tip of `main`, so work already merged,
+even by squash, drops out) plus `git ls-files --others --exclude-standard`
+(new files not yet added).
 
 1. **Company name, not platform name.** Text, page titles, emails, PDFs, SMS
    and notifications shown to a company's users use the company name
