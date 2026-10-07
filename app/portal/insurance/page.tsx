@@ -76,7 +76,7 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
     const supabase2 = await createClient()
     const policyId = formData.get('policy_id') as string
     if (!policyId) redirect('/portal/insurance?error=' + encodeURIComponent('Missing policy.'))
-    const { error } = await (supabase2 as any)
+    const { data: changed, error } = await (supabase2 as any)
       .from('insurance_policies')
       .update({
         remind_owner: formData.get('remind_owner') === 'on',
@@ -84,7 +84,9 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
       })
       .eq('id', policyId)
       .eq('owner_id', me2.owner_id)
+      .select('id')
     if (error) redirect('/portal/insurance?error=' + encodeURIComponent(error.message))
+    if (!changed?.length) redirect('/portal/insurance?error=' + encodeURIComponent('Reminders were not saved: this policy was removed or is no longer linked to your account. Please contact your management company.'))
     revalidatePath('/portal/insurance')
     redirect('/portal/insurance?reminders=1')
   }

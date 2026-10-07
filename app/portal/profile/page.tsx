@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { Alert } from '@/components/ui/shell'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +19,7 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
     'use server'
     const supabase2 = await createClient()
     const me2 = await requireOwner()
-    const { error } = await (supabase2 as any).from('owners').update({
+    const { data: changed, error } = await (supabase2 as any).from('owners').update({
       phone: formData.get('phone') as string || null,
       email: formData.get('email') as string || null,
       address_street: formData.get('address_street') as string || null,
@@ -28,8 +29,9 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
       // My Home sends owners here to add an emergency contact.
       emergency_contact_name: (formData.get('emergency_contact_name') as string)?.trim() || null,
       emergency_contact_phone: (formData.get('emergency_contact_phone') as string)?.trim() || null,
-    }).eq('id', me2.owner_id)
+    }).eq('id', me2.owner_id).select('id')
     if (error) redirect('/portal/profile?error=' + encodeURIComponent(error.message))
+    if (!changed?.length) redirect('/portal/profile?error=' + encodeURIComponent('Your profile was not saved. Please contact your management company if this keeps happening.'))
     revalidatePath('/portal/profile')
     redirect('/portal/profile?saved=1')
   }
@@ -42,10 +44,10 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
       </div>
 
       {banner.error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{banner.error}</div>
+        <Alert tone="danger">{banner.error}</Alert>
       )}
       {banner.saved === '1' && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your profile was saved.</div>
+        <Alert tone="success">Your profile was saved.</Alert>
       )}
 
       <form action={saveProfile} className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">

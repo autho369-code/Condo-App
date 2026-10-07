@@ -53,8 +53,9 @@ export default async function VendorProfile({
       address_state: ((formData.get('address_state') as string) || '').trim() || null,
       address_zip: ((formData.get('address_zip') as string) || '').trim() || null,
     };
-    const { error } = await (supabase2 as any).from('vendors').update(patch).eq('id', me2.vendor_id);
+    const { data: changed, error } = await (supabase2 as any).from('vendors').update(patch).eq('id', me2.vendor_id).select('id');
     if (error) redirect(`/vendor/profile?error=${encodeURIComponent(error.message)}`);
+    if (!changed?.length) redirect(`/vendor/profile?error=${encodeURIComponent('Your profile was not saved. Please contact your management company if this keeps happening.')}`);
     revalidatePath('/vendor/profile');
     redirect('/vendor/profile?saved=1');
   }

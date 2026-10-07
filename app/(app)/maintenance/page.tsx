@@ -159,12 +159,13 @@ async function completeTask(formData: FormData) {'use server';
       : freq === 'custom' && cd > 0 ? nextRecurringDate(due, 'daily', cd)
       : monthSteps[freq] ? nextRecurringDate(due, 'monthly', monthSteps[freq], anchorDay)
       : null) ?? due;
-    const { error: nextError } = await db.from('maintenance_tasks').update({
+    const { data: advanced, error: nextError } = await db.from('maintenance_tasks').update({
       last_completed_at: now,
       next_due_date: nd,
       status: 'active',
-    }).eq('id',id);
+    }).eq('id',id).select('id');
     if (nextError) maintenanceFail(`Completion recorded, but the next due date was not set: ${nextError.message}`);
+    if (!advanced?.length) maintenanceFail('Completion recorded, but the next due date was not set: the task is gone or your account cannot edit it.');
 
     // Create calendar event for the next occurrence
     if (me.portfolio?.id) {
@@ -176,11 +177,12 @@ async function completeTask(formData: FormData) {'use server';
     }
   } else {
     // No frequency — mark task completed
-    const { error: closeError } = await db.from('maintenance_tasks').update({
+    const { data: closed, error: closeError } = await db.from('maintenance_tasks').update({
       last_completed_at: now,
       status: 'completed',
-    }).eq('id',id);
+    }).eq('id',id).select('id');
     if (closeError) maintenanceFail(`Completion recorded, but the task was not closed: ${closeError.message}`);
+    if (!closed?.length) maintenanceFail('Completion recorded, but the task was not closed: the task is gone or your account cannot edit it.');
   }
   revalidatePath('/maintenance');
   revalidatePath('/calendar');

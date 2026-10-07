@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import MergeFieldEditor, { MERGE_FIELDS } from '@/components/letters/merge-field-editor';
+import { Alert } from '@/components/ui/shell';
 
 const CATEGORIES = ['association', 'owner', 'vendor', 'applicant', 'statement', 'generic'];
 
@@ -23,6 +24,9 @@ export default function EditLetterPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Long form: bring a save error into view (Save is at the bottom).
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [error]);
 
   useEffect(() => {
     async function load() {
@@ -56,7 +60,7 @@ export default function EditLetterPage() {
     setError('');
 
     const supabase = createClient();
-    const { error: err } = await supabase
+    const { data: changed, error: err } = await supabase
       .from('document_templates')
       .update({
         name: name.trim(),
@@ -66,10 +70,11 @@ export default function EditLetterPage() {
         body,
         active: newActive,
       })
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
 
-    if (err) {
-      setError(err.message);
+    if (err || !changed?.length) {
+      setError(err?.message ?? 'Template was not saved: it is gone or your account cannot edit it.');
       setSaving(false);
       return;
     }
@@ -82,11 +87,16 @@ export default function EditLetterPage() {
     if (!confirm('Archive this template? It will no longer appear in the active list.')) return;
     setSaving(true);
     const supabase = createClient();
-    const { error: err } = await supabase
+    const { data: changed, error: err } = await supabase
       .from('document_templates')
       .update({ active: false, archived_at: new Date().toISOString() })
-      .eq('id', id);
-    if (err) { setError(err.message); setSaving(false); return; }
+      .eq('id', id)
+      .select('id');
+    if (err || !changed?.length) {
+      setError(err?.message ?? 'Template was not archived: it is gone or your account cannot edit it.');
+      setSaving(false);
+      return;
+    }
     router.push('/letters');
     router.refresh();
   }
@@ -132,7 +142,7 @@ export default function EditLetterPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</div>
+        <div ref={errorRef}><Alert tone="danger" className="mb-4">{error}</Alert></div>
       )}
 
       <div className="space-y-6">

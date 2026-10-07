@@ -71,12 +71,14 @@ export async function endBoardSeat(ownerId: string, formData: FormData) {
   if (!seatId) redirect(`${back}?error=${encodeURIComponent('Missing board seat.')}`);
 
   const supabase = await createClient();
-  const { error } = await (supabase as any)
+  const { data: changed, error } = await (supabase as any)
     .from('board_members')
     .update({ active: false, term_end: todayInZone() })
     .eq('id', seatId)
-    .eq('owner_id', ownerId);
+    .eq('owner_id', ownerId)
+    .select('id');
   if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  if (!changed?.length) redirect(`${back}?error=${encodeURIComponent('Board seat was not ended: it is gone or your account cannot edit it.')}`);
 
   revalidatePath(back);
   redirect(`${back}?saved=board_end`);

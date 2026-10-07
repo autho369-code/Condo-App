@@ -27,7 +27,7 @@ export default async function AssociationProfileTab({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string; section?: string }>;
 }) {
   const me = await requireStaff();
   const canManageLoans = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
@@ -59,18 +59,20 @@ export default async function AssociationProfileTab({
     'use server';
     await requireStaff();
     const sb = await createClient();
-    const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
-    const { error } = await (sb as any)
+    const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?section=payment&error=${encodeURIComponent(msg)}`);
+    const { data: changed, error } = await (sb as any)
       .from('associations')
       .update({
         remit_payee: ((formData.get('remit_payee') as string) || '').trim() || null,
         remit_address: ((formData.get('remit_address') as string) || '').trim() || null,
         payment_instructions: ((formData.get('payment_instructions') as string) || '').trim() || null,
       })
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
     if (error) fail(error.message);
+    if (!changed?.length) fail('Payment details were not saved: your account cannot edit this association.');
     revalidatePath(`/associations/${assocParam}/profile`);
-    redirect(`/associations/${assocParam}/profile?saved=1`);
+    redirect(`/associations/${assocParam}/profile?saved=payment`);
   }
 
   // Automatic late-fee policy.
@@ -122,15 +124,19 @@ export default async function AssociationProfileTab({
     const userId = ((formData.get('site_manager_user_id') as string) || '').trim() || null;
     let displayName: string | null = null;
     if (userId) {
-      const { data: mgr } = await (sb as any).from('profiles').select('full_name, email').eq('id', userId).maybeSingle();
+      // Only a manager of this association's company can be its site manager.
+      const { data: mgr } = await (sb as any).from('profiles').select('full_name, email')
+        .eq('id', userId).eq('portfolio_id', assoc.portfolio_id).eq('hoa_role', 'manager').maybeSingle();
       if (!mgr) fail('Selected manager was not found.');
       displayName = mgr.full_name ?? mgr.email ?? null;
     }
-    const { error } = await (sb as any)
+    const { data: changed, error } = await (sb as any)
       .from('associations')
       .update({ site_manager_user_id: userId, site_manager: displayName })
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
     if (error) fail(error.message);
+    if (!changed?.length) fail('Site manager was not saved: your account cannot edit this association.');
     revalidatePath(`/associations/${assocParam}/profile`);
     redirect(`/associations/${assocParam}/profile?saved=1`);
   }
@@ -310,8 +316,9 @@ export default async function AssociationProfileTab({
         <Tile label="Pending Approvals" value={approvalsRes.count ?? 0}  href={`/associations/${id}/approvals`} tone={(approvalsRes.count ?? 0) > 0 ? 'warning' : 'neutral'} />
       </div>
 
-      {sp.error && !sp.saved && <Alert tone="danger" title="Could not save:" className="mb-4">{sp.error}</Alert>}
-      {sp.saved && sp.saved !== '1' && <Alert tone="success" className="mb-4">{sp.saved}</Alert>}
+      {sp.error && !sp.saved && sp.section !== 'payment' && <Alert tone="danger" title="Could not save:" className="mb-4">{sp.error}</Alert>}
+      {sp.saved === '1' && <Alert tone="success" className="mb-4">Saved.</Alert>}
+      {sp.saved && sp.saved !== '1' && sp.saved !== 'payment' && <Alert tone="success" className="mb-4">{sp.saved}</Alert>}
 
       <div className="mb-6">
         <RecordMetaPanels type="association" id={id} meta={await loadRecordMeta(supabase, 'association', id)} currentUserId={me.auth_user_id} tagHref={(t) => `/associations?tag=${t}`} showNotes={false} />
@@ -364,8 +371,8 @@ export default async function AssociationProfileTab({
             Owners pay by check or bank bill-pay. What you enter here is exactly what owners see on their
             <span className="font-medium text-gray-700"> How to Pay</span> page in the owner portal.
           </p>
-          {sp.saved && <div className="mb-4"><Alert tone="success" title="Saved">Payment instructions updated.</Alert></div>}
-          {sp.error && <div className="mb-4"><Alert tone="danger" title="Could not save">{sp.error}</Alert></div>}
+          {sp.saved === 'payment' && <div className="mb-4"><Alert tone="success" title="Saved">Payment instructions updated.</Alert></div>}
+          {sp.error && sp.section === 'payment' && <div className="mb-4"><Alert tone="danger" title="Could not save">{sp.error}</Alert></div>}
           <form action={savePaymentInstructions} className="max-w-2xl space-y-4">
             <div>
               <Label htmlFor="remit_payee">Make checks payable to</Label>

@@ -115,8 +115,9 @@ export async function toggleAutomationFlow(formData: FormData) {
   if (!flow) failTo('Flow not found in your portfolio.');
   void me;
 
-  const { error } = await db.from('automation_flows').update({ enabled: !flow.enabled }).eq('id', flowId);
+  const { data: changed, error } = await db.from('automation_flows').update({ enabled: !flow.enabled }).eq('id', flowId).select('id');
   if (error) failTo(error.message);
+  if (!changed?.length) failTo('Flow was not changed: it is gone or your account cannot edit it.');
 
   revalidatePath(LIST_PATH);
   redirect(LIST_PATH);

@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
+import { Alert } from '@/components/ui/shell';
 
 const LETTER_TYPES = [
   { value: 'violation_notice', label: 'Violation Notice' },
@@ -41,6 +42,9 @@ export default function EditTemplatePage() {
   const [mergeVarInput, setMergeVarInput] = useState('');
   const [mergeVariables, setMergeVariables] = useState<string[]>([]);
   const [error, setError] = useState('');
+  // Long form: bring a save error into view (Save is at the bottom).
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [error]);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,7 +102,7 @@ export default function EditTemplatePage() {
 
     const mergeVarsObj = mergeVariables.map((v) => ({ key: v }));
 
-    const { error: updateErr } = await (supabase as any)
+    const { data: changed, error: updateErr } = await (supabase as any)
       .from('document_templates')
       .update({
         name: name.trim(),
@@ -110,13 +114,18 @@ export default function EditTemplatePage() {
         active,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
 
     setSaving(false);
 
     if (updateErr) {
       console.error('Failed to update template:', updateErr);
       setError('Failed to save changes. Please try again.');
+      return;
+    }
+    if (!changed?.length) {
+      setError('Template was not saved: it is gone or your account cannot edit it.');
       return;
     }
 
@@ -165,7 +174,7 @@ export default function EditTemplatePage() {
 
         <div className="max-w-3xl space-y-6">
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</div>
+            <div ref={errorRef}><Alert tone="danger">{error}</Alert></div>
           )}
 
           {/* Basic info */}

@@ -30,20 +30,30 @@ async function saveVendorBankDetails(formData: FormData) {
   if (routing.length !== 9) fail('Routing number must be exactly 9 digits.');
   if (account.length < 4 || account.length > 17) fail('Account number must be 4–17 digits.');
 
-  const { data: vendor } = await (supabase as any).from('vendors').select('id, portfolio_id').eq('id', vendorId).maybeSingle();
+  const { data: vendor } = await (supabase as any).from('vendors').select('id, portfolio_id, ach_status, savings_account').eq('id', vendorId).maybeSingle();
   if (!vendor) fail('Vendor not found.');
+  // Set the vendor to pending ACH first: if this account can't edit the
+  // vendor, nothing is saved (bank numbers included).
+  const { data: changed, error } = await (supabase as any).from('vendors').update({
+    savings_account: formData.get('savings_account') === 'on',
+    ach_status: 'pending',
+  }).eq('id', vendorId).select('id');
+  if (error) fail(error.message);
+  if (!changed?.length) fail('Bank details were not saved: your account cannot edit this vendor.');
   // Bank numbers live in vendor_financial_details (finance-only RLS).
   const { error: finError } = await (supabase as any).from('vendor_financial_details').upsert({
     vendor_id: vendorId, portfolio_id: vendor.portfolio_id,
     bank_routing_number: routing, bank_account_number: account,
     updated_at: new Date().toISOString(), updated_by: me.auth_user_id,
   }, { onConflict: 'vendor_id' });
-  if (finError) fail(finError.message);
-  const { error } = await (supabase as any).from('vendors').update({
-    savings_account: formData.get('savings_account') === 'on',
-    ach_status: 'pending',
-  }).eq('id', vendorId);
-  if (error) fail(error.message);
+  if (finError) {
+    // Put the vendor's ACH status back so it isn't left pending without bank details.
+    const { error: revertError } = await (supabase as any).from('vendors')
+      .update({ ach_status: vendor.ach_status, savings_account: vendor.savings_account }).eq('id', vendorId);
+    fail(revertError
+      ? `Bank details were not saved (${finError.message}), and the vendor's ACH status could not be restored: ${revertError.message}`
+      : `Bank details were not saved: ${finError.message}`);
+  }
   redirect(`/vendors/ach?vendor=${vendorId}`);
 }
 
@@ -365,6 +375,7 @@ export default async function VendorAchPage({
       description="Review bank readiness, payout method, auto-pay flags, and authorization status before enabling vendor ACH."
       actions={<Link href="/vendors"><Button variant="secondary">Back to vendors</Button></Link>}
     >
+      {sp.error && <Alert tone="danger" title="Could not save bank details:" className="mb-4">{sp.error}</Alert>}
       <div className="space-y-4">
         <MetricStrip metrics={[
           { label: 'Vendors reviewed', value: rows.length },

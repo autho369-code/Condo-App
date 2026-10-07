@@ -11,3 +11,7 @@
 ## Hand checks
 - `.update()` payloads often use conditional spreads `...(cond ? { col: v } : {})` (e.g. lib/rpcs/portfolio.ts updatePortfolioPolicy): check the keys inside spreads too.
 - For CHECK-constraint migrations, confirm the column's nullability in the baseline (`20260715040000_production_schema_baseline.sql`); a CHECK on a nullable column lets NULL through.
+
+## RLS read-back (`.update(...).eq(...).select('id')` "not saved" checks)
+- Adding `.select()` adds no new RLS constraint when the update already has a column filter (`.eq('id')`): Postgres applies SELECT USING to the existing row (filtered) and the new row (error) once a WHERE clause reads the table. An empty result means the row was not updated; that is a real failure, not a false alarm. Still compare SELECT and UPDATE policies, because a narrower SELECT already blocked writes silently. Example: meeting_action_items select needs can_access_confidential_meeting_mvp, update needs can_edit_association_mvp (2026-10-07 silent-save sweep).
+- Find policies by grepping the baseline (`"public"."<t>"` quoted form) and later migrations (`public.<t>`, `alter policy`, and DO-loop `format(... %I)` arrays such as operator_writes_need_admin and staff_association_in_company, which are restrictive write-only policies).

@@ -103,11 +103,13 @@ export async function runScheduleNow(formData: FormData) {
   if (owned.active === false) redirect(`/scheduled-reports?error=${encodeURIComponent('This schedule is paused. Resume it, then use Run now.')}`);
 
   // Force next_run_at to now so the enqueuer picks it up...
-  const { error } = await (supabase as any)
+  const { data: changed, error } = await (supabase as any)
     .from('scheduled_reports')
     .update({ next_run_at: new Date().toISOString() })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
   if (error) redirect(`/scheduled-reports?error=${encodeURIComponent(error.message)}`);
+  if (!changed?.length) redirect(`/scheduled-reports?error=${encodeURIComponent('The schedule was not run: it is gone or your account cannot edit it.')}`);
 
   // ...then run the enqueue + execute pipeline immediately instead of waiting
   // for the hourly cron tick, so "Run now" actually produces a run.
