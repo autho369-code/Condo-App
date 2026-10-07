@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-07 (after #244).
+Back to [[Home]]. Updated 2026-10-07 (after #245).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,13 +12,14 @@ Back to [[Home]]. Updated 2026-10-07 (after #244).
   pilot).
 
 ## Open PR
-- Open: next-gap sweep. Migration 20261007100000 filters
-  `sync_owner_delinquency_cases` (upsert, conflict update, cured sweep) to the
-  caller's associations (apply via MCP after merge and read it back). 30
-  saves that RLS could silently skip now fail loudly (server actions, owner
-  and vendor portals, letter/template editors); vendor ACH sets pending before
-  saving bank details; property-group membership checks exact counts; site
-  manager must be a manager of the company.
+- Open: public violation reports scoped to the address's company.
+  `/report-violation`, its submit action and the AI photo route listed and
+  accepted every company's associations (and spent any company's AI key);
+  now only the host company's (tenantFromHeaders). Stripe receipts no longer
+  send as the platform. No migration.
+- #245 merged (e25b1d1); migration 20261007100000 applied and verified
+  (sync_owner_delinquency_cases: 3 association checks, grants unchanged). 30
+  silent saves fail loudly.
 - #244 merged (f0da498); migration 20261007090000 applied and verified (16
   RPCs: 17 association checks plus the post_recurring_journal_entries refusal;
   grants unchanged).
