@@ -6,7 +6,9 @@
 -- Now both the case upsert and the "cured" sweep only touch associations the
 -- caller can see (can_view_association_row: true for unscoped staff, company
 -- admins without association_managers rows, and jobs), so scoped managers can
--- still sync their own associations.
+-- still sync their own associations. The ON CONFLICT update also requires
+-- the existing case's association to be visible, so a unit that moved
+-- between associations can't retag another association's case.
 --
 -- Patched in place from the live definition (pg_get_functiondef + replace);
 -- idempotent, raises if an anchor is missing. CREATE OR REPLACE keeps owner
@@ -28,6 +30,12 @@ begin
     if position($q$      and case_record.status not in ('resolved', 'closed')$q$ in n) = 0 then raise exception 'anchor not found in sync_owner_delinquency_cases (cured)'; end if;
     n := replace(n, $q$      and case_record.status not in ('resolved', 'closed')$q$, $q$      and case_record.status not in ('resolved', 'closed')
       and public.can_view_association_row(case_record.association_id)$q$);
+  end if;
+  if position($q$          then null else delinquency_cases.legal_review_note end
+    where public.can_view_association_row(delinquency_cases.association_id);$q$ in n) = 0 then
+    if position($q$          then null else delinquency_cases.legal_review_note end;$q$ in n) = 0 then raise exception 'anchor not found in sync_owner_delinquency_cases (conflict update)'; end if;
+    n := replace(n, $q$          then null else delinquency_cases.legal_review_note end;$q$, $q$          then null else delinquency_cases.legal_review_note end
+    where public.can_view_association_row(delinquency_cases.association_id);$q$);
   end if;
   if n <> d then execute n; end if;
 end $mig$;
