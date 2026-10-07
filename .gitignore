@@ -11,7 +11,9 @@ tsconfig.tsbuildinfo
 .superpowers/
 .worktrees/
 supabase/.temp/
-.claude/
+.claude/*
+!.claude/agents/
+!.claude/agent-memory/
 
 # local data backups + analysis artifacts
 backups/

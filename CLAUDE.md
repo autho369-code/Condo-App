@@ -56,6 +56,18 @@ functionality with an original design. Next.js 15 (App Router) + Supabase
   Platform Operator → Company Admin → Manager → Board/Owner → Vendor;
   all accounts are invitation-based.
 
+## Review agents (`.claude/agents/`)
+Before opening a PR, run the reviewers that match the change (they report,
+and write only to their own memory): `design-reviewer` (pages/components),
+`security-reviewer` (actions, API routes, data access), `schema-checker`
+(queries), `migration-reviewer` (`supabase/migrations/`),
+`white-label-checker` (user-facing text, emails, links). Fix what they find
+before pushing.
+They learn: each keeps notes in `.claude/agent-memory/<name>/MEMORY.md`
+(committed). When Codex, CI or Mirsad catches something a reviewer missed,
+or a reviewer finding was wrong, tell that reviewer so it records the lesson,
+and commit the memory change with the PR.
+
 ## Theme decision (FINAL, from Mirsad)
 ONE design system for ALL six roles: dark `#060709` sidebar (shared
 `components/nav/sidebar.tsx` with role `modules` from
