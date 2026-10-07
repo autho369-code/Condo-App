@@ -6,8 +6,11 @@
 -- bills, checks, charges, owner statements and year-end packages of any
 -- association in the company. Each now also requires
 -- can_view_association_row(<the row's association>) -- the same check as the
--- restrictive mgr_assoc_scope RLS policies; it is true for unscoped staff,
--- company admins and company-level (null association) rows.
+-- restrictive mgr_assoc_scope RLS policies; it is true for users with no
+-- association_managers rows (unscoped) and for company-level (null
+-- association) rows. Most target tables also have <table>_association_scope
+-- row triggers (20261004130000); this fails earlier, with a clear error, and
+-- covers the rows those triggers don't.
 -- post_recurring_journal_entries covers every association, so scoped
 -- managers are refused, as post_recurring_bills already does.
 --
