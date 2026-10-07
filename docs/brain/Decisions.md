@@ -21,4 +21,5 @@ Back to [[Home]]. Don't redo these.
 - **Server actions never fall back to a client-sent (bound) id** — use the
   caller's own portfolio and error if it's missing.
 - **Destructive or access-changing one-click actions use `PendingSubmit` with
-  `confirm`** (remove staff, send reset link, change role).
+  `confirm`** (remove staff, send reset link, change role). The confirm runs
+  only after the form is valid, so mark choices that must be made `required`.

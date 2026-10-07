@@ -18,7 +18,13 @@ export function PendingSubmit({ children, pendingLabel, disabled, variant, size,
       className={className}
       disabled={disabled || pending}
       aria-disabled={disabled || pending}
-      onClick={confirm ? (event) => { if (!window.confirm(confirm)) event.preventDefault(); } : undefined}
+      onClick={confirm ? (event) => {
+        // Let the browser's own validation speak first: never ask to confirm
+        // a submission that can't go through (e.g. a required field empty).
+        const form = event.currentTarget.form;
+        if (form && !form.noValidate && !form.checkValidity()) { event.preventDefault(); form.reportValidity(); return; }
+        if (!window.confirm(confirm)) event.preventDefault();
+      } : undefined}
     >
       {pending ? pendingLabel ?? 'Working…' : children}
     </Button>

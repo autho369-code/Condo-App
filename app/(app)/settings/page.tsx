@@ -368,7 +368,7 @@ export default async function SettingsPage({
                     <div className="flex flex-wrap items-center gap-2">
                       <form action={changeStaffRole} className="flex items-center gap-2">
                         <input type="hidden" name="profile_id" value={m.id} />
-                        <Select name="role" defaultValue="" aria-label="Change role" className="w-44">
+                        <Select name="role" defaultValue="" required aria-label="Change role" className="w-44">
                           <option value="">Change role</option>
                           <option>President</option><option>Property Manager</option><option>Accountant</option>
                           <option>On-Site Manager</option>
