@@ -13,6 +13,7 @@ tsconfig.tsbuildinfo
 supabase/.temp/
 .claude/*
 !.claude/agents/
+!.claude/agent-memory/
 
 # local data backups + analysis artifacts
 backups/
