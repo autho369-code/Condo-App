@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { _chainSelect, findQueryColumnProblems, selectProblems } from '../../scripts/lib/query-columns.mjs';
+import { _chainSelect, _parameterArguments, findQueryColumnProblems, selectProblems } from '../../scripts/lib/query-columns.mjs';
 
 const schema = JSON.parse(readFileSync(join(process.cwd(), 'supabase/schema-columns.json'), 'utf8'));
 const fks = JSON.parse(readFileSync(join(process.cwd(), 'supabase/schema-foreign-keys.json'), 'utf8'));
@@ -14,6 +14,15 @@ describe('query columns', () => {
     // by a new migration, refresh supabase/schema-columns.json (SQL in
     // scripts/lib/query-columns.mjs).
     expect(problems).toEqual([]);
+  });
+
+  it('every select it cannot check is on the reviewed list, and the list has no stale entries', () => {
+    const listed: string[] = JSON.parse(readFileSync(join(process.cwd(), 'supabase/unchecked-selects.json'), 'utf8'));
+    const { unchecked } = findQueryColumnProblems(process.cwd(), schema, fks);
+    // A new entry here means a select the scanner can't read: write its
+    // columns at the query (or as a constant), or add it to the list.
+    expect(unchecked.filter((u: string) => !listed.includes(u))).toEqual([]);
+    expect(listed.filter((u) => !unchecked.includes(u))).toEqual([]);
   });
 
   it('catches a column the table does not have', () => {
@@ -37,7 +46,8 @@ describe('query columns', () => {
       /* and another */
       .select('*, owners(full_name)')`)).toBe('*, owners(full_name)');
     expect(at(`db.from('t').insert(row);`)).toBeNull();
-    expect(at('db.from(\'t\').select(`id, ${cols}`)')).toBeNull();
+    // An unknown trailing piece is dropped; the known columns are still checked.
+    expect(at('db.from(\'t\').select(`id, ${cols}`)')).toBe('id, ');
   });
 
   it('checks columns inside an embed written through a foreign-key column', () => {
@@ -56,8 +66,30 @@ describe('query columns', () => {
     expect(at('db.from(\'t\').select(`${COLS}, notes`)')).toBe('id, title, notes');
     // An unknown trailing part (an optional extra-columns parameter) is dropped.
     expect(at(`db.from('t').select(COLS + extraColumns)`)).toBe('id, title');
+    expect(at('db.from(\'t\').select(`id, title${optionalJoin}`)')).toBe('id, title');
     // An unknown part before a known one can't be checked.
     expect(at(`db.from('t').select(prefix + COLS)`)).toBeNull();
     expect(at(`db.from('t').select(cols.join(', '))`)).toBeNull();
+  });
+
+  it('finds the arguments passed for a select-list parameter at each call', () => {
+    const src = [
+      'const base = (select: string, opts?: object) => {',
+      "  let q = db.from('t').select(select, opts);",
+      '  return q;',
+      '};',
+      "base('id, amount');",
+      'base(`id, ${COLS}`, { count: true });',
+      'async function load(db: any, columns: string) {',
+      "  return db.from('g').select(columns).order('id');",
+      '}',
+      "load(db, 'id, number');",
+    ].join('\n');
+    expect(_parameterArguments(src, src.indexOf("from('t')"), 'select')).toEqual([
+      { arg: "'id, amount'", line: 5 },
+      { arg: '`id, ${COLS}`', line: 6 },
+    ]);
+    expect(_parameterArguments(src, src.indexOf("from('g')"), 'columns')).toEqual([{ arg: "'id, number'", line: 10 }]);
+    expect(_parameterArguments(src, src.indexOf("from('t')"), 'nope')).toBeNull();
   });
 });

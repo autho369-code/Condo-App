@@ -1,0 +1,6 @@
+[
+  "app/(app)/journal-entries/page.tsx  journal_entries  `${select}${lineFilter ? ', match:journal_lines!inner(id)' : ''}`, opts",
+  "app/(app)/purchase-orders/page.tsx  purchase_orders  `${columns}${glAccountId ? ', purchase_order_line_items!inner(gl_account_id)' : ''}`",
+  "app/company-admin/vendors/page.tsx  vendors  `id, name, vendor_type, trade, phone_numbers, emails, ach_status, ${VENDOR_EXPIRATION_FIELDS.join(', ')}`",
+  "lib/reminders.ts  parking_assignments  associationId ? 'id, end_date, parking_spaces!inner(label, association_id, associations(name))' : 'id, end_date, parking_spaces(label, associations(name))'"
+]
