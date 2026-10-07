@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-07 (after #242).
+Back to [[Home]]. Updated 2026-10-07 (after #243).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,10 +12,15 @@ Back to [[Home]]. Updated 2026-10-07 (after #242).
   pilot).
 
 ## Open PR
-- Open: follow-up to #242 (Codex findings): `buildPortfolioSnapshot` admits
-  company admins (requireWorkspaceStaff) and refuses any portfolio but the
-  caller's own; `isAIConfigured()` (same decrypt check as the routes) drives
-  "AI is on/off" on `/settings/ai` and `/assistant`. No migration.
+- Open: finance RPCs association scope (migration 20261007090000; apply via
+  MCP after merge and read back). 12 SECURITY DEFINER finance RPCs now also
+  require `can_view_association_row(<row's association>)`;
+  post_recurring_journal_entries refuses scoped managers like
+  post_recurring_bills.
+- #243 merged (df91ada): AI follow-up, ~45 confirm-first destructive buttons,
+  visible company names (`hasVisibleText` + DB check generated from it),
+  security sweep. Migrations 20261007070000 and 20261007080000 applied and
+  verified (constraint validated; bill RPCs scoped, grants unchanged).
 - #242 merged (32bd9b5): AI routes accept company admins, `/settings/ai`
   opens for every workspace member (form for admins), `/assistant` shows
   "AI is off" up front, company-admin nav gets AI Assistant + AI Settings.
@@ -33,42 +38,10 @@ Back to [[Home]]. Updated 2026-10-07 (after #242).
   and Mirsad's call (DROP).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
-## Also in #243 (pushed; after merge apply migrations 20261007070000 and
-## 20261007080000 via MCP and read them back)
-- About 45 one-click destructive buttons now confirm first (`PendingSubmit
-  confirm`). Forms that already require a typed reason or a checkbox are
-  unchanged.
-- `hasVisibleText` is enforced on every company-name write. Migration
-  20261007070000 adds the matching DB check. Plaid Link no longer falls back
-  to the platform name.
-- Security sweep of those actions:
-  - Owner attachment delete is scoped to the owner's own storage path.
-  - Meeting documents keep their stored file when RLS refuses the row delete.
-  - About 15 writes that RLS can block without an error now fail loudly.
-  - The association-record `back=` value is checked before redirecting.
-  - Calendar reminder errors surface, and resident-portal audit entries
-    carry `portfolio_id`.
-  - Migration 20261007080000 adds the association scope check to the bill
-    void, approve and submit RPCs.
-
 ## Next gaps (pick up here, top first)
-1. Same security sweep for the *non-destructive* write actions: other
-   SECURITY DEFINER RPCs that only check `can_manage_finance(portfolio_id)`
-   and skip `can_view_association_row` (association-scoped managers),
-   and writes that RLS can block without an error and that never check
-   whether a row changed. On 2026-10-07 production had 25 such RPCs that
-   authenticated users can execute. Association-tied ones to fix first:
-   - bills and checks: create_payable_bill, record_bill_payment,
-     record_check_run, void_payable_check, post_recurring_bills,
-     archive_recurring_bill;
-   - charges: bulk_create_charges, bulk_create_recurring_charges;
-   - journal entries: post_manual_journal_entry, save_/archive_/
-     post_recurring_journal_entr*;
-   - other: record_bank_transfer, generate_owner_statements,
-     mark_owner_statement_delivery, finalize_year_end_package,
-     link_year_end_signature, update_record_note.
-   Portfolio-level by design (leave as they are): initialize_accounting_year,
-   set_accounting_period_status, set_gl_account_map,
-   set_management_fee_schedule.
+1. Writes that RLS can block without an error and never check whether a row
+   changed (the #243 sweep fixed ~15 destructive ones; non-destructive
+   update/insert actions remain). Also `update_record_note` (portfolio-level
+   check only; notes on association records).
 2. Optional: ask whether the remaining reason-required void/cancel forms
    should also confirm.
