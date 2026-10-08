@@ -12,7 +12,14 @@ Back to [[Home]]. Updated 2026-10-08 (after #256).
   pilot).
 
 ## Open PR
-- None open.
+- In progress: AppFolio importer, step 1 (units). `/owners/import/appfolio`
+  reads AppFolio's Unit Directory export (grouped by property or flat with a
+  Property Name column; parser `lib/imports/appfolio.ts`, tested on Mirsad's
+  real export in `tests/fixtures/appfolio/`), previews per association,
+  suggests the matching Portier association, creates missing units and fills
+  ownership % (Mirsad: "we need unit percentage") on existing 0% units only;
+  warns when shares don't total 100%. Next exports: Owner Directory, Aged
+  Receivables/ledger, Chart of Accounts + Trial Balance, Vendors, Work Orders.
 - #256 merged (7b37b23); migration 20261008060000 applied and verified (7
   SETOF uuid identity helpers are PL/pgSQL, SECURITY DEFINER, search_path
   kept). Live timings for 30 tables per role, original -> now: board

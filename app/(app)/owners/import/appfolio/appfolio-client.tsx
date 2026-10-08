@@ -1,0 +1,175 @@
+'use client';
+
+// Reads AppFolio's Unit Directory export in the browser (lib/imports/appfolio),
+// shows each AppFolio association it found with its units, and imports one
+// association at a time into the Portier369 association the user picks. The
+// server action re-validates everything; this only previews.
+import * as React from 'react';
+import { Alert, Badge, Surface } from '@/components/ui/shell';
+import { Table, THead, TR, TH, TD } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { parseAppfolioUnitDirectory, type AppfolioUnit } from '@/lib/imports/appfolio';
+import type { AppfolioUnitRow, ImportSummary } from '../actions';
+
+type Association = { id: string; name: string };
+type Group = { name: string; address: string | null; units: AppfolioUnit[] };
+
+type Props = {
+  associations: Association[];
+  importUnits: (associationId: string, units: AppfolioUnitRow[]) => Promise<ImportSummary>;
+};
+
+const selectCls =
+  'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
+
+const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/** The Portier369 association whose name matches the AppFolio one, if exactly one does. */
+function suggestAssociation(name: string, associations: Association[]): string {
+  const target = normalize(name);
+  if (!target) return '';
+  const hits = associations.filter((a) => {
+    const n = normalize(a.name);
+    return n === target || target.startsWith(n) || n.startsWith(target);
+  });
+  return hits.length === 1 ? hits[0].id : '';
+}
+
+function GroupCard({ group, associations, importUnits }: { group: Group; associations: Association[]; importUnits: Props['importUnits'] }) {
+  const [associationId, setAssociationId] = React.useState(() => suggestAssociation(group.name, associations));
+  const [busy, setBusy] = React.useState(false);
+  const [result, setResult] = React.useState<ImportSummary | null>(null);
+  const [failure, setFailure] = React.useState<string | null>(null);
+  const totalPct = group.units.reduce((s, u) => s + (u.ownership_pct ?? 0), 0);
+  const withPct = group.units.filter((u) => u.ownership_pct !== null).length;
+
+  async function run() {
+    setBusy(true);
+    setFailure(null);
+    setResult(null);
+    try {
+      setResult(await importUnits(associationId, group.units.map((u) => ({ ...u }))));
+    } catch (e) {
+      setFailure(e instanceof Error ? e.message : 'The import failed. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Surface className="space-y-4">
+      <div>
+        <h3 className="text-[15px] font-semibold text-gray-950">{group.name || 'Units'}</h3>
+        {group.address && <p className="mt-0.5 text-sm text-gray-500">{group.address}</p>}
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Badge tone="info">{group.units.length} unit{group.units.length === 1 ? '' : 's'}</Badge>
+          {withPct > 0
+            ? <Badge tone={Math.abs(totalPct - 100) <= 0.01 ? 'complete' : 'pending'}>Ownership {Math.round(totalPct * 10000) / 10000}%</Badge>
+            : <Badge tone="pending">No ownership %</Badge>}
+        </div>
+      </div>
+
+      <Table>
+        <THead>
+          <TR>
+            <TH>Unit</TH>
+            <TH className="text-right">Ownership %</TH>
+            <TH className="text-right">Sqft</TH>
+            <TH className="text-right">Beds</TH>
+            <TH className="text-right">Baths</TH>
+            <TH>Unit address</TH>
+          </TR>
+        </THead>
+        <tbody>
+          {group.units.map((u) => (
+            <TR key={`${u.row}-${u.unit_number}`}>
+              <TD className="font-medium text-gray-900">{u.unit_number}</TD>
+              <TD className="text-right">{u.ownership_pct ?? '—'}</TD>
+              <TD className="text-right">{u.sqft ?? '—'}</TD>
+              <TD className="text-right">{u.bedrooms ?? '—'}</TD>
+              <TD className="text-right">{u.bathrooms ?? '—'}</TD>
+              <TD>{u.address ?? '—'}</TD>
+            </TR>
+          ))}
+        </tbody>
+      </Table>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <label htmlFor={`assoc-${group.name}`} className="mb-1.5 block text-sm font-medium text-gray-900">
+            Import into <span className="text-red-500">*</span>
+          </label>
+          <select id={`assoc-${group.name}`} value={associationId} onChange={(e) => setAssociationId(e.target.value)} className={selectCls}>
+            <option value="">Select a Portier369 association</option>
+            {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </div>
+        <Button type="button" className="h-10" disabled={!associationId || busy || result !== null} onClick={run}>
+          {busy ? 'Importing…' : result ? 'Imported' : `Import ${group.units.length} unit${group.units.length === 1 ? '' : 's'}`}
+        </Button>
+      </div>
+
+      {failure && <Alert tone="danger">{failure}</Alert>}
+      {result && (
+        <Alert tone={result.imported > 0 ? 'success' : 'warning'} title={`${result.imported} created, ${result.skipped} skipped.`}>
+          {result.errors?.length ? (
+            <ul className="mt-1 list-disc space-y-0.5 pl-5">
+              {result.errors.slice(0, 50).map((e, i) => <li key={i}>{e}</li>)}
+            </ul>
+          ) : null}
+        </Alert>
+      )}
+    </Surface>
+  );
+}
+
+export function AppfolioImportClient({ associations, importUnits }: Props) {
+  const [groups, setGroups] = React.useState<Group[] | null>(null);
+  const [hasOwnership, setHasOwnership] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [fileName, setFileName] = React.useState('');
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    setGroups(null);
+    setError(null);
+    if (!file) return;
+    setFileName(file.name);
+    const parsed = parseAppfolioUnitDirectory(await file.text());
+    if (parsed.error || !parsed.groups) { setError(parsed.error ?? 'Could not read the file.'); return; }
+    setHasOwnership(Boolean(parsed.hasOwnership));
+    setGroups(parsed.groups);
+  }
+
+  return (
+    <div className="max-w-5xl space-y-5">
+      <Surface className="space-y-3">
+        <div>
+          <h2 className="text-[15px] font-semibold text-gray-950">Units — AppFolio Unit Directory</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            In AppFolio open Reports → Unit Directory, choose Customize and tick the ownership percentage column
+            (and the unit address columns if units have their own addresses), then Actions → Export as CSV.
+          </p>
+        </div>
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          onChange={onFile}
+          className="block w-full text-sm text-gray-700 file:mr-3 file:h-10 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800"
+        />
+        {fileName && !error && groups && <p className="text-xs text-gray-500">{fileName}</p>}
+      </Surface>
+
+      {error && <Alert tone="danger">{error}</Alert>}
+      {groups && !hasOwnership && (
+        <Alert tone="warning" title="This export has no ownership percentage column.">
+          Units will be created at 0% ownership. Export again with the ownership percentage column ticked
+          (Customize in AppFolio) and import the same file: units already created get their percentage filled in.
+        </Alert>
+      )}
+      {groups?.map((g) => (
+        <GroupCard key={g.name || 'units'} group={g} associations={associations} importUnits={importUnits} />
+      ))}
+    </div>
+  );
+}

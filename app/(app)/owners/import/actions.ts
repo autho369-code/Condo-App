@@ -329,3 +329,114 @@ export async function importOpeningBalances(
   revalidatePath('/units');
   return { imported, skipped, errors: errors.length ? errors : undefined };
 }
+
+export type AppfolioUnitRow = {
+  row: string;
+  unit_number: string;
+  sqft: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  address: string | null;
+  ownership_pct: number | null;
+};
+
+const MAX_APPFOLIO_UNITS = 5000;
+
+/**
+ * Units from AppFolio's Unit Directory export (parsed in the browser by
+ * lib/imports/appfolio.ts) into one association. New units go into its first
+ * building (a default "Main" building is created if it has none). A unit
+ * that already exists (same unit number in any of its buildings) is left as
+ * it is, except that its ownership percentage is filled in when it is still
+ * 0 and the export has one; a percentage someone already set is never
+ * overwritten. Nothing from the browser is trusted: the association is
+ * re-checked and every value is re-validated here.
+ */
+export async function importAppfolioUnits(
+  associationId: string,
+  units: AppfolioUnitRow[],
+): Promise<ImportSummary> {
+  await requireStaff();
+  const supabase = await createClient();
+  const db = supabase as any;
+
+  if (!Array.isArray(units) || units.length === 0) return { imported: 0, skipped: 0, errors: ['The file has no units.'] };
+  if (units.length > MAX_APPFOLIO_UNITS) {
+    return { imported: 0, skipped: units.length, errors: [`Import at most ${MAX_APPFOLIO_UNITS} units at a time.`] };
+  }
+  if (!associationId) return { imported: 0, skipped: units.length, errors: ['No association selected.'] };
+
+  const { data: association, error: assocErr } = await db
+    .from('associations').select('id').eq('id', associationId).is('archived_at', null).maybeSingle();
+  if (assocErr || !association) {
+    return { imported: 0, skipped: units.length, errors: [assocErr ? `Could not check the association: ${assocErr.message}` : 'That association was not found or is outside your access.'] };
+  }
+
+  const { data: existing, error: existingErr } = await db
+    .from('units')
+    .select('id, unit_number, ownership_pct, buildings!inner(association_id)')
+    .eq('buildings.association_id', associationId)
+    .is('archived_at', null);
+  if (existingErr) return { imported: 0, skipped: units.length, errors: [`Could not load the association's units: ${existingErr.message}`] };
+  const have = new Map<string, { id: string; pct: number }>(
+    (existing ?? []).map((u: any) => [clean(u.unit_number).toLowerCase(), { id: u.id, pct: Number(u.ownership_pct ?? 0) }]),
+  );
+
+  const building = await ensureBuilding(db, associationId);
+  if ('error' in building) return { imported: 0, skipped: units.length, errors: [`Could not resolve a building: ${building.error}`] };
+
+  const positive = (v: unknown, max: number): number | null => {
+    const n = typeof v === 'number' ? v : num(v);
+    return n !== null && n > 0 && n <= max ? n : null;
+  };
+
+  let imported = 0;
+  let updated = 0;
+  let skipped = 0;
+  const errors: string[] = [];
+  for (const u of units) {
+    const line = clean(u?.row) || '?';
+    const unitNumber = clean(u?.unit_number).slice(0, 40);
+    if (!unitNumber) { skipped++; errors.push(`Line ${line}: no unit name.`); continue; }
+    const key = unitNumber.toLowerCase();
+    const pct = positive(u.ownership_pct, 100);
+    const found = have.get(key);
+    if (found) {
+      if (pct !== null && found.pct === 0) {
+        const { data: changed, error: pctErr } = await db.from('units').update({ ownership_pct: pct })
+          .eq('id', found.id).eq('ownership_pct', 0).select('id');
+        if (pctErr) { skipped++; errors.push(`Line ${line} (${unitNumber}): already exists; its ownership % was not set: ${pctErr.message}`); continue; }
+        if (changed?.length) { found.pct = pct; updated++; continue; }
+      }
+      skipped++;
+      errors.push(`Line ${line} (${unitNumber}): already in this association; left as it is.`);
+      continue;
+    }
+    const bedrooms = positive(u.bedrooms, 50);
+    const sqft = positive(u.sqft, 1_000_000);
+    const { error: insertErr } = await db.from('units').insert({
+      building_id: building.id,
+      unit_number: unitNumber,
+      ownership_pct: pct ?? 0,
+      sqft: sqft === null ? null : Math.round(sqft),
+      bedrooms: bedrooms === null ? null : Math.round(bedrooms),
+      bathrooms: positive(u.bathrooms, 50),
+      address_override: clean(u.address).slice(0, 300) || null,
+    });
+    if (insertErr) { skipped++; errors.push(`Line ${line} (${unitNumber}): ${insertErr.message}`); continue; }
+    have.set(key, { id: '', pct: pct ?? 0 });
+    imported++;
+  }
+
+  // Ownership shares should total 100% across the association (assessments
+  // and votes are split by them): say so when they don't.
+  const total = [...have.values()].reduce((sum, u) => sum + u.pct, 0);
+  if (total > 0 && Math.abs(total - 100) > 0.01) {
+    errors.push(`Ownership percentages in this association now total ${Math.round(total * 10000) / 10000}%, not 100%. Check the units' ownership % before billing by share.`);
+  }
+  if (updated) errors.unshift(`${updated} existing unit${updated === 1 ? '' : 's'} had no ownership % and now have the one from the export.`);
+
+  revalidatePath('/units');
+  revalidatePath(`/associations/${associationId}/units`);
+  return { imported, skipped, errors: errors.length ? errors : undefined };
+}
