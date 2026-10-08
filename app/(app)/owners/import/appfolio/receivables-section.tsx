@@ -250,8 +250,9 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
     if (!file) return;
     setFileName(file.name);
     setFileKey((k) => k + 1);
-    const fromName = asOfFromFileName(file.name);
-    if (fromName) setAsOf(fromName);
+    // Every file sets its own as-of date: the date in its name, else today. Never the
+    // previous file's cutoff.
+    setAsOf(asOfFromFileName(file.name) ?? todayLocal());
     try {
       const p = parseAppfolioAgedReceivables(await file.text());
       if (p.error || !p.associations) { setParseError(p.error ?? 'Could not read the file.'); return; }

@@ -198,7 +198,9 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       const samePerson = (p: Person, name: string, emails: string[], phones: Set<string>, rowKey: string) => {
         if (p.rowKey !== undefined) return p.rowKey === rowKey;
         if (p.matched || p.name !== name) return false;
-        if (emails.length > 0 && p.emails.size > 0 && !emails.some((e) => p.emails.has(e))) return false;
+        // Every incoming email must be the linked owner's (the same rule as reusing an owner):
+        // a shared family email next to a different personal one means a different person.
+        if (emails.length > 0 && p.emails.size > 0 && !emails.every((e) => p.emails.has(e))) return false;
         if (phonesConflict(phones, p.phones)) return false;
         return true;
       };
