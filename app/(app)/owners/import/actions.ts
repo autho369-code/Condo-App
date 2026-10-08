@@ -393,9 +393,12 @@ export async function importAppfolioUnits(
       const unitKey = (v: unknown) => clean(v).toLowerCase().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ');
       const have = new Map<string, { id: string; pct: number }>();
       const ambiguous = new Set<string>();
+      // Shares of the extra units behind an ambiguous number: not matchable, but they still
+      // count toward the association's ownership total.
+      let ambiguousPct = 0;
       for (const u of existing ?? []) {
         const k = unitKey(u.unit_number);
-        if (have.has(k)) ambiguous.add(k);
+        if (have.has(k)) { ambiguous.add(k); ambiguousPct += Number(u.ownership_pct ?? 0); }
         else have.set(k, { id: u.id, pct: Number(u.ownership_pct ?? 0) });
       }
 
@@ -475,7 +478,7 @@ export async function importAppfolioUnits(
 
       // Ownership shares should total 100% across the association (assessments
       // and votes are split by them): say so when they don't.
-      const total = [...have.values()].reduce((sum, u) => sum + u.pct, 0);
+      const total = [...have.values()].reduce((sum, u) => sum + u.pct, ambiguousPct);
       if (total > 0 && Math.abs(total - 100) > 0.01) {
         errors.push(`Ownership percentages in this association now total ${Math.round(total * 10000) / 10000}%, not 100%. Check the units' ownership % before billing by share.`);
       }

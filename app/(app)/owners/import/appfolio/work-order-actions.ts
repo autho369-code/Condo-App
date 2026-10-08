@@ -171,6 +171,10 @@ async function insertWorkOrders(
   const existingRes = await fetchAllRows<any>(() => db.from('work_orders').select('id, description')
     .eq('association_id', associationId).ilike('description', 'AppFolio WO #%').order('id'));
   if (existingRes.error) return { imported: 0, skipped: workOrders.length, errors: [`Could not load the association's work orders: ${existingRes.error}`] };
+  // An incomplete list of earlier imports would let duplicates through: refuse instead.
+  if (existingRes.truncated) {
+    return { imported: 0, skipped: workOrders.length, errors: ['This association has too many imported work orders to check for duplicates. Nothing was imported.'] };
+  }
   const importedNumbers = new Set<string>();
   for (const w of existingRes.rows) {
     const m = clean(w.description, 200).match(MARKER_RE);
