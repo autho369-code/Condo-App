@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #248).
+Back to [[Home]]. Updated 2026-10-08 (after #249).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,9 +12,16 @@ Back to [[Home]]. Updated 2026-10-08 (after #248).
   pilot).
 
 ## Open PR
-- Open: maintenance "complete" is one transaction
+- Open: `/accept-invitation` (page and `acceptInvitation`) refuses an
+  invitation from another company on a company's address (platform address
+  stays allowed: /invite sends other-company accounts there), names the
+  inviting company, says up front when the invitation expired or is for
+  another account, rate limits per token (10/h) and shows plain errors.
+  No migration.
+- #249 merged (052b402); migration 20261008020000 applied and verified
+  (invoker, search_path pinned, anon no execute). Maintenance "complete" is one transaction
   (`complete_maintenance_task`, SECURITY INVOKER; migration
-  20261008020000 - apply after merge): the task is claimed with a
+  20261008020000): the task is claimed with a
   compare-and-set on what the page showed (`seen_completed_at`, due date,
   not archived), then history, the calendar close and the next occurrence's
   event, so a double click / stale page completes once and a failure leaves
@@ -67,7 +74,31 @@ Back to [[Home]]. Updated 2026-10-08 (after #248).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-1. Look for the next white-label / sign-in / data-exposure gap with the
-   overseer (the listed gaps are done).
-2. Optional (Mirsad decides): ask whether the remaining reason-required void/cancel forms
-   should also confirm.
+Found 2026-10-08 by the overseer + a security-reviewer audit.
+1. Letters sent by a platform operator from a client's template go out under
+   the operator's company name / reply-to (`app/api/letters/send/route.ts`
+   ~77-79): use the template company's name and support email, or
+   `fromName: null` so the queue brands it.
+2. Owner/resident password reset and resident invite links + email text use
+   the caller's company (`app/(app)/owners/[id]/occupancy-actions.ts` ~247,
+   261, 274, 361-378, 449): read slug/name/support email for the owner's or
+   tenant's portfolio.
+3. `property_group_id` from the form isn't checked against the association's
+   company (`lib/rpcs/entities.ts` ~424-428, `associations/new/page.tsx`
+   ~116); the update has no `.select()` check. Pin like
+   `lib/rpcs/property-groups.ts:57`.
+4. Portier369 marketing still opens on company addresses: `/demo`, `/legal/*`
+   (and `/api/demo-request`) aren't in middleware `MARKETING_PATHS`;
+   `app/robots.ts` always points at portier369.com; `public/llms.txt` served
+   on custom domains.
+5. Platform name in client-facing fallbacks: `lib/auth/login-errors.ts:16`
+   ("Contact Portier369 support" for suspended companies), `?? 'Portier369'`
+   in board/vendor/portal/resident/company-admin layouts, sidebars,
+   `app/invite/page.tsx` (email subject) -> `NEUTRAL_COMPANY_NAME`.
+6. `rescheduleReminders` (`lib/rpcs/calendar.ts` ~260-269) ignores errors and
+   0-row updates: event moves, reminders keep old times, user sees "saved".
+7. Inspection "create work order" (`app/(app)/inspections/[id]/page.tsx`
+   ~130-147) can create duplicate work orders on a double submit
+   (unconditional link update, no `.select()`).
+8. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
+   forms.

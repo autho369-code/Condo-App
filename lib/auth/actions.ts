@@ -7,6 +7,7 @@ import { getLoginModeConfig, normalizeLoginMode, safeInternalNext } from '@/lib/
 import { getMe, roleHome } from '@/lib/auth/me';
 import { tenantAccessDecision } from '@/lib/tenant/host';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { tokenMatchesAddress } from '@/lib/tenant/token-company';
 import { clientAddress, consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
 
 function loginFailureAuditCode(message: string | undefined) {
@@ -132,6 +133,17 @@ export async function logout() {
   redirect('/login');
 }
 
+/** Plain words for accept_invitation's refusals (raw RPC text otherwise). */
+function acceptInvitationMessage(raw: string): string {
+  const m = raw.toLowerCase();
+  if (m.includes('expired')) return 'This invitation has expired. Ask for a new one.';
+  if (m.includes('confirm your email')) return 'Confirm your email address first, then accept the invitation.';
+  if (m.includes('tenant record')) return 'This resident invitation no longer matches an active tenancy. Ask your management company for a new one.';
+  if (m.includes('email')) return 'This invitation was sent to a different email address. Sign in with that account.';
+  if (m.includes('not found') || m.includes('already')) return 'This invitation has already been used or replaced.';
+  return 'The invitation could not be accepted. Please try again or ask for a new invitation.';
+}
+
 /**
  * Accept an invitation as the signed-in user (form action — never on page
  * render: accepting changes the account's company and role). Fails loudly
@@ -145,8 +157,17 @@ export async function acceptInvitation(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/invite?token=${encodeURIComponent(token)}`);
+  // On a company's address only that company's invitations are accepted
+  // (the platform address is allowed; see the page).
+  const { data: invite } = await (createServiceClient() as any)
+    .from('user_invitations').select('portfolio_id').eq('token', token).eq('status', 'pending').maybeSingle();
+  if (!invite || !tokenMatchesAddress(await headers(), invite.portfolio_id)) {
+    back('This invitation is not valid on this address. Open the link from your most recent invitation email.');
+  }
+  const limit = await consumeScopedRateLimit(createServiceClient() as any, token, { scope: 'invitation_accept_token', windowSeconds: 3600, maxRequests: 10 });
+  if (!limit.allowed) back(limit.unavailable ? 'Please try again in a minute.' : 'Too many attempts. Please wait a while and try again.');
   const { error } = await (supabase as any).rpc('accept_invitation', { p_token: token });
-  if (error) back(error.message);
+  if (error) back(acceptInvitationMessage(error.message));
   revalidatePath('/', 'layout');
   const me = await getMe({ enforceMfa: false, operatorActionRoles: ['admin', 'support', 'readonly'] });
   redirect(roleHome(me));

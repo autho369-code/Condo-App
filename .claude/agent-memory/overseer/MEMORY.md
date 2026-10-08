@@ -66,3 +66,8 @@
   no ` M docs/brain/*`; run `git add docs/brain` last.
 - A new shared component (components/ui/*) should be listed in
   docs/DESIGN_SYSTEM.md so later work reuses it (CopyButton, 2026-10-08).
+- Recurring (accept-invitation PR, 2026-10-08): vault Open PR line written in
+  the first commit, a later commit (expired/other-account states, rate limit,
+  plain errors) not added. Also: a deliberate exception to a Decisions rule
+  (accept-invitation allowed on the platform address, unlike /sign,
+  /vendor-upload) must be written into Decisions, not only a code comment.
