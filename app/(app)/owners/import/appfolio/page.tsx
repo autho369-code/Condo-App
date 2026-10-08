@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { importAppfolioUnits } from '../actions';
 import { AppfolioImportClient } from './appfolio-client';
 import { importAppfolioChartOfAccounts, tieOutAppfolioTrialBalance } from './gl-actions';
-import { GlImportSection } from './gl-section';
+import { GlImportSection, TrialBalanceTieOutSection } from './gl-section';
 import { importAppfolioReceivables } from './receivables-actions';
 import { ReceivablesImportSection } from './receivables-section';
 import { importAppfolioVendors } from './vendor-actions';
@@ -37,16 +37,13 @@ export default async function AppfolioImportPage() {
     >
       <div className="max-w-5xl space-y-8">
         <AppfolioImportClient associations={associations} importUnits={importAppfolioUnits} />
-        {canFinance && (
-          <GlImportSection
-            associations={associations}
-            importChartOfAccounts={importAppfolioChartOfAccounts}
-            tieOutTrialBalance={tieOutAppfolioTrialBalance}
-          />
-        )}
+        {canFinance && <GlImportSection importChartOfAccounts={importAppfolioChartOfAccounts} />}
         <VendorImportSection importVendors={importAppfolioVendors} />
         {canFinance && <ReceivablesImportSection associations={associations} importReceivables={importAppfolioReceivables} />}
         <WorkOrderImportSection associations={associations} importWorkOrders={importAppfolioWorkOrders} />
+        {canFinance && (
+          <TrialBalanceTieOutSection associations={associations} tieOutTrialBalance={tieOutAppfolioTrialBalance} />
+        )}
       </div>
     </DataWorkspace>
   );

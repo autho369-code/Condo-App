@@ -1,6 +1,7 @@
+import Papa from 'papaparse';
 import { parseAppfolioReport } from './appfolio';
 
-// AppFolio general-ledger exports -> Portier369 shapes. Client-safe (no server
+// AppFolio general-ledger exports -> our gl_accounts shapes. Client-safe (no server
 // imports): the import page parses in the browser to preview, and the server
 // actions re-validate every account with normalizeGlAccount().
 //
@@ -162,6 +163,7 @@ export function parseAppfolioChartOfAccounts(text: string): {
       const notImported: string[] = [];
       if (r['Offset Account']) notImported.push(`offset account ${r['Offset Account']}`);
       if (/1099/i.test(options)) notImported.push('1099 exclusion');
+      if (/late fee/i.test(options)) notImported.push('late fee account');
       if (r['Subject To Tax Authority']) notImported.push(`tax authority ${r['Subject To Tax Authority']}`);
       const { account, error: rowError } = normalizeGlAccount({
         row: r.row,
@@ -204,6 +206,14 @@ export type AppfolioTrialBalanceRow = {
   ending: number;
 };
 
+export type AppfolioTrialBalanceAmounts = { balance_forward: number; debit: number; credit: number; ending: number };
+
+const PRIOR_YEARS_RE = /prior\s+years?\W*retained\s+earnings/i;
+const TOTAL_ROW = /^total$/i;
+
+/** Tie-out "association" value meaning every association in the company combined. */
+export const TIE_OUT_ALL_ASSOCIATIONS = 'all';
+
 export const TRIAL_BALANCE_HEADERS = ['GL Account', 'Ending Balance'] as const;
 
 /** "612,137.24" / "-1,200.00" / "(1,200.00)" / "$5.00" / "" -> number (blank = 0); null when not a number. */
@@ -227,6 +237,17 @@ export function splitGlAccountCell(v: string | undefined): { number: number; nam
   return { number: Number(m[1] ?? m[3]), name: (m[2] ?? '').trim() };
 }
 
+const round2 = (n: number) => Math.round(n * 100) / 100;
+function addAmounts(a: AppfolioTrialBalanceAmounts | undefined, b: AppfolioTrialBalanceAmounts): AppfolioTrialBalanceAmounts {
+  if (!a) return b;
+  return {
+    balance_forward: round2(a.balance_forward + b.balance_forward),
+    debit: round2(a.debit + b.debit),
+    credit: round2(a.credit + b.credit),
+    ending: round2(a.ending + b.ending),
+  };
+}
+
 const US_DATE = /(\d{1,2})\/(\d{1,2})\/(\d{4})/g;
 const toIso = (m: RegExpMatchArray) => `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
 
@@ -237,6 +258,18 @@ export function parseAppfolioTrialBalance(text: string): {
   groups?: string[];
   /** End of the report's date range, when the export carries its title lines. */
   asOf?: string;
+  /** "Properties: ..." from the title lines; undefined when the export does not name one. */
+  property?: string;
+  /**
+   * AppFolio's "Calculated Prior Years Retained Earnings" line per property
+   * group ('' when ungrouped), debit-positive: net income of closed fiscal
+   * years, which has no GL account number.
+   */
+  priorYearsRetainedEarnings?: Record<string, AppfolioTrialBalanceAmounts>;
+  /** The report's own (last) Total row. */
+  total?: AppfolioTrialBalanceAmounts;
+  /** Balance checks that failed (debits ≠ credits, rows don't add up to the Total row). */
+  warnings?: string[];
   basis?: 'cash' | 'accrual';
   /** Lines that are not account rows (headings, subtotals) or have unreadable amounts. */
   ignored?: string[];
@@ -256,6 +289,8 @@ export function parseAppfolioTrialBalance(text: string): {
   if (dates.length) asOf = toIso(dates[dates.length - 1]);
   const basisMatch = preamble.match(/basis\W*(cash|accrual)\b/i) ?? preamble.match(/\b(cash|accrual)\b/i);
   const basis = basisMatch ? (basisMatch[1].toLowerCase() as 'cash' | 'accrual') : undefined;
+  const propertyMatch = preamble.match(/^\W*propert(?:y|ies)\s*:\s*(.+?)[\s,"]*$/im);
+  const property = propertyMatch?.[1].replace(/"/g, '').trim() || undefined;
 
   const { report, error } = parseAppfolioReport(lines.slice(headerAt).join('\n'));
   if (!report) return { error };
@@ -266,23 +301,62 @@ export function parseAppfolioTrialBalance(text: string): {
   const offset = headerAt; // report rows count from the header line
   const rows: AppfolioTrialBalanceRow[] = [];
   const ignored: string[] = [];
+  const priorYears: Record<string, AppfolioTrialBalanceAmounts> = {};
+  let total: AppfolioTrialBalanceAmounts | undefined;
   for (const g of report.groups) {
     for (const r of g.rows) {
       const line = String(Number(r.row) + offset);
-      const acct = splitGlAccountCell(r['GL Account']);
-      if (!acct) { if (r['GL Account']) ignored.push(`Line ${line}: "${r['GL Account']}"`); continue; }
+      const cell = (r['GL Account'] ?? '').trim();
       const bf = parseAmount(r['Balance Forward']);
       const debit = parseAmount(r['Debit']);
       const credit = parseAmount(r['Credit']);
       const ending = parseAmount(r['Ending Balance']);
-      if (bf === null || debit === null || credit === null || ending === null) {
+      const amounts = bf === null || debit === null || credit === null || ending === null
+        ? null
+        : { balance_forward: bf, debit, credit, ending };
+      const acct = splitGlAccountCell(cell);
+      if (!acct) {
+        if (amounts && PRIOR_YEARS_RE.test(cell)) { priorYears[g.name] = addAmounts(priorYears[g.name], amounts); continue; }
+        if (cell) ignored.push(`Line ${line}: "${cell}"`);
+        continue;
+      }
+      if (!amounts) {
         ignored.push(`Line ${line} (${acct.number}): an amount could not be read.`);
         continue;
       }
-      rows.push({ row: line, group: g.name, number: acct.number, name: acct.name, balance_forward: bf, debit, credit, ending });
+      rows.push({ row: line, group: g.name, number: acct.number, name: acct.name, ...amounts });
     }
   }
   if (!rows.length) return { error: 'The file has no GL account rows.' };
   const groups = [...new Set(rows.map((r) => r.group))];
-  return { rows, groups, asOf, basis, ignored: ignored.length ? ignored : undefined };
+
+  // parseAppfolioReport drops the grand-total row; read the last "Total" line here.
+  const headerCells = Papa.parse<string[]>(lines[headerAt]).data[0]?.map((c) => c.trim()) ?? [];
+  for (let i = lines.length - 1; i > headerAt; i--) {
+    const cells = Papa.parse<string[]>(lines[i]).data[0];
+    if (!cells || !TOTAL_ROW.test((cells[0] ?? '').trim())) continue;
+    const at = (h: string) => parseAmount(cells[headerCells.indexOf(h)] ?? '');
+    const [bf, debit, credit, ending] = ['Balance Forward', 'Debit', 'Credit', 'Ending Balance'].map(at);
+    if (bf !== null && debit !== null && credit !== null && ending !== null) total = { balance_forward: bf, debit, credit, ending };
+    break;
+  }
+
+  const warnings: string[] = [];
+  const sum = (f: (a: AppfolioTrialBalanceAmounts) => number) =>
+    round2(rows.reduce((s, r) => s + f(r), 0) + Object.values(priorYears).reduce((s, a) => s + f(a), 0));
+  const m = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const endingSum = sum((a) => a.ending);
+  if (total) {
+    if (total.debit !== total.credit) warnings.push(`The Total row's debits (${m(total.debit)}) and credits (${m(total.credit)}) are not equal.`);
+    if (endingSum !== total.ending) warnings.push(`The account lines add up to ${m(endingSum)}, but the Total row says ${m(total.ending)}. Some lines may not have been read.`);
+  }
+  if (endingSum !== 0) warnings.push(`The ending balances add up to ${m(endingSum)} instead of 0.00 (debits positive, credits negative).`);
+
+  return {
+    rows, groups, asOf, basis, property,
+    priorYearsRetainedEarnings: Object.keys(priorYears).length ? priorYears : undefined,
+    total,
+    warnings: warnings.length ? warnings : undefined,
+    ignored: ignored.length ? ignored : undefined,
+  };
 }

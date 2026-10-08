@@ -13,6 +13,7 @@ const CHART = [
   '"2100","SECURITY DEPOSITS","Liability",,,"Property",,,',
   '"3000","Owner Equity","Equity",,,"Property",,,',
   '"4101","Regular Assessment","Income",,,"Property","Include On Cash Flow, Management Fees",,',
+  '"4130","Late Fees","Other Income",,"1150 Operating","Property","Late Fees, Management Fees",,',
   '"6100","Old Repairs","Expense",,,"Property",,"Yes",',
   '"5000","Mystery","Suspense",,,"Property",,,',
   '"99","Too Short","Expense",,,"Property",,,',
@@ -40,7 +41,7 @@ describe('AppFolio Chart of Accounts', () => {
   it('parses accounts with parents, options, fund and hidden flags', () => {
     const { accounts, errors, error } = parseAppfolioChartOfAccounts(CHART);
     expect(error).toBeUndefined();
-    expect(accounts?.map((a) => a.number)).toEqual([1150, 1700, 1705, 1830, 2100, 3000, 4101, 6100]);
+    expect(accounts?.map((a) => a.number)).toEqual([1150, 1700, 1705, 1830, 2100, 3000, 4101, 4130, 6100]);
     const byNumber = new Map(accounts!.map((a) => [a.number, a]));
     expect(byNumber.get(1150)).toMatchObject({ account_type: 'cash', parent_number: null, include_on_cash_flow: false, fund_account: 'operating', active: true, row: '2' });
     expect(byNumber.get(1705)).toMatchObject({ account_type: 'asset', parent_number: 1700, include_on_cash_flow: true, subject_to_management_fees: false });
@@ -48,6 +49,8 @@ describe('AppFolio Chart of Accounts', () => {
     expect(byNumber.get(1830)).toMatchObject({ parent_number: 1800, include_on_cash_flow: true, subject_to_management_fees: true });
     expect(byNumber.get(1830)!.not_imported).toContain('1099 exclusion');
     expect(byNumber.get(4101)).toMatchObject({ account_type: 'income', subject_to_management_fees: true });
+    expect(byNumber.get(4130)).toMatchObject({ account_type: 'other_income', subject_to_management_fees: true });
+    expect(byNumber.get(4130)!.not_imported).toContain('late fee account');
     expect(byNumber.get(6100)).toMatchObject({ account_type: 'expense', active: false });
     expect(errors).toHaveLength(3);
     expect(errors![0]).toMatch(/unknown account type "Suspense"/);
@@ -104,6 +107,44 @@ describe('AppFolio Trial Balance', () => {
     expect(tb.rows?.[1].ending).toBe(-1200);
     expect(tb.rows?.[3]).toMatchObject({ debit: -5, ending: 0 });
     expect(tb.groups).toEqual(['']);
+    expect(tb.property).toBe('Pine Tree Court');
+    expect(tb.total).toEqual({ balance_forward: 598800, debit: 20000, credit: 618800, ending: 0 });
+    expect(tb.warnings).toEqual([expect.stringMatching(/debits \(20,000.00\) and credits \(618,800.00\) are not equal/)]);
+  });
+
+  it('reads AppFolio\'s real layout: credits negative, prior years retained earnings, balanced Total row', () => {
+    // Same shape as an AppFolio export run for all properties: no title lines,
+    // a blank line after the header, liabilities/equity/income negative.
+    const tb = parseAppfolioTrialBalance([
+      'GL Account,Balance Forward,Debit,Credit,Ending Balance',
+      '',
+      '1150: Operating,"1,000.00","500.00",,"1,500.00"',
+      '2300: Prepaid Assessment,-200.00,100.00,,-100.00',
+      '3999: Opening Balance Import Offset,-300.00,,,-300.00',
+      '4101: Regular Assessment,"-1,000.00",,600.00,"-1,600.00"',
+      '6213: Property Insurance,400.00,,,400.00',
+      'Calculated Prior Years Retained Earnings,100.00,,,100.00',
+      '',
+      'Total,0.00,600.00,600.00,0.00',
+    ].join('\n'));
+    expect(tb.error).toBeUndefined();
+    expect(tb.rows?.map((r) => r.number)).toEqual([1150, 2300, 3999, 4101, 6213]);
+    expect(tb.rows?.find((r) => r.number === 4101)?.ending).toBe(-1600);
+    expect(tb.priorYearsRetainedEarnings).toEqual({ '': { balance_forward: 100, debit: 0, credit: 0, ending: 100 } });
+    expect(tb.total).toEqual({ balance_forward: 0, debit: 600, credit: 600, ending: 0 });
+    expect(tb.property).toBeUndefined();
+    expect(tb.ignored).toBeUndefined();
+    expect(tb.warnings).toBeUndefined();
+  });
+
+  it('warns when the account lines do not add up to the Total row', () => {
+    const tb = parseAppfolioTrialBalance([
+      'GL Account,Balance Forward,Debit,Credit,Ending Balance',
+      '1150: Operating,,,,10.00',
+      'Total,,,,0.00',
+    ].join('\n'));
+    expect(tb.warnings?.join(' ')).toMatch(/add up to 10.00, but the Total row says 0.00/);
+    expect(tb.warnings?.join(' ')).toMatch(/instead of 0.00/);
   });
 
   it('works without title lines and with property groups', () => {

@@ -5,7 +5,8 @@
 //     company-wide chart of accounts (gl_accounts). Never overwrites: an
 //     account whose number is already in the company's chart is skipped.
 //   tieOutAppfolioTrialBalance    — READ-ONLY comparison of AppFolio's Trial
-//     Balance against the association's posted Portier369 ledger.
+//     Balance against one association's posted ledger, or every association
+//     combined (an AppFolio trial balance run for all properties, ungrouped).
 //
 // Both run through the signed-in finance user's session client, so RLS
 // applies (gl_accounts_finance_all = can_manage_finance(portfolio_id));
@@ -17,7 +18,7 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { ledgerTotalsByAccount } from '@/lib/finance/totals';
 import { fiscalWindow, fiscalYearFor } from '@/lib/budget/fiscal';
 import { glWriteError } from '@/lib/gl/accounts';
-import { MAX_GL_ACCOUNTS, normalizeGlAccount, type AppfolioGlAccount } from '@/lib/imports/appfolio-gl';
+import { MAX_GL_ACCOUNTS, TIE_OUT_ALL_ASSOCIATIONS, normalizeGlAccount, type AppfolioGlAccount } from '@/lib/imports/appfolio-gl';
 
 export type GlImportSummary = { imported: number; skipped: number; errors?: string[]; notes?: string[] };
 
@@ -170,6 +171,17 @@ export type TieOutResult = {
   totals?: { appfolio: number; portier: number; difference: number; matched: number; different: number; notInPortier: number; notInAppfolio: number };
   /** Net income posted before incomeFrom (debit-positive): AppFolio shows it in retained earnings. */
   priorYearsNet?: number;
+  /**
+   * AppFolio's "Calculated Prior Years Retained Earnings" line against the
+   * ledger's net income before incomeFrom. Included in `totals`.
+   */
+  priorYears?: { appfolio: number | null; portier: number; difference: number };
+};
+
+export type TieOutOptions = {
+  incomeBasis?: 'fiscal_year' | 'all_time';
+  /** AppFolio's "Calculated Prior Years Retained Earnings" ending balance (debit-positive). */
+  priorYearsRetainedEarnings?: number | null;
 };
 
 const INCOME_STATEMENT_TYPES = new Set(['income', 'other_income', 'expense', 'cost_of_goods_sold', 'other_expense', 'non_operating']);
@@ -177,22 +189,26 @@ const MAX_TIE_OUT_ROWS = 5000;
 const cents = (n: number) => Math.round(n * 100) / 100;
 
 /**
- * Compare AppFolio's trial balance ending balances with the association's
- * posted Portier369 ledger as of `asOf`. Balances are debit-positive on both
- * sides (AppFolio prints credits as negatives). Income and expense accounts
- * count from the start of the association's fiscal year unless
- * `incomeBasis` is 'all_time'. Reads only; writes nothing.
+ * Compare AppFolio's trial balance ending balances with the posted ledger as
+ * of `asOf`, for one association or (associationId = TIE_OUT_ALL_ASSOCIATIONS) all of
+ * the company's associations combined. Balances are debit-positive on both
+ * sides: AppFolio's export prints debits positive and credits negative
+ * (liabilities, equity and income show as negatives; the ending balances plus
+ * "Calculated Prior Years Retained Earnings" sum to 0.00). Income and expense
+ * accounts count from the start of the fiscal year unless `incomeBasis` is
+ * 'all_time'. Reads only; writes nothing.
  */
 export async function tieOutAppfolioTrialBalance(
   associationId: string,
   asOf: string,
   rows: TieOutInputRow[],
-  options: { incomeBasis?: 'fiscal_year' | 'all_time' } = {},
+  options: TieOutOptions = {},
 ): Promise<TieOutResult> {
   const me = await requireFinanceStaff();
   const portfolioId: string | undefined = me.portfolio?.id;
   if (!portfolioId) return { error: 'Your account is not linked to a company.' };
-  if (typeof associationId !== 'string' || !UUID.test(associationId)) return { error: 'Choose an association.' };
+  const combined = associationId === TIE_OUT_ALL_ASSOCIATIONS;
+  if (typeof associationId !== 'string' || (!combined && !UUID.test(associationId))) return { error: 'Choose an association.' };
   if (typeof asOf !== 'string' || !ISO_DATE.test(asOf) || Number.isNaN(Date.parse(`${asOf}T00:00:00Z`))) return { error: 'Choose an as-of date.' };
   if (!Array.isArray(rows) || rows.length === 0) return { error: 'The trial balance has no rows.' };
   if (rows.length > MAX_TIE_OUT_ROWS) return { error: `Compare at most ${MAX_TIE_OUT_ROWS} accounts at a time.` };
@@ -200,10 +216,24 @@ export async function tieOutAppfolioTrialBalance(
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: association, error: assocErr } = await db
-    .from('associations').select('id, name, portfolio_id, fiscal_year_start').eq('id', associationId).maybeSingle();
-  if (assocErr) return { error: `Could not check the association: ${assocErr.message}` };
-  if (!association || association.portfolio_id !== portfolioId) return { error: 'That association was not found or is outside your access.' };
+  type AssociationRow = { id: string; name: string; portfolio_id: string; fiscal_year_start: number | null };
+  let associations: AssociationRow[];
+  if (combined) {
+    const { rows: all, error: allErr } = await fetchAllRows<AssociationRow>(() => db
+      .from('associations').select('id, name, portfolio_id, fiscal_year_start')
+      .eq('portfolio_id', portfolioId).order('name').order('id'));
+    if (allErr) return { error: `Could not load the associations: ${allErr}` };
+    if (all.length === 0) return { error: 'Your company has no associations yet.' };
+    associations = all;
+  } else {
+    const { data: association, error: assocErr } = await db
+      .from('associations').select('id, name, portfolio_id, fiscal_year_start').eq('id', associationId).maybeSingle();
+    if (assocErr) return { error: `Could not check the association: ${assocErr.message}` };
+    if (!association || association.portfolio_id !== portfolioId) return { error: 'That association was not found or is outside your access.' };
+    associations = [association];
+  }
+  const associationIds = associations.map((a) => a.id);
+  const label = combined ? `All associations (${associations.length})` : associations[0].name;
 
   // AppFolio side: one balance per account number (summed if repeated).
   const appfolio = new Map<number, { name: string; ending: number }>();
@@ -217,29 +247,37 @@ export async function tieOutAppfolioTrialBalance(
   }
   if (appfolio.size === 0) return { error: 'The trial balance has no readable account rows.' };
 
-  // Accounts this association can post to: company-wide plus its own.
-  const { rows: accounts, error: accountsErr } = await fetchAllRows<{ id: string; number: number; name: string; account_type: string }>(() => db
-    .from('gl_accounts').select('id, number, name, account_type')
-    .eq('portfolio_id', portfolioId)
-    .or(`association_id.is.null,association_id.eq.${associationId}`)
-    .order('number').order('id'));
+  // Accounts the association(s) can post to: company-wide plus their own
+  // (every account in the company when combined).
+  const { rows: accounts, error: accountsErr } = await fetchAllRows<{ id: string; number: number; name: string; account_type: string }>(() => {
+    let q = db.from('gl_accounts').select('id, number, name, account_type').eq('portfolio_id', portfolioId);
+    if (!combined) q = q.or(`association_id.is.null,association_id.eq.${associationId}`);
+    return q.order('number').order('id');
+  });
   if (accountsErr) return { error: `Could not load the chart of accounts: ${accountsErr}` };
 
   let incomeFrom: string | null = null;
   if ((options.incomeBasis ?? 'fiscal_year') === 'fiscal_year') {
     const [y, m, d] = asOf.split('-').map(Number);
-    incomeFrom = fiscalWindow(fiscalYearFor(new Date(y, m - 1, d), association.fiscal_year_start), association.fiscal_year_start).start;
+    const starts = new Set(associations.map((a) => {
+      const fy = a.fiscal_year_start;
+      return fiscalWindow(fiscalYearFor(new Date(y, m - 1, d), fy), fy).start;
+    }));
+    if (starts.size > 1) {
+      return { error: 'Your associations have different fiscal years, so their income and expense cannot be combined from one start date. Export the trial balance one property at a time, or compare all-time balances.' };
+    }
+    incomeFrom = [...starts][0];
   }
 
   let allTime: Record<string, { debit: number; credit: number }>;
   let beforeFiscal: Record<string, { debit: number; credit: number }> = {};
   try {
-    allTime = await ledgerTotalsByAccount(db, { portfolioId, associationIds: [associationId], to: asOf });
+    allTime = await ledgerTotalsByAccount(db, { portfolioId, associationIds, to: asOf });
     if (incomeFrom) {
       const [y, m, d] = incomeFrom.split('-').map(Number);
       const dayBefore = new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
       beforeFiscal = await ledgerTotalsByAccount(db, {
-        portfolioId, associationIds: [associationId], to: dayBefore, accountTypes: [...INCOME_STATEMENT_TYPES],
+        portfolioId, associationIds, to: dayBefore, accountTypes: [...INCOME_STATEMENT_TYPES],
       });
     }
   } catch (e) {
@@ -256,7 +294,13 @@ export async function tieOutAppfolioTrialBalance(
       balance -= before.debit - before.credit;
       priorYearsNet += before.debit - before.credit;
     }
-    portier.set(Number(a.number), { name: a.name, account_type: a.account_type, balance: cents(balance) });
+    // Association-own accounts can share a number across associations; combined, they add up.
+    const prev = portier.get(Number(a.number));
+    portier.set(Number(a.number), {
+      name: prev?.name ?? a.name,
+      account_type: prev?.account_type ?? a.account_type,
+      balance: cents((prev?.balance ?? 0) + balance),
+    });
   }
 
   const lines: TieOutLine[] = [];
@@ -275,21 +319,32 @@ export async function tieOutAppfolioTrialBalance(
   }
   lines.sort((a, b) => a.number - b.number);
 
+  // Prior fiscal years' net income: AppFolio prints it as its own line with
+  // no account number; the ledger's equivalent is income and expense posted
+  // before incomeFrom (zero when comparing all-time balances).
+  const pyRaw = options.priorYearsRetainedEarnings;
+  const pyAppfolio = typeof pyRaw === 'number' && Number.isFinite(pyRaw) ? cents(pyRaw) : null;
+  const pyPortier = cents(priorYearsNet);
+  const priorYears = pyAppfolio !== null || pyPortier !== 0
+    ? { appfolio: pyAppfolio, portier: pyPortier, difference: cents((pyAppfolio ?? 0) - pyPortier) }
+    : undefined;
+
   const sum = (f: (l: TieOutLine) => number) => cents(lines.reduce((s, l) => s + f(l), 0));
   return {
-    association: association.name,
+    association: label,
     asOf,
     incomeFrom,
     lines,
     totals: {
-      appfolio: sum((l) => l.appfolio ?? 0),
-      portier: sum((l) => l.portier ?? 0),
-      difference: sum((l) => l.difference),
+      appfolio: cents(sum((l) => l.appfolio ?? 0) + (priorYears?.appfolio ?? 0)),
+      portier: cents(sum((l) => l.portier ?? 0) + (priorYears?.portier ?? 0)),
+      difference: cents(sum((l) => l.difference) + (priorYears?.difference ?? 0)),
       matched: lines.filter((l) => l.status === 'match').length,
       different: lines.filter((l) => l.status === 'different').length,
       notInPortier: lines.filter((l) => l.status === 'not_in_portier').length,
       notInAppfolio: lines.filter((l) => l.status === 'not_in_appfolio').length,
     },
-    priorYearsNet: cents(priorYearsNet),
+    priorYearsNet: pyPortier,
+    priorYears,
   };
 }

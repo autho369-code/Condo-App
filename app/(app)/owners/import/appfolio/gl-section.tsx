@@ -1,36 +1,38 @@
 'use client';
 
-// AppFolio general ledger: (1) Chart of Accounts export -> preview -> add the
-// accounts to the company-wide chart; (2) Trial Balance export -> read-only
-// tie-out against the association's posted Portier369 ledger. Files are read
-// in the browser (lib/imports/appfolio-gl); the server actions re-check
-// everything and the tie-out writes nothing.
+// AppFolio general ledger, two sections the import page places separately:
+//   GlImportSection            — Chart of Accounts export -> preview -> add the
+//                                accounts to the company-wide chart.
+//   TrialBalanceTieOutSection  — Trial Balance export -> read-only tie-out
+//                                against the posted ledger (render it last).
+// Files are read in the browser (lib/imports/appfolio-gl); the server actions
+// re-check everything and the tie-out writes nothing.
 import * as React from 'react';
-import { Alert, Badge, Surface } from '@/components/ui/shell';
+import { Alert, Badge, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input, Label, Select } from '@/components/ui/input';
+import { Field, Input, Select } from '@/components/ui/input';
 import {
-  parseAppfolioChartOfAccounts, parseAppfolioTrialBalance,
-  type AppfolioGlAccount, type AppfolioTrialBalanceRow,
+  TIE_OUT_ALL_ASSOCIATIONS, parseAppfolioChartOfAccounts, parseAppfolioTrialBalance,
+  type AppfolioGlAccount, type AppfolioTrialBalanceAmounts, type AppfolioTrialBalanceRow,
 } from '@/lib/imports/appfolio-gl';
-import type { GlImportSummary, TieOutInputRow, TieOutLine, TieOutResult } from './gl-actions';
+import type { GlImportSummary, TieOutInputRow, TieOutLine, TieOutOptions, TieOutResult } from './gl-actions';
 
 type Association = { id: string; name: string };
 
 export type GlImportSectionProps = {
-  associations: Association[];
   importChartOfAccounts: (accounts: AppfolioGlAccount[]) => Promise<GlImportSummary>;
+};
+
+export type TrialBalanceTieOutSectionProps = {
+  associations: Association[];
   tieOutTrialBalance: (
     associationId: string,
     asOf: string,
     rows: TieOutInputRow[],
-    options?: { incomeBasis?: 'fiscal_year' | 'all_time' },
+    options?: TieOutOptions,
   ) => Promise<TieOutResult>;
 };
-
-const fileCls =
-  'block w-full text-sm text-gray-700 file:mr-3 file:h-10 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800';
 
 const moneyFmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const money = (n: number | null) => (n === null ? '—' : moneyFmt.format(n));
@@ -60,7 +62,8 @@ function ResultList({ items }: { items?: string[] }) {
 
 /* ── Chart of accounts ───────────────────────────────────────────────── */
 
-function ChartOfAccountsPart({ importChartOfAccounts }: Pick<GlImportSectionProps, 'importChartOfAccounts'>) {
+export function GlImportSection({ importChartOfAccounts }: GlImportSectionProps) {
+  const [fileName, setFileName] = React.useState('');
   const [accounts, setAccounts] = React.useState<AppfolioGlAccount[] | null>(null);
   const [rowErrors, setRowErrors] = React.useState<string[]>([]);
   const [error, setError] = React.useState<string | null>(null);
@@ -75,6 +78,7 @@ function ChartOfAccountsPart({ importChartOfAccounts }: Pick<GlImportSectionProp
     setError(null);
     setResult(null);
     setShowAll(false);
+    setFileName(file?.name ?? '');
     if (!file) return;
     try {
       const parsed = parseAppfolioChartOfAccounts(await file.text());
@@ -104,19 +108,17 @@ function ChartOfAccountsPart({ importChartOfAccounts }: Pick<GlImportSectionProp
   const shown = accounts ? (showAll ? accounts : accounts.slice(0, PREVIEW_LIMIT)) : [];
 
   return (
-    <div className="space-y-4">
-      <Surface className="space-y-3">
-        <div>
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-gray-950">Chart of accounts — AppFolio GL Accounts</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            In AppFolio open Accounting → GL Accounts and export the list as CSV. Accounts are added to your
-            company-wide chart of accounts. Account numbers you already have are skipped and never changed.
-          </p>
-        </div>
-        <div>
-          <Label htmlFor="appfolio-coa-file">Chart of accounts CSV</Label>
-          <input id="appfolio-coa-file" type="file" accept=".csv,text/csv" onChange={onFile} className={fileCls} />
-        </div>
+    <div className="space-y-5">
+      <Surface className="space-y-5">
+        <SectionTitle
+          className="mb-0"
+          title="Chart of accounts — AppFolio GL Accounts"
+          description="In AppFolio open Accounting → GL Accounts and export the list as CSV. Accounts are added to your company-wide chart of accounts. Account numbers you already have are skipped and never changed."
+        />
+        <Field label="Chart of accounts CSV" htmlFor="appfolio-coa-file" required>
+          <Input id="appfolio-coa-file" type="file" accept=".csv,text/csv" required onChange={onFile} className="h-auto py-2" />
+        </Field>
+        {fileName && <p className="text-xs text-gray-500">{fileName}</p>}
       </Surface>
 
       {error && <Alert tone="danger">{error}</Alert>}
@@ -127,11 +129,11 @@ function ChartOfAccountsPart({ importChartOfAccounts }: Pick<GlImportSectionProp
       )}
 
       {accounts && accounts.length > 0 && (
-        <Surface className="space-y-4">
+        <Surface className="space-y-5">
           <div className="flex flex-wrap gap-2">
             <Badge tone="info">{accounts.length} account{accounts.length === 1 ? '' : 's'}</Badge>
             <Badge tone="info">{subAccounts} sub-account{subAccounts === 1 ? '' : 's'}</Badge>
-            {hidden > 0 && <Badge tone="inactive">{hidden} hidden → inactive</Badge>}
+            {hidden > 0 && <Badge tone="inactive" className="normal-case">{hidden} hidden → inactive</Badge>}
           </div>
           <Table>
             <THead>
@@ -158,7 +160,7 @@ function ChartOfAccountsPart({ importChartOfAccounts }: Pick<GlImportSectionProp
                       {!a.active && <Badge tone="inactive">Inactive</Badge>}
                       {a.include_on_cash_flow && <Badge tone="info">Cash flow</Badge>}
                       {a.subject_to_management_fees && <Badge tone="info">Mgmt fees</Badge>}
-                      {a.fund_account && <Badge tone="info">{a.fund_account.replace(/_/g, ' ')} fund</Badge>}
+                      {a.fund_account && <Badge tone="info" className="normal-case">{a.fund_account.replace(/_/g, ' ')} fund</Badge>}
                     </div>
                   </TD>
                 </TR>
@@ -171,10 +173,10 @@ function ChartOfAccountsPart({ importChartOfAccounts }: Pick<GlImportSectionProp
             </Button>
           )}
           <p className="text-xs text-gray-500">
-            Not imported: AppFolio offset accounts, 1099 exclusions and tax authorities (GL accounts here do not store them).
+            Not imported: AppFolio offset accounts, 1099 exclusions, late fee settings and tax authorities (GL accounts here do not store them).
           </p>
           <div>
-            <Button type="button" className="h-10" disabled={busy || result !== null} onClick={run}>
+            <Button type="button" disabled={busy || result !== null} onClick={run}>
               {busy ? 'Importing…' : result ? 'Imported' : `Import ${accounts.length} account${accounts.length === 1 ? '' : 's'}`}
             </Button>
           </div>
@@ -198,7 +200,11 @@ function statusBadge(l: TieOutLine) {
   return <Badge tone="pending">Not in AppFolio</Badge>;
 }
 
-function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSectionProps, 'associations' | 'tieOutTrialBalance'>) {
+export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: TrialBalanceTieOutSectionProps) {
+  const [fileName, setFileName] = React.useState('');
+  const [property, setProperty] = React.useState<string | undefined>();
+  const [priorYears, setPriorYears] = React.useState<Record<string, AppfolioTrialBalanceAmounts>>({});
+  const [checks, setChecks] = React.useState<string[]>([]);
   const [rows, setRows] = React.useState<AppfolioTrialBalanceRow[] | null>(null);
   const [groups, setGroups] = React.useState<string[]>([]);
   const [group, setGroup] = React.useState('');
@@ -218,8 +224,12 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
     setGroups([]);
     setIgnored([]);
     setBasis(undefined);
+    setProperty(undefined);
+    setPriorYears({});
+    setChecks([]);
     setError(null);
     setResult(null);
+    setFileName(file?.name ?? '');
     if (!file) return;
     try {
       const parsed = parseAppfolioTrialBalance(await file.text());
@@ -230,8 +240,16 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
       setGroup(g[0] ?? '');
       setBasis(parsed.basis);
       setIgnored(parsed.ignored ?? []);
+      setProperty(parsed.property);
+      setPriorYears(parsed.priorYearsRetainedEarnings ?? {});
+      setChecks(parsed.warnings ?? []);
       if (parsed.asOf) setAsOf(parsed.asOf);
-      setAssociationId((current) => current || suggestAssociation(g[0] ?? '', associations));
+      // A file with no property name and no property groups was most likely
+      // run for every property at once: default to all associations combined.
+      const unnamed = !parsed.property && g.length === 1 && g[0] === '';
+      setAssociationId((current) => current
+        || suggestAssociation(g[0] || parsed.property || '', associations)
+        || (unnamed && associations.length > 1 ? TIE_OUT_ALL_ASSOCIATIONS : ''));
     } catch (err) {
       setError(err instanceof Error ? `Could not read the file: ${err.message}` : 'Could not read the file.');
     }
@@ -255,7 +273,7 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
         associationId,
         asOf,
         selected.map((r) => ({ number: r.number, name: r.name, ending: r.ending })),
-        { incomeBasis },
+        { incomeBasis, priorYearsRetainedEarnings: priorYears[group]?.ending ?? null },
       );
       if (res.error) setError(res.error);
       else setResult(res);
@@ -269,62 +287,70 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
   const lines = result?.lines ?? [];
   const visible = onlyDifferences ? lines.filter((l) => l.status !== 'match') : lines;
   const t = result?.totals;
+  const unnamedFile = rows !== null && !property && groups.length === 1 && groups[0] === '';
 
   return (
-    <div className="space-y-4">
-      <Surface className="space-y-4">
-        <div>
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-gray-950">Trial balance tie-out</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            In AppFolio run Reports → Trial Balance for one association and export it as CSV. This compares each
-            account&apos;s ending balance with your posted ledger. It only reads — nothing is saved.
-          </p>
-        </div>
-        <div>
-          <Label htmlFor="appfolio-tb-file">Trial balance CSV</Label>
-          <input id="appfolio-tb-file" type="file" accept=".csv,text/csv" onChange={onFile} className={fileCls} />
-        </div>
+    <div className="space-y-5">
+      <Surface className="space-y-5">
+        <SectionTitle
+          className="mb-0"
+          title="Trial balance tie-out"
+          description="In AppFolio run Reports → Trial Balance and export it as CSV. This compares each account's ending balance with your posted ledger. It only reads — nothing is saved."
+        />
+        <Field label="Trial balance CSV" htmlFor="appfolio-tb-file" required>
+          <Input id="appfolio-tb-file" type="file" accept=".csv,text/csv" required onChange={onFile} className="h-auto py-2" />
+        </Field>
+        {fileName && <p className="text-xs text-gray-500">{fileName}{property ? ` · ${property}` : ''}</p>}
 
         {rows && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {groups.length > 1 && (
-              <div className="sm:col-span-2">
-                <Label htmlFor="appfolio-tb-group">AppFolio property in the file</Label>
+              <Field label="AppFolio property in the file" htmlFor="appfolio-tb-group" className="sm:col-span-2">
                 <Select id="appfolio-tb-group" value={group} onChange={(e) => onGroup(e.target.value)}>
                   {groups.map((g) => <option key={g} value={g}>{g || '(no property)'}</option>)}
                 </Select>
-              </div>
+              </Field>
             )}
-            <div>
-              <Label htmlFor="appfolio-tb-assoc">Compare with <span className="text-red-500">*</span></Label>
-              <Select id="appfolio-tb-assoc" value={associationId} onChange={(e) => { setAssociationId(e.target.value); setResult(null); }}>
+            <Field label="Compare with" htmlFor="appfolio-tb-assoc" required>
+              <Select id="appfolio-tb-assoc" required value={associationId} onChange={(e) => { setAssociationId(e.target.value); setResult(null); }}>
                 <option value="">Select an association</option>
+                {associations.length > 1 && <option value={TIE_OUT_ALL_ASSOCIATIONS}>All associations combined</option>}
                 {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </Select>
-            </div>
-            <div>
-              <Label htmlFor="appfolio-tb-asof">As of <span className="text-red-500">*</span></Label>
-              <Input id="appfolio-tb-asof" type="date" value={asOf} onChange={(e) => { setAsOf(e.target.value); setResult(null); }} />
-            </div>
-            <div className="sm:col-span-2">
-              <Label htmlFor="appfolio-tb-income">Income and expense accounts</Label>
+            </Field>
+            <Field label="As of" htmlFor="appfolio-tb-asof" required>
+              <Input id="appfolio-tb-asof" type="date" required value={asOf} onChange={(e) => { setAsOf(e.target.value); setResult(null); }} />
+            </Field>
+            <Field label="Income and expense accounts" htmlFor="appfolio-tb-income" className="sm:col-span-2">
               <Select id="appfolio-tb-income" value={incomeBasis} onChange={(e) => { setIncomeBasis(e.target.value as 'fiscal_year' | 'all_time'); setResult(null); }}>
                 <option value="fiscal_year">Fiscal year to date (AppFolio closes prior years to retained earnings)</option>
                 <option value="all_time">All time</option>
               </Select>
-            </div>
+            </Field>
           </div>
         )}
 
         {rows && (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button type="button" className="h-10" disabled={!associationId || !asOf || busy || selected.length === 0} onClick={run}>
+            <Button type="button" disabled={!associationId || !asOf || busy || selected.length === 0} onClick={run}>
               {busy ? 'Comparing…' : `Compare ${selected.length} account${selected.length === 1 ? '' : 's'}`}
             </Button>
-            {basis && <Badge tone="info">AppFolio basis: {basis}</Badge>}
+            {basis && <Badge tone="info" className="normal-case">AppFolio basis: {basis}</Badge>}
           </div>
         )}
       </Surface>
+
+      {unnamedFile && (
+        <Alert tone="info" title="This trial balance does not name a property.">
+          It was probably run for all properties at once, so its balances are every association combined. Compare it with
+          “All associations combined”, or run the report for one property to tie out a single association.
+        </Alert>
+      )}
+      {checks.length > 0 && (
+        <Alert tone="warning" title="The file does not balance.">
+          <ResultList items={checks} />
+        </Alert>
+      )}
 
       {basis === 'cash' && (
         <Alert tone="warning" title="This is a cash-basis trial balance.">
@@ -339,7 +365,7 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
       {error && <Alert tone="danger">{error}</Alert>}
 
       {result && t && (
-        <Surface className="space-y-4">
+        <Surface className="space-y-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h3 className="text-[15px] font-semibold text-gray-950">{result.association}</h3>
@@ -350,17 +376,17 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge tone="complete">{t.matched} match</Badge>
-              <Badge tone={t.different ? 'danger' : 'inactive'}>{t.different} different</Badge>
-              <Badge tone={t.notInPortier ? 'pending' : 'inactive'}>{t.notInPortier} not in your ledger</Badge>
-              <Badge tone={t.notInAppfolio ? 'pending' : 'inactive'}>{t.notInAppfolio} not in AppFolio</Badge>
+              <Badge tone="complete" className="normal-case">{t.matched} match</Badge>
+              <Badge tone={t.different ? 'danger' : 'inactive'} className="normal-case">{t.different} different</Badge>
+              <Badge tone={t.notInPortier ? 'pending' : 'inactive'} className="normal-case">{t.notInPortier} not in your ledger</Badge>
+              <Badge tone={t.notInAppfolio ? 'pending' : 'inactive'} className="normal-case">{t.notInAppfolio} not in AppFolio</Badge>
             </div>
           </div>
 
-          {t.different + t.notInPortier + t.notInAppfolio === 0 && (
+          {t.different + t.notInPortier + t.notInAppfolio === 0 && (result.priorYears?.difference ?? 0) === 0 && (
             <Alert tone="success" title="Every account ties out.">Your ledger matches AppFolio&apos;s ending balances.</Alert>
           )}
-          {result.incomeFrom && result.priorYearsNet !== undefined && result.priorYearsNet !== 0 && (
+          {result.incomeFrom && !result.priorYears && result.priorYearsNet !== undefined && result.priorYearsNet !== 0 && (
             <Alert tone="info">
               Your ledger has {money(result.priorYearsNet)} of income and expense posted before {result.incomeFrom}. AppFolio
               carries that in retained earnings, so an equity account may differ by that amount.
@@ -402,6 +428,22 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
                   <TD colSpan={5} className="py-6 text-center text-gray-500">No differences.</TD>
                 </TR>
               )}
+              {result.priorYears && (
+                <TR>
+                  <TD>
+                    Prior years&apos; retained earnings
+                    <span className="block text-xs text-gray-400">
+                      {result.incomeFrom ? `Income and expense before ${result.incomeFrom}` : 'Calculated by AppFolio'}
+                    </span>
+                  </TD>
+                  <TD className="whitespace-nowrap text-right tabular-nums">{money(result.priorYears.appfolio)}</TD>
+                  <TD className="whitespace-nowrap text-right tabular-nums">{money(result.priorYears.portier)}</TD>
+                  <TD className={`whitespace-nowrap text-right tabular-nums ${result.priorYears.difference !== 0 ? 'font-semibold text-gray-950' : 'text-gray-400'}`}>
+                    {money(result.priorYears.difference)}
+                  </TD>
+                  <TD>{result.priorYears.difference === 0 ? <Badge tone="complete">Matches</Badge> : <Badge tone="danger">Different</Badge>}</TD>
+                </TR>
+              )}
               <TR>
                 <TD className="font-semibold text-gray-950">Total</TD>
                 <TD className="whitespace-nowrap text-right font-semibold tabular-nums text-gray-950">{money(t.appfolio)}</TD>
@@ -413,15 +455,6 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
           </Table>
         </Surface>
       )}
-    </div>
-  );
-}
-
-export function GlImportSection({ associations, importChartOfAccounts, tieOutTrialBalance }: GlImportSectionProps) {
-  return (
-    <div className="max-w-5xl space-y-5">
-      <ChartOfAccountsPart importChartOfAccounts={importChartOfAccounts} />
-      <TrialBalancePart associations={associations} tieOutTrialBalance={tieOutTrialBalance} />
     </div>
   );
 }
