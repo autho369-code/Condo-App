@@ -4,6 +4,9 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-08
+- #258 (merged 4f5f0d4; no migration): AppFolio open balances — a changed
+  amount is reported, not reposted; items gone from a complete file are
+  reported; all result messages downloadable.
 - #257 (merged 6d10b58; migration 20261008070000 applied, 20261008080000
   applied except claim_import_lock, which waits on Mirsad because its body
   has a DELETE): AppFolio importer — units, homeowners, chart of accounts,

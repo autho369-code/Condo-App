@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #257).
+Back to [[Home]]. Updated 2026-10-08 (after #258).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,9 +12,12 @@ Back to [[Home]]. Updated 2026-10-08 (after #257).
   pilot).
 
 ## Open PR
-- Open PR: AppFolio receivables follow-up (merged too late for #257): an
-  item already imported whose outstanding amount changed (partly paid) is
-  reported for a manual adjustment instead of posted again in full. No
+- #258 merged (4f5f0d4): AppFolio open-balance re-imports never repost an
+  item: same unit + GL + charge date with a changed amount is reported;
+  earlier items missing from a complete file (has a Total line it ties to)
+  are reported per unit; a fully paid association that drops out of the
+  export is left to the Import Variances report (Mirsad's call, see
+  [[Decisions]]); "Download all messages" saves the full result. No
   migration.
 - **Waiting on Mirsad: run `claim_import_lock`** (the SQL is at the end of
   `supabase/migrations/20261008080000_import_locks.sql`, from
