@@ -207,9 +207,12 @@ export async function sendBulkComms(formData: FormData) {
     const company = companyById.get(companyId);
     const companyName: string | null = company?.company_name?.trim() || null;
 
-    // Communication message entry
+    // Communication message entry. Its id is set here so its email links to
+    // it directly (INSERT ... RETURNING has no guaranteed order).
+    const messageId = crypto.randomUUID();
     if (sendEmail && r.email) {
       commRows.push({
+        id: messageId,
         portfolio_id: companyId,
         channel: 'email',
         status: 'queued',
@@ -237,6 +240,7 @@ export async function sendBulkComms(formData: FormData) {
         // The content is part of the key: a retry of the same message is
         // skipped, an edited one is a new message (and logged as such).
         idempotencyKey: `vendor-bulk:${token}:${r.vendorId}:${contentKey(personalizedSubject, personalizedBody)}`,
+        communicationMessageId: messageId,
       }));
 
       emailCount++;
@@ -263,22 +267,20 @@ export async function sendBulkComms(formData: FormData) {
   // records exactly what was queued. If queuing fails (one statement: none
   // were queued), the log rows are marked failed and the claim released, so
   // the form can be sent again and logs again what it then sends.
-  let messageIds: string[] = [];
+  const messageIds: string[] = commRows.map((row: any) => row.id);
   if (commRows.length > 0) {
-    const { data: logged, error: commErr } = await db.from('communication_messages').insert(commRows).select('id');
-    if (commErr || (logged ?? []).length !== commRows.length) {
+    const { error: commErr } = await db.from('communication_messages').insert(commRows);
+    if (commErr) {
       await releaseSubmission(db, token);
-      return { success: false, error: `Failed to log communications: ${commErr?.message ?? 'not every message was recorded'}` };
+      return { success: false, error: `Failed to log communications: ${commErr.message}` };
     }
-    messageIds = (logged ?? []).map((m: { id: string }) => m.id);
     queued += commRows.length;
   }
 
   if (emailRows.length > 0) {
-    // Bulk SMS is refused above, so every log row is an email row, in order.
-    const linked = emailRows.map((row, i) => ({ ...row, communication_message_id: messageIds[i] ?? null }));
+    // Each email row already carries its log row's id (set above).
     const { error: emailErr } = await db.from('email_queue')
-      .upsert(linked, { onConflict: 'idempotency_key', ignoreDuplicates: true });
+      .upsert(emailRows, { onConflict: 'idempotency_key', ignoreDuplicates: true });
     if (emailErr) {
       const { error: markErr } = await db.from('communication_messages').update({ status: 'failed' }).in('id', messageIds);
       await releaseSubmission(db, token);

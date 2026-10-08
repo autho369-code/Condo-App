@@ -2,6 +2,7 @@ import { MessageSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { BulkCommsForm } from './_bulk-comms-form';
+import { newSubmissionToken } from '@/lib/forms/submission';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Badge, EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -86,6 +87,7 @@ export default async function MaintenanceCommunicationsPage({
             templates={templates ?? []}
             maintenanceTasks={maintenanceTasks ?? []}
             preSelectedWoId={sp.work_order_id ?? ''}
+            initialSubmissionToken={newSubmissionToken()}
           />
         </Surface>
 

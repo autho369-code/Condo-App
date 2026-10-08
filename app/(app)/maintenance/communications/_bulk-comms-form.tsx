@@ -54,12 +54,15 @@ export function BulkCommsForm({
   templates,
   maintenanceTasks,
   preSelectedWoId,
+  initialSubmissionToken,
 }: {
   workOrders: any[];
   vendors: any[];
   templates: any[];
   maintenanceTasks: any[];
   preSelectedWoId: string;
+  /** Made by the server page, so the server and browser render the same one. */
+  initialSubmissionToken: string;
 }) {
   const [channel, setChannel] = useState<string>('email');
   const [commType, setCommType] = useState<string>('custom');
@@ -74,8 +77,9 @@ export function BulkCommsForm({
   const [error, setError] = useState<string | null>(null);
   const [sendResults, setSendResults] = useState<any>(null);
   // One-time token (form_submissions): a retried or double send queues once.
-  // A new one is made for each new message.
-  const [submissionToken, setSubmissionToken] = useState<string>(() => crypto.randomUUID());
+  // The first comes from the server; a new one is made (in the browser, after
+  // a successful send) for each new message.
+  const [submissionToken, setSubmissionToken] = useState<string>(initialSubmissionToken);
 
   // ── Toggle work order selection ──
   function toggleWo(id: string) {
