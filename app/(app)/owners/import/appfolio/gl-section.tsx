@@ -259,8 +259,9 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
   function onGroup(value: string) {
     setGroup(value);
     setResult(null);
-    const suggested = suggestAssociation(value, associations);
-    if (suggested) setAssociationId(suggested);
+    // Always replace the selection: an unmatched property needs a fresh choice, never the
+    // previous property's association.
+    setAssociationId(suggestAssociation(value, associations));
   }
 
   // "All associations combined" compares the whole file: every property group, summed per account.

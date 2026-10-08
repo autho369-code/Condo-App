@@ -183,8 +183,10 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       };
       // Identity of a row: name + email + phone. With no email and no phone the row is only
       // itself (its line): two such rows never merge.
-      const identityKey = (name: string, emails: string[], phone: string, line: string) =>
-        emails.length || phone.length >= 7 ? `n:${name}|e:${[...emails].sort().join(',')}|p:${phone}` : `n:${name}|line:${line}`;
+      const identityKey = (name: string, emails: string[], phones: Set<string>, line: string) =>
+        emails.length || phones.size
+          ? `n:${name}|e:${[...emails].sort().join(',')}|p:${[...phones].sort().join(',')}`
+          : `n:${name}|line:${line}`;
       // Already on this unit?
       // - Another row of this file: only an exact duplicate (same identity). AppFolio lists
       //   each homeowner once per unit, so two rows for one unit are two people.
@@ -242,9 +244,8 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         const state = unitState(unit.id);
         const key = nameKey(name.display);
         const parsedPhones = parseLabeledPhones(clean(r.phones).slice(0, 500));
-        const rowPhone = phoneKey(parsedPhones.primary);
         const rowPhones = new Set(parsedPhones.entries.map((e) => phoneKey(e.number)).filter((k) => k.length >= 7));
-        const rowKey = identityKey(key, emails, rowPhone, line);
+        const rowKey = identityKey(key, emails, rowPhones, line);
         const match = state.people.find((p) => samePerson(p, key, emails, rowPhones, rowKey));
         if (match) {
           if (match.rowKey === undefined) match.matched = true;
