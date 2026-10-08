@@ -12,20 +12,20 @@ Back to [[Home]]. Updated 2026-10-08 (after #256).
   pilot).
 
 ## Open PR
-- Open PR: AppFolio importer (one page, `/owners/import/appfolio`), built
-  from Mirsad's real exports/screenshots: units + ownership % (Unit
-  Directory), chart of accounts + read-only trial balance tie-out, vendors
-  (Vendor Directory), open balances (Aged Receivable Detail -> opening
-  charges + imported_balances), work orders (dedupe by "AppFolio WO #n"
-  description prefix). Parsers in `lib/imports/appfolio*.ts`. Chart, open
-  balances and tie-out are finance-staff only. Migration 20261008070000:
-  Import Variances sums imported rows per unit + as-of date (per-item
-  receivables imports no longer show false variances). Apply after merge.
-  Known limits: credits not imported (charges must be >= 0); trial balance
-  sign assumed debit-positive (confirm on a real export); work-order insert
-  fires the work_order.created webhook per row if a company subscribed.
-  Homeowners: AppFolio's Owner Directory lists associations, not
-  homeowners - still to do (use the existing CSV owner import meanwhile).
+- Open PR: AppFolio importer (one page, `/owners/import/appfolio`), every
+  parser verified on Mirsad's real exports (2026-10-08; not kept in the repo,
+  tests use made-up rows of the same shape): units (Unit Directory),
+  homeowners + ownership % + dues (Homeowner Directory: 29 associations,
+  1,288 rows), chart of accounts (367/367) + trial balance tie-out (company
+  -wide file ties to 0.00; "All associations combined"), vendors (1,332),
+  open balances (Aged Receivable Detail: 28 associations, 2,469 items,
+  ties to the file total $432,269.37; credits listed, not posted), work
+  orders (2,012/2,012, dedupe on "AppFolio WO #n"). Chart, open balances and
+  tie-out are finance-staff only. Migrations to apply after merge:
+  20261008070000 (Import Variances per unit + date) and 20261008080000
+  (import_locks + claim_import_lock: one import per association and kind at
+  a time; imports that use it fail until it's applied). Work-order import
+  announces each row to a subscribed work_order.created webhook.
 - #256 merged (7b37b23); migration 20261008060000 applied and verified (7
   SETOF uuid identity helpers are PL/pgSQL, SECURITY DEFINER, search_path
   kept). Live timings for 30 tables per role, original -> now: board
@@ -126,9 +126,8 @@ Back to [[Home]]. Updated 2026-10-08 (after #256).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-0. AppFolio importer follow-ups: homeowners (find the AppFolio report that
-   lists unit owners - not Owner Directory), credit balances, confirm the
-   trial balance sign on a real export. Then: Stripe live for one
+0. AppFolio importer follow-ups: credit balances (owner prepayments), and
+   run the real import for one association end to end after merge. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
    step would be per-request identity caching (riskier, measure first).
