@@ -12,7 +12,13 @@ Back to [[Home]]. Updated 2026-10-08 (after #255).
   pilot).
 
 ## Open PR
-- None open.
+- Open: migration 20261008060000 converts the 7 SETOF uuid identity helpers
+  (current_board_association_ids, current_resident_*, current_tenant_*,
+  current_vendor_bill_association_ids) to PL/pgSQL `return query`, same
+  body. Rolled-back production test: same rows for 6 roles; board 3.2 s ->
+  1.75 s, owner 1.6 s -> 0.94 s, vendor 1.3 s -> 0.69 s (30 tables).
+  Table-returning functions (tenant_branding etc.) left alone: RETURN QUERY
+  is stricter on column types. Apply after merge.
 - #255 merged (9ced138); migration 20261008050000 applied and verified:
   221 SECURITY DEFINER scalar helpers are PL/pgSQL (3 skipped by design:
   app_portal_url, app_ownership_bounds, report_data_units_by_owner),
@@ -108,11 +114,14 @@ Back to [[Home]]. Updated 2026-10-08 (after #255).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-0. SPEED FIRST (Mirsad: clicks take 4-5 s, some links fail). Board role is
-   still ~5 s for 30 tables and owners ~2.6 s: find which policies cost the
-   most for board/owner (current_board_association_ids /
-   current_resident_* set-returning helpers are still LANGUAGE sql) and
-   measure per page; then the AppFolio deficiency documents Mirsad has.
+0. AppFolio importer: waiting on Mirsad's AppFolio CSV exports (unit
+   directory, owner directory, vendor directory, work orders, aged
+   receivables / owner ledgers, chart of accounts, trial balance) so headers
+   are matched exactly, not guessed. Existing importers: owners+units,
+   opening balances, journal entries, bills. Then: Stripe live for one
+   pilot association (Mirsad's account setup), Illinois rule pack.
+   Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
+   step would be per-request identity caching (riskier, measure first).
 Second-round gaps 1-6 are in the open PR; 7 closed with no change (the
 worker keeps the company's sender name; an unverified domain can't send).
 1. `checkLinkedRecords` with no association (calendar events without one):
