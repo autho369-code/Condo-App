@@ -26,3 +26,6 @@
 
 ## Portfolios embeds
 - `portfolios` has no column-level grants (baseline GRANT ALL to authenticated); reads go through `portfolios_staff_read` (is_any_staff/is_company_admin AND id = current_portfolio_id()) or `portfolios_platform_read`. `portfolios_admin_own` is disabled (USING false). Embed via `associations.portfolio_id` FK is fine for staff (2026-10-08, profile page slug/custom_domain embed clean).
+
+## Optimistic-lock filters (compare-and-set updates)
+- `.eq('<timestamptz col>', valueReadBack)` round-trips: PostgREST returns full microsecond ISO with `+00:00`, and postgrest-js uses `URL.searchParams.append`, so `+` is encoded as %2B. Null previous values need `.is(col, null)`. A nullable CHECK status needs `.or('status.is.null,status.neq.X')`. Check for BEFORE UPDATE triggers that rewrite the guarded column (maintenance_tasks has only `move_private_fields` on notes). Example: app/(app)/maintenance/page.tsx completeTask (2026-10-08, clean).

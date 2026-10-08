@@ -483,30 +483,3 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
   revalidatePath('/communication-center');
   return { ok: true, queued: recipients.length };
 }
-
-export async function acknowledgeReminder(eventId: string) {
-  const me = await requireStaff();
-  const supabase = await createClient();
-  const db = supabase as any;
-  const { data: changed, error } = await db.from('calendar_events').update({
-    reminder_acknowledged_at: new Date().toISOString(),
-    reminder_acknowledged_by: me.auth_user_id,
-  }).eq('id', eventId).select('id');
-  if (error) return { error: error.message };
-  if (!changed?.length) return { error: 'Event not found or you do not have access to it.' };
-  revalidatePath('/dashboard');
-  revalidatePath('/calendar');
-}
-
-export async function resendMaintenanceNotification(eventId: string) {
-  await requireStaff();
-  const supabase = await createClient();
-  const db = supabase as any;
-  const { data: changed, error } = await db.from('calendar_events')
-    .update({ maintenance_notified_at: null, maintenance_notify_error: null })
-    .eq('id', eventId)
-    .select('id');
-  if (error) return { error: error.message };
-  if (!changed?.length) return { error: 'Event not found or you do not have access to it.' };
-  revalidatePath('/calendar');
-}

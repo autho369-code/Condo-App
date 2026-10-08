@@ -125,28 +125,24 @@ async function deleteTask(formData: FormData) {'use server';
 
 async function completeTask(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
-  const me = await requireStaff();
+  await requireStaff();
   const id = formData.get('id') as string;
   const { data: task } = await db.from('maintenance_tasks').select('*').eq('id',id).single();
   if(!task) maintenanceFail('That task was not found.');
   await mergePrivateFieldsOne(db, 'maintenance_task_private', 'maintenance_task_id', ['notes'], task);
 
-  const now = new Date().toISOString();
-  // Record completion in history
-  const { error: historyError } = await db.from('maintenance_task_history').insert({
-    task_id: id,
-    completed_at: now,
-    completed_by: me.auth_user_id,
-    notes: task.notes,
-    vendor_id: task.vendor_id,
-  });
-  if (historyError) maintenanceFail(`Completion not recorded: ${historyError.message}`);
+  // The page sends the last completion it showed; if the task has been
+  // completed since (a double click, another person, a stale page), this
+  // request is for an occurrence that is already done.
+  const seen = formData.get('seen_completed_at');
+  if (typeof seen !== 'string') maintenanceFail('Not completed: reload the page and try again.');
+  if ((task.last_completed_at ?? '') !== seen) maintenanceFail('Not completed: the task was already completed since this page loaded. Reload to see it.');
 
-  // Mark existing calendar event as completed
-  const { error: doneError } = await db.from('calendar_events').update({ operations_status: 'completed' }).eq('maintenance_task_id', id).is('archived_at', null).eq('operations_status', 'scheduled');
-  if (doneError) maintenanceFail(`Completion recorded, but the calendar event was not closed: ${doneError.message}`);
-
-  // Calculate next due date for auto-recurring
+  // Next occurrence of a recurring task, and its 9 AM-5 PM calendar slot in
+  // the association's time zone.
+  let nextDue: string | null = null;
+  let nextStart: string | null = null;
+  let nextEnd: string | null = null;
   if(task.next_due_date && task.frequency){
     // Month steps clamp to the month's length (Jan 31 -> Feb 28 -> Mar 31)
     // instead of overflowing into the next month.
@@ -155,35 +151,30 @@ async function completeTask(formData: FormData) {'use server';
     // Anchor on the task's start day so Jan 30 -> Feb 28 -> Mar 30.
     const anchorDay = Number(String(task.start_date ?? '').slice(8, 10)) || null;
     const monthSteps: Record<string, number> = { monthly: 1, bimonthly: 2, quarterly: 3, semiannual: 6, annual: 12 };
-    const nd = (freq === 'weekly' ? nextRecurringDate(due, 'weekly', 1)
+    nextDue = (freq === 'weekly' ? nextRecurringDate(due, 'weekly', 1)
       : freq === 'custom' && cd > 0 ? nextRecurringDate(due, 'daily', cd)
       : monthSteps[freq] ? nextRecurringDate(due, 'monthly', monthSteps[freq], anchorDay)
       : null) ?? due;
-    const { data: advanced, error: nextError } = await db.from('maintenance_tasks').update({
-      last_completed_at: now,
-      next_due_date: nd,
-      status: 'active',
-    }).eq('id',id).select('id');
-    if (nextError) maintenanceFail(`Completion recorded, but the next due date was not set: ${nextError.message}`);
-    if (!advanced?.length) maintenanceFail('Completion recorded, but the next due date was not set: the task is gone or your account cannot edit it.');
-
-    // Create calendar event for the next occurrence
-    if (me.portfolio?.id) {
-      await syncMaintenanceCalendarEvent(
-        db, me.portfolio.id, id, task.association_id, task.vendor_id,
-        task.task_name, task.category, nd, task.end_date,
-        task.notes, me.auth_user_id
-      );
-    }
-  } else {
-    // No frequency — mark task completed
-    const { data: closed, error: closeError } = await db.from('maintenance_tasks').update({
-      last_completed_at: now,
-      status: 'completed',
-    }).eq('id',id).select('id');
-    if (closeError) maintenanceFail(`Completion recorded, but the task was not closed: ${closeError.message}`);
-    if (!closed?.length) maintenanceFail('Completion recorded, but the task was not closed: the task is gone or your account cannot edit it.');
+    const zone = await associationZone(db, task.association_id);
+    nextStart = wallDateTimeToIso(`${nextDue}T09:00`, zone) ?? new Date().toISOString();
+    nextEnd = wallDateTimeToIso(`${nextDue}T17:00`, zone);
   }
+
+  // One transaction (complete_maintenance_task): the task is claimed with a
+  // compare-and-set on what the page showed, then the history entry, the
+  // calendar event closed and the next occurrence's event are written, so a
+  // failure leaves nothing half done and the same click can be retried.
+  const { error } = await db.rpc('complete_maintenance_task', {
+    p_task_id: id,
+    p_seen_completed_at: seen || null,
+    p_seen_due: (formData.get('seen_due') as string) || null,
+    p_next_due: nextDue,
+    p_notes: task.notes ?? null,
+    p_event_type: MAINTENANCE_CATEGORY_EVENT_TYPE[task.category] || 'custom_event',
+    p_next_start: nextStart,
+    p_next_end: nextEnd,
+  });
+  if (error) maintenanceFail(`Not completed: ${error.message}`);
   revalidatePath('/maintenance');
   revalidatePath('/calendar');
 }
@@ -367,7 +358,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                         <TD>
                           <div className="flex items-center gap-1">
                             <a href={`/maintenance?tab=tasks&edit=${t.id}${sp.assoc ? `&assoc=${sp.assoc}` : ''}`}><Button variant="secondary" size="sm">Edit</Button></a>
-                            <form action={completeTask} className="inline"><input type="hidden" name="id" value={t.id} /><Button type="submit" variant="secondary" size="sm">Done</Button></form>
+                            <form action={completeTask} className="inline"><input type="hidden" name="id" value={t.id} /><input type="hidden" name="seen_completed_at" value={t.last_completed_at ?? ''} /><input type="hidden" name="seen_due" value={t.next_due_date ?? ''} /><Button type="submit" variant="secondary" size="sm">Done</Button></form>
                             <form action={deleteTask} className="inline"><input type="hidden" name="id" value={t.id} /><PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Deleting…" confirm="Delete this maintenance task?">Delete</PendingSubmit></form>
                           </div>
                         </TD>

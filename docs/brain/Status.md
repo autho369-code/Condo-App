@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #247).
+Back to [[Home]]. Updated 2026-10-08 (after #248).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,7 +12,16 @@ Back to [[Home]]. Updated 2026-10-08 (after #247).
   pilot).
 
 ## Open PR
-- Open: association profile shows the
+- Open: maintenance "complete" is one transaction
+  (`complete_maintenance_task`, SECURITY INVOKER; migration
+  20261008020000 - apply after merge): the task is claimed with a
+  compare-and-set on what the page showed (`seen_completed_at`, due date,
+  not archived), then history, the calendar close and the next occurrence's
+  event, so a double click / stale page completes once and a failure leaves
+  nothing half done. Removed the uncalled `acknowledgeReminder` /
+  `resendMaintenanceNotification` server actions. `update_record_note` needs
+  no change (record_notes row trigger).
+- #248 merged (be2f13b); no migration. Association profile shows the
   public violation-report link (`companyUrl`, the company's own address,
   `?assoc=` preselects) with a shared `components/ui/CopyButton`; warns when
   the company has no workspace address; notes that hidden associations don't
@@ -58,16 +67,7 @@ Back to [[Home]]. Updated 2026-10-08 (after #247).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-1. Leftovers from the silent-save sweep (security review, low):
-   `acknowledgeReminder` / `resendMaintenanceNotification` in
-   `lib/rpcs/calendar.ts` return `{ error }` (no caller today; redirect if
-   ever wired to a form). Maintenance "complete" writes history and the
-   calendar event before the task update; its error says what was recorded.
-   `update_record_note` (portfolio check only in the RPC) needs no change:
-   the record_notes row trigger `enforce_row_association_scope`
-   (20261004130000) already refuses association/unit/owner notes outside a
-   scoped manager's associations; vendor notes are portfolio-level.
-   Next: look for the next white-label / sign-in / data-exposure gap with
-   the overseer.
-2. Optional: ask whether the remaining reason-required void/cancel forms
+1. Look for the next white-label / sign-in / data-exposure gap with the
+   overseer (the listed gaps are done).
+2. Optional (Mirsad decides): ask whether the remaining reason-required void/cancel forms
    should also confirm.
