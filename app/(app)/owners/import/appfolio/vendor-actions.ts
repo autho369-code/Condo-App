@@ -1,6 +1,6 @@
 'use server';
 
-// Import AppFolio's Vendor Directory export into Portier369 vendors.
+// Import AppFolio's Vendor Directory export into this company's vendors.
 //
 // The browser parses the CSV (lib/imports/appfolio-vendors) for the preview
 // and sends the parsed rows here; nothing from the client is trusted — every
@@ -98,15 +98,22 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
 
   // Default GL accounts by number, this company's chart only. A number used by
   // more than one account (e.g. per-association charts) is left unmapped.
+  // gl_accounts.number is an integer (CHECK 1000-9999): only four-digit numbers
+  // are looked up; anything else ends up in unmatchedGl below.
   const glByNumber = new Map<string, string | null>();
-  const wantedGl = [...new Set(vendors.map((v) => str(v?.gl_account_number, 30)).filter((n): n is string => !!n))];
+  const wantedGl = [...new Set(
+    vendors.map((v) => str(v?.gl_account_number, 30)).filter((n): n is string => !!n && /^\d{4}$/.test(n)),
+  )];
   for (let i = 0; i < wantedGl.length; i += BATCH) {
     const { data, error } = await db
       .from('gl_accounts').select('id, number, association_id')
-      .eq('portfolio_id', portfolioId).in('number', wantedGl.slice(i, i + BATCH));
+      .eq('portfolio_id', portfolioId).in('number', wantedGl.slice(i, i + BATCH).map(Number));
     if (error) return { imported: 0, skipped: vendors.length, errors: [`Could not load GL accounts: ${error.message}`] };
     const byNumber = new Map<string, Array<{ id: string; association_id: string | null }>>();
-    for (const g of data ?? []) byNumber.set(g.number, [...(byNumber.get(g.number) ?? []), g]);
+    for (const g of data ?? []) {
+      const key = String(g.number);
+      byNumber.set(key, [...(byNumber.get(key) ?? []), g]);
+    }
     for (const [number, list] of byNumber) {
       const companyWide = list.filter((g) => !g.association_id);
       const pick = companyWide.length === 1 ? companyWide[0] : list.length === 1 ? list[0] : null;
@@ -206,7 +213,7 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
     for (const p of batch) await insertOne(p);
   }
 
-  // What the export has but Portier369 does not take from it.
+  // What the export has that the import does not carry over.
   const notImported: string[] = [];
   if (unmatchedGl.size) {
     notImported.push(`Default GL account left blank for GL number(s) not found in your chart of accounts: ${[...unmatchedGl].slice(0, 20).join(', ')}${unmatchedGl.size > 20 ? '…' : ''}.`);

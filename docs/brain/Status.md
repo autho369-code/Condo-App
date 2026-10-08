@@ -128,13 +128,10 @@ Back to [[Home]]. Updated 2026-10-08 (after #256).
 ## Next gaps (pick up here, top first)
 0. AppFolio importer follow-ups: homeowners (find the AppFolio report that
    lists unit owners - not Owner Directory), credit balances, confirm the
-   trial balance sign on a real export. Don't ask Mirsad for more files -
-   build from what's in the repo. Then: Stripe live for one
+   trial balance sign on a real export. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
    step would be per-request identity caching (riskier, measure first).
-Second-round gaps 1-6 are in the open PR; 7 closed with no change (the
-worker keeps the company's sender name; an unverified domain can't send).
 1. `checkLinkedRecords` with no association (calendar events without one):
    a vendor/owner only has to be visible, so a platform operator could attach
    another company's. Compare against the record's company (DB trigger

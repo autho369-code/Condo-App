@@ -17,3 +17,7 @@ Back to [[Home]]. Follow these without being told.
   `npm run lint`. Never push red.
 - Record what shipped, new rules and the next gap in this vault and commit it
   with the work.
+- Don't make him send files, screenshots or answers to build something. Use
+  what he already sent (his real AppFolio exports, 2026-10-08) and build;
+  don't keep his personal data in the repo (tests use made-up rows shaped
+  like the real file). "stop overcomplicating" (2026-10-08).

@@ -18,8 +18,8 @@ const HEADER =
 
 const VENDOR_DIRECTORY = [
   HEADER,
-  ',"Abcede, Michael","1234 N Main St, Chicago, IL 60630","Mobile: (773) 670-4165",mabcede@example.com,6371 - Painting & Decorating,Check,Yes,07/15/2026,12/31/2026,,,,,Painter,No,09/01/2026',
-  ',"& Associates, INC., Property Services","500 W Madison St, Suite 200, Chicago, IL 60661","Office: (847) 298-8300, Fax: (847) 298-8301","AP@Associates.example.com; billing@associates.example.com",6400 - Repairs & Maintenance,eCheck,No,,01/31/2027,,03/15/2027,06/30/2027,12/31/2026,,Yes,',
+  ',"Abcede, Michael","1234 N Main St Chicago, IL 60630","Mobile: (773) 670-4165",mabcede@example.com,6371 - Painting & Decorating,Check,Yes,07/15/2026,12/31/2026,,,,,Painter,No,09/01/2026',
+  ',"& Associates, INC., Property Services","500 W Madison St Suite 200 Chicago, IL 60661","Office: (847) 298-8300, Fax: (847) 298-8301","AP@Associates.example.com; billing@associates.example.com",6400 - Repairs & Maintenance,eCheck,No,,01/31/2027,,03/15/2027,06/30/2027,12/31/2026,,Yes,',
   'Acme Roofing LLC,"Doe, Jane",,"Office: (312) 555-0100, Mobile: (312) 555-0199",jane@acmeroofing.example.com,,Wire,Yes,,,,,,,"Roofing, Gutters",No,',
   ',ComEd,"PO Box 6111, Carol Stream, IL 60197",,,6210 - Electricity,Check,No,,,,,,,,No,08/20/2026',
   ',"Nobody, Blank",,,not-an-email,,,,13/45/2026,,,,,,,,',
@@ -34,7 +34,7 @@ describe('AppFolio Vendor Directory import', () => {
     expect(vendors).toHaveLength(5);
     expect(vendors!.map((v) => v.name)).toEqual([
       'Michael Abcede',
-      '& Associates, INC., Property Services',
+      'Property Services & Associates, INC.',
       'Acme Roofing LLC',
       'ComEd',
       'Blank Nobody',
@@ -74,7 +74,7 @@ describe('AppFolio Vendor Directory import', () => {
       { number: '(847) 298-8301', type: 'fax' },
     ]);
     expect(v.emails).toEqual(['ap@associates.example.com', 'billing@associates.example.com']);
-    expect(v.address_street).toBe('500 W Madison St, Suite 200');
+    expect(v).toMatchObject({ address_street: '500 W Madison St Suite 200', address_city: 'Chicago', address_zip: '60661' });
     expect(v.payment_type).toBe('echeck');
     expect(v.send_1099).toBe(false);
     expect(v.auto_insurance_expiration).toBe('2027-03-15');
@@ -134,8 +134,20 @@ describe('vendor field helpers', () => {
   it('derives display names', () => {
     expect(vendorDisplayName('Abcede, Michael')).toBe('Michael Abcede');
     expect(vendorDisplayName('Acme Roofing, Inc.')).toBe('Acme Roofing, Inc.');
-    expect(vendorDisplayName('City of Chicago, Water Dept')).toBe('City of Chicago, Water Dept');
     expect(vendorDisplayName('ComEd')).toBe('ComEd');
+    // AppFolio cuts company names into "Last, First" too.
+    expect(vendorDisplayName('& Associates, Smithers')).toBe('Smithers & Associates');
+    expect(vendorDisplayName('& Associates, INC., Pat Doe')).toBe('Pat Doe & Associates, INC.');
+    expect(vendorDisplayName('& Ann B Roe, Jon C Doe')).toBe('Jon C Doe & Ann B Roe');
+    expect(vendorDisplayName('Plumbing, Inc., Sample')).toBe('Sample Plumbing, Inc.');
+    expect(vendorDisplayName('Associates, Ltd., Example &')).toBe('Example & Associates, Ltd.');
+    expect(vendorDisplayName('Springfield, City of')).toBe('City of Springfield');
+    expect(vendorDisplayName('Masonry INC, J & Q')).toBe('J & Q Masonry INC');
+    expect(vendorDisplayName('Waterproofing & Concrete, Inc,, Sample Square')).toBe('Sample Square Waterproofing & Concrete, Inc');
+    expect(vendorDisplayName('Inc., Sampleco,')).toBe('Sampleco Inc.');
+    expect(vendorDisplayName('Roe , Ann')).toBe('Ann Roe');
+    expect(vendorDisplayName('Roe Jr., Sam')).toBe('Sam Roe Jr.');
+    expect(vendorDisplayName(',')).toBe('');
   });
 
   it('parses GL accounts, payment types, emails and addresses', () => {
@@ -150,5 +162,29 @@ describe('vendor field helpers', () => {
       address_street: 'PO Box 6111', address_city: 'Carol Stream', address_state: 'IL', address_zip: '60197',
     });
     expect(splitAddress('Somewhere')).toMatchObject({ address_street: 'Somewhere', address_city: null });
+  });
+
+  it('splits AppFolio addresses that have no comma between street and city', () => {
+    const at = (s: string) => {
+      const a = splitAddress(s);
+      return [a.address_street, a.address_city, a.address_state, a.address_zip];
+    };
+    expect(at('100 Sample Street Des Plaines, IL 60018')).toEqual(['100 Sample Street', 'Des Plaines', 'IL', '60018']);
+    expect(at('200 W Sample Ave - Unit 202 Chicago, IL 606325')).toEqual(['200 W Sample Ave - Unit 202', 'Chicago', 'IL', '606325']);
+    expect(at('300 N. Sample - G Chicago, IL 60660')).toEqual(['300 N. Sample - G', 'Chicago', 'IL', '60660']);
+    expect(at('400 W Sample Ave Unit - 3W Chicago, IL 60626')).toEqual(['400 W Sample Ave Unit - 3W', 'Chicago', 'IL', '60626']);
+    expect(at('500 N Sample Rd 4009 Chicago, IL 60640')).toEqual(['500 N Sample Rd 4009', 'Chicago', 'IL', '60640']);
+    expect(at('600 W Sample St 1st Fl Chicago, IL 60630')).toEqual(['600 W Sample St 1st Fl', 'Chicago', 'IL', '60630']);
+    expect(at('700 Sample Ave #C Addison, IL 60101')).toEqual(['700 Sample Ave #C', 'Addison', 'IL', '60101']);
+    expect(at('800 W Sample Ave BSMT Chicago, IL 60618')).toEqual(['800 W Sample Ave BSMT', 'Chicago', 'IL', '60618']);
+    expect(at('P.O. Box 12345 Dallas, TX 75266-0317')).toEqual(['P.O. Box 12345', 'Dallas', 'TX', '75266-0317']);
+    expect(at('P.O. Box 12345 St. Paul, MN 55164')).toEqual(['P.O. Box 12345', 'St. Paul', 'MN', '55164']);
+    expect(at('900 Sample Avenue E Cleveland, OH 44114')).toEqual(['900 Sample Avenue E', 'Cleveland', 'OH', '44114']);
+    expect(at('100 Sample Lane Elk Grove Village, IL 60007')).toEqual(['100 Sample Lane', 'Elk Grove Village', 'IL', '60007']);
+    expect(at('110 W. Sample Dr - 207 Wood Dale IL, IL 60191')).toEqual(['110 W. Sample Dr - 207', 'Wood Dale', 'IL', '60191']);
+    expect(at('120 N. Sample Avenue Skokie, 60076')).toEqual(['120 N. Sample Avenue', 'Skokie', null, '60076']);
+    // No street suffix or unit to split on: keep it all in street rather than guess the city.
+    expect(at('4200 N. Sample Chicago, IL 60618')).toEqual(['4200 N. Sample Chicago', null, 'IL', '60618']);
+    expect(at('C/O Sample Bank Chicago, IL')).toEqual(['C/O Sample Bank Chicago', null, 'IL', null]);
   });
 });

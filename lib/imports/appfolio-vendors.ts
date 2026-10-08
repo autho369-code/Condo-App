@@ -18,7 +18,7 @@ export type AppfolioVendorPhone = { number: string; type: string | null };
 export type AppfolioVendor = {
   /** Spreadsheet line in the export. */
   row: string;
-  /** Display name for Portier369: the company name, or "First Last" for a person. */
+  /** Display name: the company name, or the Name column put back in reading order. */
   name: string;
   /** The Name cell exactly as AppFolio has it (e.g. "Abcede, Michael"). */
   appfolio_name: string;
@@ -36,7 +36,7 @@ export type AppfolioVendor = {
   gl_account_label: string | null;
   /** check | echeck | ach | online, or null when blank/unknown. */
   payment_type: 'check' | 'echeck' | 'ach' | 'online' | null;
-  /** AppFolio's payment type when it is not one Portier369 knows. */
+  /** AppFolio's payment type when it is not a supported one. */
   payment_type_raw: string | null;
   send_1099: boolean;
   workers_comp_expiration: string | null;
@@ -87,21 +87,31 @@ export function parseAppfolioDate(v: string | null | undefined): string | null {
   return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
-const COMPANY_WORDS =
-  /\b(inc|llc|l\.l\.c|llp|ltd|co|corp|corporation|company|companies|associates|assoc|group|services?|service|enterprises?|partners|plc|pc|p\.c|bank|trust|dept|department|city|village|county|state|of|the|and|construction|plumbing|electric|roofing|landscaping|management|insurance)\b|&|\d/i;
+// Name parts that only ever trail a name ("Smith, John, Jr.", "Acme Roofing, Inc."):
+// a comma before one of these is not AppFolio's "Last, First" split.
+const NAME_SUFFIX = /^(inc|llc|l\.l\.c|llp|ltd|co|corp|corporation|company|plc|pc|p\.c|lp|l\.p|jr|sr|ii|iii|iv|esq|cpa)\.?$/i;
 
 /**
- * "Abcede, Michael" -> "Michael Abcede". Company names that happen to have a
- * comma ("Acme Roofing, Inc.", "& Associates, INC., ...") are left alone.
+ * AppFolio's Name column is "Last, First", and it builds it for companies too
+ * by cutting the name before its last word(s): "Abcede, Michael" ->
+ * "Michael Abcede", "& Associates, Elliott" -> "Elliott & Associates",
+ * "Plumbing, Inc., Great American" -> "Great American Plumbing, Inc.",
+ * "& Katherine M Nilles, Rene B Pastor" -> "Rene B Pastor & Katherine M Nilles",
+ * "Wood Dale, City of" -> "City of Wood Dale". So the part after the last
+ * comma goes in front. A name ending in a suffix ("Acme Roofing, Inc.") or
+ * without a comma is kept as it is.
  */
 export function vendorDisplayName(name: string): string {
-  const s = name.trim().replace(/\s+/g, ' ');
-  const parts = s.split(',');
-  if (parts.length !== 2) return s;
-  const [last, first] = parts.map((p) => p.trim());
-  if (!last || !first || COMPANY_WORDS.test(s)) return s;
-  if (last.split(' ').length > 2 || first.split(' ').length > 3) return s;
-  return `${first} ${last}`;
+  const s = name
+    .replace(/\s+/g, ' ')
+    .replace(/\s*,[\s,]*/g, ', ') // "Inc,, X" and "Bruchmann , David" -> one ", "
+    .replace(/^[\s,]+|[\s,]+$/g, '');
+  const cut = s.lastIndexOf(', ');
+  if (cut < 0) return s;
+  const before = s.slice(0, cut).trim();
+  const after = s.slice(cut + 2).trim();
+  if (!before || !after || NAME_SUFFIX.test(after)) return s;
+  return `${after} ${before}`;
 }
 
 const EMAIL = /^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/;
@@ -135,14 +145,68 @@ export function parsePaymentType(v: string | null | undefined): AppfolioVendor['
 
 const yes = (v: string | null | undefined) => /^(y|yes|true|1)$/i.test((v ?? '').trim());
 
-/** "123 Main St, Suite 4, Chicago, IL 60630" -> street / city / state / zip (street only when the tail does not parse). */
+// Words that end a street name, and markers that start a unit after it.
+const STREET_SUFFIX = new Set([
+  'st', 'street', 'ave', 'av', 'avenue', 'rd', 'road', 'dr', 'drive', 'blvd', 'boulevard', 'ln', 'lane',
+  'ct', 'court', 'pl', 'place', 'pkwy', 'parkway', 'hwy', 'highway', 'way', 'ter', 'terrace', 'cir', 'circle',
+  'trl', 'trail', 'sq', 'square', 'plz', 'plaza', 'pike', 'expy', 'expressway', 'row', 'aly', 'alley',
+]);
+// Unit markers followed by the unit's name ("Unit 202", "Ste G2", "- 3F", "# 308", "Box 660317").
+const UNIT_PREFIX = new Set(['unit', 'suite', 'ste', 'apt', 'apartment', '#', '-', 'rm', 'room', 'bldg', 'building', 'box', 'no', 'dept']);
+// Unit markers that follow their value ("1st Fl") or stand alone ("BSMT").
+const UNIT_POSTFIX = new Set(['fl', 'floor', 'bsmt', 'basement', 'gb', 'gdn', 'storefront', 'rear', 'ph', 'penthouse']);
+// "St" that starts a city ("St. Paul, MN", "St. Louis, MO") rather than ending a street.
+const SAINT_CITY = new Set(['paul', 'louis', 'charles', 'joseph', 'cloud', 'petersburg', 'augustine', 'george', 'clair']);
+// A one-letter compass point after the street ("Superior Avenue E Cleveland") belongs to the street.
+const COMPASS = new Set(['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']);
+const MAX_CITY_WORDS = 4;
+const bare = (t: string) => t.toLowerCase().replace(/[.,]+$/, '');
+
+/**
+ * Street / city / state / zip from one address line. AppFolio writes
+ * "1430 Lee Street Des Plaines, IL 60018" or "2555 W Leland Ave - Unit 202
+ * Chicago, IL 60632" — no comma between street and city — so state and zip
+ * come off the end and the city is the words after the street's last
+ * landmark: a street suffix (St, Ave, Rd…), a unit ("Unit 202", "- 3F",
+ * "#306", "STE 810", "1st Fl") or a number past the house number ("P.O. Box
+ * 29120"). When there is no such landmark ("4200 N. Troy Chicago") the city
+ * is left blank and the whole line stays in street rather than guessing.
+ */
 export function splitAddress(v: string | null | undefined): Pick<AppfolioVendor, 'address_street' | 'address_city' | 'address_state' | 'address_zip'> {
   const s = (v ?? '').trim().replace(/\s+/g, ' ');
   const blank = { address_street: null, address_city: null, address_state: null, address_zip: null };
   if (!s) return blank;
-  const m = s.match(/^(.*),\s*([^,]+?),?\s+([A-Za-z]{2})\.?\s+(\d{5}(?:-\d{4})?)$/);
-  if (!m) return { ...blank, address_street: s };
-  return { address_street: m[1].trim() || null, address_city: m[2].trim(), address_state: m[3].toUpperCase(), address_zip: m[4] };
+  // ", IL 60018", ", IL 60018-1234", ", IL" or ", 60076" at the end.
+  const tail = s.match(/^(.*?),\s*(?:([A-Za-z]{2})\.?)?\s*(\d{5}(?:-\d{4}|\d{1,4})?)?$/);
+  if (!tail || (!tail[2] && !tail[3]) || !tail[1].trim()) return { ...blank, address_street: s };
+  const state = tail[2] ? tail[2].toUpperCase() : null;
+  const zip = tail[3] ?? null;
+  const tokens = tail[1].trim().split(' ');
+  // "Wood Dale IL, IL 60191": the state written twice.
+  if (state && tokens.length > 1 && bare(tokens[tokens.length - 1]) === state.toLowerCase()) tokens.pop();
+
+  // Walk back from the end over words that can be part of a city name.
+  let i = tokens.length - 1;
+  while (i >= 0) {
+    const t = tokens[i];
+    const b = bare(t);
+    const saintCity = (b === 'st' || b === 'ste') && i + 1 < tokens.length && SAINT_CITY.has(bare(tokens[i + 1]));
+    if (!saintCity && (/\d/.test(t) || t.startsWith('#') || t.endsWith(',') || STREET_SUFFIX.has(b) || UNIT_PREFIX.has(b) || UNIT_POSTFIX.has(b))) break;
+    i--;
+  }
+  let cityStart = i + 1;
+  const anchor = i >= 0 ? tokens[i] : '';
+  // "- G Chicago", "Unit E Norridge": the word right after a unit marker is the unit.
+  if (i >= 0 && UNIT_PREFIX.has(bare(anchor))) cityStart++;
+  if (i >= 0 && tokens.length - cityStart > 1 && COMPASS.has(bare(tokens[cityStart]))) cityStart++;
+  // Only the house number in front ("4200 N. Troy Chicago") is no landmark.
+  const confident = i > 0 || (i === 0 && (anchor.endsWith(',') || !/\d/.test(anchor)));
+  const city = tokens.slice(cityStart).join(' ').replace(/,$/, '');
+  if (!confident || !city || cityStart - 1 < 0 || tokens.length - cityStart > MAX_CITY_WORDS) {
+    return { address_street: tail[1].trim().replace(/,$/, ''), address_city: null, address_state: state, address_zip: zip };
+  }
+  const street = tokens.slice(0, cityStart).join(' ').replace(/,$/, '').trim();
+  return { address_street: street || null, address_city: city, address_state: state, address_zip: zip };
 }
 
 /** Put a lead column in front so rows with a blank Company Name are not read as subtotals. */

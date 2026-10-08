@@ -5,7 +5,7 @@
 // association at a time into the Portier369 association the user picks. The
 // server action re-validates everything; this only previews.
 import * as React from 'react';
-import { Alert, Badge, Surface } from '@/components/ui/shell';
+import { Alert, Badge, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Select } from '@/components/ui/input';
@@ -64,7 +64,7 @@ function GroupCard({ group, associations, importUnits }: { group: Group; associa
           <Badge tone="info">{group.units.length} unit{group.units.length === 1 ? '' : 's'}</Badge>
           {withPct > 0
             ? <Badge tone={Math.abs(totalPct - 100) <= 0.01 ? 'complete' : 'pending'}>Ownership {Math.round(totalPct * 10000) / 10000}%</Badge>
-            : <Badge tone="pending">No ownership %</Badge>}
+            : <Badge tone="pending" className="normal-case">No ownership %</Badge>}
         </div>
       </div>
 
@@ -101,7 +101,7 @@ function GroupCard({ group, associations, importUnits }: { group: Group; associa
             {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </Select>
         </div>
-        <Button type="button" className="h-10" disabled={!associationId || busy || result !== null} onClick={run}>
+        <Button type="button" disabled={!associationId || busy || result !== null} onClick={run}>
           {busy ? 'Importing…' : result ? 'Imported' : `Import ${group.units.length} unit${group.units.length === 1 ? '' : 's'}`}
         </Button>
       </div>
@@ -143,15 +143,13 @@ export function AppfolioImportClient({ associations, importUnits }: Props) {
   }
 
   return (
-    <div className="max-w-5xl space-y-5">
+    <div className="space-y-5">
       <Surface className="space-y-3">
-        <div>
-          <h2 className="text-[15px] font-semibold text-gray-950">Units — AppFolio Unit Directory</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            In AppFolio open Reports → Unit Directory, choose Customize and tick the ownership percentage column
-            (and the unit address columns if units have their own addresses), then Actions → Export as CSV.
-          </p>
-        </div>
+        <SectionTitle
+          className="mb-0"
+          title="Units — AppFolio Unit Directory"
+          description="In AppFolio open Reports → Unit Directory (add the unit address columns under Customize if units have their own addresses), then Actions → Export as CSV."
+        />
         <div>
           <Label htmlFor="appfolio-unit-directory">Unit Directory CSV</Label>
           <Input id="appfolio-unit-directory" type="file" accept=".csv,text/csv" onChange={onFile} className="h-auto py-2" />
@@ -161,9 +159,9 @@ export function AppfolioImportClient({ associations, importUnits }: Props) {
 
       {error && <Alert tone="danger">{error}</Alert>}
       {groups && !hasOwnership && (
-        <Alert tone="warning" title="This export has no ownership percentage column.">
-          Units will be created at 0% ownership. Export again with the ownership percentage column ticked
-          (Customize in AppFolio) and import the same file: units already created get their percentage filled in.
+        <Alert tone="info" title="This export has no ownership percentage column.">
+          Units are created at 0% ownership. The homeowner import below fills each unit&apos;s ownership percentage
+          from AppFolio&apos;s Homeowner Directory.
         </Alert>
       )}
       {groups?.map((g) => (

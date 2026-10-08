@@ -5,7 +5,7 @@
 // them into this company's vendor list. The server action re-validates every
 // field and skips vendors that already exist; this only previews.
 import * as React from 'react';
-import { Alert, Badge, Surface } from '@/components/ui/shell';
+import { Alert, Badge, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
@@ -63,18 +63,16 @@ export function VendorImportSection({ importVendors }: { importVendors: typeof i
   return (
     <div className="space-y-5">
       <Surface className="space-y-3">
-        <div>
-          <h2 className="text-[15px] font-semibold text-gray-950">Vendors — AppFolio Vendor Directory</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            In AppFolio open Reports → Vendor Directory, then Actions → Export as CSV. Vendors that already exist here
-            (same name or email) are skipped, so importing the same file twice is safe.
-          </p>
-        </div>
+        <SectionTitle
+          title="Vendors — AppFolio Vendor Directory"
+          description="In AppFolio open Reports → Vendor Directory, then Actions → Export as CSV. Vendors that already exist here (same name or email) are skipped, so importing the same file twice is safe."
+          className="mb-0"
+        />
         <div>
           <Label htmlFor="appfolio-vendor-file">Vendor Directory CSV</Label>
           <Input id="appfolio-vendor-file" type="file" accept=".csv,text/csv" onChange={onFile} className="h-auto py-2" />
-          {fileName && vendors && <p className="mt-1.5 text-xs text-gray-500">{fileName}</p>}
         </div>
+        {fileName && vendors && <p className="text-xs text-gray-500">{fileName}</p>}
       </Surface>
 
       {error && <Alert tone="danger">{error}</Alert>}
@@ -82,9 +80,9 @@ export function VendorImportSection({ importVendors }: { importVendors: typeof i
       {vendors && (
         <Surface className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            <Badge tone="info">{vendors.length} vendor{vendors.length === 1 ? '' : 's'}</Badge>
-            <Badge tone="inactive">{withEmail} with email</Badge>
-            <Badge tone="inactive">{with1099} send 1099</Badge>
+            <Badge tone="info" className="normal-case">{vendors.length} vendor{vendors.length === 1 ? '' : 's'}</Badge>
+            <Badge tone="inactive" className="normal-case">{withEmail} with email</Badge>
+            <Badge tone="inactive" className="normal-case">{with1099} send 1099</Badge>
           </div>
 
           <Table>
@@ -120,9 +118,11 @@ export function VendorImportSection({ importVendors }: { importVendors: typeof i
             <p className="text-xs text-gray-500">Showing the first {PREVIEW_ROWS} of {vendors.length} vendors. All of them are imported.</p>
           )}
 
-          <Button type="button" disabled={busy || result !== null} onClick={run}>
-            {busy ? 'Importing…' : result ? 'Imported' : `Import ${vendors.length} vendor${vendors.length === 1 ? '' : 's'}`}
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <Button type="button" disabled={busy || result !== null} onClick={run}>
+              {busy ? 'Importing…' : result ? 'Imported' : `Import ${vendors.length} vendor${vendors.length === 1 ? '' : 's'}`}
+            </Button>
+          </div>
 
           {result && (
             <Alert tone={result.imported > 0 ? 'success' : 'warning'} title={`${result.imported} created, ${result.skipped} skipped.`}>
