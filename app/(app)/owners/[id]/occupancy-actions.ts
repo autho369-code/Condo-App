@@ -186,8 +186,8 @@ export async function addPet(ownerId: string, formData: FormData) {
   const tenantId = (formData.get('tenant_id') as string) || null;
   if (tenantId) {
     const { data: resident } = await db.from('tenants').select('id')
-      .eq('id', tenantId).eq('owner_id', ownerId).eq('unit_id', unitId).maybeSingle();
-    if (!resident) fail(ownerId, 'That resident does not live in the selected unit.');
+      .eq('id', tenantId).eq('owner_id', ownerId).eq('unit_id', unitId).eq('status', 'active').is('archived_at', null).maybeSingle();
+    if (!resident) fail(ownerId, 'That resident does not currently live in the selected unit.');
   }
   const { error } = await db.from('unit_pets').insert({
     portfolio_id: home.portfolioId,
