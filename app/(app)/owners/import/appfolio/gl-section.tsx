@@ -247,8 +247,9 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
       // A file with no property name and no property groups was most likely
       // run for every property at once: default to all associations combined.
       const unnamed = !parsed.property && g.length === 1 && g[0] === '';
-      setAssociationId((current) => current
-        || suggestAssociation(g[0] || parsed.property || '', associations)
+      // Pick afresh for every file: keeping the previous file's association would compare
+      // this file against the wrong ledger.
+      setAssociationId(suggestAssociation(g[0] || parsed.property || '', associations)
         || (unnamed && associations.length > 1 ? TIE_OUT_ALL_ASSOCIATIONS : ''));
     } catch (err) {
       setError(err instanceof Error ? `Could not read the file: ${err.message}` : 'Could not read the file.');

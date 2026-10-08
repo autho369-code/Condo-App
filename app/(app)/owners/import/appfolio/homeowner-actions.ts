@@ -144,13 +144,13 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       // The company's owners (for reuse by email and the already-linked check by name).
       const owners = await fetchAll((from, to) => db
         .from('owners')
-        .select('id, full_name, email, emails, phone')
+        .select('id, full_name, email, emails, phone, phone_numbers')
         .eq('portfolio_id', portfolioId)
         .is('archived_at', null)
         .order('id')
         .range(from, to));
       if (owners.error) return fail(`Could not load the company's homeowners: ${owners.error}`);
-      const ownerById = new Map<string, { name: string; emails: Set<string>; phone: string }>();
+      const ownerById = new Map<string, { name: string; emails: Set<string>; phones: Set<string> }>();
       const ownerIdsByEmail = new Map<string, string[]>();
       const ownerIdsByPhone = new Map<string, string[]>();
       for (const o of owners.rows) {
@@ -159,15 +159,22 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           const k = clean(e).toLowerCase();
           if (k) emails.add(k);
         }
-        const ph = phoneKey(o.phone);
-        ownerById.set(o.id, { name: nameKey(o.full_name), emails, phone: ph });
+        // Every stored number counts (phone and phone_numbers), not only the primary.
+        const phones = new Set<string>();
+        for (const n of [o.phone, ...(Array.isArray(o.phone_numbers) ? o.phone_numbers.map((e: any) => e?.number) : [])]) {
+          const k = phoneKey(n);
+          if (k.length >= 7) phones.add(k);
+        }
+        ownerById.set(o.id, { name: nameKey(o.full_name), emails, phones });
         for (const e of emails) ownerIdsByEmail.set(e, [...(ownerIdsByEmail.get(e) ?? []), o.id]);
-        if (ph.length >= 7) ownerIdsByPhone.set(ph, [...(ownerIdsByPhone.get(ph) ?? []), o.id]);
+        for (const ph of phones) ownerIdsByPhone.set(ph, [...(ownerIdsByPhone.get(ph) ?? []), o.id]);
       }
 
       // Per unit: who is linked now (owner ids, names, emails) and whether dues are already set.
       // `rowKey` is set for people planned from this file, unset for owners already linked.
-      type Person = { name: string; emails: Set<string>; phone: string; rowKey?: string; matched?: boolean };
+      type Person = { name: string; emails: Set<string>; phones: Set<string>; rowKey?: string; matched?: boolean };
+      // Two sets of numbers conflict when both are filled and share none.
+      const phonesConflict = (a: Set<string>, b: Set<string>) => a.size > 0 && b.size > 0 && ![...a].some((x) => b.has(x));
       const linked = new Map<string, { ownerIds: Set<string>; people: Person[]; hasOwner: boolean; hasDues: boolean }>();
       const unitState = (unitId: string) => {
         let s = linked.get(unitId);
@@ -185,11 +192,11 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       //   filled on both sides conflicts (keeps re-imports from adding them twice).
       // Each linked owner matches at most one row (one-to-one), so a co-owner whose link
       // failed last time is still added on a re-import.
-      const samePerson = (p: Person, name: string, emails: string[], phone: string, rowKey: string) => {
+      const samePerson = (p: Person, name: string, emails: string[], phones: Set<string>, rowKey: string) => {
         if (p.rowKey !== undefined) return p.rowKey === rowKey;
         if (p.matched || p.name !== name) return false;
         if (emails.length > 0 && p.emails.size > 0 && !emails.some((e) => p.emails.has(e))) return false;
-        if (phone.length >= 7 && p.phone.length >= 7 && phone !== p.phone) return false;
+        if (phonesConflict(phones, p.phones)) return false;
         return true;
       };
       // Current owner occupancy per unit and owner name (to retry dues that failed to schedule).
@@ -203,7 +210,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         if (!o.owner_id) continue;
         s.ownerIds.add(o.owner_id);
         const owner = ownerById.get(o.owner_id);
-        if (owner) s.people.push({ name: owner.name, emails: owner.emails, phone: owner.phone });
+        if (owner) s.people.push({ name: owner.name, emails: owner.emails, phones: owner.phones });
       }
 
       let skipped = 0;
@@ -234,9 +241,11 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         const emails = splitEmails(Array.isArray(r.emails) ? r.emails.filter((e) => typeof e === 'string').join(',') : '').slice(0, 10);
         const state = unitState(unit.id);
         const key = nameKey(name.display);
-        const rowPhone = phoneKey(parseLabeledPhones(clean(r.phones).slice(0, 500)).primary);
+        const parsedPhones = parseLabeledPhones(clean(r.phones).slice(0, 500));
+        const rowPhone = phoneKey(parsedPhones.primary);
+        const rowPhones = new Set(parsedPhones.entries.map((e) => phoneKey(e.number)).filter((k) => k.length >= 7));
         const rowKey = identityKey(key, emails, rowPhone, line);
-        const match = state.people.find((p) => samePerson(p, key, emails, rowPhone, rowKey));
+        const match = state.people.find((p) => samePerson(p, key, emails, rowPhones, rowKey));
         if (match) {
           if (match.rowKey === undefined) match.matched = true;
           skipped++;
@@ -256,13 +265,13 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         // Without an email, name + phone (the same rule new owners in this file are grouped by).
         const candidates = emails.length
           ? emails.flatMap((e) => ownerIdsByEmail.get(e) ?? [])
-          : rowPhone.length >= 7 ? ownerIdsByPhone.get(rowPhone) ?? [] : [];
+          : [...rowPhones].flatMap((ph) => ownerIdsByPhone.get(ph) ?? []);
         // ...and only when no contact detail filled on both sides conflicts (the same rule as
         // samePerson): a shared family email must not reuse a different same-named person.
         const existingId = candidates.find((id) => {
           const o = ownerById.get(id);
           if (!o || o.name !== key) return false;
-          if (rowPhone.length >= 7 && o.phone.length >= 7 && rowPhone !== o.phone) return false;
+          if (phonesConflict(rowPhones, o.phones)) return false;
           if (emails.length > 0 && o.emails.size > 0 && !emails.every((e) => o.emails.has(e))) return false;
           return true;
         });
@@ -319,7 +328,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           }
           link.newOwner = owner;
         }
-        state.people.push({ name: key, emails: new Set(emails), phone: rowPhone, rowKey });
+        state.people.push({ name: key, emails: new Set(emails), phones: rowPhones, rowKey });
         links.push(link);
       }
 
