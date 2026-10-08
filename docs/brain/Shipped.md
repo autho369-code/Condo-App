@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-08
+- #250 (merged c959991; no migration): `/accept-invitation` refuses another
+  company's invitation on a company's address (platform address allowed),
+  names the inviting company, shows expired / other-account states (sign-in
+  keeps the token), rate limits per token, plain errors.
 - #249 (merged 052b402; migration 20261008020000 applied): maintenance
   "complete" runs in one transaction (`complete_maintenance_task`, SECURITY
   INVOKER) with a compare-and-set on what the page showed, so it completes

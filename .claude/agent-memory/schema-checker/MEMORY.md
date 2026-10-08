@@ -29,3 +29,6 @@
 
 ## Optimistic-lock filters (compare-and-set updates)
 - `.eq('<timestamptz col>', valueReadBack)` round-trips: PostgREST returns full microsecond ISO with `+00:00`, and postgrest-js uses `URL.searchParams.append`, so `+` is encoded as %2B. Null previous values need `.is(col, null)`. A nullable CHECK status needs `.or('status.is.null,status.neq.X')`. Check for BEFORE UPDATE triggers that rewrite the guarded column (maintenance_tasks has only `move_private_fields` on notes). Example: app/(app)/maintenance/page.tsx completeTask (2026-10-08, clean).
+
+## Enum/status quick refs
+- `occupancies.status` is enum `occupancy_status` ('current','future',...); `tenants.status` CHECK ('active','ended'); `tenants.archived_at` exists. `occupancies.association_id` -> associations FK (embed `associations(portfolio_id)` ok). `document_templates.portfolio_id` NOT NULL. (2026-10-08, occupancy-actions recipient-company change clean.)

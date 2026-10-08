@@ -71,3 +71,9 @@
   plain errors) not added. Also: a deliberate exception to a Decisions rule
   (accept-invitation allowed on the platform address, unlike /sign,
   /vendor-upload) must be written into Decisions, not only a code comment.
+- A "recipient's company" / white-label fix that swaps `me.portfolio` for a
+  lookup adds new `.select()`s and embeds (2026-10-08: occupancies ->
+  associations(portfolio_id), owners.portfolio_id, portfolios.support_email):
+  schema-checker is required even when the caller only ran security +
+  white-label. Run `npm test` (static select check) and confirm the FK in
+  schema-foreign-keys.json for each embed.
