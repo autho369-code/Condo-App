@@ -12,16 +12,18 @@ Back to [[Home]]. Updated 2026-10-08 (after #254).
   pilot).
 
 ## Open PR
-- None open. Waiting on Mirsad: the RLS speed migration
-  `20261008050000_security_helpers_plpgsql.sql` (local only, uncommitted).
+- Open: the RLS speed migration
+  `20261008050000_security_helpers_plpgsql.sql` (Mirsad: "ship the speed
+  migration"; apply after merge, then re-measure /charges, /command-center,
+  /accounting).
   It converts the 204 SECURITY DEFINER LANGUAGE sql helpers to PL/pgSQL
   with unchanged bodies. Measured on production in a rolled-back
   transaction: identical rows for every role, ~4x faster (manager 2.9 s ->
   0.6 s, owner 7.5 s -> 1.6 s, board 14.9 s -> 4.5 s for 30 tables).
   Cause: nested SQL helpers re-plan on every call (~1 ms per row for
   is_platform_operator / can_access_portfolio), so /charges,
-  /command-center and /accounting hit the 8 s statement timeout. The auto
-  mode classifier blocked committing it as "security weaken"; Mirsad decides.
+  /command-center and /accounting hit the 8 s statement timeout. Migration
+  reviewer: no blockers. Board pages are still ~4.5 s after it (next gap).
 - #254 merged (5446724; tree equals PR head cc1a2c7); migration
   20261008040000 applied and verified (trigger, SECURITY DEFINER,
   search_path, no execute for anon/authenticated). Speed: functions in
