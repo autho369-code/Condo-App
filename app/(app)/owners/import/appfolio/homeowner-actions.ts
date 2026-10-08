@@ -257,7 +257,15 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         const candidates = emails.length
           ? emails.flatMap((e) => ownerIdsByEmail.get(e) ?? [])
           : rowPhone.length >= 7 ? ownerIdsByPhone.get(rowPhone) ?? [] : [];
-        const existingId = candidates.find((id) => ownerById.get(id)?.name === key);
+        // ...and only when no contact detail filled on both sides conflicts (the same rule as
+        // samePerson): a shared family email must not reuse a different same-named person.
+        const existingId = candidates.find((id) => {
+          const o = ownerById.get(id);
+          if (!o || o.name !== key) return false;
+          if (rowPhone.length >= 7 && o.phone.length >= 7 && rowPhone !== o.phone) return false;
+          if (emails.length > 0 && o.emails.size > 0 && !emails.every((e) => o.emails.has(e))) return false;
+          return true;
+        });
         const link: Link = {
           line, unitNumber, unitId: unit.id, label,
           dues: parseDues(clean(r.dues)),

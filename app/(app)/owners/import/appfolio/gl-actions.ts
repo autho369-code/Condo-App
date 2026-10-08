@@ -114,21 +114,26 @@ export async function importAppfolioChartOfAccounts(accounts: AppfolioGlAccount[
       break;
     }
 
-    const insertRows = ready.map(({ _a, ...r }) => r);
-    const { data, error } = await db.from('gl_accounts').insert(insertRows).select('id, number, account_type');
-    if (!error) {
-      for (const r of (data ?? []) as Array<{ id: string; number: number; account_type: string }>) {
-        parents.set(Number(r.number), { id: r.id, account_type: r.account_type });
-      }
-      imported += (data ?? []).length;
-    } else {
-      // One bad row fails the whole batch: retry one at a time to keep the rest.
-      for (const r of ready) {
-        const { _a, ...insertRow } = r;
-        const { data: one, error: oneErr } = await db.from('gl_accounts').insert(insertRow).select('id, number, account_type').single();
-        if (oneErr || !one) { skipped++; errors.push(`Line ${_a.row} (${_a.number} ${_a.name}): ${glWriteError(oneErr?.message ?? 'not saved')}`); continue; }
-        parents.set(Number(one.number), { id: one.id, account_type: one.account_type });
-        imported++;
+    // Batches of 500: PostgREST returns at most 1,000 rows, and every inserted id is
+    // needed as a parent for the next pass.
+    for (let b = 0; b < ready.length; b += 500) {
+      const chunk = ready.slice(b, b + 500);
+      const insertRows = chunk.map(({ _a, ...r }) => r);
+      const { data, error } = await db.from('gl_accounts').insert(insertRows).select('id, number, account_type');
+      if (!error) {
+        for (const r of (data ?? []) as Array<{ id: string; number: number; account_type: string }>) {
+          parents.set(Number(r.number), { id: r.id, account_type: r.account_type });
+        }
+        imported += (data ?? []).length;
+      } else {
+        // One bad row fails the whole batch: retry one at a time to keep the rest.
+        for (const r of chunk) {
+          const { _a, ...insertRow } = r;
+          const { data: one, error: oneErr } = await db.from('gl_accounts').insert(insertRow).select('id, number, account_type').single();
+          if (oneErr || !one) { skipped++; errors.push(`Line ${_a.row} (${_a.number} ${_a.name}): ${glWriteError(oneErr?.message ?? 'not saved')}`); continue; }
+          parents.set(Number(one.number), { id: one.id, account_type: one.account_type });
+          imported++;
+        }
       }
     }
     // Everything in `ready` has been tried; sub-accounts whose parent failed
