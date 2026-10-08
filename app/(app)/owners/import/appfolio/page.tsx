@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function AppfolioImportPage() {
   const me = await requireStaff();
-  // The chart of accounts and trial balance need finance access (the actions re-check).
+  // The chart of accounts, open balances and trial balance need finance access (the actions re-check).
   const canFinance = Boolean(me.is_finance_staff || me.is_platform_operator);
   const supabase = await createClient();
   const { data } = await (supabase as any)
@@ -43,7 +43,7 @@ export default async function AppfolioImportPage() {
           />
         )}
         <VendorImportSection importVendors={importAppfolioVendors} />
-        <ReceivablesImportSection associations={associations} importReceivables={importAppfolioReceivables} />
+        {canFinance && <ReceivablesImportSection associations={associations} importReceivables={importAppfolioReceivables} />}
       </div>
     </DataWorkspace>
   );
