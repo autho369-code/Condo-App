@@ -7,7 +7,7 @@
 --
 -- The claim is a compare-and-set on what the page showed: p_seen_completed_at
 -- (the last completion the page displayed) and, for a recurring task,
--- p_seen_due (its due date), so a double click, another person or a stale page
+-- p_seen_due (the due date the page displayed), so a double click, another person or a stale page
 -- completes the occurrence once. Removed (archived) tasks can't be completed.
 --
 -- SECURITY INVOKER: every write runs under the caller's RLS (the restrictive
@@ -37,8 +37,8 @@ declare
   v_now timestamptz := now();
   v_portfolio uuid;
 begin
-  if p_next_due is not null and p_seen_due is null then
-    raise exception 'A recurring task needs the due date that was shown' using errcode = '22023';
+  if p_next_due is not null and (p_seen_due is null or p_next_start is null) then
+    raise exception 'A recurring task needs the due date that was shown and the next start time' using errcode = '22023';
   end if;
 
   update public.maintenance_tasks
@@ -68,13 +68,16 @@ begin
 
   if p_next_due is not null then
     select a.portfolio_id into v_portfolio from public.associations a where a.id = t.association_id;
+    if v_portfolio is null then
+      raise exception 'The task''s association is unavailable' using errcode = 'P0002';
+    end if;
     insert into public.calendar_events (
       portfolio_id, association_id, vendor_id, maintenance_task_id, title, event_type,
       calendar_scope, start_datetime, end_datetime, location, description, internal_notes,
       operations_status, notification_recipients, reminder_rules, created_by
     ) values (
-      coalesce(v_portfolio, public.current_portfolio_id()), t.association_id, t.vendor_id, p_task_id,
-      chr(128295) || ' ' || t.task_name,
+      v_portfolio, t.association_id, t.vendor_id, p_task_id,
+      left(chr(128295) || ' ' || t.task_name, 200),
       coalesce(nullif(p_event_type, ''), 'custom_event')::public.event_type,
       'daily'::public.calendar_scope, p_next_start, p_next_end, null, null,
       left(nullif(btrim(coalesce(p_notes, '')), ''), 200),

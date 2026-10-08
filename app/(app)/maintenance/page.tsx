@@ -167,7 +167,7 @@ async function completeTask(formData: FormData) {'use server';
   const { error } = await db.rpc('complete_maintenance_task', {
     p_task_id: id,
     p_seen_completed_at: seen || null,
-    p_seen_due: task.next_due_date ?? null,
+    p_seen_due: (formData.get('seen_due') as string) || null,
     p_next_due: nextDue,
     p_notes: task.notes ?? null,
     p_event_type: MAINTENANCE_CATEGORY_EVENT_TYPE[task.category] || 'custom_event',
@@ -358,7 +358,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                         <TD>
                           <div className="flex items-center gap-1">
                             <a href={`/maintenance?tab=tasks&edit=${t.id}${sp.assoc ? `&assoc=${sp.assoc}` : ''}`}><Button variant="secondary" size="sm">Edit</Button></a>
-                            <form action={completeTask} className="inline"><input type="hidden" name="id" value={t.id} /><input type="hidden" name="seen_completed_at" value={t.last_completed_at ?? ''} /><Button type="submit" variant="secondary" size="sm">Done</Button></form>
+                            <form action={completeTask} className="inline"><input type="hidden" name="id" value={t.id} /><input type="hidden" name="seen_completed_at" value={t.last_completed_at ?? ''} /><input type="hidden" name="seen_due" value={t.next_due_date ?? ''} /><Button type="submit" variant="secondary" size="sm">Done</Button></form>
                             <form action={deleteTask} className="inline"><input type="hidden" name="id" value={t.id} /><PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Deleting…" confirm="Delete this maintenance task?">Delete</PendingSubmit></form>
                           </div>
                         </TD>
