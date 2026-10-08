@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #254).
+Back to [[Home]]. Updated 2026-10-08 (after #255).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,18 +12,20 @@ Back to [[Home]]. Updated 2026-10-08 (after #254).
   pilot).
 
 ## Open PR
-- Open: the RLS speed migration
-  `20261008050000_security_helpers_plpgsql.sql` (Mirsad: "ship the speed
-  migration"; apply after merge, then re-measure /charges, /command-center,
-  /accounting).
-  It converts the 204 SECURITY DEFINER LANGUAGE sql helpers to PL/pgSQL
-  with unchanged bodies. Measured on production in a rolled-back
-  transaction: identical rows for every role, ~4x faster (manager 2.9 s ->
-  0.6 s, owner 7.5 s -> 1.6 s, board 14.9 s -> 4.5 s for 30 tables).
-  Cause: nested SQL helpers re-plan on every call (~1 ms per row for
-  is_platform_operator / can_access_portfolio), so /charges,
-  /command-center and /accounting hit the 8 s statement timeout. Migration
-  reviewer: no blockers. Board pages are still ~4.5 s after it (next gap).
+- Open: migration 20261008060000 converts the 7 SETOF uuid identity helpers
+  (current_board_association_ids, current_resident_*, current_tenant_*,
+  current_vendor_bill_association_ids) to PL/pgSQL `return query`, same
+  body. Rolled-back production test: same rows for 6 roles; board 3.2 s ->
+  1.75 s, owner 1.6 s -> 0.94 s, vendor 1.3 s -> 0.69 s (30 tables).
+  Table-returning functions (tenant_branding etc.) left alone: RETURN QUERY
+  is stricter on column types. Apply after merge.
+- #255 merged (9ced138); migration 20261008050000 applied and verified:
+  221 SECURITY DEFINER scalar helpers are PL/pgSQL (3 skipped by design:
+  app_portal_url, app_ownership_bounds, report_data_units_by_owner),
+  search_path kept, anon unchanged. Live timings for 30 tables as each
+  role (before -> after): manager 2.9 s -> 0.7 s, company admin 3.8 s ->
+  0.7 s, owner 7.5 s -> 2.6 s, vendor 5.8 s -> 1.3 s, operator 2.6 s ->
+  0.4 s, board 14.9 s -> 5.1 s.
 - #254 merged (5446724; tree equals PR head cc1a2c7); migration
   20261008040000 applied and verified (trigger, SECURITY DEFINER,
   search_path, no execute for anon/authenticated). Speed: functions in
@@ -112,6 +114,14 @@ Back to [[Home]]. Updated 2026-10-08 (after #254).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+0. AppFolio importer: waiting on Mirsad's AppFolio CSV exports (unit
+   directory, owner directory, vendor directory, work orders, aged
+   receivables / owner ledgers, chart of accounts, trial balance) so headers
+   are matched exactly, not guessed. Existing importers: owners+units,
+   opening balances, journal entries, bills. Then: Stripe live for one
+   pilot association (Mirsad's account setup), Illinois rule pack.
+   Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
+   step would be per-request identity caching (riskier, measure first).
 Second-round gaps 1-6 are in the open PR; 7 closed with no change (the
 worker keeps the company's sender name; an unverified domain can't send).
 1. `checkLinkedRecords` with no association (calendar events without one):
