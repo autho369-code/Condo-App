@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-08
+- #249 (merged 052b402; migration 20261008020000 applied): maintenance
+  "complete" runs in one transaction (`complete_maintenance_task`, SECURITY
+  INVOKER) with a compare-and-set on what the page showed, so it completes
+  once and never half; removed two uncalled calendar server actions.
 - #248 (merged be2f13b; no migration): association profile shows the
   public violation-report link on the company's own address with a shared
   `CopyButton`; warns when the company has no workspace address.

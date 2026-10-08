@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #248).
+Back to [[Home]]. Updated 2026-10-08 (after #249).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,9 +12,11 @@ Back to [[Home]]. Updated 2026-10-08 (after #248).
   pilot).
 
 ## Open PR
-- Open: maintenance "complete" is one transaction
+- None open.
+- #249 merged (052b402); migration 20261008020000 applied and verified
+  (invoker, search_path pinned, anon no execute). Maintenance "complete" is one transaction
   (`complete_maintenance_task`, SECURITY INVOKER; migration
-  20261008020000 - apply after merge): the task is claimed with a
+  20261008020000): the task is claimed with a
   compare-and-set on what the page showed (`seen_completed_at`, due date,
   not archived), then history, the calendar close and the next occurrence's
   event, so a double click / stale page completes once and a failure leaves
