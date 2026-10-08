@@ -15,7 +15,7 @@
 -- scope_id is an association id (association imports) or a company
 -- (portfolio) id (company-wide imports). Access: staff who can manage the
 -- association (can_manage_association), or staff of the company
--- (is_any_staff + can_access_portfolio, the vendors policy). Board, owner and
+-- (is_any_staff or a platform operator, + can_access_portfolio, the vendors policy). Board, owner and
 -- vendor users cannot. No foreign key, because the scope is either table; a
 -- leftover row is harmless (it goes stale after 15 minutes).
 
@@ -39,7 +39,7 @@ set search_path to 'pg_catalog', 'public'
 as $function$
 begin
   return public.can_manage_association(p_scope_id)
-      or (public.is_any_staff() and public.can_access_portfolio(p_scope_id));
+      or ((public.is_any_staff() or public.is_platform_operator()) and public.can_access_portfolio(p_scope_id));
 end $function$;
 
 revoke all on function public.can_hold_import_lock(uuid) from public, anon;

@@ -65,7 +65,7 @@ export function VendorImportSection({ importVendors }: { importVendors: typeof i
       <Surface className="space-y-3">
         <SectionTitle
           title="Vendors — AppFolio Vendor Directory"
-          description="In AppFolio open Reports → Vendor Directory, then Actions → Export as CSV. Vendors that already exist here (same name or email) are skipped, so importing the same file twice is safe."
+          description="In AppFolio open Reports → Vendor Directory, then Actions → Export as CSV. Vendors that already exist here with the same name are skipped, so importing the same file twice is safe. A renamed vendor is imported as a new one."
           className="mb-0"
         />
         <div>

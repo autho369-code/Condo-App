@@ -172,7 +172,8 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
 
       // Per unit: who is linked now (owner ids, names, emails) and whether dues are already set.
       // `rowKey` is set for people planned from this file, unset for owners already linked.
-      type Person = { name: string; emails: Set<string>; phones: Set<string>; rowKey?: string; matched?: boolean };
+      // occupancyId: the linked owner's own occupancy (to retry dues on exactly that one).
+      type Person = { name: string; emails: Set<string>; phones: Set<string>; rowKey?: string; matched?: boolean; occupancyId?: string };
       // Two sets of numbers conflict when both are filled and share none.
       const phonesConflict = (a: Set<string>, b: Set<string>) => a.size > 0 && b.size > 0 && ![...a].some((x) => b.has(x));
       const linked = new Map<string, { ownerIds: Set<string>; people: Person[]; hasOwner: boolean; hasDues: boolean }>();
@@ -201,18 +202,14 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         if (phonesConflict(phones, p.phones)) return false;
         return true;
       };
-      // Current owner occupancy per unit and owner name (to retry dues that failed to schedule).
-      const occByUnitName = new Map<string, { id: string; dues: number }>();
       for (const o of occupancies.rows) {
         const s = unitState(o.unit_id);
-        const ownerName = o.owner_id ? ownerById.get(o.owner_id)?.name : undefined;
-        if (ownerName !== undefined) occByUnitName.set(`${o.unit_id}|${ownerName}`, { id: o.id, dues: Number(o.dues_amount ?? 0) });
         s.hasOwner = true;
         if (Number(o.dues_amount ?? 0) > 0) s.hasDues = true;
         if (!o.owner_id) continue;
         s.ownerIds.add(o.owner_id);
         const owner = ownerById.get(o.owner_id);
-        if (owner) s.people.push({ name: owner.name, emails: owner.emails, phones: owner.phones });
+        if (owner) s.people.push({ name: owner.name, emails: owner.emails, phones: owner.phones, occupancyId: o.id });
       }
 
       let skipped = 0;
@@ -252,9 +249,8 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           skipped++;
           // A unit whose dues failed to schedule last time (dues reset to 0): schedule them now.
           const dues = parseDues(clean(r.dues));
-          const occ = occByUnitName.get(`${unit.id}|${key}`);
-          if (dues !== null && dues > 0 && !state.hasDues && occ) {
-            duesRetries.push({ label, unitId: unit.id, occupancyId: occ.id, dues });
+          if (dues !== null && dues > 0 && !state.hasDues && match.occupancyId) {
+            duesRetries.push({ label, unitId: unit.id, occupancyId: match.occupancyId, dues });
             state.hasDues = true;
           }
           errors.push(`${label}: already a homeowner of this unit; left as it is.`);
