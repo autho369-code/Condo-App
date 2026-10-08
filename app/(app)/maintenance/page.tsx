@@ -131,14 +131,21 @@ async function completeTask(formData: FormData) {'use server';
   if(!task) maintenanceFail('That task was not found.');
   await mergePrivateFieldsOne(db, 'maintenance_task_private', 'maintenance_task_id', ['notes'], task);
 
+  // The page sends the last completion it showed; if the task has been
+  // completed since (a double click, another person, a stale page), this
+  // request is for an occurrence that is already done.
+  const seen = formData.get('seen_completed_at');
+  if (typeof seen !== 'string') maintenanceFail('Not completed: reload the page and try again.');
+  if ((task.last_completed_at ?? '') !== seen) maintenanceFail('Not completed: the task was already completed since this page loaded. Reload to see it.');
+
   const now = new Date().toISOString();
-  // The task changes first, guarded on the state that was read (its last
-  // completion, and the due date of a recurring task), so a double click or a
-  // second person completes it once; history and the calendar follow.
-  // Removed (archived) tasks can't be completed.
+  // The task changes first, guarded on that same state (its last completion,
+  // and the due date of a recurring task), so concurrent requests complete it
+  // once; history and the calendar follow. Removed (archived) tasks can't be
+  // completed.
   const unchanged = (q: any) => {
     const open = q.eq('id', id).is('archived_at', null);
-    return task.last_completed_at ? open.eq('last_completed_at', task.last_completed_at) : open.is('last_completed_at', null);
+    return seen ? open.eq('last_completed_at', seen) : open.is('last_completed_at', null);
   };
   let nextDue: string | null = null;
   if(task.next_due_date && task.frequency){
@@ -375,7 +382,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                         <TD>
                           <div className="flex items-center gap-1">
                             <a href={`/maintenance?tab=tasks&edit=${t.id}${sp.assoc ? `&assoc=${sp.assoc}` : ''}`}><Button variant="secondary" size="sm">Edit</Button></a>
-                            <form action={completeTask} className="inline"><input type="hidden" name="id" value={t.id} /><Button type="submit" variant="secondary" size="sm">Done</Button></form>
+                            <form action={completeTask} className="inline"><input type="hidden" name="id" value={t.id} /><input type="hidden" name="seen_completed_at" value={t.last_completed_at ?? ''} /><Button type="submit" variant="secondary" size="sm">Done</Button></form>
                             <form action={deleteTask} className="inline"><input type="hidden" name="id" value={t.id} /><PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Deleting…" confirm="Delete this maintenance task?">Delete</PendingSubmit></form>
                           </div>
                         </TD>
