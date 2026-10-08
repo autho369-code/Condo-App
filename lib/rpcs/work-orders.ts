@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 import { workOrderStaff } from '@/lib/maintenance/staff';
 import { todayInZone } from '@/lib/time/zoned';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 async function accessibleWorkOrder(db: any, workOrderId: string) {
   return db
@@ -365,14 +366,28 @@ export async function chargeBackWorkOrder(workOrderId: string, formData: FormDat
   if (!Number.isFinite(amount) || amount <= 0) redirect(`${back}?error=${encodeURIComponent('Enter an amount above zero')}`);
   if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) redirect(`${back}?error=${encodeURIComponent('Pick a valid due date')}`);
   const supabase = await createClient();
-  const { error } = await (supabase as any).rpc('charge_back_work_order', {
+  const db = supabase as any;
+  // The RPC never checks for an earlier chargeback: a double click or a
+  // re-sent form would bill the owner twice.
+  const claim = await claimSubmission(db, formData, 'work_order_chargeback');
+  if (claim.status === 'error') redirect(`${back}?error=${encodeURIComponent(claim.message)}`);
+  if (claim.status === 'duplicate') {
+    redirect(`${back}?error=${encodeURIComponent(claim.resultId ? 'This chargeback was already posted.' : 'This chargeback is already being posted. Refresh in a moment to see it.')}`);
+  }
+  const token = (claim as { token: string }).token;
+  const { data: charge, error } = await db.rpc('charge_back_work_order', {
     p_work_order: workOrderId,
     p_category: categoryId,
     p_amount: amount,
     p_description: String(formData.get('description') ?? ''),
     p_due_date: dueDate,
   });
-  if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    await releaseSubmission(db, token);
+    redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  }
+  const chargeId = Array.isArray(charge) ? charge[0]?.id : (charge?.id ?? charge);
+  if (typeof chargeId === 'string') await completeSubmission(db, token, chargeId);
   revalidatePath(back);
   redirect(`${back}?saved=chargeback`);
 }

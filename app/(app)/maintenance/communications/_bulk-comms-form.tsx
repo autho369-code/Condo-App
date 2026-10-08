@@ -54,12 +54,15 @@ export function BulkCommsForm({
   templates,
   maintenanceTasks,
   preSelectedWoId,
+  initialSubmissionToken,
 }: {
   workOrders: any[];
   vendors: any[];
   templates: any[];
   maintenanceTasks: any[];
   preSelectedWoId: string;
+  /** Made by the server page, so the server and browser render the same one. */
+  initialSubmissionToken: string;
 }) {
   const [channel, setChannel] = useState<string>('email');
   const [commType, setCommType] = useState<string>('custom');
@@ -73,6 +76,10 @@ export function BulkCommsForm({
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sendResults, setSendResults] = useState<any>(null);
+  // One-time token (form_submissions): a retried or double send queues once.
+  // The first comes from the server; a new one is made (in the browser, after
+  // a successful send) for each new message.
+  const [submissionToken, setSubmissionToken] = useState<string>(initialSubmissionToken);
 
   // ── Toggle work order selection ──
   function toggleWo(id: string) {
@@ -245,6 +252,7 @@ export function BulkCommsForm({
         <button
           onClick={() => {
             setSent(false);
+            setSubmissionToken(crypto.randomUUID());
             setSendResults(null);
             setSubject('');
             setBody('');
@@ -262,6 +270,7 @@ export function BulkCommsForm({
 
   return (
     <form action={handleSend} className="space-y-6">
+      <input type="hidden" name="submission_token" value={submissionToken} />
       {/* Hidden fields */}
       {Array.from(selectedWoIds).map((id) => (
         <input key={`wo-${id}`} type="hidden" name="work_order_ids" value={id} />

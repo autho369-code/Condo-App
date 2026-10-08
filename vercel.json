@@ -1,5 +1,8 @@
 {
   "framework": "nextjs",
+  "regions": [
+    "pdx1"
+  ],
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "crons": [

@@ -4,6 +4,12 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-08
+- #253 (merged dbf551c; no migration): a company's address never serves the
+  platform's marketing pages or site files (`/demo`, `/legal` redirect to
+  login; disallow-all robots; sitemap, llms.txt, IndexNow key,
+  report-card.html and marketing APIs 404); client-facing fallbacks use
+  `NEUTRAL_COMPANY_NAME`; MFA issuer, help email, send-email From are the
+  company's.
 - #252 (merged 7cbc3dd; migration 20261008030000 applied): a property group
   must be the association's company's (app checks before writes; DB triggers
   on associations and on group moves, serialized with a row lock; group

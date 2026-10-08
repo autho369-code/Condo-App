@@ -216,6 +216,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
         <CardBody>
           <form action={postAdHocCharge as any} className="grid grid-cols-1 gap-3 md:grid-cols-5">
             <input type="hidden" name="unit_id" value={unitId} />
+            <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <div>
               <Label htmlFor="adhoc_cat">Category</Label>
               <select id="adhoc_cat" name="charge_category_id" required

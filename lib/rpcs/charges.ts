@@ -171,15 +171,28 @@ export async function postAdHocCharge(formData: FormData) {
   const amount             = parseFloat(formData.get('amount') as string);
   const description        = formData.get('description') as string;
   const due_date           = (formData.get('due_date') as string) || undefined;
+  const db = supabase as any;
 
-  const { error } = await (supabase as any).rpc('post_ad_hoc_charge', {
+  // A double click or re-sent form must not post the charge twice.
+  const claim = await claimSubmission(db, formData, 'ad_hoc_charge');
+  if (claim.status === 'error') { failTo(claim.message); return; }
+  if (claim.status === 'duplicate') {
+    revalidatePath(`/units/${unit_id}`);
+    failTo(claim.resultId ? 'This charge was already posted.' : 'This charge is already being posted. Refresh in a moment to see it.');
+    return;
+  }
+  const token = claim.token;
+
+  const { data: charge, error } = await db.rpc('post_ad_hoc_charge', {
     p_unit_id:             unit_id,
     p_charge_category_id:  charge_category_id,
     p_amount:              amount,
     p_description:         description,
     p_due_date:            due_date,
   });
-  if (error) { failTo(error.message); return; }
+  if (error) { await releaseSubmission(db, token); failTo(error.message); return; }
+  const chargeId = Array.isArray(charge) ? charge[0]?.id : (charge?.id ?? charge);
+  if (typeof chargeId === 'string') await completeSubmission(db, token, chargeId);
   revalidatePath(`/units/${unit_id}`);
 }
 

@@ -35,3 +35,7 @@
 
 ## Cross-company FK checks
 - `associations.property_group_id` -> property_groups FK accepts any company's group; app checks `property_groups.select('id').eq('id').eq('portfolio_id')` (read policy `property_groups_staff_read` = can_access_portfolio) and migration 20261008030000 adds trigger `associations_property_group_same_company` (errcode 23503). No new columns. (2026-10-08, associations/new + lib/rpcs/entities.ts createBuilding clean.)
+
+## Idempotency / RPC return quick refs
+- `email_queue.idempotency_key` has a full (non-partial) unique index `email_queue_idempotency_key_unique` (20260730003000), so `.upsert(..., { onConflict: 'idempotency_key' })` works. `form_submissions` cols: token, kind, result_id (uuid), created_by, created_at.
+- RPC returns: `post_ad_hoc_charge` returns a `charges` row (use `.id`); `charge_back_work_order` returns a bare uuid. `calendar_event_reminders` links via `calendar_event_id` (not event_id), times in `remind_at`. (2026-10-08 diff vs dbf551c4, all clean.)

@@ -27,8 +27,13 @@ describe('invitation and password recovery surfaces', () => {
     expect(forgot).toContain("subject: brand ? `Reset your ${brand} password` : 'Reset your password'");
     expect(forgot).toContain('from_name: portfolioId ? null : PLATFORM_NAME');
     // portfolios has company_name only (no name column).
-    expect(forgot).toContain(".from('portfolios').select('company_name')");
+    expect(forgot).toContain(".from('portfolios').select('company_name, slug, archived_at')");
     expect(forgot).not.toContain("'Reset your Portier369 password'");
     expect(reset).not.toContain('Portier369');
+  });
+
+  it("links a company's people to their own workspace even when asked on the platform address", () => {
+    expect(forgot).toContain("tenantWorkspaceUrl(portfolio.slug, '/api/auth/callback?next=/reset-password')");
+    expect(forgot).toContain("verifiedAuthLink(linkData, linkRedirect, 'recovery')");
   });
 });

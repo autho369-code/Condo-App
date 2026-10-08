@@ -87,10 +87,24 @@ function decodeRequestPath(value: string | null): string | null {
   }
 }
 
-async function enforceConfiguredMfa(me: MeResult, supabase: Awaited<ReturnType<typeof createClient>>) {
+// One me() per request. The layout and the page (and any helper) each call a
+// guard; uncached, every page load ran me() several times, each a round trip
+// to the database. React's cache() is scoped to a single request.
+const loadMe = cache(async () => {
+  const supabase = await createClient();
+  return (supabase as any).rpc('me') as Promise<{ data: unknown; error: any }>;
+});
+
+// The MFA level read once per request, for the same reason.
+const loadAssuranceLevel = cache(async () => {
+  const supabase = await createClient();
+  return supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+});
+
+async function enforceConfiguredMfa(me: MeResult, _supabase: Awaited<ReturnType<typeof createClient>>) {
   if (!me.auth_user_id || !requiresMfa(me) || localPreviewEnabled()) return;
 
-  const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const { data, error } = await loadAssuranceLevel();
   if (!error && data?.currentLevel === 'aal2') return;
 
   const requestPath = decodeRequestPath((await headers()).get('x-portier-request-path'));
@@ -137,7 +151,7 @@ export async function getMe(options: {
   operatorActionRoles?: readonly string[];
 } = {}): Promise<MeResult> {
   const supabase = await createClient();
-  const { data, error } = await (supabase as any).rpc('me');
+  const { data, error } = await loadMe();
   if (error) {
     if (localPreviewEnabled()) return localPreviewMe();
     throw error;

@@ -85,6 +85,14 @@ export async function createCalendarEvent(formData: FormData) {
     ownerId: str(formData, 'owner_id'),
   });
   if (linkError) { failTo(linkError); return; }
+  // The event belongs to its association's company (a platform operator's own
+  // workspace is not the client's), as maintenance calendar events do.
+  let eventPortfolioId: string | null | undefined = me.portfolio?.id;
+  if (assocId) {
+    const { data: association } = await db.from('associations').select('portfolio_id').eq('id', assocId).maybeSingle();
+    if (!association?.portfolio_id) { failTo('That association is unavailable or outside your access.'); return; }
+    eventPortfolioId = association.portfolio_id;
+  }
   // datetime-local values carry no zone; the server runs in UTC, so "9:00"
   // was stored as 9:00 UTC (4–5 AM in the US). Read them in the community's zone.
   const timeZone = await associationTimeZone(db, assocId);
@@ -115,7 +123,7 @@ export async function createCalendarEvent(formData: FormData) {
   const reminderRules = reminderMinutes.map((minutes) => ({ minutes_before: minutes, actions: reminderActions }));
 
   const { data: event, error } = await db.from('calendar_events').insert({
-    portfolio_id: me.portfolio?.id,
+    portfolio_id: eventPortfolioId,
     association_id: assocId,
     building_id: str(formData, 'building_id'),
     unit_id: str(formData, 'unit_id'),
@@ -160,7 +168,7 @@ export async function createCalendarEvent(formData: FormData) {
   const reminderRows = reminderMinutes.flatMap((minutes) => {
     const groups = recipientGroups.length ? recipientGroups : ['management_office'];
     return groups.map((group) => ({
-      portfolio_id: me.portfolio?.id,
+      portfolio_id: eventPortfolioId,
       association_id: assocId,
       calendar_event_id: event.id,
       offset_minutes: minutes,
@@ -179,7 +187,7 @@ export async function createCalendarEvent(formData: FormData) {
 
   if (reminderActions.includes('create_email_draft') || reminderActions.includes('notify_affected_residents')) {
     const { error: draftError } = await db.from('communication_messages').insert({
-      portfolio_id: me.portfolio?.id,
+      portfolio_id: eventPortfolioId,
       association_id: assocId,
       calendar_event_id: event.id,
       channel: 'email',
@@ -194,7 +202,7 @@ export async function createCalendarEvent(formData: FormData) {
 
   if (str(formData, 'vendor_id') || reminderActions.includes('notify_vendor')) {
     const { error: vendorDraftError } = await db.from('communication_messages').insert({
-      portfolio_id: me.portfolio?.id,
+      portfolio_id: eventPortfolioId,
       association_id: assocId,
       calendar_event_id: event.id,
       channel: 'email',
@@ -209,7 +217,7 @@ export async function createCalendarEvent(formData: FormData) {
 
   if (reminderActions.includes('create_follow_up_task')) {
     const { error: taskError } = await db.from('automation_tasks').insert({
-      portfolio_id: me.portfolio?.id,
+      portfolio_id: eventPortfolioId,
       association_id: assocId,
       calendar_event_id: event.id,
       task_type: 'calendar_follow_up',
@@ -258,15 +266,26 @@ export async function cancelCalendarEvent(formData: FormData) {
 }
 
 /** Move scheduled (not yet sent) reminders along with the event's new start. */
-async function rescheduleReminders(db: any, eventId: string, startIso: string) {
-  const { data: reminders } = await db.from('calendar_event_reminders')
+/**
+ * Move an event's scheduled reminders with it. Returns an error message when
+ * any reminder could not be read or moved (it would still fire at the old
+ * time), else null; callers say the event moved but its reminders did not.
+ */
+async function rescheduleReminders(db: any, eventId: string, startIso: string): Promise<string | null> {
+  const { data: reminders, error: loadError } = await db.from('calendar_event_reminders')
     .select('id, offset_minutes').eq('calendar_event_id', eventId).eq('status', 'scheduled');
+  if (loadError) return loadError.message;
   const start = new Date(startIso).getTime();
+  let failed = 0;
   for (const r of reminders ?? []) {
-    await db.from('calendar_event_reminders')
+    const { data: moved, error } = await db.from('calendar_event_reminders')
       .update({ remind_at: new Date(start - Number(r.offset_minutes ?? 0) * 60_000).toISOString() })
-      .eq('id', r.id);
+      .eq('id', r.id)
+      .eq('status', 'scheduled')
+      .select('id');
+    if (error || !moved?.length) failed++;
   }
+  return failed ? `${failed} of ${(reminders ?? []).length} reminders could not be moved` : null;
 }
 
 /** Form action: edit an event's details from its detail page. */
@@ -317,9 +336,11 @@ export async function updateCalendarEvent(formData: FormData) {
     internal_notes: str(formData, 'internal_notes'),
     updated_at: new Date().toISOString(),
   }, { onConflict: 'calendar_event_id' });
-  if (notesError) failTo(`Event saved, but the internal notes could not be saved: ${notesError.message}`);
+  if (notesError) { revalidatePath('/calendar'); failTo(`Event saved, but the internal notes could not be saved: ${notesError.message}`); }
   if (new Date(start!).getTime() !== new Date(existing.start_datetime).getTime()) {
-    await rescheduleReminders(db, eventId!, start!);
+    const reminderError = await rescheduleReminders(db, eventId!, start!);
+    if (reminderError) revalidatePath('/calendar');
+    if (reminderError) failTo(`Event saved, but its reminders still use the old time (${reminderError}). Edit the reminders or move the event again.`);
   }
   revalidatePath('/calendar');
   redirect(`/calendar/${eventId}?saved=1`);
@@ -382,8 +403,10 @@ export async function updateCalendarEventDates(
     .select('id');
   if (error) return { error: error.message };
   if (!moved || moved.length === 0) return { error: 'Event not found or you do not have access to it.' };
-  await rescheduleReminders(db, eventId, startIso);
+  const reminderError = await rescheduleReminders(db, eventId, startIso);
   revalidatePath('/calendar');
+  // The event did move: a warning, not an error (the grid keeps the new spot).
+  if (reminderError) return { warning: `Event moved, but its reminders still use the old time (${reminderError}). Move it again or edit the reminders.` };
 }
 
 export async function notifyOwnersOfUpcomingEvents(associationId: string) {
@@ -398,7 +421,7 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
   const horizon = new Date(now.getTime() + 30 * 86_400_000);
   const { data: events } = await db
     .from('calendar_events')
-    .select('id, title, start_datetime, location, associations(name)')
+    .select('id, title, start_datetime, location, associations(name, portfolio_id)')
     .eq('association_id', associationId)
     .is('archived_at', null)
     .gte('start_datetime', now.toISOString())
@@ -441,14 +464,17 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
   }
 
   const html = textToHtml(body);
-  // Unset when the company has no name: delivery brands it from the portfolio
-  // (a 'Portier369' name would be sent as platform mail).
-  const fromName = me.portfolio?.company_name ?? null;
+  // The notice belongs to the association's company, not the sender's (a
+  // platform operator's workspace is not the client's). No sender name:
+  // delivery brands it from that company's portfolio.
+  const companyId: string | null = (events[0] as any).associations?.portfolio_id ?? null;
+  if (!companyId) return { error: 'The association\'s company could not be loaded.' };
+  const fromName = null;
 
   // Log one communication_messages row per recipient (queued) and deliver via email_queue.
   const commRows = recipients.map((r: any) => ({
     association_id: associationId,
-    portfolio_id: me.portfolio?.id,
+    portfolio_id: companyId,
     calendar_event_id: (events[0] as any).id,
     channel: 'email',
     status: 'queued',
@@ -471,7 +497,7 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
     toName: r.name,
     subject,
     html,
-    portfolioId: me.portfolio?.id,
+    portfolioId: companyId,
     associationId,
     communicationMessageId: messageIdByEmail.get(String(r.email).toLowerCase()) ?? null,
     fromName,
