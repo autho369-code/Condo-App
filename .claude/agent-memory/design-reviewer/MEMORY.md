@@ -22,7 +22,7 @@
 ## ?error= sweeps (zero-row `.select()` checks, 2026-10)
 - For every action redirect, open the TARGET page and check every render branch, not just one: vendors/ach has 3 returns and only the two focus views render sp.error (list view at :371 drops it, so `Vendor not found.` is silent).
 - Redirect-only routes swallow query strings: app/(app)/associations/[id]/page.tsx redirects to /units without `?error=` (lib/rpcs/entities.ts:130,173 target it; dead today). Check that `page.tsx` isn't a bare redirect.
-- Grep callers before reviewing lib/rpcs changes: updateAssociation, archiveAssociation, updateUnit, acknowledgeReminder, resendMaintenanceNotification had no callers (dead code).
+- Grep callers before reviewing lib/rpcs changes: updateAssociation, archiveAssociation, updateUnit had no callers (dead code); acknowledgeReminder and resendMaintenanceNotification were removed.
 - Target pages still using hand-rolled red boxes: sms/opt-ins/page.tsx:130 (open as of 2026-10-07). associations/[id]/profile renders sp.error twice (:319 and :374); `saved=1` from Site Manager shows "Payment instructions updated."
 - Client edit pages (letters/[id]/edit, documents/templates/[id]/edit) put the error Alert at the top and Save at the bottom: on a long form at 375px the error is off-screen. Suggest scrollIntoView or an Alert next to Save.
 
