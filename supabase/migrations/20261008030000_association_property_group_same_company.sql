@@ -17,10 +17,15 @@ security definer
 set search_path to 'pg_catalog', 'public'
 as $function$
 begin
+  -- FOR SHARE locks the group row: a concurrent move of the group (an UPDATE,
+  -- which conflicts) waits for this transaction, then its own check sees this
+  -- association; and if the move got there first, this waits and re-reads the
+  -- moved row, which no longer matches. The two checks can't both pass.
   if new.property_group_id is not null and not exists (
     select 1 from public.property_groups pg
      where pg.id = new.property_group_id
        and pg.portfolio_id = new.portfolio_id
+       for share
   ) then
     raise exception 'Property group not found for this company' using errcode = '23503';
   end if;
