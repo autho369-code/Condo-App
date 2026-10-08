@@ -153,6 +153,14 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       const ownerById = new Map<string, { name: string; emails: Set<string>; phones: Set<string> }>();
       const ownerIdsByEmail = new Map<string, string[]>();
       const ownerIdsByPhone = new Map<string, string[]>();
+      // Primary emails already held by an active owner. Portal sign-up links a login to the
+      // owners whose primary email matches, and a login can belong to only one owner, so a
+      // new owner never gets a primary email another owner already has.
+      const usedPrimary = new Set<string>();
+      for (const o of owners.rows) {
+        const primary = clean(o.email).toLowerCase();
+        if (primary) usedPrimary.add(primary);
+      }
       for (const o of owners.rows) {
         const emails = new Set<string>();
         for (const e of [o.email, ...(Array.isArray(o.emails) ? o.emails : [])]) {
@@ -222,6 +230,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       const duesRetries: Array<{ label: string; unitId: string; occupancyId: string; dues: number }> = [];
       const reusedLines: string[] = [];
       let noEmail = 0;
+      let sharedOnly = 0;
 
       // Plan every row first, so owners shared by several rows are created once.
       for (const r of rows) {
@@ -297,6 +306,10 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           const ownerKey = rowKey;
           let owner = newOwners.get(ownerKey);
           if (!owner) {
+            // A primary email nobody else holds; shared addresses stay in the emails list only.
+            const primary = emails.find((e) => !usedPrimary.has(e)) ?? '';
+            if (primary) usedPrimary.add(primary);
+            else if (emails.length) sharedOnly++;
             const notes = [
               name.raw !== name.display ? `AppFolio name: ${name.raw}` : null,
               name.notes.length ? `AppFolio note: ${name.notes.join(', ')}` : null,
@@ -310,12 +323,12 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
                 first_name: name.first_name,
                 last_name: name.last_name,
                 full_name: name.display.slice(0, 300),
-                // owners.email is required; an owner without one is reached by mail.
-                email: emails[0] ?? '',
+                // owners.email is required; an owner without a usable one is reached by mail.
+                email: primary,
                 emails,
                 phone: phones.primary,
                 phone_numbers: phones.entries,
-                preferred_comm: emails.length ? 'email' : 'mail',
+                preferred_comm: primary ? 'email' : 'mail',
                 electronic_consent: r.electronic_consent === true,
                 electronic_consent_date: r.electronic_consent === true ? new Date().toISOString() : null,
                 notes: notes || null,
@@ -412,6 +425,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       const notes: string[] = [];
       if (created) notes.push(`${created} new homeowner record${created === 1 ? '' : 's'} created.`);
       if (reused) notes.push(`${reused} link${reused === 1 ? '' : 's'} went to homeowners the company already had (same name and email).`);
+      if (sharedOnly) notes.push(`${sharedOnly} homeowner${sharedOnly === 1 ? '' : 's'} only had an email another homeowner already uses; it is kept on their record, but their preferred contact is mail and they need their own email to sign in to the portal.`);
       if (noEmail) notes.push(`${noEmail} homeowner${noEmail === 1 ? ' has' : 's have'} no email in AppFolio; their preferred contact is set to mail.`);
       if (duesScheduled) notes.push(`${duesScheduled} unit${duesScheduled === 1 ? '' : 's'} had no dues schedule and now have one.`);
       if (pctFilled) notes.push(`${pctFilled} unit${pctFilled === 1 ? '' : 's'} had no ownership % and now have the one from the export.`);
