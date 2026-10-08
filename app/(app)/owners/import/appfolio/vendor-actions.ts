@@ -140,7 +140,9 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
         if (!name) { skipped++; errors.push(`Row ${line}: no vendor name.`); continue; }
 
         const emails = splitEmails(Array.isArray(v?.emails) ? v!.emails.filter((e) => typeof e === 'string').join(',') : '').slice(0, 10);
-        const keys = [nameKey(name), nameKey(str(v?.appfolio_name, 200) ?? '')].filter(Boolean);
+        // A company vendor is identified by its company name only: its AppFolio Name is the
+        // contact person, who may represent several companies.
+        const keys = [nameKey(name), v?.company_name ? '' : nameKey(str(v?.appfolio_name, 200) ?? '')].filter(Boolean);
         if (keys.some((k) => existingNames.has(k))) {
           skipped++; errors.push(`Row ${line} (${name}): skipped — a vendor with this name already exists.`); continue;
         }

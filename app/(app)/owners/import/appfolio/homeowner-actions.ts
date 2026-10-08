@@ -220,10 +220,14 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         } else {
           // One new owner per name + email within this file: people sharing a family or
           // placeholder email stay separate owners (same rule as reusing existing owners).
-          const ownerKey = `n:${key}|e:${emails[0] ?? ''}`;
+          // Without an email, name + phone; with neither, the row stays its own owner rather
+          // than merging two people who only share a name.
+          const phones = parseLabeledPhones(clean(r.phones).slice(0, 500));
+          const ownerKey = emails[0]
+            ? `n:${key}|e:${emails[0]}`
+            : phones.primary ? `n:${key}|p:${phones.primary.replace(/\D/g, '')}` : `n:${key}|line:${line}`;
           let owner = newOwners.get(ownerKey);
           if (!owner) {
-            const phones = parseLabeledPhones(clean(r.phones).slice(0, 500));
             const notes = [
               name.raw !== name.display ? `AppFolio name: ${name.raw}` : null,
               name.notes.length ? `AppFolio note: ${name.notes.join(', ')}` : null,

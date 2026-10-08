@@ -221,7 +221,7 @@ export async function tieOutAppfolioTrialBalance(
   if (combined) {
     const { rows: all, error: allErr } = await fetchAllRows<AssociationRow>(() => db
       .from('associations').select('id, name, portfolio_id, fiscal_year_start')
-      .eq('portfolio_id', portfolioId).order('name').order('id'));
+      .eq('portfolio_id', portfolioId).is('archived_at', null).order('name').order('id'));
     if (allErr) return { error: `Could not load the associations: ${allErr}` };
     if (all.length === 0) return { error: 'Your company has no associations yet.' };
     associations = all;
