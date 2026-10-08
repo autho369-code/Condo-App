@@ -341,7 +341,9 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
             status: 'current',
             is_primary: primary,
             share_pct: 100,
-            dues_amount: l.dues ?? 0,
+            // Unit dues live on the one occupancy that carries the schedule: a co-owner
+            // added after the unit already has dues stores 0, not the repeated amount.
+            dues_amount: state.hasDues ? 0 : l.dues ?? 0,
             dues_frequency: 'monthly',
           }).select('id').single();
           if (occErr || !occ) { skipped++; errors.push(`${l.label}: ${occErr?.message ?? 'could not link the owner to the unit'}`); continue; }
