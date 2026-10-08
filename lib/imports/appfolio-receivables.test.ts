@@ -3,6 +3,7 @@ import {
   parseAppfolioAgedReceivables,
   parseAppfolioAmount,
   parseAppfolioDate,
+  parseReceivableHeading,
   unitFromUnitAndPayer,
 } from './appfolio-receivables';
 
@@ -24,6 +25,25 @@ const GROUPED = [
   ',,,,,-25.00,-50.00,-75.00,0.00,0.00,25.00',
   '',
   'Total,,,,,"2,475.00","1,450.00",175.00,"1,250.00",0.00,25.00',
+].join('\n');
+
+// Company-wide export grouped by property, unit and payer (anonymized, real shape).
+const COMPANY = [
+  HEADER,
+  '',
+  '"-> Maple Court Condominium Association  - 100-110 W Maple Ave & 2-4 N Oak St Chicago, IL 60601 - Unit 100-1 - Doe, Jane","","","","","","","","","",""',
+  '"Doe, Jane",10/01/2026,10/01/2026,4101,Regular Assessment,241.19,241.19,241.19,0.00,0.00,0.00',
+  '"Doe, Jane",10/01/2026,10/01/2026,9010,Reserve Assessment,20.80,20.80,20.80,0.00,0.00,0.00',
+  ',,,,,261.99,261.99,261.99,0.00,0.00,0.00',
+  '"-> Maple Court Condominium Association  - 100-110 W Maple Ave & 2-4 N Oak St Chicago, IL 60601 - Unit 102 - 1 - Holdings - Pkg#3","","","","","","","","","",""',
+  'Holdings - Pkg#3,05/12/2026,05/12/2026,4420,Passthru Maintenance & Repair,450.00,253.33,0.00,0.00,0.00,253.33',
+  ',,,,,450.00,253.33,0.00,0.00,0.00,253.33',
+  '"-> Birch - Elm Condominium No. 2"" - 55 West Birch Avenue Chicago, IL 60630 - Unit 3D - Roe, Ann","","","","","","","","","",""',
+  '"Roe, Ann",10/01/2026,10/01/2026,4101,Regular Assessment,359.94,359.94,359.94,0.00,0.00,0.00',
+  '"Roe, Ann",09/10/2024,09/27/2024,2110,Tenant/Owner Deposits,-500.00,-180.12,0.00,0.00,0.00,-180.12',
+  ',,,,,-140.06,179.82,359.94,0.00,0.00,-180.12',
+  '',
+  'Total,,,,,"571.93","695.14","621.93",0.00,0.00,"73.21"',
 ].join('\n');
 
 // Flat export (no row group) with the optional Unit Name column.
@@ -60,9 +80,12 @@ describe('AppFolio Aged Receivable Detail', () => {
     const parsed = parseAppfolioAgedReceivables(GROUPED);
     expect(parsed.error).toBeUndefined();
     expect(parsed.problems).toBeUndefined();
-    expect(parsed.units?.map((u) => u.unit_number)).toEqual(['101', '102']);
+    expect(parsed.associations).toHaveLength(1);
+    expect(parsed.associations![0]).toMatchObject({ name: '', address: null });
+    expect(parsed.associations![0].units.map((u) => u.unit_number)).toEqual(['101', '102']);
+    expect(parsed.fileTotal).toBe(1450);
 
-    const [u101, u102] = parsed.units!;
+    const [u101, u102] = parsed.associations![0].units;
     expect(u101.items).toHaveLength(2);
     expect(u101.payers).toEqual(['Jane Smith']);
     expect(u101.total).toBe(1500);
@@ -79,14 +102,54 @@ describe('AppFolio Aged Receivable Detail', () => {
       amount: 1450, charges: 1525, credits: -75, itemCount: 4,
       aging: { d0_30: 175, d31_60: 1250, d61_90: 0, d91_plus: 25 },
     });
-    expect(parsed.items?.some((i) => /total/i.test(i.payer))).toBe(false);
+    expect(parsed.associations![0].items.some((i) => /total/i.test(i.payer))).toBe(false);
+  });
+
+  it('reads a company-wide export: property, address, unit and payer from each heading', () => {
+    expect(parseReceivableHeading(
+      'Maple Court Condominium Association  - 100-110 W Maple Ave Chicago, IL 60601 - Unit 100-1 - Doe, Jane', 'Doe, Jane',
+    )).toEqual({ name: 'Maple Court Condominium Association', address: '100-110 W Maple Ave Chicago, IL 60601', unit: '100-1' });
+    // Unit numbers and payers that contain " - " themselves.
+    expect(parseReceivableHeading('Birch - Elm HOA - 55 W Birch Ave - Unit 3817 - G - Lee, Bo', 'Lee, Bo'))
+      .toEqual({ name: 'Birch - Elm HOA', address: '55 W Birch Ave', unit: '3817 - G' });
+    expect(parseReceivableHeading('Oak HOA - 9 Oak St - Unit 4B - Acme - Pkg#1', 'Someone else'))
+      .toMatchObject({ name: 'Oak HOA', unit: '4B' });
+    expect(parseReceivableHeading('101 - Jane Smith', 'Jane Smith')).toEqual({ name: '', address: null, unit: '101' });
+  });
+
+  it('groups a company-wide export by association, then unit, and ties out to the Total line', () => {
+    const parsed = parseAppfolioAgedReceivables(COMPANY);
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.problems).toBeUndefined();
+    expect(parsed.associations?.map((a) => [a.name, a.address])).toEqual([
+      ['Maple Court Condominium Association', '100-110 W Maple Ave & 2-4 N Oak St Chicago, IL 60601'],
+      ['Birch - Elm Condominium No. 2', '55 West Birch Avenue Chicago, IL 60630'],
+    ]);
+    const [maple, birch] = parsed.associations!;
+    expect(maple.units.map((u) => [u.unit_number, u.total, u.payers])).toEqual([
+      ['100-1', 261.99, ['Doe, Jane']],
+      ['102 - 1', 253.33, ['Holdings - Pkg#3']],
+    ]);
+    expect(maple.totals).toMatchObject({ amount: 515.32, charges: 515.32, credits: 0, itemCount: 3 });
+    // The deposit credit is read (and reported), not dropped.
+    expect(birch.units[0].items.map((i) => i.amount)).toEqual([359.94, -180.12]);
+    expect(birch.totals).toMatchObject({ amount: 179.82, charges: 359.94, credits: -180.12 });
+    // Subtotal and Total lines are not items; the parsed sum equals the file's Total line.
+    expect(parsed.totals).toEqual({
+      amount: 695.14, charges: 875.26, credits: -180.12, itemCount: 5,
+      aging: { d0_30: 621.93, d31_60: 0, d61_90: 0, d91_plus: 73.21 },
+    });
+    expect(parsed.fileTotal).toBe(695.14);
   });
 
   it('reads a flat export with a Unit Name column and a parenthesised credit', () => {
     const parsed = parseAppfolioAgedReceivables(FLAT);
     expect(parsed.error).toBeUndefined();
-    expect(parsed.units?.map((u) => [u.unit_number, u.total])).toEqual([['2A', 400], ['2B', -100]]);
-    expect(parsed.items?.[0]).toMatchObject({ charge_date: '2026-08-01', gl_name: 'Assessment Income', aging: { d61_90: 400 } });
+    expect(parsed.associations).toHaveLength(1);
+    const [assoc] = parsed.associations!;
+    expect(assoc).toMatchObject({ name: 'Pine Tree Court', address: '5460 W Higgins Ave Chicago IL 60630' });
+    expect(assoc.units.map((u) => [u.unit_number, u.total])).toEqual([['2A', 400], ['2B', -100]]);
+    expect(assoc.items[0]).toMatchObject({ charge_date: '2026-08-01', gl_name: 'Assessment Income', aging: { d61_90: 400 } });
     expect(parsed.totals?.amount).toBe(300);
   });
 
@@ -95,7 +158,7 @@ describe('AppFolio Aged Receivable Detail', () => {
       'Unit & Payer Name,Payer Name,Charge Date,GL Account Name,Amount Receivable',
       '305 - Maria Gomez,Maria Gomez,10/01/2026,Assessment Income,300.00',
     ].join('\n');
-    expect(parseAppfolioAgedReceivables(csv).units?.[0]).toMatchObject({ unit_number: '305', total: 300 });
+    expect(parseAppfolioAgedReceivables(csv).associations?.[0].units[0]).toMatchObject({ unit_number: '305', total: 300 });
   });
 
   it('rejects other reports and exports without units', () => {
@@ -112,7 +175,7 @@ describe('AppFolio Aged Receivable Detail', () => {
       'Jane Smith,09/01/2026,09/01/2026,4000,Assessment Income,20.00,20.00,20.00,0,0,0',
     ].join('\n');
     const parsed = parseAppfolioAgedReceivables(csv);
-    expect(parsed.items).toHaveLength(1);
+    expect(parsed.associations?.[0].items).toHaveLength(1);
     expect(parsed.problems?.[0]).toMatch(/Line 3 \(101\): unreadable Amount Receivable/);
   });
 });

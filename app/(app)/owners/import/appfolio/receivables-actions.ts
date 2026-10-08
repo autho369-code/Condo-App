@@ -5,6 +5,13 @@
 // one opening-balance charge on its unit through import_opening_balance,
 // which posts the charge (post_ad_hoc_charge, can_manage_finance-checked)
 // and records it in imported_balances (Import Variances) in one transaction.
+// The file can cover a whole company; the page sends one AppFolio
+// association's items at a time, into the association the user picked.
+//
+// import_opening_balance takes one date, used for both the charge and the
+// imported_balances row: every item is dated with the report's as-of date so
+// Import Variances compares one per-unit total, and the original charge date
+// is kept in the description.
 //
 // Nothing from the browser is trusted: the association is re-checked through
 // the signed-in user's session (RLS), units are matched by number inside that
@@ -12,6 +19,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
+import { withImportLock } from '@/lib/imports/import-lock';
 import type { AppfolioReceivableItem } from '@/lib/imports/appfolio-receivables';
 
 export type ReceivablesImportSummary = {
@@ -45,6 +53,9 @@ function isoDate(v: unknown): string | null {
   return d.getUTCDate() === Number(m[3]) && d.getUTCMonth() === Number(m[2]) - 1 ? s : null;
 }
 
+/** Unit numbers compare case-insensitively, ignoring spacing around dashes ("3817 - 1" = "3817-1"). */
+const unitKey = (v: unknown) => clean(v).toLowerCase().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ');
+
 const itemKey = (unitId: string, asOf: string, memo: string, amount: number) =>
   `${unitId}|${asOf}|${memo}|${amount.toFixed(2)}`;
 
@@ -76,40 +87,6 @@ export async function importAppfolioReceivables(
     return fail(assocErr ? `Could not check the association: ${assocErr.message}` : 'That association was not found or is outside your access.');
   }
 
-  // Idempotency: import_opening_balance records every posting in
-  // imported_balances with the description as memo, so earlier AppFolio
-  // postings for this association are known. With any present the import is
-  // refused until the user confirms; once confirmed, items already posted
-  // (same unit, date, description and amount) are still skipped, so a second
-  // run only adds what the first one missed (e.g. units added since).
-  const already = new Map<string, number>();
-  let existingCount = 0;
-  for (let from = 0; ; from += 1000) {
-    const { data: rows, error: existingErr } = await db
-      .from('imported_balances')
-      .select('unit_id, as_of_date, imported_balance, memo')
-      .eq('association_id', associationId)
-      .like('memo', `${MEMO_PREFIX}%`)
-      .order('created_at', { ascending: true })
-      .range(from, from + 999);
-    if (existingErr) return fail(`Could not check for an earlier AppFolio import: ${existingErr.message}`);
-    for (const r of rows ?? []) {
-      const key = itemKey(r.unit_id, r.as_of_date, r.memo, Number(r.imported_balance));
-      already.set(key, (already.get(key) ?? 0) + 1);
-      existingCount++;
-    }
-    if (!rows || rows.length < 1000) break;
-  }
-  if (existingCount > 0 && !options.confirmDuplicate) {
-    return {
-      imported: 0,
-      skipped: items.length,
-      totalImported: 0,
-      alreadyImported: existingCount,
-      errors: [`This association already has ${existingCount} AppFolio opening balance${existingCount === 1 ? '' : 's'}. Nothing was imported. Import anyway to add only the items not posted before.`],
-    };
-  }
-
   // Same charge category as the CSV opening-balance import.
   const { data: category, error: catErr } = await db
     .from('charge_categories')
@@ -129,92 +106,133 @@ export async function importAppfolioReceivables(
     .is('archived_at', null);
   if (unitsErr) return fail(`Could not load the association's units: ${unitsErr.message}`);
   const unitByNumber = new Map<string, string>(
-    (units ?? []).map((u: any) => [clean(u.unit_number).toLowerCase(), u.id as string]),
+    (units ?? []).map((u: any) => [unitKey(u.unit_number), u.id as string]),
   );
 
-  let skipped = 0;
-  const errors: string[] = [];
-  const unmatched = new Map<string, { count: number; amount: number }>();
-  const credits: string[] = [];
-  let zero = 0;
-  let previously = 0;
-  const work: Array<{ line: string; unitNumber: string; unitId: string; amount: number; description: string; asOf: string }> = [];
-
-  for (const it of items) {
-    const line = clean(it?.row).slice(0, 10) || '?';
-    const unitNumber = clean(it?.unit_number).slice(0, 40);
-    const amount = typeof it?.amount === 'number' && Number.isFinite(it.amount) ? Math.round(it.amount * 100) / 100 : null;
-    if (!unitNumber || amount === null) { skipped++; errors.push(`Line ${line}: missing unit or amount.`); continue; }
-    if (amount === 0) { skipped++; zero++; continue; }
-    const unitId = unitByNumber.get(unitNumber.toLowerCase());
-    if (!unitId) {
-      skipped++;
-      const u = unmatched.get(unitNumber) ?? { count: 0, amount: 0 };
-      u.count++; u.amount += amount;
-      unmatched.set(unitNumber, u);
-      continue;
-    }
-    if (amount < 0) {
-      // Charges cannot be negative (charges_amount_check), and this RPC only
-      // posts charges: a credit has to be entered as a credit in Portier369.
-      skipped++;
-      credits.push(`Line ${line} (${unitNumber}): credit of ${usd(-amount)} not imported. Charges can't be negative; enter it as a credit on the unit.`);
-      continue;
-    }
-    if (amount > 10_000_000) { skipped++; errors.push(`Line ${line} (${unitNumber}): amount ${usd(amount)} is too large.`); continue; }
-    const chargeDate = isoDate(it?.charge_date);
-    const glName = clean(it?.gl_name).slice(0, 120) || 'Opening balance';
-    const dated = chargeDate ?? asOfDate;
-    const description = `${MEMO_PREFIX} ${glName} (${dated})`;
-    const key = itemKey(unitId, dated, description, amount);
-    const seen = already.get(key) ?? 0;
-    if (seen > 0) {
-      already.set(key, seen - 1);
-      skipped++;
-      previously++;
-      continue;
-    }
-    work.push({
-      line, unitNumber, unitId, amount,
-      description,
-      asOf: dated,
-    });
-  }
-
-  let imported = 0;
-  let totalImported = 0;
-  for (let i = 0; i < work.length; i += CONCURRENCY) {
-    const batch = work.slice(i, i + CONCURRENCY);
-    const results = await Promise.all(batch.map((w) => db.rpc('import_opening_balance', {
-      p_unit_id: w.unitId,
-      p_charge_category_id: category.id,
-      p_amount: w.amount,
-      p_description: w.description,
-      p_as_of: w.asOf,
-    })));
-    results.forEach((res: { error: { message: string } | null }, idx: number) => {
-      const w = batch[idx];
-      if (res.error) {
-        skipped++;
-        errors.push(`Line ${w.line} (${w.unitNumber}): ${res.error.message}`);
-      } else {
-        imported++;
-        totalImported = Math.round((totalImported + w.amount) * 100) / 100;
+  // Two runs at once would both pass the duplicate check below and post every
+  // item twice: the check and the posting run under the association's import lock.
+  try {
+    return await withImportLock(db, associationId, 'appfolio_receivables', async () => {
+      // Idempotency: import_opening_balance records every posting in
+      // imported_balances with the description as memo, so earlier AppFolio
+      // postings for this association are known. With any present the import is
+      // refused until the user confirms; once confirmed, items already posted
+      // (same unit, date, description and amount) are still skipped, so a second
+      // run only adds what the first one missed (e.g. units added since).
+      const already = new Map<string, number>();
+      let existingCount = 0;
+      for (let from = 0; ; from += 1000) {
+        const { data: rows, error: existingErr } = await db
+          .from('imported_balances')
+          .select('unit_id, as_of_date, imported_balance, memo')
+          .eq('association_id', associationId)
+          .like('memo', `${MEMO_PREFIX}%`)
+          .order('created_at', { ascending: true })
+          .range(from, from + 999);
+        if (existingErr) return fail(`Could not check for an earlier AppFolio import: ${existingErr.message}`);
+        for (const r of rows ?? []) {
+          const key = itemKey(r.unit_id, r.as_of_date, r.memo, Number(r.imported_balance));
+          already.set(key, (already.get(key) ?? 0) + 1);
+          existingCount++;
+        }
+        if (!rows || rows.length < 1000) break;
       }
+      if (existingCount > 0 && !options.confirmDuplicate) {
+        return {
+          imported: 0,
+          skipped: items.length,
+          totalImported: 0,
+          alreadyImported: existingCount,
+          errors: [`This association already has ${existingCount} AppFolio opening balance${existingCount === 1 ? '' : 's'}. Nothing was imported. Import anyway to add only the items not posted before.`],
+        };
+      }
+
+      let skipped = 0;
+      const errors: string[] = [];
+      const unmatched = new Map<string, { count: number; amount: number }>();
+      const credits: string[] = [];
+      let zero = 0;
+      let previously = 0;
+      const work: Array<{ line: string; unitNumber: string; unitId: string; amount: number; description: string; asOf: string }> = [];
+
+      for (const it of items) {
+        const line = clean(it?.row).slice(0, 10) || '?';
+        const unitNumber = clean(it?.unit_number).slice(0, 40);
+        const amount = typeof it?.amount === 'number' && Number.isFinite(it.amount) ? Math.round(it.amount * 100) / 100 : null;
+        if (!unitNumber || amount === null) { skipped++; errors.push(`Line ${line}: missing unit or amount.`); continue; }
+        if (amount === 0) { skipped++; zero++; continue; }
+        const unitId = unitByNumber.get(unitKey(unitNumber));
+        if (!unitId) {
+          skipped++;
+          const u = unmatched.get(unitNumber) ?? { count: 0, amount: 0 };
+          u.count++; u.amount += amount;
+          unmatched.set(unitNumber, u);
+          continue;
+        }
+        if (amount < 0) {
+          // Charges cannot be negative (charges_amount_check), and this RPC only
+          // posts charges: a credit has to be entered as a credit on the unit.
+          skipped++;
+          credits.push(`Line ${line} (${unitNumber}): credit of ${usd(-amount)} not imported. Charges can't be negative; enter it as a credit on the unit.`);
+          continue;
+        }
+        if (amount > 10_000_000) { skipped++; errors.push(`Line ${line} (${unitNumber}): amount ${usd(amount)} is too large.`); continue; }
+        const chargeDate = isoDate(it?.charge_date);
+        const glName = clean(it?.gl_name).slice(0, 120) || 'Opening balance';
+        const description = chargeDate ? `${MEMO_PREFIX} ${glName} (charged ${chargeDate})` : `${MEMO_PREFIX} ${glName}`;
+        const key = itemKey(unitId, asOfDate, description, amount);
+        const seen = already.get(key) ?? 0;
+        if (seen > 0) {
+          already.set(key, seen - 1);
+          skipped++;
+          previously++;
+          continue;
+        }
+        work.push({
+          line, unitNumber, unitId, amount,
+          description,
+          asOf: asOfDate,
+        });
+      }
+
+      let imported = 0;
+      let totalImported = 0;
+      for (let i = 0; i < work.length; i += CONCURRENCY) {
+        const batch = work.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(batch.map((w) => db.rpc('import_opening_balance', {
+          p_unit_id: w.unitId,
+          p_charge_category_id: category.id,
+          p_amount: w.amount,
+          p_description: w.description,
+          p_as_of: w.asOf,
+        })));
+        results.forEach((res: { error: { message: string } | null }, idx: number) => {
+          const w = batch[idx];
+          if (res.error) {
+            skipped++;
+            errors.push(`Line ${w.line} (${w.unitNumber}): ${res.error.message}`);
+          } else {
+            imported++;
+            totalImported = Math.round((totalImported + w.amount) * 100) / 100;
+          }
+        });
+      }
+
+      for (const [unitNumber, u] of unmatched) {
+        errors.push(`Unit "${unitNumber}" is not in this association: ${u.count} item${u.count === 1 ? '' : 's'} (${usd(u.amount)}) not imported. Add the unit, then import this file again: items already posted are skipped.`);
+      }
+      errors.push(...credits);
+      if (previously) errors.push(`${previously} item${previously === 1 ? ' was' : 's were'} already imported earlier and skipped.`);
+      if (zero) errors.push(`${zero} item${zero === 1 ? '' : 's'} with nothing receivable skipped.`);
+
+      if (imported) {
+        revalidatePath('/charges');
+        revalidatePath('/units');
+        revalidatePath(`/associations/${associationId}`);
+      }
+      return { imported, skipped, errors: errors.length ? errors : undefined, totalImported };
     });
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : 'The import failed. Try again.');
   }
-
-  for (const [unitNumber, u] of unmatched) {
-    errors.push(`Unit "${unitNumber}" is not in this association: ${u.count} item${u.count === 1 ? '' : 's'} (${usd(u.amount)}) not imported. Add the unit, then import this file again: items already posted are skipped.`);
-  }
-  errors.push(...credits);
-  if (previously) errors.push(`${previously} item${previously === 1 ? ' was' : 's were'} already imported earlier and skipped.`);
-  if (zero) errors.push(`${zero} item${zero === 1 ? '' : 's'} with nothing receivable skipped.`);
-
-  if (imported) {
-    revalidatePath('/charges');
-    revalidatePath('/units');
-    revalidatePath(`/associations/${associationId}`);
-  }
-  return { imported, skipped, errors: errors.length ? errors : undefined, totalImported };
 }
