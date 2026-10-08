@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #253).
+Back to [[Home]]. Updated 2026-10-08 (after #254).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,35 +12,25 @@ Back to [[Home]]. Updated 2026-10-08 (after #253).
   pilot).
 
 ## Open PR
-- Open (next PR): moving a calendar event
-  says when its reminders could not be moved (form: error after save; drag:
-  a warning, the event keeps its new spot) instead of silently keeping the
-  old reminder times; inspection "create work order" links only when no work
-  order is linked yet (a double submit archives its duplicate and opens the
-  existing one). `query-columns` test gets a 30s timeout (5s default timed
-  out under load). Also: `checkLinkedRecords` now requires a vendor to be the
-  association's company's (visible was not enough for platform operators);
-  maintenance task add/edit/new check the vendor; maintenance calendar
-  events take the association's company; migration 20261008040000 adds the
-  vendor trigger to calendar_events (maintenance_tasks already
-  checked by RLS `maintenance_task_links_valid`). Apply after merge.
-  Also: ad-hoc unit charges and work-order chargebacks claim a one-time form
-  token (`ad_hoc_charge`, `work_order_chargeback`), so a double submit posts
-  once (live `form_submissions_admin_operator_insert` lets company admins and
-  operators claim too).
-  Security review fix: migration 20261008040000 now has its own
-  `calendar_event_vendor_in_company()` that checks the vendor against the
-  ASSOCIATION's company (fires on association_id too); new calendar events,
-  their reminders and drafts take the association's company. Owner statement
-  emails brand and link from the association's company (not the sender's).
-  Bulk vendor emails (`/maintenance/communications`) go out under each
-  vendor's own company and claim a one-time token (`vendor_bulk_comms`; the
-  client form makes a fresh one per message) plus a per-vendor
-  idempotency key on email_queue.
-  Password reset asked on the platform address emails a link to the
-  person's company workspace (`<slug>.<apex>`, skipped once archived).
-  Committee chair/member must be a current owner in the association, and the
-  bound committee id must be the association's.
+- Open: the RLS speed migration
+  `20261008050000_security_helpers_plpgsql.sql` (Mirsad: "ship the speed
+  migration"; apply after merge, then re-measure /charges, /command-center,
+  /accounting).
+  It converts the 204 SECURITY DEFINER LANGUAGE sql helpers to PL/pgSQL
+  with unchanged bodies. Measured on production in a rolled-back
+  transaction: identical rows for every role, ~4x faster (manager 2.9 s ->
+  0.6 s, owner 7.5 s -> 1.6 s, board 14.9 s -> 4.5 s for 30 tables).
+  Cause: nested SQL helpers re-plan on every call (~1 ms per row for
+  is_platform_operator / can_access_portfolio), so /charges,
+  /command-center and /accounting hit the 8 s statement timeout. Migration
+  reviewer: no blockers. Board pages are still ~4.5 s after it (next gap).
+- #254 merged (5446724; tree equals PR head cc1a2c7); migration
+  20261008040000 applied and verified (trigger, SECURITY DEFINER,
+  search_path, no execute for anon/authenticated). Speed: functions in
+  pdx1 (were iad1, DB is us-west-2), one me() per request, loading.tsx in
+  every section. Plus the second-round gaps (charges/chargebacks/bulk
+  vendor emails post once; records use their own company; reset links;
+  committee owners; calendar fails loudly).
 - #253 merged (dbf551c, squash; tree equals PR head bcd679c): white label on
   company addresses (middleware marketing/site files, neutral name
   fallbacks). No migration.

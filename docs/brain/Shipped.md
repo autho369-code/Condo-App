@@ -4,6 +4,13 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-08
+- #254 (merged 5446724; migration 20261008040000 applied): speed (pdx1
+  region next to the DB, me() once per request, loading screens), one-time
+  tokens on ad-hoc charges, chargebacks and bulk vendor emails, records use
+  their association's/vendor's company (calendar events, statements, vendor
+  emails, owner notices), calendar vendor trigger, reset links to the
+  company workspace, committee members must be owners, calendar reminder
+  moves fail loudly, inspection work order links once.
 - #253 (merged dbf551c; no migration): a company's address never serves the
   platform's marketing pages or site files (`/demo`, `/legal` redirect to
   login; disallow-all robots; sitemap, llms.txt, IndexNow key,

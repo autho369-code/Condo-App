@@ -26,3 +26,8 @@ Back to [[Home]].
   records. Server actions re-check auth inside the action and fail loudly.
 - Verify Supabase columns before writing queries; every link must resolve;
   shared design system only (`docs/DESIGN_SYSTEM.md`).
+- Speed: SECURITY DEFINER helpers used by RLS are PL/pgSQL, never
+  LANGUAGE sql. A nested SQL helper is re-planned on every call (~1 ms per
+  row), which made pages time out (fixed in 20261008050000). A new or
+  replaced helper must be `language plpgsql`; measure RLS changes as each
+  role inside a rolled-back transaction before shipping.
