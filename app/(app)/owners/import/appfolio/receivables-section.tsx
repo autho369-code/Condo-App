@@ -123,7 +123,7 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
               onChange={(e) => { setAssociationId(e.target.value); setResult(null); }}
               required
             >
-              <option value="">Select a Portier369 association</option>
+              <option value="">Select an association</option>
               {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </Select>
           </div>
@@ -151,7 +151,7 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
 
           {creditItems.length > 0 && (
             <Alert tone="warning" title="Credits are not imported.">
-              Portier369 charges can&apos;t be negative, so the {plural(creditItems.length, 'credit')} in this file
+              Charges can&apos;t be negative here, so the {plural(creditItems.length, 'credit')} in this file
               ({usd(totals.credits)}) will be listed after the import for you to enter as credits on those units.
             </Alert>
           )}

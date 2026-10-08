@@ -171,7 +171,7 @@ function ChartOfAccountsPart({ importChartOfAccounts }: Pick<GlImportSectionProp
             </Button>
           )}
           <p className="text-xs text-gray-500">
-            Not imported: AppFolio offset accounts, 1099 exclusions and tax authorities (Portier369 GL accounts do not store them).
+            Not imported: AppFolio offset accounts, 1099 exclusions and tax authorities (GL accounts here do not store them).
           </p>
           <div>
             <Button type="button" className="h-10" disabled={busy || result !== null} onClick={run}>
@@ -194,7 +194,7 @@ function ChartOfAccountsPart({ importChartOfAccounts }: Pick<GlImportSectionProp
 function statusBadge(l: TieOutLine) {
   if (l.status === 'match') return <Badge tone="complete">Matches</Badge>;
   if (l.status === 'different') return <Badge tone="danger">Different</Badge>;
-  if (l.status === 'not_in_portier') return <Badge tone="pending">Not in Portier369</Badge>;
+  if (l.status === 'not_in_portier') return <Badge tone="pending">Not in your ledger</Badge>;
   return <Badge tone="pending">Not in AppFolio</Badge>;
 }
 
@@ -277,7 +277,7 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
           <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-gray-950">Trial balance tie-out</h2>
           <p className="mt-1 text-sm text-gray-600">
             In AppFolio run Reports → Trial Balance for one association and export it as CSV. This compares each
-            account&apos;s ending balance with Portier369&apos;s posted ledger. It only reads — nothing is saved.
+            account&apos;s ending balance with your posted ledger. It only reads — nothing is saved.
           </p>
         </div>
         <div>
@@ -298,7 +298,7 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
             <div>
               <Label htmlFor="appfolio-tb-assoc">Compare with <span className="text-red-500">*</span></Label>
               <Select id="appfolio-tb-assoc" value={associationId} onChange={(e) => { setAssociationId(e.target.value); setResult(null); }}>
-                <option value="">Select a Portier369 association</option>
+                <option value="">Select an association</option>
                 {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </Select>
             </div>
@@ -328,7 +328,7 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
 
       {basis === 'cash' && (
         <Alert tone="warning" title="This is a cash-basis trial balance.">
-          Portier369&apos;s ledger is accrual, so receivable, payable and income balances will differ. Export the trial balance on the accrual basis to tie out.
+          Your ledger is accrual, so receivable, payable and income balances will differ. Export the trial balance on the accrual basis to tie out.
         </Alert>
       )}
       {ignored.length > 0 && (
@@ -352,17 +352,17 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
             <div className="flex flex-wrap gap-2">
               <Badge tone="complete">{t.matched} match</Badge>
               <Badge tone={t.different ? 'danger' : 'inactive'}>{t.different} different</Badge>
-              <Badge tone={t.notInPortier ? 'pending' : 'inactive'}>{t.notInPortier} not in Portier369</Badge>
+              <Badge tone={t.notInPortier ? 'pending' : 'inactive'}>{t.notInPortier} not in your ledger</Badge>
               <Badge tone={t.notInAppfolio ? 'pending' : 'inactive'}>{t.notInAppfolio} not in AppFolio</Badge>
             </div>
           </div>
 
           {t.different + t.notInPortier + t.notInAppfolio === 0 && (
-            <Alert tone="success" title="Every account ties out.">Portier369 matches AppFolio&apos;s ending balances.</Alert>
+            <Alert tone="success" title="Every account ties out.">Your ledger matches AppFolio&apos;s ending balances.</Alert>
           )}
           {result.incomeFrom && result.priorYearsNet !== undefined && result.priorYearsNet !== 0 && (
             <Alert tone="info">
-              Portier369 has {money(result.priorYearsNet)} of income and expense posted before {result.incomeFrom}. AppFolio
+              Your ledger has {money(result.priorYearsNet)} of income and expense posted before {result.incomeFrom}. AppFolio
               carries that in retained earnings, so an equity account may differ by that amount.
             </Alert>
           )}
@@ -377,7 +377,7 @@ function TrialBalancePart({ associations, tieOutTrialBalance }: Pick<GlImportSec
               <TR>
                 <TH>Account</TH>
                 <TH className="text-right">AppFolio</TH>
-                <TH className="text-right">Portier369</TH>
+                <TH className="text-right">Your ledger</TH>
                 <TH className="text-right">Difference</TH>
                 <TH>Status</TH>
               </TR>

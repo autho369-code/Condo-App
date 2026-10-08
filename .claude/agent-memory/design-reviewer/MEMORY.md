@@ -38,3 +38,8 @@
 
 ## Auth pages (app/(auth), 2026-10)
 - accept-invitation: state cards follow the `Card max-w-sm` + secondary "Go to sign in" (/login) pattern; acceptInvitation `back()` errors whose cause is a non-pending/foreign-address invite land on the invalid-state Card, which drops `?error=` (acceptable: same meaning). `<Link><Button>` (a>button nesting) is a pre-existing repo-wide pattern; Button has no asChild - nit only.
+
+## Multi-section client pages (owners/import/appfolio, 2026-10)
+- Sibling sections drift: check every section uses `SectionTitle` (not hand-rolled h2 with differing tracking/description colour), `<Input type="file" className="h-auto py-2">` (gl-section.tsx:118 used a raw input + filled-black file button), the same wrapper width/spacing, and `Field required` for markers.
+- `truncate` inside a TD needs `max-w-*` on the inner div; `max-w` on the td is ignored by auto table layout (work-order-section.tsx:108).
+- Badge has `capitalize`: free-text count badges ("with email", "AppFolio basis: cash") come out Title Case. Nit only.

@@ -97,7 +97,7 @@ function GroupCard({ group, associations, importUnits }: { group: Group; associa
         <div className="flex-1">
           <Label htmlFor={selectId}>Import into</Label>
           <Select id={selectId} value={associationId} onChange={(e) => setAssociationId(e.target.value)} required>
-            <option value="">Select a Portier369 association</option>
+            <option value="">Select an association</option>
             {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </Select>
         </div>

@@ -211,7 +211,7 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
   if (unmatchedGl.size) {
     notImported.push(`Default GL account left blank for GL number(s) not found in your chart of accounts: ${[...unmatchedGl].slice(0, 20).join(', ')}${unmatchedGl.size > 20 ? '…' : ''}.`);
   }
-  if (unknownPayment) notImported.push(`${unknownPayment} vendor(s) had a payment type Portier369 does not use; they were set to Check.`);
+  if (unknownPayment) notImported.push(`${unknownPayment} vendor(s) had a payment type that isn't supported; they were set to Check.`);
   if (portalActive) notImported.push(`Vendor portal access was not carried over for ${portalActive} vendor(s): invite them from the vendor page.`);
   if (withLastPayment) notImported.push(`Last payment dates were not imported (${withLastPayment} vendor(s)); payment history comes from bills.`);
   if (expirationsKept) notImported.push(`Insurance, license and contract expiration dates were imported for ${expirationsKept} vendor(s).`);
