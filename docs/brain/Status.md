@@ -14,8 +14,10 @@ Back to [[Home]]. Updated 2026-10-08 (after #249).
 ## Open PR
 - Open: `/accept-invitation` (page and `acceptInvitation`) refuses an
   invitation from another company on a company's address (platform address
-  stays allowed: /invite sends other-company accounts there) and names the
-  inviting company. No migration.
+  stays allowed: /invite sends other-company accounts there), names the
+  inviting company, says up front when the invitation expired or is for
+  another account, rate limits per token (10/h) and shows plain errors.
+  No migration.
 - #249 merged (052b402); migration 20261008020000 applied and verified
   (invoker, search_path pinned, anon no execute). Maintenance "complete" is one transaction
   (`complete_maintenance_task`, SECURITY INVOKER; migration

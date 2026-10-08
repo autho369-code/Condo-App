@@ -165,7 +165,7 @@ export async function acceptInvitation(formData: FormData) {
     back('This invitation is not valid on this address. Open the link from your most recent invitation email.');
   }
   const limit = await consumeScopedRateLimit(createServiceClient() as any, token, { scope: 'invitation_accept_token', windowSeconds: 3600, maxRequests: 10 });
-  if (!limit.allowed) back('Too many attempts. Please wait a while and try again.');
+  if (!limit.allowed) back(limit.unavailable ? 'Please try again in a minute.' : 'Too many attempts. Please wait a while and try again.');
   const { error } = await (supabase as any).rpc('accept_invitation', { p_token: token });
   if (error) back(acceptInvitationMessage(error.message));
   revalidatePath('/', 'layout');

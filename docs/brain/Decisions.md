@@ -35,3 +35,9 @@ Back to [[Home]]. Don't redo these.
 - **Links managers share with the public use `companyUrl`** (the company's own
   address), never the platform host; with no workspace address, show an
   Alert instead of a link that wouldn't work.
+- **`/accept-invitation` is the exception to the platform-address redirect.**
+  On another company's address it is invalid like the other token pages, but
+  on the platform address it stays (no move to the company's address):
+  `/invite` sends people whose account belongs to another company there to
+  sign in and accept, and their session lives on that address. The RPC binds
+  the invitation to its email, so this is safe.
