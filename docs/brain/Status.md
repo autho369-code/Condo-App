@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-07 (after #245).
+Back to [[Home]]. Updated 2026-10-08 (after #246).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,7 +12,8 @@ Back to [[Home]]. Updated 2026-10-07 (after #245).
   pilot).
 
 ## Open PR
-- Open: public violation reports scoped to the address's company.
+- None open.
+- #246 merged (fbad2ae); no migration. Public violation reports scoped to the address's company.
   `/report-violation`, its submit action and the AI photo route listed and
   accepted every company's associations (and spent any company's AI key);
   now only the host company's (tenantFromHeaders). Stripe receipts no longer
