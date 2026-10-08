@@ -57,8 +57,13 @@ function isoDate(v: unknown): string | null {
 /** Unit numbers compare case-insensitively, ignoring spacing around dashes ("3817 - 1" = "3817-1"). */
 const unitKey = (v: unknown) => clean(v).toLowerCase().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ');
 
-const itemKey = (unitId: string, asOf: string, memo: string, amount: number) =>
-  `${unitId}|${asOf}|${memo}|${amount.toFixed(2)}`;
+/**
+ * An imported source item, independent of the report cutoff: unit + description (GL name and
+ * original charge date) + amount. Re-importing the same file with a different as-of date
+ * therefore still recognises every item already posted.
+ */
+const itemKey = (unitId: string, memo: string, amount: number) =>
+  `${unitId}|${memo}|${amount.toFixed(2)}`;
 
 const usd = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 
@@ -133,21 +138,21 @@ export async function importAppfolioReceivables(
       // imported_balances with the description as memo, so earlier AppFolio
       // postings for this association are known. With any present the import is
       // refused until the user confirms; once confirmed, items already posted
-      // (same unit, date, description and amount) are still skipped, so a second
+      // (same unit, description and amount, whatever the as-of date) are still skipped, so a second
       // run only adds what the first one missed (e.g. units added since).
       const already = new Map<string, number>();
       let existingCount = 0;
       for (let from = 0; ; from += 1000) {
         const { data: rows, error: existingErr } = await db
           .from('imported_balances')
-          .select('unit_id, as_of_date, imported_balance, memo')
+          .select('unit_id, imported_balance, memo')
           .eq('association_id', associationId)
           .like('memo', `${MEMO_PREFIX}%`)
           .order('created_at', { ascending: true })
           .range(from, from + 999);
         if (existingErr) return fail(`Could not check for an earlier AppFolio import: ${existingErr.message}`);
         for (const r of rows ?? []) {
-          const key = itemKey(r.unit_id, r.as_of_date, r.memo, Number(r.imported_balance));
+          const key = itemKey(r.unit_id, r.memo, Number(r.imported_balance));
           already.set(key, (already.get(key) ?? 0) + 1);
           existingCount++;
         }
@@ -200,7 +205,7 @@ export async function importAppfolioReceivables(
         const chargeDate = isoDate(it?.charge_date);
         const glName = clean(it?.gl_name).slice(0, 120) || 'Opening balance';
         const description = chargeDate ? `${MEMO_PREFIX} ${glName} (charged ${chargeDate})` : `${MEMO_PREFIX} ${glName}`;
-        const key = itemKey(unitId, asOfDate, description, amount);
+        const key = itemKey(unitId, description, amount);
         const seen = already.get(key) ?? 0;
         if (seen > 0) {
           already.set(key, seen - 1);

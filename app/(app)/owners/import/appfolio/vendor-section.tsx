@@ -13,6 +13,34 @@ import { parseAppfolioVendorDirectory, type AppfolioVendor } from '@/lib/imports
 import type { importAppfolioVendors, VendorImportSummary } from './vendor-actions';
 
 const PREVIEW_ROWS = 100;
+/** Vendors per request, and bytes per request (well under the 12 MB server-action limit). */
+const BATCH_SIZE = 500;
+const BATCH_BYTES = 4_000_000;
+/** The server keeps at most a few hundred characters of any vendor field; trim before sending. */
+const MAX_FIELD = 2000;
+
+/** Split into requests of at most BATCH_SIZE vendors and BATCH_BYTES of JSON, long text trimmed. */
+function batchesOf(rows: AppfolioVendor[]): AppfolioVendor[][] {
+  const encoder = new TextEncoder();
+  const out: AppfolioVendor[][] = [];
+  let current: AppfolioVendor[] = [];
+  let bytes = 0;
+  for (const row of rows) {
+    const trimmed = Object.fromEntries(
+      Object.entries(row).map(([k, v]) => [k, typeof v === 'string' ? v.slice(0, MAX_FIELD) : v]),
+    ) as AppfolioVendor;
+    const size = encoder.encode(JSON.stringify(trimmed)).length;
+    if (current.length && (current.length >= BATCH_SIZE || bytes + size > BATCH_BYTES)) {
+      out.push(current);
+      current = [];
+      bytes = 0;
+    }
+    current.push(trimmed);
+    bytes += size;
+  }
+  if (current.length) out.push(current);
+  return out;
+}
 
 const soonestExpiration = (v: AppfolioVendor) =>
   [
@@ -49,7 +77,17 @@ export function VendorImportSection({ importVendors }: { importVendors: typeof i
     setError(null);
     setResult(null);
     try {
-      setResult(await importVendors(vendors.map((v) => ({ ...v }))));
+      // Batches keep each request under the body limit; the server skips vendors an
+      // earlier batch already created (same name), so the batches add up like one import.
+      const total = { imported: 0, skipped: 0 };
+      const messages: string[] = [];
+      for (const batch of batchesOf(vendors)) {
+        const part = await importVendors(batch);
+        total.imported += part.imported;
+        total.skipped += part.skipped;
+        for (const m of part.errors ?? []) if (!messages.includes(m)) messages.push(m);
+      }
+      setResult({ ...total, errors: messages.length ? messages : undefined });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The import failed. Try again.');
     } finally {

@@ -27,6 +27,9 @@ export default async function AppfolioImportPage() {
   const me = await requireStaff();
   // The chart of accounts, open balances and trial balance need finance access (the actions re-check).
   const canFinance = Boolean(me.is_finance_staff || me.is_platform_operator);
+  // The chart of accounts, vendors and trial-balance check work on the user's own company;
+  // an operator with no company of their own can't use them, so they aren't shown.
+  const hasCompany = Boolean(me.portfolio?.id);
   const supabase = await createClient();
   // Paged: PostgREST returns at most 1,000 rows, and every association must be selectable.
   const { rows: associations } = await fetchAllRows<{ id: string; name: string }>(() => (supabase as any)
@@ -45,11 +48,11 @@ export default async function AppfolioImportPage() {
       <div className="max-w-5xl space-y-8">
         <AppfolioImportClient associations={associations} importUnits={importAppfolioUnits} />
         <HomeownerImportSection associations={associations} importHomeowners={importAppfolioHomeowners} />
-        {canFinance && <GlImportSection importChartOfAccounts={importAppfolioChartOfAccounts} />}
-        <VendorImportSection importVendors={importAppfolioVendors} />
+        {canFinance && hasCompany && <GlImportSection importChartOfAccounts={importAppfolioChartOfAccounts} />}
+        {hasCompany && <VendorImportSection importVendors={importAppfolioVendors} />}
         {canFinance && <ReceivablesImportSection associations={associations} importReceivables={importAppfolioReceivables} />}
         <WorkOrderImportSection associations={associations} importWorkOrders={importAppfolioWorkOrders} />
-        {canFinance && (
+        {canFinance && hasCompany && (
           <TrialBalanceTieOutSection associations={associations} tieOutTrialBalance={tieOutAppfolioTrialBalance} />
         )}
       </div>
