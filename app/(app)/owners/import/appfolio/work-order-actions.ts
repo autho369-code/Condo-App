@@ -16,7 +16,9 @@
 // future Portier369 one). The AppFolio number goes at the start of the
 // description ("AppFolio WO #1234-1"), and a work order whose number is
 // already in the association is skipped, so re-importing the same file is
-// safe.
+// safe. The duplicate check and the inserts run under the association's
+// import lock (lib/imports/import-lock), so two runs at once cannot both pass
+// the check and import the same work orders twice.
 //
 // Inserting fires trg_dispatch_wo_created (one "work_order.created" webhook
 // per row, for companies with active webhook endpoints subscribed to it). No
@@ -25,6 +27,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { withImportLock } from '@/lib/imports/import-lock';
 import {
   WORK_ORDER_PRIORITIES,
   WORK_ORDER_STATUSES,
@@ -89,7 +92,8 @@ function internalNotesFor(w: AppfolioWorkOrder, unmatchedVendor: string | null, 
   add('Work done', isoDate(w.work_done_on));
   add('Completed', isoDate(w.completed_on));
   const amount = money(w.amount);
-  add('Amount', amount === null ? null : usd(amount));
+  // AppFolio writes 0.00 when there is no amount.
+  add('Amount', amount ? usd(amount) : null);
   add('Invoice', orNull(w.invoice, 100));
   add('Unit turn ID', orNull(w.unit_turn_id, 60));
   add('Recurring', orNull(w.recurring, 20));
@@ -119,19 +123,16 @@ export async function importAppfolioWorkOrders(
   }
   const portfolioId: string = association.portfolio_id;
 
-  const [unitsRes, vendorsRes, existingRes] = await Promise.all([
+  const [unitsRes, vendorsRes] = await Promise.all([
     fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id)')
       .eq('buildings.association_id', associationId).is('archived_at', null).order('id')),
     // Vendors of the association's company only (a work order's vendor must be;
     // trg_work_order_01_vendor_company enforces it too).
     fetchAllRows<any>(() => db.from('vendors').select('id, name')
       .eq('portfolio_id', portfolioId).is('archived_at', null).order('id')),
-    // Archived ones count too: a work order someone removed is not brought back.
-    fetchAllRows<any>(() => db.from('work_orders').select('id, description')
-      .eq('association_id', associationId).ilike('description', 'AppFolio WO #%').order('id')),
   ]);
-  const loadErr = unitsRes.error ?? vendorsRes.error ?? existingRes.error;
-  if (loadErr) return { imported: 0, skipped: workOrders.length, errors: [`Could not load the association's units, vendors or work orders: ${loadErr}`] };
+  const loadErr = unitsRes.error ?? vendorsRes.error;
+  if (loadErr) return { imported: 0, skipped: workOrders.length, errors: [`Could not load the association's units or vendors: ${loadErr}`] };
 
   // Unit numbers that appear in more than one building are ambiguous: leave unmatched.
   const unitByNumber = new Map<string, string | null>();
@@ -146,6 +147,29 @@ export async function importAppfolioWorkOrders(
     if (!k) continue;
     vendorByName.set(k, vendorByName.has(k) ? null : v.id);
   }
+
+  try {
+    return await withImportLock(db, associationId, 'appfolio_work_orders', () =>
+      insertWorkOrders(db, me.auth_user_id, associationId, portfolioId, workOrders, unitByNumber, vendorByName));
+  } catch (e) {
+    return { imported: 0, skipped: workOrders.length, errors: [e instanceof Error ? e.message : 'The import failed. Try again.'] };
+  }
+}
+
+/** The duplicate check and the inserts; runs while holding the association's import lock. */
+async function insertWorkOrders(
+  db: any,
+  createdBy: string | null,
+  associationId: string,
+  portfolioId: string,
+  workOrders: AppfolioWorkOrder[],
+  unitByNumber: Map<string, string | null>,
+  vendorByName: Map<string, string | null>,
+): Promise<WorkOrderImportSummary> {
+  // Archived ones count too: a work order someone removed is not brought back.
+  const existingRes = await fetchAllRows<any>(() => db.from('work_orders').select('id, description')
+    .eq('association_id', associationId).ilike('description', 'AppFolio WO #%').order('id'));
+  if (existingRes.error) return { imported: 0, skipped: workOrders.length, errors: [`Could not load the association's work orders: ${existingRes.error}`] };
   const importedNumbers = new Set<string>();
   for (const w of existingRes.rows) {
     const m = clean(w.description, 200).match(MARKER_RE);
@@ -218,7 +242,7 @@ export async function importAppfolioWorkOrders(
       vendor_instructions: orNull(w.instructions, 5000),
       owner_approved: false,
       withheld_amount_from_owner: 0,
-      created_by: me.auth_user_id,
+      created_by: createdBy,
       // Noon UTC keeps the AppFolio creation day in every US time zone. Every
       // row sets it, so a batch insert never nulls it for a row without one.
       created_at: createdOn ? `${createdOn}T12:00:00Z` : new Date().toISOString(),

@@ -6,7 +6,7 @@
 // back to a default, and imports one property at a time into the Portier369
 // association the user picks. The server action re-validates everything.
 import * as React from 'react';
-import { Alert, Badge, Surface } from '@/components/ui/shell';
+import { Alert, Badge, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Select } from '@/components/ui/input';
@@ -73,8 +73,8 @@ function GroupCard({ group, associations, importWorkOrders }: { group: AppfolioW
         <h3 className="text-[15px] font-semibold text-gray-950">{group.name || 'Work orders'}</h3>
         {group.address && <p className="mt-0.5 text-sm text-gray-500">{group.address}</p>}
         <div className="mt-2 flex flex-wrap gap-2">
-          <Badge tone="info">{plural(count, 'work order')}</Badge>
-          {byStatus.map(([s, n]) => <Badge key={s} status={s}>{`${s.replace(/_/g, ' ')} ${n.toLocaleString()}`}</Badge>)}
+          <Badge tone="info" className="normal-case">{plural(count, 'work order')}</Badge>
+          {byStatus.map(([s, n]) => <Badge key={s} status={s} className="normal-case">{`${s.replace(/_/g, ' ')} ${n.toLocaleString()}`}</Badge>)}
         </div>
       </div>
 
@@ -84,7 +84,7 @@ function GroupCard({ group, associations, importWorkOrders }: { group: AppfolioW
             {group.warnings.slice(0, WARNINGS_SHOWN).map((w, i) => <li key={i}>{w}</li>)}
           </ul>
           {group.warnings.length > WARNINGS_SHOWN && (
-            <p className="mt-1">and {plural(group.warnings.length - WARNINGS_SHOWN, 'more')}.</p>
+            <p className="mt-1">and {(group.warnings.length - WARNINGS_SHOWN).toLocaleString()} more.</p>
           )}
         </Alert>
       )}
@@ -105,9 +105,9 @@ function GroupCard({ group, associations, importWorkOrders }: { group: AppfolioW
           {group.workOrders.slice(0, PREVIEW_ROWS).map((w) => (
             <TR key={`${w.row}-${w.number}`}>
               <TD className="whitespace-nowrap font-medium tabular-nums text-gray-900">{w.number}</TD>
-              <TD className="min-w-[14rem] max-w-md">
-                <div className="truncate text-gray-900">{w.issue || w.job_description || '—'}</div>
-                {w.issue && w.job_description && <div className="truncate text-xs text-gray-500">{w.job_description}</div>}
+              <TD className="min-w-[14rem]">
+                <div className="max-w-xs truncate text-gray-900">{w.issue || w.job_description || '—'}</div>
+                {w.issue && w.job_description && <div className="max-w-xs truncate text-xs text-gray-500">{w.job_description}</div>}
               </TD>
               <TD className="whitespace-nowrap">
                 <Badge status={w.status} />
@@ -133,7 +133,7 @@ function GroupCard({ group, associations, importWorkOrders }: { group: AppfolioW
             {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </Select>
         </div>
-        <Button type="button" className="h-10" disabled={!associationId || busy || result !== null || count === 0} onClick={run}>
+        <Button type="button" disabled={!associationId || busy || result !== null || count === 0} onClick={run}>
           {busy ? 'Importing…' : result ? 'Imported' : `Import ${plural(count, 'work order')}`}
         </Button>
       </div>
@@ -174,17 +174,21 @@ export function WorkOrderImportSection({ associations, importWorkOrders }: Props
   }
 
   return (
-    <div className="max-w-5xl space-y-5">
+    <div className="space-y-5">
       <Surface className="space-y-3">
-        <div>
-          <h2 className="text-[15px] font-semibold text-gray-950">Work orders — AppFolio Work Order report</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            In AppFolio open Reports → Work Order, set the date range to cover all history, group rows by Property,
-            then Actions → Export as CSV. Import units and vendors first so work orders can be matched to them.
-            Each work order keeps its AppFolio number at the start of its description; importing the same file
-            again skips the ones already imported. Imported work orders send no emails.
-          </p>
-        </div>
+        <SectionTitle
+          title="Work orders — AppFolio Work Order report"
+          description={
+            <>
+              In AppFolio open Reports → Work Order, set the date range to cover all history, group rows by Property,
+              then Actions → Export as CSV. Import units and vendors first so work orders can be matched to them.
+              Each work order keeps its AppFolio number at the start of its description; importing the same file
+              again skips the ones already imported. Imported work orders send no emails. If your company has a
+              webhook subscribed to new work orders, each imported work order is announced to it.
+            </>
+          }
+          className="mb-0"
+        />
         <div>
           <Label htmlFor={inputId}>Work Order CSV</Label>
           <Input id={inputId} type="file" accept=".csv,text/csv" onChange={onFile} className="h-auto py-2" />

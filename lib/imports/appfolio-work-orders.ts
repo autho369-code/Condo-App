@@ -214,10 +214,10 @@ export function parseAppfolioWorkOrders(input: string): { groups?: AppfolioWorkO
       const status = mapAppfolioStatus(appfolioStatus, vendor !== null);
       const priority = mapAppfolioPriority(appfolioPriority);
       if (!status.known) {
-        group.warnings.push(`Line ${r.row} (WO ${number}): status "${appfolioStatus || 'blank'}" is not one Portier369 knows; it will be imported as New.`);
+        group.warnings.push(`Line ${r.row} (WO ${number}): status "${appfolioStatus || 'blank'}" has no match here; it will be imported as New.`);
       }
       if (!priority.known) {
-        group.warnings.push(`Line ${r.row} (WO ${number}): priority "${appfolioPriority}" is not one Portier369 knows; it will be imported as Normal.`);
+        group.warnings.push(`Line ${r.row} (WO ${number}): priority "${appfolioPriority}" has no match here; it will be imported as Normal.`);
       }
       const scheduled = parseAppfolioDateTime(r['Scheduled Start']);
       group.workOrders.push({

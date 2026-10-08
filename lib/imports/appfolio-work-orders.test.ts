@@ -8,7 +8,7 @@ import {
   parseAppfolioWorkOrders,
 } from './appfolio-work-orders';
 
-const HEADER = 'Property,Priority,Work Order Type,Home Warranty Expiration,Work Order Number,Job Description,Instructions,Status,Vendor,Unit,Primary Resident,Created At,Estimate Req On,Estimated On,Estimate Amount,Estimate Approval Status,Estimate Approved On,Estimate Approval Last Requested,Scheduled Start,Scheduled End,Work Done On,Completed On,Amount,Invoice,Unit Turn ID,Recurring,Work Order Issue';
+const HEADER = 'Property,Priority,Work Order Type,Home Warranty Expiration,Work Order Number,Job Description,Instructions,Status,Vendor,Unit,Primary Resident,Created At,Estimate Req On,Estimated On,Estimate Amount,Estimate Approval Status,Estimate Approved On,Estimate Approval Last Requested On,Scheduled Start,Scheduled End,Work Done On,Completed On,Amount,Invoice,Unit Turn ID,Recurring,Work Order Issue';
 
 // Shaped like AppFolio's export: header, blank line, "-> Property" headings,
 // detail rows, subtotal rows (blank first cell) and a final Total row.
@@ -81,6 +81,48 @@ describe('AppFolio Work Order report', () => {
     expect(pine.warnings[0]).toContain('"On Hold Forever"');
     expect(pine.warnings[1]).toContain('"Whenever"');
     expect(granville.warnings).toEqual(['Line 11: no work order number; skipped.']);
+  });
+
+  it('keeps every work order in the exact shape of a real export', () => {
+    // Real exports quote every cell of a heading row (two fewer cells than the
+    // header), quote multi-line descriptions, write "MM/DD/YYYY at HH:MM AM"
+    // schedules and 0.00 amounts, and put subtotals in the Estimate Amount and
+    // Amount columns. Anonymized rows.
+    const empty = Array(24).fill('""').join(','); // the 24 cells after the heading
+    const row = (n: string, status: string, priority: string, extra = '') =>
+      `"Maple Grove Condominium Association - 100 N Main St Chicago, IL 60601",${priority},Resident,,${n},"Toilet running
+in unit, please check
+""ASAP""",,${status},${extra},,,03/29/2020,,,,,,,05/21/2024 at 08:00 AM,05/21/2024 at 12:00 PM,,,0.00,,,No,`;
+    const real = [
+      HEADER,
+      '',
+      `"-> Maple Grove Condominium Association - 100 N Main St Chicago, IL 60601",${empty}`,
+      row('10-1', 'New', 'Normal'),
+      row('10-2', 'Completed No Need To Bill', 'Urgent'),
+      row('10-3', 'Waiting', 'Low'),
+      row('10-4', 'Estimated', 'Normal', 'Ace Repairs'),
+      ',,,,,,,,,,,,,,0.00,,,,,,,,0.00,,,,',
+      '',
+      `"-> Oak Terrace - 200 S State St Chicago, IL 60604",${empty}`,
+      `"Oak Terrace - 200 S State St Chicago, IL 60604",Normal,Internal,,11-1,Gutters,,Work Done,,,,12/09/2025,,,,,,,,,12/09/2025,,0.00,,,Yes,`,
+      ',,,,,,,,,,,,,,0.00,,,,,,,,0.00,,,,',
+      '',
+      'Total,,,,,,,,,,,,,,0.00,,,,,,,,0.00,,,,',
+    ].join('\n');
+    const { groups, error } = parseAppfolioWorkOrders(real);
+    expect(error).toBeUndefined();
+    expect(groups?.map((g) => [g.name, g.workOrders.length, g.warnings.length])).toEqual([
+      ['Maple Grove Condominium Association', 4, 0],
+      ['Oak Terrace', 1, 0],
+    ]);
+    const [a, b, c, d] = groups![0].workOrders;
+    expect(a).toMatchObject({
+      status: 'new', priority: 'normal', created_on: '2020-03-29', scheduled_date: '2024-05-21',
+      scheduled_time: '08:00:00', scheduled_end: '2024-05-21', amount: 0,
+      job_description: 'Toilet running\nin unit, please check\n"ASAP"',
+    });
+    expect([b.status, b.priority, c.status, c.priority, d.status]).toEqual(['completed', 'high', 'in_progress', 'low', 'assigned']);
+    expect(groups![1].workOrders[0]).toMatchObject({ number: '11-1', status: 'done', work_done_on: '2025-12-09', recurring: 'Yes' });
   });
 
   it('groups a flat export (no row groups) by the Property column', () => {
