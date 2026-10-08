@@ -4,6 +4,9 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-08
+- #256 (merged 7b37b23; migration 20261008060000 applied): the SETOF uuid
+  identity helpers (board/resident/tenant/vendor) run as PL/pgSQL; board
+  30-table timing 5.1 s -> 1.8 s, owner 2.6 s -> 0.97 s.
 - #255 (merged 9ced138; migration 20261008050000 applied): RLS helpers run
   as PL/pgSQL (nested SQL helpers re-planned per row, ~1 ms each); pages
   stop hitting the 8 s statement timeout; manager 2.9 s -> 0.7 s, board

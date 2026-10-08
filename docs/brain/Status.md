@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #255).
+Back to [[Home]]. Updated 2026-10-08 (after #256).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,13 +12,12 @@ Back to [[Home]]. Updated 2026-10-08 (after #255).
   pilot).
 
 ## Open PR
-- Open: migration 20261008060000 converts the 7 SETOF uuid identity helpers
-  (current_board_association_ids, current_resident_*, current_tenant_*,
-  current_vendor_bill_association_ids) to PL/pgSQL `return query`, same
-  body. Rolled-back production test: same rows for 6 roles; board 3.2 s ->
-  1.75 s, owner 1.6 s -> 0.94 s, vendor 1.3 s -> 0.69 s (30 tables).
-  Table-returning functions (tenant_branding etc.) left alone: RETURN QUERY
-  is stricter on column types. Apply after merge.
+- None open.
+- #256 merged (7b37b23); migration 20261008060000 applied and verified (7
+  SETOF uuid identity helpers are PL/pgSQL, SECURITY DEFINER, search_path
+  kept). Live timings for 30 tables per role, original -> now: board
+  14.9 s -> 1.8 s, owner 7.5 s -> 0.97 s, vendor 5.8 s -> 0.71 s, manager
+  2.9 s -> 0.72 s, company admin 3.8 s -> 0.72 s, operator 2.6 s -> 0.32 s.
 - #255 merged (9ced138); migration 20261008050000 applied and verified:
   221 SECURITY DEFINER scalar helpers are PL/pgSQL (3 skipped by design:
   app_portal_url, app_ownership_bounds, report_data_units_by_owner),
