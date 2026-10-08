@@ -108,9 +108,16 @@ export async function importAppfolioReceivables(
     .is('archived_at', null)
     .order('id'));
   if (unitsErr) return fail(`Could not load the association's units: ${unitsErr}`);
-  const unitByNumber = new Map<string, string>(
-    (units ?? []).map((u: any) => [unitKey(u.unit_number), u.id as string]),
-  );
+  // A unit number used in more than one building is ambiguous: its items stay unmatched
+  // rather than landing on an arbitrary unit.
+  const unitByNumber = new Map<string, string>();
+  const ambiguousUnits = new Set<string>();
+  for (const u of units ?? []) {
+    const k = unitKey(u.unit_number);
+    if (unitByNumber.has(k)) ambiguousUnits.add(k);
+    else unitByNumber.set(k, u.id as string);
+  }
+  for (const k of ambiguousUnits) unitByNumber.delete(k);
 
   // Two runs at once would both pass the duplicate check below and post every
   // item twice: the check and the posting run under the association's import lock.
@@ -167,6 +174,10 @@ export async function importAppfolioReceivables(
         const unitId = unitByNumber.get(unitKey(unitNumber));
         if (!unitId) {
           skipped++;
+          if (ambiguousUnits.has(unitKey(unitNumber))) {
+            errors.push(`Line ${line}: unit "${unitNumber}" exists in more than one building; not posted.`);
+            continue;
+          }
           const u = unmatched.get(unitNumber) ?? { count: 0, amount: 0 };
           u.count++; u.amount += amount;
           unmatched.set(unitNumber, u);

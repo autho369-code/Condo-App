@@ -121,7 +121,14 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         .range(from, to));
       if (units.error) return fail(`Could not load the association's units: ${units.error}`);
       const unitByNumber = new Map<string, { id: string; pct: number }>();
-      for (const u of units.rows) unitByNumber.set(unitKey(u.unit_number), { id: u.id, pct: Number(u.ownership_pct ?? 0) });
+      // A unit number used in more than one building is ambiguous: those rows are skipped.
+      const ambiguousUnits = new Set<string>();
+      for (const u of units.rows) {
+        const k = unitKey(u.unit_number);
+        if (unitByNumber.has(k)) ambiguousUnits.add(k);
+        else unitByNumber.set(k, { id: u.id, pct: Number(u.ownership_pct ?? 0) });
+      }
+      for (const k of ambiguousUnits) unitByNumber.delete(k);
 
       // Current owners of the association's units, to skip owners already linked.
       const occupancies = await fetchAll((from, to) => db
@@ -196,7 +203,13 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         const label = `Line ${line} (${unitNumber || 'no unit'} / ${name.display || 'no name'})`;
         if (!unitNumber || !name.display) { skipped++; errors.push(`${label}: no unit or homeowner name.`); continue; }
         const unit = unitByNumber.get(unitKey(unitNumber));
-        if (!unit) { skipped++; errors.push(`${label}: no unit "${unitNumber}" in this association. Import the units first.`); continue; }
+        if (!unit) {
+          skipped++;
+          errors.push(ambiguousUnits.has(unitKey(unitNumber))
+            ? `${label}: unit "${unitNumber}" exists in more than one building; link this homeowner by hand.`
+            : `${label}: no unit "${unitNumber}" in this association. Import the units first.`);
+          continue;
+        }
 
         const emails = splitEmails(Array.isArray(r.emails) ? r.emails.filter((e) => typeof e === 'string').join(',') : '').slice(0, 10);
         const state = unitState(unit.id);

@@ -36,7 +36,8 @@ const str = (v: unknown, max: number): string | null => {
   const s = v.trim().replace(/\s+/g, ' ');
   return s ? s.slice(0, max) : null;
 };
-const nameKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+/** Letters and digits only, in any script. */
+const nameKey = (s: string) => s.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 
 type VendorInsert = {
   portfolio_id: string;
