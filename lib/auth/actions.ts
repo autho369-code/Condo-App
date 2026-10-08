@@ -7,6 +7,7 @@ import { getLoginModeConfig, normalizeLoginMode, safeInternalNext } from '@/lib/
 import { getMe, roleHome } from '@/lib/auth/me';
 import { tenantAccessDecision } from '@/lib/tenant/host';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { tokenMatchesAddress } from '@/lib/tenant/token-company';
 import { clientAddress, consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
 
 function loginFailureAuditCode(message: string | undefined) {
@@ -145,6 +146,13 @@ export async function acceptInvitation(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/invite?token=${encodeURIComponent(token)}`);
+  // On a company's address only that company's invitations are accepted
+  // (the platform address is allowed; see the page).
+  const { data: invite } = await (createServiceClient() as any)
+    .from('user_invitations').select('portfolio_id').eq('token', token).eq('status', 'pending').maybeSingle();
+  if (!invite || !tokenMatchesAddress(await headers(), invite.portfolio_id)) {
+    back('This invitation is not valid on this address. Open the link from your most recent invitation email.');
+  }
   const { error } = await (supabase as any).rpc('accept_invitation', { p_token: token });
   if (error) back(error.message);
   revalidatePath('/', 'layout');
