@@ -162,6 +162,9 @@ in unit, please check
 
   it('parses dates and times defensively', () => {
     expect(parseAppfolioDateTime('1/5/26 12:05 AM')).toEqual({ date: '2026-01-05', time: '00:05:00' });
+    // Two-digit years pivot at 70: 99 is 1999, 26 is 2026.
+    expect(parseAppfolioDate('10/5/99')).toBe('1999-10-05');
+    expect(parseAppfolioDate('10/5/69')).toBe('2069-10-05');
     expect(parseAppfolioDateTime('01/05/2026 at 12:30 pm')).toEqual({ date: '2026-01-05', time: '12:30:00' });
     expect(parseAppfolioDateTime('2026-01-05')).toEqual({ date: '2026-01-05', time: null });
     expect(parseAppfolioDate('02/30/2026')).toBeNull();

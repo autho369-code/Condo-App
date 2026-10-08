@@ -136,7 +136,8 @@ export function parseAppfolioDateTime(v: string | undefined): { date: string; ti
   const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})(.*)$/);
   if (us) {
     m = Number(us[1]); d = Number(us[2]); y = Number(us[3]);
-    if (us[3].length === 2) y += 2000;
+    // Two-digit years: 70-99 are 1900s, 00-69 are 2000s (same pivot as the vendor import).
+    if (us[3].length === 2) y += y >= 70 ? 1900 : 2000;
     rest = us[4];
   } else if (iso) {
     y = Number(iso[1]); m = Number(iso[2]); d = Number(iso[3]);

@@ -92,7 +92,8 @@ export function parseAppfolioDate(v: string | undefined): string | null {
   let match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
   if (match) {
     m = Number(match[1]); d = Number(match[2]); y = Number(match[3]);
-    if (match[3].length === 2) y += 2000;
+    // Two-digit years: 70-99 are 1900s, 00-69 are 2000s (same pivot as the vendor import).
+    if (match[3].length === 2) y += y >= 70 ? 1900 : 2000;
   } else if ((match = s.match(/^(\d{4})-(\d{2})-(\d{2})$/))) {
     y = Number(match[1]); m = Number(match[2]); d = Number(match[3]);
   } else {

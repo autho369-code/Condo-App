@@ -15,6 +15,7 @@ import { revalidatePath } from 'next/cache';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { withImportLock } from '@/lib/imports/import-lock';
 import { ledgerTotalsByAccount } from '@/lib/finance/totals';
 import { fiscalWindow, fiscalYearFor } from '@/lib/budget/fiscal';
 import { glWriteError } from '@/lib/gl/accounts';
@@ -53,103 +54,111 @@ export async function importAppfolioChartOfAccounts(accounts: AppfolioGlAccount[
     incoming.push(account);
   }
 
-  // Every account number already in the company's chart, company-wide or an
-  // association's own: the number guard rejects reusing either.
-  const { rows: existingRows, error: existingErr } = await fetchAllRows<ExistingAccount>(() => db
-    .from('gl_accounts').select('id, number, account_type, association_id')
-    .eq('portfolio_id', portfolioId).order('number').order('id'));
-  if (existingErr) return { imported: 0, skipped: accounts.length, errors: [`Could not load the chart of accounts: ${existingErr}`] };
-  const usedNumbers = new Set(existingRows.map((a) => Number(a.number)));
-  // Parents a company-wide account may sit under: company-wide accounts only.
-  const parents = new Map<number, { id: string; account_type: string }>();
-  for (const a of existingRows) if (!a.association_id) parents.set(Number(a.number), { id: a.id, account_type: a.account_type });
+  // One chart import per company at a time: the existing-account snapshot and the
+  // level-by-level inserts must not interleave with another run (parents would be lost).
+  try {
+    return await withImportLock(db, portfolioId, 'appfolio_chart', async () => {
+      // Every account number already in the company's chart, company-wide or an
+      // association's own: the number guard rejects reusing either.
+      const { rows: existingRows, error: existingErr } = await fetchAllRows<ExistingAccount>(() => db
+        .from('gl_accounts').select('id, number, account_type, association_id')
+        .eq('portfolio_id', portfolioId).order('number').order('id'));
+      if (existingErr) return { imported: 0, skipped: accounts.length, errors: [`Could not load the chart of accounts: ${existingErr}`] };
+      const usedNumbers = new Set(existingRows.map((a) => Number(a.number)));
+      // Parents a company-wide account may sit under: company-wide accounts only.
+      const parents = new Map<number, { id: string; account_type: string }>();
+      for (const a of existingRows) if (!a.association_id) parents.set(Number(a.number), { id: a.id, account_type: a.account_type });
 
-  let pending: AppfolioGlAccount[] = [];
-  for (const a of incoming) {
-    if (usedNumbers.has(a.number)) { skipped++; continue; }
-    pending.push(a);
-  }
-  const alreadyThere = incoming.length - pending.length;
-  if (alreadyThere > 0) notes.push(`${alreadyThere} account${alreadyThere === 1 ? ' was' : 's were'} already in the chart of accounts and left unchanged.`);
-
-  const inFile = new Map(pending.map((a) => [a.number, a]));
-  const row = (a: AppfolioGlAccount, parentId: string | null) => ({
-    portfolio_id: portfolioId,
-    association_id: null,
-    number: a.number,
-    name: a.name,
-    account_type: a.account_type,
-    sub_account_of_id: parentId,
-    include_on_cash_flow: a.include_on_cash_flow,
-    subject_to_management_fees: a.subject_to_management_fees,
-    fund_account: a.fund_account,
-    active: a.active,
-  });
-
-  let imported = 0;
-  // Insert level by level so each parent exists before its sub-accounts.
-  for (let pass = 0; pending.length > 0 && pass < 20; pass++) {
-    const ready: Array<ReturnType<typeof row> & { _a: AppfolioGlAccount }> = [];
-    const waiting: AppfolioGlAccount[] = [];
-    for (const a of pending) {
-      let parentId: string | null = null;
-      if (a.parent_number !== null) {
-        const parent = parents.get(a.parent_number);
-        if (!parent) {
-          if (inFile.has(a.parent_number)) { waiting.push(a); continue; }
-          notes.push(`${a.number} ${a.name}: parent ${a.parent_number} is not in the chart of accounts; imported as a top-level account.`);
-        } else if (parent.account_type !== a.account_type) {
-          // Portier requires a sub-account to share its parent's type.
-          notes.push(`${a.number} ${a.name}: parent ${a.parent_number} is a different account type; imported as a top-level account.`);
-        } else {
-          parentId = parent.id;
-        }
+      let pending: AppfolioGlAccount[] = [];
+      for (const a of incoming) {
+        if (usedNumbers.has(a.number)) { skipped++; continue; }
+        pending.push(a);
       }
-      ready.push({ ...row(a, parentId), _a: a });
-    }
-    if (ready.length === 0) {
-      // Only cycles remain (an account under its own sub-account).
-      for (const a of waiting) { skipped++; errors.push(`Line ${a.row} (${a.number}): its parent chain loops back to itself.`); }
-      pending = [];
-      break;
-    }
+      const alreadyThere = incoming.length - pending.length;
+      if (alreadyThere > 0) notes.push(`${alreadyThere} account${alreadyThere === 1 ? ' was' : 's were'} already in the chart of accounts and left unchanged.`);
 
-    // Batches of 500: PostgREST returns at most 1,000 rows, and every inserted id is
-    // needed as a parent for the next pass.
-    for (let b = 0; b < ready.length; b += 500) {
-      const chunk = ready.slice(b, b + 500);
-      const insertRows = chunk.map(({ _a, ...r }) => r);
-      const { data, error } = await db.from('gl_accounts').insert(insertRows).select('id, number, account_type');
-      if (!error) {
-        for (const r of (data ?? []) as Array<{ id: string; number: number; account_type: string }>) {
-          parents.set(Number(r.number), { id: r.id, account_type: r.account_type });
+      const inFile = new Map(pending.map((a) => [a.number, a]));
+      const row = (a: AppfolioGlAccount, parentId: string | null) => ({
+        portfolio_id: portfolioId,
+        association_id: null,
+        number: a.number,
+        name: a.name,
+        account_type: a.account_type,
+        sub_account_of_id: parentId,
+        include_on_cash_flow: a.include_on_cash_flow,
+        subject_to_management_fees: a.subject_to_management_fees,
+        fund_account: a.fund_account,
+        active: a.active,
+      });
+
+      let imported = 0;
+      // Insert level by level so each parent exists before its sub-accounts.
+      for (let pass = 0; pending.length > 0 && pass < 20; pass++) {
+        const ready: Array<ReturnType<typeof row> & { _a: AppfolioGlAccount }> = [];
+        const waiting: AppfolioGlAccount[] = [];
+        for (const a of pending) {
+          let parentId: string | null = null;
+          if (a.parent_number !== null) {
+            const parent = parents.get(a.parent_number);
+            if (!parent) {
+              if (inFile.has(a.parent_number)) { waiting.push(a); continue; }
+              notes.push(`${a.number} ${a.name}: parent ${a.parent_number} is not in the chart of accounts; imported as a top-level account.`);
+            } else if (parent.account_type !== a.account_type) {
+              // Portier requires a sub-account to share its parent's type.
+              notes.push(`${a.number} ${a.name}: parent ${a.parent_number} is a different account type; imported as a top-level account.`);
+            } else {
+              parentId = parent.id;
+            }
+          }
+          ready.push({ ...row(a, parentId), _a: a });
         }
-        imported += (data ?? []).length;
-      } else {
-        // One bad row fails the whole batch: retry one at a time to keep the rest.
-        for (const r of chunk) {
-          const { _a, ...insertRow } = r;
-          const { data: one, error: oneErr } = await db.from('gl_accounts').insert(insertRow).select('id, number, account_type').single();
-          if (oneErr || !one) { skipped++; errors.push(`Line ${_a.row} (${_a.number} ${_a.name}): ${glWriteError(oneErr?.message ?? 'not saved')}`); continue; }
-          parents.set(Number(one.number), { id: one.id, account_type: one.account_type });
-          imported++;
+        if (ready.length === 0) {
+          // Only cycles remain (an account under its own sub-account).
+          for (const a of waiting) { skipped++; errors.push(`Line ${a.row} (${a.number}): its parent chain loops back to itself.`); }
+          pending = [];
+          break;
         }
+
+        // Batches of 500: PostgREST returns at most 1,000 rows, and every inserted id is
+        // needed as a parent for the next pass.
+        for (let b = 0; b < ready.length; b += 500) {
+          const chunk = ready.slice(b, b + 500);
+          const insertRows = chunk.map(({ _a, ...r }) => r);
+          const { data, error } = await db.from('gl_accounts').insert(insertRows).select('id, number, account_type');
+          if (!error) {
+            for (const r of (data ?? []) as Array<{ id: string; number: number; account_type: string }>) {
+              parents.set(Number(r.number), { id: r.id, account_type: r.account_type });
+            }
+            imported += (data ?? []).length;
+          } else {
+            // One bad row fails the whole batch: retry one at a time to keep the rest.
+            for (const r of chunk) {
+              const { _a, ...insertRow } = r;
+              const { data: one, error: oneErr } = await db.from('gl_accounts').insert(insertRow).select('id, number, account_type').single();
+              if (oneErr || !one) { skipped++; errors.push(`Line ${_a.row} (${_a.number} ${_a.name}): ${glWriteError(oneErr?.message ?? 'not saved')}`); continue; }
+              parents.set(Number(one.number), { id: one.id, account_type: one.account_type });
+              imported++;
+            }
+          }
+        }
+        // Everything in `ready` has been tried; sub-accounts whose parent failed
+        // stop waiting and go in as top-level accounts on the next pass.
+        for (const r of ready) inFile.delete(r._a.number);
+        pending = waiting;
       }
-    }
-    // Everything in `ready` has been tried; sub-accounts whose parent failed
-    // stop waiting and go in as top-level accounts on the next pass.
-    for (const r of ready) inFile.delete(r._a.number);
-    pending = waiting;
-  }
-  for (const a of pending) { skipped++; errors.push(`Line ${a.row} (${a.number}): nested too deeply under other sub-accounts; not imported.`); }
+      for (const a of pending) { skipped++; errors.push(`Line ${a.row} (${a.number}): nested too deeply under other sub-accounts; not imported.`); }
 
-  if (imported > 0) revalidatePath('/gl-accounts');
-  return {
-    imported,
-    skipped,
-    errors: errors.length ? errors : undefined,
-    notes: notes.length ? notes : undefined,
-  };
+      if (imported > 0) revalidatePath('/gl-accounts');
+      return {
+        imported,
+        skipped,
+        errors: errors.length ? errors : undefined,
+        notes: notes.length ? notes : undefined,
+      };
+    });
+  } catch (e) {
+    return { imported: 0, skipped: accounts.length, errors: [e instanceof Error ? e.message : 'The import failed. Try again.'] };
+  }
 }
 
 /* ── Trial balance tie-out (read-only) ────────────────────────────────── */
