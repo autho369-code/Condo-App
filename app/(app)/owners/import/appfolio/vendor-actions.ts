@@ -15,6 +15,7 @@ import { revalidatePath } from 'next/cache';
 import { requireStaff } from '@/lib/auth/me';
 import { withImportLock } from '@/lib/imports/import-lock';
 import { createClient } from '@/lib/supabase/server';
+import { vendorEmails } from '@/lib/vendors/contact';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { parseAppfolioDate, splitEmails, type AppfolioVendor } from '@/lib/imports/appfolio-vendors';
 
@@ -102,7 +103,8 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
         if (error) return { imported: 0, skipped: vendors.length, errors: [`Could not check existing vendors: ${error.message}`] };
         for (const v of data ?? []) {
           if (typeof v.name === 'string' && !v.archived_at) existingNames.add(nameKey(v.name));
-          for (const e of Array.isArray(v.emails) ? v.emails : []) if (typeof e === 'string') usedEmails.add(e.trim().toLowerCase());
+          // Both stored shapes (plain strings and legacy { email, type } objects).
+          for (const e of vendorEmails(v.emails)) usedEmails.add(e.toLowerCase());
         }
         if (!data || data.length < 1000) break;
       }
