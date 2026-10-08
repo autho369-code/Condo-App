@@ -19,6 +19,9 @@ import { importAppfolioWorkOrders } from './work-order-actions';
 import { WorkOrderImportSection } from './work-order-section';
 
 export const dynamic = 'force-dynamic';
+// Imports run as server actions of this page. Keep this well under the 15-minute import
+// lock window (lib/imports/import-lock.ts) so a lock can never expire while its import runs.
+export const maxDuration = 300;
 
 export default async function AppfolioImportPage() {
   const me = await requireStaff();

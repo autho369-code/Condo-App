@@ -173,15 +173,14 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         if (!s) { s = { ownerIds: new Set(), people: [], hasOwner: false, hasDues: false }; linked.set(unitId, s); }
         return s;
       };
-      // The same person: same name, and their contact details don't tell them apart (a shared
-      // email or phone, or no contact details on one side). Two same-named people with
-      // different emails or phones are different co-owners.
+      // The same person: same name, and no contact detail filled on both sides conflicts.
+      // Two same-named people with different emails, or different phones, are different
+      // co-owners (even when they share a family email but not a phone).
       const samePerson = (p: Person, name: string, emails: string[], phone: string) => {
         if (p.name !== name) return false;
-        const rowHasContact = emails.length > 0 || phone.length >= 7;
-        const personHasContact = p.emails.size > 0 || p.phone.length >= 7;
-        if (!rowHasContact || !personHasContact) return true;
-        return emails.some((e) => p.emails.has(e)) || (phone.length >= 7 && phone === p.phone);
+        if (emails.length > 0 && p.emails.size > 0 && !emails.some((e) => p.emails.has(e))) return false;
+        if (phone.length >= 7 && p.phone.length >= 7 && phone !== p.phone) return false;
+        return true;
       };
       // Current owner occupancy per unit and owner name (to retry dues that failed to schedule).
       const occByUnitName = new Map<string, { id: string; dues: number }>();

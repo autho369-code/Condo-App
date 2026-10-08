@@ -1,3 +1,7 @@
+// The 15-minute stale window must stay longer than the longest a server action can run:
+// the AppFolio import page sets maxDuration = 300 seconds (Vercel's hard cap is 800), so a
+// run still holding its lock is always stopped before the lock can be taken over.
+//
 // One running import per scope (an association, or a company for company-wide
 // imports such as vendors) and kind (table public.import_locks,
 // migration 20261008080000_import_locks.sql). claim_import_lock takes over a
