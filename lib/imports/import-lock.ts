@@ -5,19 +5,16 @@
 export const IMPORT_LOCK_HELD_MESSAGE = 'Another import for this association is already running. Try again in a minute.'
 
 export async function withImportLock<T>(supabase: any, associationId: string, kind: string, fn: () => Promise<T>): Promise<T> {
-  const { data: claimed, error } = await supabase.rpc('claim_import_lock', { p_association_id: associationId, p_kind: kind })
+  // The claim time is the release token: a run only ever deletes its own claim, never a newer one.
+  const { data: claimedAt, error } = await supabase.rpc('claim_import_lock', { p_association_id: associationId, p_kind: kind })
   if (error) throw new Error(`Could not start the import: ${error.message}`)
-  if (claimed !== true) throw new Error(IMPORT_LOCK_HELD_MESSAGE)
+  if (!claimedAt) throw new Error(IMPORT_LOCK_HELD_MESSAGE)
   try {
     return await fn()
   } finally {
-    const userId: string | undefined = await supabase.auth.getUser().then(
-      (res: { data?: { user?: { id?: string } | null } }) => res?.data?.user?.id,
-      () => undefined,
-    )
-    let release = supabase.from('import_locks').delete().eq('association_id', associationId).eq('kind', kind)
-    if (userId) release = release.eq('claimed_by', userId)
     // A failed release only delays the next import until the lock goes stale.
-    await release.then(() => undefined, () => undefined)
+    await supabase.from('import_locks').delete()
+      .eq('association_id', associationId).eq('kind', kind).eq('claimed_at', claimedAt)
+      .then(() => undefined, () => undefined)
   }
 }

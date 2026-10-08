@@ -29,7 +29,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { parseLabeledPhones } from '@/lib/contacts/labeled-phones';
 import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
-import { withImportLock } from '@/lib/imports/import-lock';
+import { IMPORT_LOCK_HELD_MESSAGE, withImportLock } from '@/lib/imports/import-lock';
 import { homeownerName, parseDues, parseHomeownerPct } from '@/lib/imports/appfolio-homeowners';
 import { splitEmails } from '@/lib/imports/appfolio-vendors';
 import type { ImportSummary } from '../actions';
@@ -173,6 +173,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       const links: Link[] = [];
       const newOwners = new Map<string, NewOwner>();
       let reused = 0;
+      const reusedLines: string[] = [];
       let noEmail = 0;
 
       // Plan every row first, so owners shared by several rows are created once.
@@ -194,7 +195,9 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           continue;
         }
 
-        const existingId = emails.map((e) => ownerIdByEmail.get(e)).find(Boolean);
+        // Reuse an owner the company has only when both the email and the name match: a shared
+        // family or placeholder email must not link another association's owner to this unit.
+        const existingId = emails.map((e) => ownerIdByEmail.get(e)).find((id) => id && ownerById.get(id)?.name === key);
         const link: Link = {
           line, unitNumber, unitId: unit.id, label,
           dues: parseDues(clean(r.dues)),
@@ -209,6 +212,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           link.ownerId = existingId;
           state.ownerIds.add(existingId);
           reused++;
+          reusedLines.push(`${label}: linked to the existing homeowner with the same name and email.`);
         } else {
           // One new owner per email (or, without an email, per name within this file).
           const ownerKey = emails[0] ? `e:${emails[0]}` : `n:${key}`;
@@ -305,17 +309,20 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       // Don't leave owners with no unit behind (like importOwners): remove ones whose every link failed.
       const orphans = [...newOwners.values()].filter((o) => o.id && o.linked === 0);
       await inPool(orphans, async (o) => {
-        const { error: undoErr } = await db.from('owners').delete().eq('id', o.id).select('id');
-        if (undoErr) errors.push(`Line ${o.line}: the owner record was created but could not be removed: ${undoErr.message}`);
+        const { data: removed, error: undoErr } = await db.from('owners').delete().eq('id', o.id).select('id');
+        if (undoErr || !removed?.length) {
+          errors.push(`Line ${o.line}: the owner record was created but could not be removed${undoErr ? `: ${undoErr.message}` : '.'}`);
+        }
       });
 
       const created = [...newOwners.values()].filter((o) => o.linked > 0).length;
       const notes: string[] = [];
       if (created) notes.push(`${created} new homeowner record${created === 1 ? '' : 's'} created.`);
-      if (reused) notes.push(`${reused} link${reused === 1 ? '' : 's'} went to homeowners the company already had (same email).`);
+      if (reused) notes.push(`${reused} link${reused === 1 ? '' : 's'} went to homeowners the company already had (same name and email).`);
       if (noEmail) notes.push(`${noEmail} homeowner${noEmail === 1 ? ' has' : 's have'} no email in AppFolio; their preferred contact is set to mail.`);
       if (pctFilled) notes.push(`${pctFilled} unit${pctFilled === 1 ? '' : 's'} had no ownership % and now have the one from the export.`);
       errors.unshift(...notes);
+      errors.push(...reusedLines);
 
       revalidatePath('/owners');
       revalidatePath('/units');
@@ -323,6 +330,10 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       return { imported, skipped, errors: errors.length ? errors : undefined };
     });
   } catch (e) {
-    return fail(e instanceof Error ? e.message : 'The import failed. Try again.');
+    const why = e instanceof Error ? e.message : 'The import failed.';
+    // The lock was not taken: nothing was written.
+    if (why === IMPORT_LOCK_HELD_MESSAGE || why.startsWith('Could not start the import')) return fail(why);
+    // Re-running is safe: owners already linked to their unit are skipped.
+    return fail(`${why} Some homeowners may already have been added; run the import again to add the rest.`);
   }
 }

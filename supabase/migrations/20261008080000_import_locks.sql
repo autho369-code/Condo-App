@@ -26,24 +26,41 @@ create table if not exists public.import_locks (
 
 alter table public.import_locks enable row level security;
 
-create policy import_locks_staff_read on public.import_locks
-  for select to authenticated using (public.can_manage_association(association_id));
-create policy import_locks_staff_claim on public.import_locks
-  for insert to authenticated
-  with check (public.can_manage_association(association_id) and claimed_by = auth.uid());
-create policy import_locks_staff_release on public.import_locks
-  for delete to authenticated using (public.can_manage_association(association_id));
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'import_locks' and policyname = 'import_locks_staff_read') then
+    create policy import_locks_staff_read on public.import_locks
+      for select to authenticated using (public.can_manage_association(association_id));
+  end if;
+  -- A lock can't be dated in the future (it would never go stale).
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'import_locks' and policyname = 'import_locks_staff_claim') then
+    create policy import_locks_staff_claim on public.import_locks
+      for insert to authenticated
+      with check (public.can_manage_association(association_id) and claimed_by = auth.uid() and claimed_at <= now());
+  end if;
+  -- Only the holder releases a live lock; anyone who manages the association can clear a stale one.
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'import_locks' and policyname = 'import_locks_staff_release') then
+    create policy import_locks_staff_release on public.import_locks
+      for delete to authenticated
+      using (public.can_manage_association(association_id)
+             and (claimed_by = auth.uid() or claimed_at < now() - interval '15 minutes'));
+  end if;
+end $$;
 
+revoke all on public.import_locks from anon;
+revoke update on public.import_locks from authenticated;
 grant select, insert, delete on public.import_locks to authenticated;
 
--- Claim the lock; true when claimed, false when another import holds it.
+-- Claim the lock: returns the claim time (the release token), or null when another import holds it.
 -- SECURITY INVOKER: every statement runs under the caller's RLS above.
 create or replace function public.claim_import_lock(p_association_id uuid, p_kind text)
-returns boolean
+returns timestamptz
 language plpgsql
 security invoker
 set search_path to 'pg_catalog', 'public'
 as $function$
+declare
+  v_claimed_at timestamptz;
 begin
   if not public.can_manage_association(p_association_id) then
     raise exception 'Association not found' using errcode = '42501';
@@ -57,8 +74,9 @@ begin
      and claimed_at < now() - interval '15 minutes';
   insert into public.import_locks (association_id, kind, claimed_by, claimed_at)
   values (p_association_id, p_kind, auth.uid(), now())
-  on conflict (association_id, kind) do nothing;
-  return found;
+  on conflict (association_id, kind) do nothing
+  returning claimed_at into v_claimed_at;
+  return v_claimed_at;
 end $function$;
 
 revoke all on function public.claim_import_lock(uuid, text) from public, anon;
