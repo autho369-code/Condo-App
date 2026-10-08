@@ -381,9 +381,17 @@ export async function importAppfolioUnits(
     .is('archived_at', null)
     .order('id'));
   if (existingErr) return { imported: 0, skipped: units.length, errors: [`Could not load the association's units: ${existingErr}`] };
-  const have = new Map<string, { id: string; pct: number }>(
-    (existing ?? []).map((u: any) => [clean(u.unit_number).toLowerCase(), { id: u.id, pct: Number(u.ownership_pct ?? 0) }]),
-  );
+  // Unit numbers compare case-insensitively, ignoring spacing around dashes ("3817 - 1" =
+  // "3817-1"), the same key the homeowner and open-balance imports use. A number used in
+  // more than one building is ambiguous: such rows are left alone.
+  const unitKey = (v: unknown) => clean(v).toLowerCase().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ');
+  const have = new Map<string, { id: string; pct: number }>();
+  const ambiguous = new Set<string>();
+  for (const u of existing ?? []) {
+    const k = unitKey(u.unit_number);
+    if (have.has(k)) ambiguous.add(k);
+    else have.set(k, { id: u.id, pct: Number(u.ownership_pct ?? 0) });
+  }
 
   const building = await ensureBuilding(db, associationId);
   if ('error' in building) return { imported: 0, skipped: units.length, errors: [`Could not resolve a building: ${building.error}`] };
@@ -402,8 +410,13 @@ export async function importAppfolioUnits(
     const line = clean(u?.row) || '?';
     const unitNumber = clean(u?.unit_number).slice(0, 40);
     if (!unitNumber) { skipped++; errors.push(`Line ${line}: no unit name.`); continue; }
-    const key = unitNumber.toLowerCase();
+    const key = unitKey(unitNumber);
     const pct = positive(u.ownership_pct, 100);
+    if (ambiguous.has(key)) {
+      skipped++;
+      errors.push(`Line ${line} (${unitNumber}): this unit number exists in more than one building; left as it is.`);
+      continue;
+    }
     const found = have.get(key);
     if (found) {
       if (pct !== null && found.pct === 0) {

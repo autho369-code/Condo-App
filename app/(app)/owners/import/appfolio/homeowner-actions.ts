@@ -150,7 +150,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         .order('id')
         .range(from, to));
       if (owners.error) return fail(`Could not load the company's homeowners: ${owners.error}`);
-      const ownerById = new Map<string, { name: string; emails: Set<string> }>();
+      const ownerById = new Map<string, { name: string; emails: Set<string>; phone: string }>();
       const ownerIdsByEmail = new Map<string, string[]>();
       const ownerIdsByPhone = new Map<string, string[]>();
       for (const o of owners.rows) {
@@ -159,18 +159,29 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           const k = clean(e).toLowerCase();
           if (k) emails.add(k);
         }
-        ownerById.set(o.id, { name: nameKey(o.full_name), emails });
-        for (const e of emails) ownerIdsByEmail.set(e, [...(ownerIdsByEmail.get(e) ?? []), o.id]);
         const ph = phoneKey(o.phone);
+        ownerById.set(o.id, { name: nameKey(o.full_name), emails, phone: ph });
+        for (const e of emails) ownerIdsByEmail.set(e, [...(ownerIdsByEmail.get(e) ?? []), o.id]);
         if (ph.length >= 7) ownerIdsByPhone.set(ph, [...(ownerIdsByPhone.get(ph) ?? []), o.id]);
       }
 
       // Per unit: who is linked now (owner ids, names, emails) and whether dues are already set.
-      const linked = new Map<string, { ownerIds: Set<string>; names: Set<string>; emails: Set<string>; hasOwner: boolean; hasDues: boolean }>();
+      type Person = { name: string; emails: Set<string>; phone: string };
+      const linked = new Map<string, { ownerIds: Set<string>; people: Person[]; hasOwner: boolean; hasDues: boolean }>();
       const unitState = (unitId: string) => {
         let s = linked.get(unitId);
-        if (!s) { s = { ownerIds: new Set(), names: new Set(), emails: new Set(), hasOwner: false, hasDues: false }; linked.set(unitId, s); }
+        if (!s) { s = { ownerIds: new Set(), people: [], hasOwner: false, hasDues: false }; linked.set(unitId, s); }
         return s;
+      };
+      // The same person: same name, and their contact details don't tell them apart (a shared
+      // email or phone, or no contact details on one side). Two same-named people with
+      // different emails or phones are different co-owners.
+      const samePerson = (p: Person, name: string, emails: string[], phone: string) => {
+        if (p.name !== name) return false;
+        const rowHasContact = emails.length > 0 || phone.length >= 7;
+        const personHasContact = p.emails.size > 0 || p.phone.length >= 7;
+        if (!rowHasContact || !personHasContact) return true;
+        return emails.some((e) => p.emails.has(e)) || (phone.length >= 7 && phone === p.phone);
       };
       // Current owner occupancy per unit and owner name (to retry dues that failed to schedule).
       const occByUnitName = new Map<string, { id: string; dues: number }>();
@@ -183,7 +194,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         if (!o.owner_id) continue;
         s.ownerIds.add(o.owner_id);
         const owner = ownerById.get(o.owner_id);
-        if (owner) { s.names.add(owner.name); owner.emails.forEach((e) => s.emails.add(e)); }
+        if (owner) s.people.push({ name: owner.name, emails: owner.emails, phone: owner.phone });
       }
 
       let skipped = 0;
@@ -214,9 +225,10 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         const emails = splitEmails(Array.isArray(r.emails) ? r.emails.filter((e) => typeof e === 'string').join(',') : '').slice(0, 10);
         const state = unitState(unit.id);
         const key = nameKey(name.display);
-        // Same person already on this unit: identified by name (a shared family email alone
-        // must not drop a co-owner).
-        if (state.names.has(key)) {
+        const rowPhone = phoneKey(parseLabeledPhones(clean(r.phones).slice(0, 500)).primary);
+        // Same person already on this unit (see samePerson): a shared family email alone, or
+        // a shared name alone, must not drop a co-owner.
+        if (state.people.some((p) => samePerson(p, key, emails, rowPhone))) {
           skipped++;
           // A unit whose dues failed to schedule last time (dues reset to 0): schedule them now.
           const dues = parseDues(clean(r.dues));
@@ -232,7 +244,6 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         // Reuse an owner the company has only when both the email and the name match: a shared
         // family or placeholder email must not link another association's owner to this unit.
         // Without an email, name + phone (the same rule new owners in this file are grouped by).
-        const rowPhone = phoneKey(parseLabeledPhones(clean(r.phones).slice(0, 500)).primary);
         const candidates = emails.length
           ? emails.flatMap((e) => ownerIdsByEmail.get(e) ?? [])
           : rowPhone.length >= 7 ? ownerIdsByPhone.get(rowPhone) ?? [] : [];
@@ -293,8 +304,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           }
           link.newOwner = owner;
         }
-        state.names.add(key);
-        emails.forEach((e) => state.emails.add(e));
+        state.people.push({ name: key, emails: new Set(emails), phone: rowPhone });
         links.push(link);
       }
 
