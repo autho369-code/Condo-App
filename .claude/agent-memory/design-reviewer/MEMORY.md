@@ -35,3 +35,6 @@
 ## Copy/share links (2026-10)
 - components/ui/copy-button.tsx (CopyButton, Button secondary h-10) is the shared copy control; violation-letter-drafter.tsx:46 still hand-rolls the same copy(). Check new copies reuse it and that clipboard failure is visible (catch was silent at first review).
 - Public tenant links must use companyUrl(portfolio, path) (needs slug, custom_domain, custom_domain_verified_at); with no valid slug it falls back to the platform origin, where /report-violation renders "unavailable".
+
+## Auth pages (app/(auth), 2026-10)
+- accept-invitation: state cards follow the `Card max-w-sm` + secondary "Go to sign in" (/login) pattern; acceptInvitation `back()` errors whose cause is a non-pending/foreign-address invite land on the invalid-state Card, which drops `?error=` (acceptable: same meaning). `<Link><Button>` (a>button nesting) is a pre-existing repo-wide pattern; Button has no asChild - nit only.
