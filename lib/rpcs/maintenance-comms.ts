@@ -1,11 +1,12 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { emailQueueRow } from '@/lib/email/queue';
 import { primaryVendorEmail } from '@/lib/vendors/contact';
+import { claimSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -155,6 +156,31 @@ export async function sendBulkComms(formData: FormData) {
   const sendEmail = channel === 'email';
   const sendSms = false;
 
+  // Each email goes out under the vendor's own company (the one it works
+  // for), not the sender's: a platform operator's workspace is not the
+  // client's. The vendors were read with the caller's client above, so only
+  // visible vendors are here; the service client reads their company's public
+  // name and support address.
+  const recipientVendorIds = Array.from(new Set(recipientList.map((r) => r.vendorId).filter(Boolean)));
+  const { data: vendorCompanies, error: vendorCompanyError } = await db
+    .from('vendors').select('id, portfolio_id').in('id', recipientVendorIds);
+  if (vendorCompanyError) return { success: false, error: `Could not load the vendors' companies: ${vendorCompanyError.message}` };
+  const vendorCompany = new Map<string, string>((vendorCompanies ?? []).map((v: any) => [v.id, v.portfolio_id]));
+  const companyIds = Array.from(new Set(vendorCompany.values())).filter(Boolean);
+  const { data: companies, error: companyError } = companyIds.length
+    ? await createServiceClient().from('portfolios').select('id, company_name, support_email').in('id', companyIds)
+    : { data: [], error: null };
+  if (companyError) return { success: false, error: `Could not load the vendors' companies: ${companyError.message}` };
+  const companyById = new Map<string, any>((companies ?? []).map((c: any) => [c.id, c]));
+  const unplaced = recipientList.find((r) => !companyById.get(vendorCompany.get(r.vendorId) ?? ''));
+  if (unplaced) return { success: false, error: `${unplaced.vendorName} is not available. Reload the page and try again.` };
+
+  // A double click or a retried send must not email every vendor twice.
+  const claim = await claimSubmission(db, formData, 'vendor_bulk_comms');
+  if (claim.status === 'error') return { success: false, error: claim.message };
+  if (claim.status === 'duplicate') return { success: false, error: 'These messages were already queued. Reload the page to send a new one.' };
+  const token = claim.token;
+
   let queued = 0;
   let emailCount = 0;
   let smsCount = 0;
@@ -172,10 +198,14 @@ export async function sendBulkComms(formData: FormData) {
 
     const personalizedSubject = subject.replace(/{vendor_name}/g, r.vendorName);
 
+    const companyId = vendorCompany.get(r.vendorId)!;
+    const company = companyById.get(companyId);
+    const companyName: string | null = company?.company_name?.trim() || null;
+
     // Communication message entry
     if (sendEmail && r.email) {
       commRows.push({
-        portfolio_id: me.portfolio?.id,
+        portfolio_id: companyId,
         channel: 'email',
         status: 'queued',
         recipient_group: commType,
@@ -193,12 +223,13 @@ export async function sendBulkComms(formData: FormData) {
         toName: r.vendorName,
         subject: personalizedSubject,
         text: personalizedBody,
-        portfolioId: me.portfolio?.id,
+        portfolioId: companyId,
         fromAddress: 'maintenance@portier369.com',
         // portfolios has no `name` column — company_name is the brand
-        fromName: me.portfolio?.company_name ?? null,
-        replyTo: me.portfolio?.support_email ?? null,
+        fromName: companyName,
+        replyTo: company?.support_email?.trim() || null,
         sentBy: me.auth_user_id,
+        idempotencyKey: `vendor-bulk:${token}:${r.vendorId}`,
       }));
 
       emailCount++;
@@ -206,7 +237,7 @@ export async function sendBulkComms(formData: FormData) {
 
     if (sendSms && r.phone) {
       commRows.push({
-        portfolio_id: me.portfolio?.id,
+        portfolio_id: companyId,
         channel: 'sms',
         status: 'queued',
         recipient_group: commType,
@@ -221,15 +252,23 @@ export async function sendBulkComms(formData: FormData) {
   }
 
   // ── Batch insert ──
-  if (commRows.length > 0) {
-    const { error: commErr } = await db.from('communication_messages').insert(commRows);
-    if (commErr) return { success: false, error: `Failed to log communications: ${commErr.message}` };
-    queued += commRows.length;
+  // Emails first: their idempotency key makes a retry after a partial failure
+  // queue each vendor's email once, and the log is written only after they
+  // are queued, so a retry doesn't log the same messages twice.
+  if (emailRows.length > 0) {
+    const { error: emailErr } = await db.from('email_queue')
+      .upsert(emailRows, { onConflict: 'idempotency_key', ignoreDuplicates: true });
+    if (emailErr) {
+      await releaseSubmission(db, token);
+      return { success: false, error: `Failed to queue emails: ${emailErr.message}` };
+    }
   }
 
-  if (emailRows.length > 0) {
-    const { error: emailErr } = await db.from('email_queue').insert(emailRows);
-    if (emailErr) return { success: false, error: `Failed to queue emails: ${emailErr.message}` };
+  if (commRows.length > 0) {
+    const { error: commErr } = await db.from('communication_messages').insert(commRows);
+    // The emails are queued; the claim stays, so a retry can't send them again.
+    if (commErr) return { success: false, error: `The emails were queued, but logging them failed: ${commErr.message}` };
+    queued += commRows.length;
   }
 
   // Revalidate paths

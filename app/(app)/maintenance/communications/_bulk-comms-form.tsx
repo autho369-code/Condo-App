@@ -73,6 +73,9 @@ export function BulkCommsForm({
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sendResults, setSendResults] = useState<any>(null);
+  // One-time token (form_submissions): a retried or double send queues once.
+  // A new one is made for each new message.
+  const [submissionToken, setSubmissionToken] = useState<string>(() => crypto.randomUUID());
 
   // ── Toggle work order selection ──
   function toggleWo(id: string) {
@@ -245,6 +248,7 @@ export function BulkCommsForm({
         <button
           onClick={() => {
             setSent(false);
+            setSubmissionToken(crypto.randomUUID());
             setSendResults(null);
             setSubject('');
             setBody('');
@@ -262,6 +266,7 @@ export function BulkCommsForm({
 
   return (
     <form action={handleSend} className="space-y-6">
+      <input type="hidden" name="submission_token" value={submissionToken} />
       {/* Hidden fields */}
       {Array.from(selectedWoIds).map((id) => (
         <input key={`wo-${id}`} type="hidden" name="work_order_ids" value={id} />

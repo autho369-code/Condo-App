@@ -20,6 +20,7 @@ import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 import { assignWorkOrderToStaff } from '@/lib/rpcs/work-order-team';
 import { todayInZone } from '@/lib/time/zoned';
 import { firstVendorPhone } from '@/lib/vendors/contact';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 
 export const dynamic = 'force-dynamic';
 
@@ -357,6 +358,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
             </Table>
           ) : null}
           <form action={chargeBackWorkOrder.bind(null, id) as any} className="grid grid-cols-1 gap-3 border-t border-gray-100 px-5 py-4 md:grid-cols-3">
+            <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <div>
               <Label>Charge category</Label>
               <Select name="charge_category_id" required

@@ -12,16 +12,38 @@ Back to [[Home]]. Updated 2026-10-08 (after #252).
   pilot).
 
 ## Open PR
-- Open: white label on company
-  addresses. Middleware redirects `/demo` and `/legal` to login there, serves
-  a disallow-all robots.txt and 404s the platform's sitemap, llms.txt,
-  IndexNow key, `report-card.html` and marketing APIs (`.html` now goes
-  through middleware). Client-facing fallbacks use `NEUTRAL_COMPANY_NAME`
-  (new `lib/tenant/neutral-name.ts`, client-safe): portal/board/vendor/
-  resident/company-admin/app layouts, sidebars, invite page + subject,
-  suspended-company login error, error page, help page (company support
-  email or none), MFA issuer/friendly name, search palette label, send-email
-  From fallback. No migration.
+- Open (next PR): moving a calendar event
+  says when its reminders could not be moved (form: error after save; drag:
+  a warning, the event keeps its new spot) instead of silently keeping the
+  old reminder times; inspection "create work order" links only when no work
+  order is linked yet (a double submit archives its duplicate and opens the
+  existing one). `query-columns` test gets a 30s timeout (5s default timed
+  out under load). Also: `checkLinkedRecords` now requires a vendor to be the
+  association's company's (visible was not enough for platform operators);
+  maintenance task add/edit/new check the vendor; maintenance calendar
+  events take the association's company; migration 20261008040000 adds the
+  vendor trigger to calendar_events (maintenance_tasks already
+  checked by RLS `maintenance_task_links_valid`). Apply after merge.
+  Also: ad-hoc unit charges and work-order chargebacks claim a one-time form
+  token (`ad_hoc_charge`, `work_order_chargeback`), so a double submit posts
+  once (live `form_submissions_admin_operator_insert` lets company admins and
+  operators claim too).
+  Security review fix: migration 20261008040000 now has its own
+  `calendar_event_vendor_in_company()` that checks the vendor against the
+  ASSOCIATION's company (fires on association_id too); new calendar events,
+  their reminders and drafts take the association's company. Owner statement
+  emails brand and link from the association's company (not the sender's).
+  Bulk vendor emails (`/maintenance/communications`) go out under each
+  vendor's own company and claim a one-time token (`vendor_bulk_comms`; the
+  client form makes a fresh one per message) plus a per-vendor
+  idempotency key on email_queue.
+  Password reset asked on the platform address emails a link to the
+  person's company workspace (`<slug>.<apex>`, skipped once archived).
+  Committee chair/member must be a current owner in the association, and the
+  bound committee id must be the association's.
+- #253 merged (dbf551c, squash; tree equals PR head bcd679c): white label on
+  company addresses (middleware marketing/site files, neutral name
+  fallbacks). No migration.
 - #252 merged (7cbc3dd); migration 20261008030000 applied and verified
   (both triggers, FOR SHARE lock, report join; grants unchanged). A property group must be
   the association's company's: checked in associations/new and createBuilding
@@ -101,10 +123,14 @@ Back to [[Home]]. Updated 2026-10-08 (after #252).
 
 ## Next gaps (pick up here, top first)
 Found 2026-10-08 by the overseer + a security-reviewer audit.
-1. `rescheduleReminders` (`lib/rpcs/calendar.ts` ~260-269) ignores errors and
-   0-row updates: event moves, reminders keep old times, user sees "saved".
-2. Inspection "create work order" (`app/(app)/inspections/[id]/page.tsx`
-   ~130-147) can create duplicate work orders on a double submit
-   (unconditional link update, no `.select()`).
-3. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
+Found 2026-10-08 (overseer + security-reviewer audit, second round):
+1-2. Done locally (wip-next): ad-hoc charge and chargeback form tokens.
+3. Done locally (wip-next): owner statements from the association's company.
+4. Done locally (wip-next): bulk vendor emails per vendor company + token.
+5. Done locally (wip-next): reset links open the company's workspace.
+6. Done locally (wip-next): committee members checked.
+7. Closed, no change: the worker sends a stored non-platform from_address
+   from the platform address only when the company hasn't verified that
+   domain (sending from it would fail); the sender NAME stays the company's.
+8. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
    forms.

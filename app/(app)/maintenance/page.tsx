@@ -16,6 +16,7 @@ import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/time/display-zone';
 import { associationZone, MAINTENANCE_CATEGORY_EVENT_TYPE, syncMaintenanceCalendarEvent } from '@/lib/maintenance/calendar';
 import { mergePrivateFields, mergePrivateFieldsOne, savePrivateFields } from '@/lib/private-fields';
 import { PendingSubmit } from '@/components/ui/pending-submit';
+import { checkLinkedRecords } from '@/lib/security/association-scope';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,12 @@ async function addTask(formData: FormData) {'use server';
   // A blank start date means today in the selected association's own zone.
   const startDate = (formData.get('start_date') as string)
     || todayInZone(await associationZone(db, (formData.get('association_id') as string) || null));
+  // The vendor must be the association's company's (the id comes from the form).
+  const linkError = await checkLinkedRecords(db, {
+    associationId: (formData.get('association_id') as string) || null,
+    vendorId: (formData.get('vendor_id') as string) || null,
+  });
+  if (linkError) maintenanceFail(`Task not added: ${linkError}`);
   const { data: task, error: taskError } = await db.from('maintenance_tasks').insert({
     association_id: formData.get('association_id'), task_name: formData.get('task_name'),
     category: formData.get('category'), frequency: freq,
@@ -71,6 +78,13 @@ async function updateTask(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
   const freq = formData.get('frequency') as string;
   const id = formData.get('id') as string;
+  const { data: current } = await db.from('maintenance_tasks').select('association_id').eq('id', id).maybeSingle();
+  if (!current) maintenanceFail('Task not updated: it was not found or you do not have access to it.');
+  const linkError = await checkLinkedRecords(db, {
+    associationId: current.association_id,
+    vendorId: (formData.get('vendor_id') as string) || null,
+  });
+  if (linkError) maintenanceFail(`Task not updated: ${linkError}`);
   const { data: updatedRows, error: updateError } = await db.from('maintenance_tasks').update({
     task_name: formData.get('task_name'), category: formData.get('category'),
     frequency: freq, custom_interval_days: freq==='custom' ? parseInt(formData.get('custom_days') as string)||null : null,

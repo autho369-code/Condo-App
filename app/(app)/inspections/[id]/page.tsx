@@ -144,8 +144,27 @@ export default async function InspectionDetailPage({
       created_by: current.auth_user_id,
     }).select('id').single();
     if (createError || !workOrder) bounce(inspectionId, 'error', createError?.message ?? 'Could not create remediation work order.');
-    const { error: linkError } = await (supabase as any).from('inspection_items').update({ work_order_id: workOrder.id }).eq('id', findingId).eq('inspection_id', inspectionId);
+    // Link only if no work order is linked yet: a double submit (or a second
+    // person) can get past the check above, and the second link would
+    // overwrite the first and leave an orphan work order.
+    const { data: linked, error: linkError } = await (supabase as any).from('inspection_items')
+      .update({ work_order_id: workOrder.id })
+      .eq('id', findingId).eq('inspection_id', inspectionId).is('work_order_id', null)
+      .select('id');
     if (linkError) bounce(inspectionId, 'error', `Work order created, but linking failed: ${linkError.message}`);
+    if (!linked?.length) {
+      // Someone else linked one first: remove this duplicate and open theirs.
+      revalidatePath(`/inspections/${inspectionId}`);
+      const { data: archived, error: archiveError } = await (supabase as any).from('work_orders')
+        .update({ archived_at: new Date().toISOString() }).eq('id', workOrder.id).select('id');
+      if (archiveError || !archived?.length) {
+        bounce(inspectionId, 'error', 'This finding already has a work order. A duplicate work order was created and could not be removed: archive it from Work orders.');
+      }
+      const { data: existing } = await (supabase as any).from('inspection_items').select('work_order_id')
+        .eq('id', findingId).eq('inspection_id', inspectionId).maybeSingle();
+      if (existing?.work_order_id) redirect(`/work-orders/${existing.work_order_id}`);
+      bounce(inspectionId, 'error', 'The finding could not be linked to a work order (the duplicate was removed). Try again.');
+    }
     revalidatePath(`/inspections/${inspectionId}`);
     redirect(`/work-orders/${workOrder.id}`);
   }

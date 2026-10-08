@@ -6,7 +6,7 @@ import { headers } from 'next/headers';
 import { consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
 import { siteUrl } from '@/lib/url/site-url';
 import { verifiedAuthLink } from '@/lib/auth/email-links';
-import { resolvedTenantUrl } from '@/lib/tenant/host';
+import { resolvedTenantUrl, tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 import { escapeHtml } from '@/lib/letters/merge';
 
@@ -82,10 +82,17 @@ async function requestPasswordReset(formData: FormData) {
     // If the company's name can't be read, the email stays neutral ("your
     // account") rather than naming the platform.
     let company: string | null = null;
+    // The emailed link opens where the person signs in: requested on the
+    // platform address, a company's people still go to their company's own
+    // workspace (sign-in is on <slug>.<apex>), not the platform's.
+    let linkRedirect = resetRedirect;
     if (portfolioId) {
-      const { data: portfolio, error: portfolioError } = await svc.from('portfolios').select('company_name').eq('id', portfolioId).maybeSingle();
+      const { data: portfolio, error: portfolioError } = await svc.from('portfolios').select('company_name, slug, archived_at').eq('id', portfolioId).maybeSingle();
       if (portfolioError) console.error('Password reset: could not load company name:', portfolioError.message);
       company = String(portfolio?.company_name ?? '').trim() || null;
+      if (!tenant && portfolio?.slug && !portfolio.archived_at) {
+        linkRedirect = tenantWorkspaceUrl(portfolio.slug, '/api/auth/callback?next=/reset-password');
+      }
     }
     const brand = company ?? (portfolioId ? null : PLATFORM_NAME);
 
@@ -93,7 +100,7 @@ async function requestPasswordReset(formData: FormData) {
       to_email: email,
       to_name: toName,
       subject: brand ? `Reset your ${brand} password` : 'Reset your password',
-      body: `<p>Hello${toName ? ` ${escapeHtml(toName)}` : ''},</p><p>We received a request to reset the password for your ${brand ? `${escapeHtml(brand)} ` : ''}account. Click the link below to choose a new password:</p><p><a href="${verifiedAuthLink(linkData, resetRedirect, 'recovery')}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
+      body: `<p>Hello${toName ? ` ${escapeHtml(toName)}` : ''},</p><p>We received a request to reset the password for your ${brand ? `${escapeHtml(brand)} ` : ''}account. Click the link below to choose a new password:</p><p><a href="${verifiedAuthLink(linkData, linkRedirect, 'recovery')}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
       status: 'pending',
       from_address: FROM_ADDRESS,
       from_name: portfolioId ? null : PLATFORM_NAME,

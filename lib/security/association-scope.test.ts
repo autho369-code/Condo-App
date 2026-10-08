@@ -40,8 +40,13 @@ describe('managesAssociation', () => {
 
 describe('checkLinkedRecords', () => {
   it('accepts records visible to the caller and inside the association', async () => {
-    const db = fakeDb({ buildings: [{ id: B, association_id: A }], vendors: [{ id: B }] });
+    const db = fakeDb({ buildings: [{ id: B, association_id: A }], vendors: [{ id: B, portfolio_id: 'co' }], associations: [{ id: A, portfolio_id: 'co' }] });
     expect(await checkLinkedRecords(db, { associationId: A, buildingId: B, vendorId: B })).toBeNull();
+  });
+
+  it("rejects a vendor from another company even when the caller can see it (platform operators)", async () => {
+    const db = fakeDb({ vendors: [{ id: B, portfolio_id: 'other-co' }], associations: [{ id: A, portfolio_id: 'co' }] });
+    expect(await checkLinkedRecords(db, { associationId: A, vendorId: B })).toMatch(/company/);
   });
 
   it('rejects a building from another association', async () => {

@@ -14,6 +14,21 @@ import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
+// A member must be a current owner in the association (the dropdowns list
+// only those; the form's owner id is not trusted). Module level: a function
+// inside the page can't be captured by its inline server actions.
+async function isAssociationOwner(sb: any, associationId: string, ownerId: string): Promise<boolean> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ownerId)) return false;
+  const { data } = await sb
+    .from('occupancies')
+    .select('owner_id, units!inner(id, buildings!inner(association_id))')
+    .eq('status', 'current')
+    .eq('owner_id', ownerId)
+    .eq('units.buildings.association_id', associationId)
+    .limit(1);
+  return Boolean(data?.length);
+}
+
 export default async function CommitteesTab({
   params,
   searchParams,
@@ -63,6 +78,9 @@ export default async function CommitteesTab({
       .single();
     if (error) fail(error.message);
     const chairId = ((formData.get('chair_owner_id') as string) || '').trim();
+    if (chairId && !(await isAssociationOwner(sb, id, chairId))) {
+      fail('Committee created, but the chair was not added: pick a current owner in this association.');
+    }
     if (chairId) {
       const { error: mErr } = await (sb as any).from('committee_members').insert({
         committee_id: committee.id, owner_id: chairId, role: 'Chair', joined_at: todayInZone(),
@@ -80,6 +98,12 @@ export default async function CommitteesTab({
     const fail = (msg: string) => redirect(`/associations/${assocParam}/committees?error=${encodeURIComponent(msg)}`);
     const ownerId = ((formData.get('owner_id') as string) || '').trim();
     if (!ownerId) fail('Pick an owner to add.');
+    if (!(await isAssociationOwner(sb, id, ownerId))) fail('Pick a current owner in this association.');
+    // The committee id comes from the form's bound argument: it must be one of
+    // this association's committees.
+    const { data: committee } = await (sb as any).from('committees').select('id')
+      .eq('id', committeeId).eq('association_id', id).maybeSingle();
+    if (!committee) fail('That committee is not part of this association.');
     const { error } = await (sb as any).from('committee_members').insert({
       committee_id: committeeId,
       owner_id: ownerId,

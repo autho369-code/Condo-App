@@ -77,8 +77,8 @@ export default function CalendarGrid({ associations, initialAssocId, initialType
     const name = String(info.event.extendedProps.title ?? info.event.title);
     try {
       const result = await updateCalendarEventDates(info.event.id, info.event.startStr, info.event.endStr || null, info.event.allDay);
-      if (result?.error) { info.revert(); setProblem(`Could not move "${name}": ${result.error}`); return; }
-      setProblem(null);
+      if (result && 'error' in result && result.error) { info.revert(); setProblem(`Could not move "${name}": ${result.error}`); return; }
+      setProblem(result && 'warning' in result && result.warning ? `"${name}": ${result.warning}` : null);
     } catch (err) {
       info.revert();
       setProblem(`Could not move "${name}": ${err instanceof Error ? err.message : 'unknown error'}`);

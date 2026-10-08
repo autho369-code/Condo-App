@@ -17,7 +17,7 @@ describe('query columns', () => {
     // by a new migration, refresh supabase/schema-columns.json (SQL in
     // scripts/lib/query-columns.mjs).
     expect(problems).toEqual([]);
-  });
+  }, 30_000); // scans every query in the repo: seconds, more on a busy runner
 
   it('every select it cannot check is on the reviewed list, and the list has no stale entries', () => {
     const listedMap: Record<string, string> = JSON.parse(readFileSync(join(process.cwd(), 'supabase/unchecked-selects.json'), 'utf8'));

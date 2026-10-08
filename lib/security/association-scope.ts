@@ -50,8 +50,14 @@ export async function checkLinkedRecords(
     if (!data) return 'The selected unit is not in this association.';
   }
   if (vendorId) {
-    const { data } = await db.from('vendors').select('id').eq('id', vendorId).maybeSingle();
+    const { data } = await db.from('vendors').select('id, portfolio_id').eq('id', vendorId).maybeSingle();
     if (!data) return 'The selected vendor is unavailable or outside your access.';
+    // Visible is not enough (platform operators see every company's vendors):
+    // the vendor must be the association's company's.
+    if (associationId) {
+      const { data: assoc } = await db.from('associations').select('portfolio_id').eq('id', associationId).maybeSingle();
+      if (!assoc || assoc.portfolio_id !== data.portfolio_id) return 'The selected vendor is not one of this association\'s company\'s vendors.';
+    }
   }
   if (ownerId) {
     const { data } = await db.from('owners').select('id').eq('id', ownerId).maybeSingle();

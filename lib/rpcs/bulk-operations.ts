@@ -1,7 +1,7 @@
 'use server';
 import { LIVE_ONLY_REPORT_SLUGS } from '@/lib/reports/catalog';
 import { isSupportedReportOutputFormat } from '@/lib/reports/formats';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin, requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 
@@ -182,7 +182,19 @@ export async function sendOwnerStatements(formData: FormData) {
 
     const { queueEmails } = await import('@/lib/email/queue');
     const { companyUrl } = await import('@/lib/tenant/host');
-    const ledgerUrl = companyUrl(me.portfolio, '/portal/ledger');
+    // The statements belong to the association's company, not the sender's:
+    // a platform operator sending from another workspace must not brand them
+    // (or link the portal) with their own. generate_owner_statements already
+    // checked the caller's access to the association; the user client reads
+    // its company id, the service client its public name and address.
+    const { data: association } = await db.from('associations').select('portfolio_id').eq('id', associationId).maybeSingle();
+    const companyId: string | null = association?.portfolio_id ?? null;
+    const { data: company } = companyId
+      ? await createServiceClient().from('portfolios').select('company_name, slug, custom_domain, custom_domain_verified_at').eq('id', companyId).maybeSingle()
+      : { data: null };
+    if (!companyId || !company) return { error: 'Statements were generated but the association\'s company could not be loaded for sending.' };
+    const companyName: string | null = (company as any).company_name?.trim() || null;
+    const ledgerUrl = companyUrl(company as any, '/portal/ledger');
     const fmt = (n: unknown) => Number(n ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
     const sendable = (statements ?? []).filter((s: any) => s.owners?.email);
     const failedIds = (statements ?? []).filter((s: any) => !s.owners?.email).map((s: any) => s.id);
@@ -202,11 +214,11 @@ export async function sendOwnerStatements(formData: FormData) {
         '',
         `See every charge and payment, and pay online, in your owner portal: ${ledgerUrl}`,
         '',
-        `${me.portfolio?.company_name ?? 'Your management office'}`,
+        companyName ?? 'Your management office',
       ].join('\n'),
-      portfolioId: me.portfolio?.id,
+      portfolioId: companyId,
       associationId,
-      fromName: me.portfolio?.company_name ?? null,
+      fromName: companyName,
       sentBy: me.auth_user_id,
       ownerId: s.owner_id,
       idempotencyKey: `owner-statement:${s.id}`,

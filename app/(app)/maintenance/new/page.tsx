@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Section } from '@/components/workspace/shell';
 import { syncMaintenanceCalendarEvent } from '@/lib/maintenance/calendar';
+import { checkLinkedRecords } from '@/lib/security/association-scope';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,13 @@ async function createTask(formData: FormData) {
   const frequency = formData.get('frequency') as string;
   const reminders = formData.getAll('reminder_days').map(Number).filter(n => n > 0);
   const startDate = formData.get('start_date') as string;
+
+  // The vendor must be the association's company's (the id comes from the form).
+  const linkError = await checkLinkedRecords(db, {
+    associationId: (formData.get('association_id') as string) || null,
+    vendorId: (formData.get('vendor_id') as string) || null,
+  });
+  if (linkError) redirect('/maintenance/new?error=' + encodeURIComponent(linkError));
 
   const { data: task, error } = await db.from('maintenance_tasks').insert({
     association_id: formData.get('association_id') as string,
