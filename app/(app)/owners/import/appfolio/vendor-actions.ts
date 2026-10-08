@@ -88,15 +88,21 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
       let skipped = 0;
 
       // Existing vendors in this company, for the duplicate check (paged: PostgREST caps a read at 1000 rows).
+      // Also every email any vendor of the company already has (archived ones too): portal
+      // sign-up links a login to the vendors holding that email, and a login can belong to
+      // only one vendor, so an email is kept on one vendor only.
       const existingNames = new Set<string>();
+      const usedEmails = new Set<string>();
+      let sharedEmailVendors = 0;
       for (let from = 0; ; from += 1000) {
         const { data, error } = await db
-          .from('vendors').select('id, name')
-          .eq('portfolio_id', portfolioId).is('archived_at', null)
+          .from('vendors').select('id, name, emails, archived_at')
+          .eq('portfolio_id', portfolioId)
           .order('id').range(from, from + 999);
         if (error) return { imported: 0, skipped: vendors.length, errors: [`Could not check existing vendors: ${error.message}`] };
         for (const v of data ?? []) {
-          if (typeof v.name === 'string') existingNames.add(nameKey(v.name));
+          if (typeof v.name === 'string' && !v.archived_at) existingNames.add(nameKey(v.name));
+          for (const e of Array.isArray(v.emails) ? v.emails : []) if (typeof e === 'string') usedEmails.add(e.trim().toLowerCase());
         }
         if (!data || data.length < 1000) break;
       }
@@ -145,7 +151,10 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
         const name = str(v?.name, 200);
         if (!name) { skipped++; errors.push(`Row ${line}: no vendor name.`); continue; }
 
-        const emails = splitEmails(Array.isArray(v?.emails) ? v!.emails.filter((e) => typeof e === 'string').join(',') : '').slice(0, 10);
+        const allEmails = splitEmails(Array.isArray(v?.emails) ? v!.emails.filter((e) => typeof e === 'string').join(',') : '').slice(0, 10);
+        // An email another vendor already holds stays in this vendor's notes, not its emails.
+        const emails = allEmails.filter((e) => !usedEmails.has(e));
+        const sharedEmails = allEmails.filter((e) => usedEmails.has(e));
         // A company vendor is identified by its company name only: its AppFolio Name is the
         // contact person, who may represent several companies.
         const keys = [nameKey(name), v?.company_name ? '' : nameKey(str(v?.appfolio_name, 200) ?? '')].filter(Boolean);
@@ -154,6 +163,7 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
         }
         // A shared email alone doesn't make two vendors the same: one contact can represent
         // several companies. Vendors are matched by name (above).
+        if (sharedEmails.length) sharedEmailVendors++;
 
         const glNumber = str(v?.gl_account_number, 30);
         const glId = glNumber ? glByNumber.get(glNumber) ?? null : null;
@@ -165,7 +175,11 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
         const state = str(v?.address_state, 20)?.toUpperCase() ?? null;
         const contact = str(v?.contact_name, 200);
         const tags = str(v?.tags, 500);
-        const notes = [contact && `Contact: ${contact}`, tags && `AppFolio tags: ${tags}`].filter(Boolean).join('\n') || null;
+        const notes = [
+          contact && `Contact: ${contact}`,
+          tags && `AppFolio tags: ${tags}`,
+          sharedEmails.length ? `Also uses ${sharedEmails.join(', ')} (shared with another vendor)` : null,
+        ].filter(Boolean).join('\n') || null;
 
         const expirations = Object.fromEntries(
           EXPIRATIONS.map((k) => [k, parseAppfolioDate(typeof v?.[k] === 'string' ? (v[k] as string) : null)]),
@@ -196,6 +210,7 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
         });
         // Later rows of the same file count as duplicates too.
         keys.forEach((k) => existingNames.add(k));
+        emails.forEach((e) => usedEmails.add(e));
       }
 
       let imported = 0;
@@ -228,6 +243,7 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
       if (unmatchedGl.size) {
         notImported.push(`Default GL account left blank for GL number(s) not found among the active expense accounts in your chart: ${[...unmatchedGl].slice(0, 20).join(', ')}${unmatchedGl.size > 20 ? '…' : ''}.`);
       }
+      if (sharedEmailVendors) notImported.push(`${sharedEmailVendors} vendor(s) share an email with another vendor; it was kept on the first one and noted on the others (a vendor portal login can belong to only one vendor).`);
       if (unknownPayment) notImported.push(`${unknownPayment} vendor(s) had a payment type that isn't supported; they were set to Check.`);
       if (portalActive) notImported.push(`Vendor portal access was not carried over for ${portalActive} vendor(s): invite them from the vendor page.`);
       if (withLastPayment) notImported.push(`Last payment dates were not imported (${withLastPayment} vendor(s)); payment history comes from bills.`);
