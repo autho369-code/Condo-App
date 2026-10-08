@@ -266,8 +266,14 @@ export async function sendBulkComms(formData: FormData) {
 
   if (commRows.length > 0) {
     const { error: commErr } = await db.from('communication_messages').insert(commRows);
-    // The emails are queued; the claim stays, so a retry can't send them again.
-    if (commErr) return { success: false, error: `The emails were queued, but logging them failed: ${commErr.message}` };
+    // The emails are queued. Release the claim so the same form can be sent
+    // again to write the log: it keeps this token, so the emails' idempotency
+    // keys (vendor-bulk:<token>:<vendor>) stop them being queued twice. The
+    // log insert is one statement, so a failure left no rows to duplicate.
+    if (commErr) {
+      await releaseSubmission(db, token);
+      return { success: false, error: `The emails were queued, but logging them failed: ${commErr.message}. Send again to record them; vendors won't get a second email.` };
+    }
     queued += commRows.length;
   }
 
