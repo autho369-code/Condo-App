@@ -85,7 +85,7 @@ function AssociationCard({
   asOf: string;
   associations: Association[];
   importReceivables: Props['importReceivables'];
-  /** Every row of the file was read and it ties to its own total. */
+  /** Every row of the file was read and it has a Total line it ties to. */
   complete: boolean;
 }) {
   const selectId = React.useId();
@@ -343,7 +343,7 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
           asOf={asOf}
           associations={associations}
           importReceivables={importReceivables}
-          complete={!parsed?.problems?.length && Boolean(tiesOut)}
+          complete={!parsed?.problems?.length && parsed?.fileTotal != null && Boolean(tiesOut)}
         />
       ))}
     </div>

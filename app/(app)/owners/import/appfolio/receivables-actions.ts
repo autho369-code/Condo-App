@@ -73,7 +73,7 @@ export async function importAppfolioReceivables(
   asOf: string,
   items: ReceivableImportItem[],
   /**
-   * complete: the browser read every row of the file and it ties to its own total. Only then
+   * complete: the browser read every row of the file and it has a Total line it ties to. Only then
    * are earlier items missing from this file reported (a row the parser skipped is not "gone").
    */
   options: { confirmDuplicate?: boolean; complete?: boolean } = {},
@@ -264,7 +264,7 @@ export async function importAppfolioReceivables(
         changed.push(`${unitNumber ? `Unit "${unitNumber}"` : 'An archived unit'}: ${g.count} item${g.count === 1 ? '' : 's'} imported earlier (${usd(g.amount)}) ${g.count === 1 ? 'is' : 'are'} no longer in this file (paid or removed in AppFolio). Compare the unit's current balance with AppFolio (Import Variances report) before changing it.`);
       }
       if (goneUnchecked) {
-        changed.push(`${goneUnchecked} item${goneUnchecked === 1 ? '' : 's'} imported earlier ${goneUnchecked === 1 ? 'is' : 'are'} not in this file, but the file had rows that could not be read or does not tie to its total, so ${goneUnchecked === 1 ? 'it was' : 'they were'} not checked.`);
+        changed.push(`${goneUnchecked} item${goneUnchecked === 1 ? '' : 's'} imported earlier ${goneUnchecked === 1 ? 'is' : 'are'} not in this file, but the file had rows that could not be read or has no Total line it ties to, so ${goneUnchecked === 1 ? 'it was' : 'they were'} not checked.`);
       }
 
       let imported = 0;
