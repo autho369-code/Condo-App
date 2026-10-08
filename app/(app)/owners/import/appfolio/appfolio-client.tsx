@@ -8,6 +8,7 @@ import * as React from 'react';
 import { Alert, Badge, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Input, Label, Select } from '@/components/ui/input';
 import { parseAppfolioUnitDirectory, type AppfolioUnit } from '@/lib/imports/appfolio';
 import type { AppfolioUnitRow, ImportSummary } from '../actions';
 
@@ -18,9 +19,6 @@ type Props = {
   associations: Association[];
   importUnits: (associationId: string, units: AppfolioUnitRow[]) => Promise<ImportSummary>;
 };
-
-const selectCls =
-  'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
 
 const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -36,6 +34,7 @@ function suggestAssociation(name: string, associations: Association[]): string {
 }
 
 function GroupCard({ group, associations, importUnits }: { group: Group; associations: Association[]; importUnits: Props['importUnits'] }) {
+  const selectId = React.useId();
   const [associationId, setAssociationId] = React.useState(() => suggestAssociation(group.name, associations));
   const [busy, setBusy] = React.useState(false);
   const [result, setResult] = React.useState<ImportSummary | null>(null);
@@ -96,13 +95,11 @@ function GroupCard({ group, associations, importUnits }: { group: Group; associa
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1">
-          <label htmlFor={`assoc-${group.name}`} className="mb-1.5 block text-sm font-medium text-gray-900">
-            Import into <span className="text-red-500">*</span>
-          </label>
-          <select id={`assoc-${group.name}`} value={associationId} onChange={(e) => setAssociationId(e.target.value)} className={selectCls}>
+          <Label htmlFor={selectId}>Import into</Label>
+          <Select id={selectId} value={associationId} onChange={(e) => setAssociationId(e.target.value)} required>
             <option value="">Select a Portier369 association</option>
             {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
+          </Select>
         </div>
         <Button type="button" className="h-10" disabled={!associationId || busy || result !== null} onClick={run}>
           {busy ? 'Importing…' : result ? 'Imported' : `Import ${group.units.length} unit${group.units.length === 1 ? '' : 's'}`}
@@ -135,10 +132,14 @@ export function AppfolioImportClient({ associations, importUnits }: Props) {
     setError(null);
     if (!file) return;
     setFileName(file.name);
-    const parsed = parseAppfolioUnitDirectory(await file.text());
-    if (parsed.error || !parsed.groups) { setError(parsed.error ?? 'Could not read the file.'); return; }
-    setHasOwnership(Boolean(parsed.hasOwnership));
-    setGroups(parsed.groups);
+    try {
+      const parsed = parseAppfolioUnitDirectory(await file.text());
+      if (parsed.error || !parsed.groups) { setError(parsed.error ?? 'Could not read the file.'); return; }
+      setHasOwnership(Boolean(parsed.hasOwnership));
+      setGroups(parsed.groups);
+    } catch {
+      setError('Could not read the file. Export it from AppFolio again as CSV and retry.');
+    }
   }
 
   return (
@@ -151,12 +152,10 @@ export function AppfolioImportClient({ associations, importUnits }: Props) {
             (and the unit address columns if units have their own addresses), then Actions → Export as CSV.
           </p>
         </div>
-        <input
-          type="file"
-          accept=".csv,text/csv"
-          onChange={onFile}
-          className="block w-full text-sm text-gray-700 file:mr-3 file:h-10 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800"
-        />
+        <div>
+          <Label htmlFor="appfolio-unit-directory">Unit Directory CSV</Label>
+          <Input id="appfolio-unit-directory" type="file" accept=".csv,text/csv" onChange={onFile} className="h-auto py-2" />
+        </div>
         {fileName && !error && groups && <p className="text-xs text-gray-500">{fileName}</p>}
       </Surface>
 

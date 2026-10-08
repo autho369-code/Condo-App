@@ -27,6 +27,8 @@
 - Form-supplied FK ids are not RLS-checked by the FK. `associations.property_group_id` app writers (associations/new, createBuilding, setPropertyGroupMembers) check the group's portfolio since 2026-10-08, and migration 20261008030000 backs it in the DB (associations + property_groups triggers; `report_data_property_group_directory` join now filters by portfolio). Look for this "app-only FK check" pattern on other cross-table FKs.
 - Audit 2026-10-08: all `app/api/**` service-client routes and portal/board/vendor service-client reads were clean (pinned by session ids, tenant, signatures or scoped storage paths).
 
+- `units`/`buildings` RLS is association-scoped (`units_staff_all`/`buildings_staff_all` = `can_access_association` via building, + RESTRICTIVE `mgr_assoc_scope`); user-session writes there need no extra `managesAssociation`. AppFolio unit import (`importAppfolioUnits`, 2026-10-08) clean on that basis; client-called actions returning `{errors}` are fine when the client renders them and catches throws.
+
 ## Missed checks (caught later)
 - A public "prove you are us" endpoint (e.g. `/api/tenant/domain-check`) must bind its HMAC to a fresh verifier-chosen challenge; a deterministic proof can be recorded and replayed after a domain takeover. I suggested only HMAC-keying it; Codex caught the replay (PR #232).
 - A fresh challenge stops replay but not a live relay: a domain holder can forward each check to us with the right Host and pass our answer back. Domain ownership checks must also confirm public DNS points at our hosting (`lookupDomain` + `pointsAtVercel`). Codex, PR #232.

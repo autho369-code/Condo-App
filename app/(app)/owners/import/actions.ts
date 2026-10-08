@@ -394,6 +394,7 @@ export async function importAppfolioUnits(
   let updated = 0;
   let skipped = 0;
   const errors: string[] = [];
+  const pending: Array<{ line: string; unitNumber: string; record: Record<string, unknown> }> = [];
   for (const u of units) {
     const line = clean(u?.row) || '?';
     const unitNumber = clean(u?.unit_number).slice(0, 40);
@@ -414,18 +415,40 @@ export async function importAppfolioUnits(
     }
     const bedrooms = positive(u.bedrooms, 50);
     const sqft = positive(u.sqft, 1_000_000);
-    const { error: insertErr } = await db.from('units').insert({
-      building_id: building.id,
-      unit_number: unitNumber,
-      ownership_pct: pct ?? 0,
-      sqft: sqft === null ? null : Math.round(sqft),
-      bedrooms: bedrooms === null ? null : Math.round(bedrooms),
-      bathrooms: positive(u.bathrooms, 50),
-      address_override: clean(u.address).slice(0, 300) || null,
+    pending.push({
+      line,
+      unitNumber,
+      record: {
+        building_id: building.id,
+        unit_number: unitNumber,
+        ownership_pct: pct ?? 0,
+        sqft: sqft === null ? null : Math.round(sqft),
+        bedrooms: bedrooms === null ? null : Math.round(bedrooms),
+        bathrooms: positive(u.bathrooms, 50),
+        address_override: clean(u.address).slice(0, 300) || null,
+      },
     });
-    if (insertErr) { skipped++; errors.push(`Line ${line} (${unitNumber}): ${insertErr.message}`); continue; }
     have.set(key, { id: '', pct: pct ?? 0 });
-    imported++;
+  }
+
+  // New units go in batches (a large property in one request would otherwise
+  // be thousands of round trips); a batch that fails is retried row by row so
+  // the error names the line.
+  for (let i = 0; i < pending.length; i += 200) {
+    const batch = pending.slice(i, i + 200);
+    const { error: batchErr } = await db.from('units').insert(batch.map((p) => p.record));
+    if (!batchErr) { imported += batch.length; continue; }
+    for (const p of batch) {
+      const { error: rowErr } = await db.from('units').insert(p.record);
+      if (rowErr) {
+        skipped++;
+        errors.push(`Line ${p.line} (${p.unitNumber}): ${rowErr.message}`);
+        const k = p.unitNumber.toLowerCase();
+        if (have.get(k)?.id === '') have.delete(k);
+      } else {
+        imported++;
+      }
+    }
   }
 
   // Ownership shares should total 100% across the association (assessments
