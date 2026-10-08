@@ -25,8 +25,13 @@ export async function syncMaintenanceCalendarEvent(
   // The event belongs to the association's company (the caller's company is
   // wrong when a platform operator works on a client's task).
   if (assocId) {
-    const { data: assoc } = await db.from('associations').select('portfolio_id').eq('id', assocId).maybeSingle();
-    if (assoc?.portfolio_id) portfolioId = assoc.portfolio_id;
+    const { data: assoc, error: assocError } = await db.from('associations').select('portfolio_id').eq('id', assocId).maybeSingle();
+    // Never fall back to the caller's company: the event would be filed
+    // under the wrong one.
+    if (assocError || !assoc?.portfolio_id) {
+      redirect(`/maintenance?tab=tasks&error=${encodeURIComponent('The task was saved, but its calendar event could not be created: the association\'s company could not be loaded.')}`);
+    }
+    portfolioId = assoc.portfolio_id;
   }
   const eventType = MAINTENANCE_CATEGORY_EVENT_TYPE[category] || 'custom_event';
   // 9 AM-5 PM in the association's time zone (raw "T09:00" strings were read

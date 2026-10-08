@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { createHash } from 'node:crypto';
 import { emailQueueRow } from '@/lib/email/queue';
 import { primaryVendorEmail } from '@/lib/vendors/contact';
 import { claimSubmission, releaseSubmission } from '@/lib/forms/submission';
@@ -12,6 +13,10 @@ const str = (f: FormData, k: string) => {
   const v = f.get(k);
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
 };
+// Short digest of a message's subject and body, for its idempotency key.
+const contentKey = (subject: string, body: string) =>
+  createHash('sha256').update(`${subject}\u0000${body}`).digest('hex').slice(0, 16);
+
 const req = (f: FormData, k: string) => {
   const v = str(f, k);
   if (!v) throw new Error(`${k} is required`);
@@ -229,7 +234,9 @@ export async function sendBulkComms(formData: FormData) {
         fromName: companyName,
         replyTo: company?.support_email?.trim() || null,
         sentBy: me.auth_user_id,
-        idempotencyKey: `vendor-bulk:${token}:${r.vendorId}`,
+        // The content is part of the key: a retry of the same message is
+        // skipped, an edited one is a new message (and logged as such).
+        idempotencyKey: `vendor-bulk:${token}:${r.vendorId}:${contentKey(personalizedSubject, personalizedBody)}`,
       }));
 
       emailCount++;
@@ -252,29 +259,34 @@ export async function sendBulkComms(formData: FormData) {
   }
 
   // ── Batch insert ──
-  // Emails first: their idempotency key makes a retry after a partial failure
-  // queue each vendor's email once, and the log is written only after they
-  // are queued, so a retry doesn't log the same messages twice.
-  if (emailRows.length > 0) {
-    const { error: emailErr } = await db.from('email_queue')
-      .upsert(emailRows, { onConflict: 'idempotency_key', ignoreDuplicates: true });
-    if (emailErr) {
+  // Log first, then queue each email linked to its log row, so the log
+  // records exactly what was queued. If queuing fails (one statement: none
+  // were queued), the log rows are marked failed and the claim released, so
+  // the form can be sent again and logs again what it then sends.
+  let messageIds: string[] = [];
+  if (commRows.length > 0) {
+    const { data: logged, error: commErr } = await db.from('communication_messages').insert(commRows).select('id');
+    if (commErr || (logged ?? []).length !== commRows.length) {
       await releaseSubmission(db, token);
-      return { success: false, error: `Failed to queue emails: ${emailErr.message}` };
+      return { success: false, error: `Failed to log communications: ${commErr?.message ?? 'not every message was recorded'}` };
     }
+    messageIds = (logged ?? []).map((m: { id: string }) => m.id);
+    queued += commRows.length;
   }
 
-  if (commRows.length > 0) {
-    const { error: commErr } = await db.from('communication_messages').insert(commRows);
-    // The emails are queued. Release the claim so the same form can be sent
-    // again to write the log: it keeps this token, so the emails' idempotency
-    // keys (vendor-bulk:<token>:<vendor>) stop them being queued twice. The
-    // log insert is one statement, so a failure left no rows to duplicate.
-    if (commErr) {
+  if (emailRows.length > 0) {
+    // Bulk SMS is refused above, so every log row is an email row, in order.
+    const linked = emailRows.map((row, i) => ({ ...row, communication_message_id: messageIds[i] ?? null }));
+    const { error: emailErr } = await db.from('email_queue')
+      .upsert(linked, { onConflict: 'idempotency_key', ignoreDuplicates: true });
+    if (emailErr) {
+      const { error: markErr } = await db.from('communication_messages').update({ status: 'failed' }).in('id', messageIds);
       await releaseSubmission(db, token);
-      return { success: false, error: `The emails were queued, but logging them failed: ${commErr.message}. Send again to record them; vendors won't get a second email.` };
+      return {
+        success: false,
+        error: `Failed to queue emails: ${emailErr.message}${markErr ? ` (their log entries could not be marked failed: ${markErr.message})` : ''}. Nothing was sent; you can send again.`,
+      };
     }
-    queued += commRows.length;
   }
 
   // Revalidate paths

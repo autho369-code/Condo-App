@@ -23,6 +23,7 @@ async function isAssociationOwner(sb: any, associationId: string, ownerId: strin
     .from('occupancies')
     .select('owner_id, units!inner(id, buildings!inner(association_id))')
     .eq('status', 'current')
+    .eq('occupancy_type', 'owner')
     .eq('owner_id', ownerId)
     .eq('units.buildings.association_id', associationId)
     .limit(1);
@@ -53,6 +54,7 @@ export default async function CommitteesTab({
     .from('occupancies')
     .select('owner_id, owners(id, full_name), units!inner(id, buildings!inner(association_id))')
     .eq('status', 'current')
+    .eq('occupancy_type', 'owner')
     .eq('units.buildings.association_id', id);
   const ownerOptions: { id: string; name: string }[] = [];
   const seenOwners = new Set<string>();
