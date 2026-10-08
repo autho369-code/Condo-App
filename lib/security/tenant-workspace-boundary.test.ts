@@ -28,6 +28,17 @@ describe('tenant workspace boundary wiring', () => {
     expect(login).toContain('await supabase.auth.signOut()');
   });
 
+  it("keeps the platform's marketing and site files off company addresses", () => {
+    expect(middleware).toMatch(/const MARKETING_PATHS = \[[^\]]*'\/demo'[^\]]*'\/legal'/);
+    for (const path of ['/sitemap.xml', '/llms.txt', '/api/demo-request', '/api/piper', '/report-card.html']) {
+      expect(middleware).toMatch(new RegExp(`PLATFORM_ONLY_PATHS = \\[[^\\]]*'${path.replace(/[/.]/g, '\\$&')}'`));
+    }
+    expect(middleware).toContain("'User-agent: *\\nDisallow: /\\n'");
+    // .html must reach middleware, and the platform's own page stays public there.
+    expect(middleware).not.toMatch(/matcher:.*\|html\)/);
+    expect(middleware).toMatch(/const PUBLIC_ASSETS = \[[^\]]*'\/report-card\.html'/);
+  });
+
   it('allows tenant auth callbacks and collision-safe slug provisioning', () => {
     expect(config).toContain('https://*.portier369.com/**');
     expect(migration).toContain('pg_advisory_xact_lock');

@@ -9,8 +9,11 @@ import { requiresMfa } from '@/lib/auth/mfa-policy'
 import { blocksOperatorWrite } from '@/lib/auth/operator-writes'
 
 const APEX_DOMAIN = apexDomain()
-const MARKETING_PATHS = ['/pricing', '/features', '/company', '/report-card', '/local', '/hoa-laws', '/contact', '/compare', '/customers', '/onboarding', '/ai-receptionist', '/professional-services']
-const PUBLIC_ASSETS = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/llms.txt', '/11d6c6528609b3874d201bf3145e294c.txt']
+const MARKETING_PATHS = ['/pricing', '/features', '/company', '/report-card', '/local', '/hoa-laws', '/contact', '/compare', '/customers', '/onboarding', '/ai-receptionist', '/professional-services', '/demo', '/legal']
+// The platform's own site files and marketing APIs: never served on a
+// company's address (white label; a company's portal is not the platform).
+const PLATFORM_ONLY_PATHS = ['/sitemap.xml', '/llms.txt', '/11d6c6528609b3874d201bf3145e294c.txt', '/api/demo-request', '/api/piper', '/report-card.html']
+const PUBLIC_ASSETS = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/llms.txt', '/11d6c6528609b3874d201bf3145e294c.txt', '/report-card.html']
 const PUBLIC_ASSET_PREFIXES = ['/icon', '/apple-icon', '/opengraph-image', '/manuals/']
 const INTERNAL_TENANT_HEADERS = [
   'x-portier-client-address',
@@ -136,6 +139,15 @@ export async function middleware(request: NextRequest) {
     setEncodedHeader(requestHeaders, 'x-portfolio-support-phone', tenantPortfolio.support_phone)
     setEncodedHeader(requestHeaders, 'x-portfolio-website', tenantPortfolio.public_website)
     response = NextResponse.next({ request: { headers: requestHeaders } })
+
+    // A company's address is its portal: keep it out of search engines and
+    // don't serve the platform's sitemap, llms.txt or marketing APIs there.
+    if (pathname === '/robots.txt') {
+      return new NextResponse('User-agent: *\nDisallow: /\n', { headers: { 'content-type': 'text/plain; charset=utf-8' } })
+    }
+    if (PLATFORM_ONLY_PATHS.includes(pathname)) {
+      return new NextResponse('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } })
+    }
 
     if ((isMarketingPath || pathname === '/signup') && !isPublicAsset) {
       const url = request.nextUrl.clone()
@@ -266,5 +278,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|html)$).*)'],
+  // .html goes through: public/report-card.html is the platform's and must not
+  // open on a company's address.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }

@@ -7,7 +7,7 @@ import { Input, Label } from '@/components/ui/input';
 import { queueEmails } from '@/lib/email/queue';
 import { consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
 import { resolvedTenantUrl, tenantWorkspaceUrl } from '@/lib/tenant/host';
-import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { NEUTRAL_COMPANY_NAME, tenantFromHeaders } from '@/lib/tenant/resolve';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { siteUrl } from '@/lib/url/site-url';
 import { cache } from 'react';
@@ -114,7 +114,7 @@ async function acceptInvite(formData: FormData) {
 
   const queued = await queueEmails(svc, [{
     to: invite.email,
-    subject: `Verify your ${invite.portfolios?.company_name || 'Portier369'} account`,
+    subject: `Verify your ${invite.portfolios?.company_name || NEUTRAL_COMPANY_NAME} account`,
     text: [
       'Your password was saved, but your account is not active yet.',
       '',
@@ -145,10 +145,12 @@ async function acceptInvite(formData: FormData) {
 
 }
 
-function Shell({ title, brand, children }: { title: string; brand?: string | null; children: React.ReactNode }) {
-  // White label: show the inviting client company's name once the invitation
-  // is known; the platform name only before that.
-  const name = brand?.trim() || 'Portier369';
+async function Shell({ title, brand, children }: { title: string; brand?: string | null; children: React.ReactNode }) {
+  // White label: the inviting company's name once the invitation is known,
+  // else the company whose address this is; the platform name only on the
+  // platform's own address.
+  const tenant = tenantFromHeaders(await headers());
+  const name = brand?.trim() || tenant?.companyName || 'Portier369';
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f6f7f9] px-4">
       <div className="w-full max-w-md rounded-2xl border border-gray-200/80 bg-white p-8 shadow-[0_1px_3px_rgba(16,24,40,0.06),0_8px_24px_-12px_rgba(16,24,40,0.12)]">

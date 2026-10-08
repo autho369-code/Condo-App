@@ -2,6 +2,7 @@ import Sidebar from '@/components/nav/sidebar'
 import { ownerModules } from '@/lib/navigation/role-modules'
 import { requireOwner } from '@/lib/auth/me'
 import { workspaceMetadata } from '@/lib/tenant/metadata'
+import { NEUTRAL_COMPANY_NAME } from '@/lib/tenant/neutral-name';
 
 export const generateMetadata = workspaceMetadata
 
@@ -14,7 +15,7 @@ export default async function PortalLayout({ children }: { children: React.React
   return (
     <div className="flex min-h-screen">
       <Sidebar
-        portfolioName={me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier369'}
+        portfolioName={me.portfolio?.company_name ?? me.portfolio?.name ?? NEUTRAL_COMPANY_NAME}
         logoUrl={me.portfolio?.logo_url ?? null}
         userEmail={me.email ?? undefined}
         modules={modules}

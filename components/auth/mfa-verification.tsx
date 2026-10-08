@@ -36,8 +36,11 @@ export function MfaVerification({
   required,
   manage = false,
   initialError,
+  issuerName,
 }: {
   next: string;
+  /** The name the authenticator app shows: the user's company (white label). */
+  issuerName: string;
   required: boolean;
   manage?: boolean;
   initialError?: string | null;
@@ -134,7 +137,8 @@ export function MfaVerification({
 
     const result = await supabase.auth.mfa.enroll({
       factorType: 'totp',
-      friendlyName: 'Portier369 Authenticator',
+      friendlyName: `${issuerName} authenticator`,
+      issuer: issuerName,
     });
     if (result.error) {
       setError(result.error.message || 'We could not start authenticator setup.');
@@ -262,7 +266,7 @@ export function MfaVerification({
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
             <Image
               src={enrollment.qrCode}
-              alt="QR code for Portier369 authenticator setup"
+              alt="QR code for authenticator setup"
               width={208}
               height={208}
               unoptimized

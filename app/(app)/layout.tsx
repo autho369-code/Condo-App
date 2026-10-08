@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const h = await headers();
   const tenant = tenantFromHeaders(h);
   const tenantName = tenant && tenant.companyName !== NEUTRAL_COMPANY_NAME ? tenant.companyName : null;
-  const displayName = tenantName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? tenant?.companyName ?? 'Portier369';
+  const displayName = tenantName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? tenant?.companyName ?? NEUTRAL_COMPANY_NAME;
   const logoUrl = tenant?.logoUrl ?? me.portfolio?.logo_url ?? null;
   const brandColor = tenant?.brandColor ?? me.portfolio?.brand_color ?? '#10B981';
   // /settings is company-admin/operator only (requirePortfolioAdmin), so plain

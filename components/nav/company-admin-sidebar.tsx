@@ -26,6 +26,7 @@ import {
   LogOut,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { NEUTRAL_COMPANY_NAME } from '@/lib/tenant/neutral-name';
 
 export interface MeResult {
   auth_user_id: string | null
@@ -76,7 +77,7 @@ export default function CompanyAdminSidebar({ me }: { me: MeResult }) {
     router.push('/login')
   }
 
-  const companyName = me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier369'
+  const companyName = me.portfolio?.company_name ?? me.portfolio?.name ?? NEUTRAL_COMPANY_NAME
   const userEmail = me.email ?? ''
 
   const sidebarContent = (

@@ -36,7 +36,7 @@ export default async function SendEmailPage({
     (supabase as any).from('profiles').select('email, full_name').eq('id', me.auth_user_id ?? '').maybeSingle(),
   ]);
 
-  const fromEmail = profile?.email ?? me.email ?? 'hello@portier369.com';
+  const fromEmail = profile?.email ?? me.email ?? me.portfolio?.support_email ?? '';
   const preAssoc = sp.association ?? '';
   const returnTo = safeInternalNext(sp.return_to);
   const closeHref = returnTo ?? '/associations';
