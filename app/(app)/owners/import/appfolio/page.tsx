@@ -12,6 +12,8 @@ import { importAppfolioReceivables } from './receivables-actions';
 import { ReceivablesImportSection } from './receivables-section';
 import { importAppfolioVendors } from './vendor-actions';
 import { VendorImportSection } from './vendor-section';
+import { importAppfolioWorkOrders } from './work-order-actions';
+import { WorkOrderImportSection } from './work-order-section';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +32,7 @@ export default async function AppfolioImportPage() {
   return (
     <DataWorkspace
       title="Import from AppFolio"
-      description="Bring associations over from AppFolio's own report exports, in this order: units, chart of accounts, vendors, open balances, then the trial balance tie-out. Nothing is saved until you review the preview and choose Import."
+      description="Bring associations over from AppFolio's own report exports, top to bottom: units, chart of accounts, vendors, open balances and work orders. Tie out the trial balance last. Nothing is saved until you review the preview and choose Import."
       actions={<Link href="/owners/import"><Button variant="secondary">Other imports</Button></Link>}
     >
       <div className="max-w-5xl space-y-8">
@@ -44,6 +46,7 @@ export default async function AppfolioImportPage() {
         )}
         <VendorImportSection importVendors={importAppfolioVendors} />
         {canFinance && <ReceivablesImportSection associations={associations} importReceivables={importAppfolioReceivables} />}
+        <WorkOrderImportSection associations={associations} importWorkOrders={importAppfolioWorkOrders} />
       </div>
     </DataWorkspace>
   );
