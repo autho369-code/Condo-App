@@ -77,3 +77,7 @@
   schema-checker is required even when the caller only ran security +
   white-label. Run `npm test` (static select check) and confirm the FK in
   schema-foreign-keys.json for each embed.
+- When a PR fixes a gap a reviewer had recorded, check that reviewer's memory
+  line is updated to "fixed in <migration/PR>", not left saying the hole is
+  open (2026-10-08 property-group PR: security-reviewer memory still said "no
+  DB trigger backs it" while 20261008030000 adds it).

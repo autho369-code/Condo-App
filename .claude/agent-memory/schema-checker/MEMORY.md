@@ -32,3 +32,6 @@
 
 ## Enum/status quick refs
 - `occupancies.status` is enum `occupancy_status` ('current','future',...); `tenants.status` CHECK ('active','ended'); `tenants.archived_at` exists. `occupancies.association_id` -> associations FK (embed `associations(portfolio_id)` ok). `document_templates.portfolio_id` NOT NULL. (2026-10-08, occupancy-actions recipient-company change clean.)
+
+## Cross-company FK checks
+- `associations.property_group_id` -> property_groups FK accepts any company's group; app checks `property_groups.select('id').eq('id').eq('portfolio_id')` (read policy `property_groups_staff_read` = can_access_portfolio) and migration 20261008030000 adds trigger `associations_property_group_same_company` (errcode 23503). No new columns. (2026-10-08, associations/new + lib/rpcs/entities.ts createBuilding clean.)

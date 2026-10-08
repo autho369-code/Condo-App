@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #250).
+Back to [[Home]]. Updated 2026-10-08 (after #251).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,7 +12,13 @@ Back to [[Home]]. Updated 2026-10-08 (after #250).
   pilot).
 
 ## Open PR
-- Open: letters a
+- Open: a property group must be
+  the association's company's: checked in associations/new and createBuilding
+  (before any write; createBuilding's group update fails loudly), enforced by
+  a trigger on associations and on moving a group between companies, and the
+  group directory report counts only the company's associations. Migration
+  20261008030000 (apply after merge).
+- #251 merged (331d709); no migration. Letters a
   platform operator sends from a client's template carry no from name (queue
   brands the template's company) and reply to that company; owner/resident
   reset + resident invite use the recipient's company (slug, name, reply-to;
@@ -84,22 +90,18 @@ Back to [[Home]]. Updated 2026-10-08 (after #250).
 
 ## Next gaps (pick up here, top first)
 Found 2026-10-08 by the overseer + a security-reviewer audit.
-1. `property_group_id` from the form isn't checked against the association's
-   company (`lib/rpcs/entities.ts` ~424-428, `associations/new/page.tsx`
-   ~116); the update has no `.select()` check. Pin like
-   `lib/rpcs/property-groups.ts:57`.
-2. Portier369 marketing still opens on company addresses: `/demo`, `/legal/*`
+1. Portier369 marketing still opens on company addresses: `/demo`, `/legal/*`
    (and `/api/demo-request`) aren't in middleware `MARKETING_PATHS`;
    `app/robots.ts` always points at portier369.com; `public/llms.txt` served
    on custom domains.
-3. Platform name in client-facing fallbacks: `lib/auth/login-errors.ts:16`
+2. Platform name in client-facing fallbacks: `lib/auth/login-errors.ts:16`
    ("Contact Portier369 support" for suspended companies), `?? 'Portier369'`
    in board/vendor/portal/resident/company-admin layouts, sidebars,
    `app/invite/page.tsx` (email subject) -> `NEUTRAL_COMPANY_NAME`.
-4. `rescheduleReminders` (`lib/rpcs/calendar.ts` ~260-269) ignores errors and
+3. `rescheduleReminders` (`lib/rpcs/calendar.ts` ~260-269) ignores errors and
    0-row updates: event moves, reminders keep old times, user sees "saved".
-5. Inspection "create work order" (`app/(app)/inspections/[id]/page.tsx`
+4. Inspection "create work order" (`app/(app)/inspections/[id]/page.tsx`
    ~130-147) can create duplicate work orders on a double submit
    (unconditional link update, no `.select()`).
-6. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
+5. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
    forms.
