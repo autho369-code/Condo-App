@@ -53,5 +53,6 @@
 - `app/(app)/associations/[id]/profile/page.tsx` is `requireStaff` + `(app)/layout.tsx` bounces non-staff; portfolio slug/custom_domain are public addresses, not secrets. Report-link embed (2026-10-08) clean.
 
 ## Concurrency guards (2026-10-08)
+- Missed (Codex, PR #249): a compare-and-set guard is only idempotent if the expected value comes from what the page rendered (hidden field like `seen_completed_at`, or a version), never from a fresh read inside the action. Re-reading lets a late duplicate or stale-page submit see the advanced row and complete the next occurrence too. Seen `app/(app)/maintenance/page.tsx` completeTask.
 - Guarded updates (`.eq(col, readValue)` / `.neq('status', x)` + `.select('id')`) stop double submits only when the write changes the guarded value; a no-op step (e.g. `nextDue === due`) or a nullable status column (`neq` drops NULL rows) weakens them. `maintenance_tasks.status` is nullable text (active/paused/completed), `next_due_date` is `date`. Seen `app/(app)/maintenance/page.tsx` completeTask.
 - maintenance_tasks, calendar_events carry RESTRICTIVE `mgr_assoc_scope` (all commands); `maintenance_task_history` policy requires `can_access_association` of the parent task + `completed_by = auth.uid()`. No extra `managesAssociation` needed for user-session writes there.
