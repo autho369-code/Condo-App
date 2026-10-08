@@ -31,7 +31,7 @@ type Props = {
     associationId: string,
     asOf: string,
     items: ReceivableImportItem[],
-    options?: { confirmDuplicate?: boolean },
+    options?: { confirmDuplicate?: boolean; complete?: boolean },
   ) => Promise<ReceivablesImportSummary>;
 };
 
@@ -79,11 +79,14 @@ function AssociationCard({
   asOf,
   associations,
   importReceivables,
+  complete,
 }: {
   group: AppfolioReceivableAssociation;
   asOf: string;
   associations: Association[];
   importReceivables: Props['importReceivables'];
+  /** Every row of the file was read and it ties to its own total. */
+  complete: boolean;
 }) {
   const selectId = React.useId();
   const [associationId, setAssociationId] = React.useState(() => suggestAssociation(group.name, associations));
@@ -110,7 +113,7 @@ function AssociationCard({
       const items: ReceivableImportItem[] = group.items.map((i) => ({
         row: i.row, unit_number: i.unit_number, charge_date: i.charge_date, gl_name: i.gl_name, amount: i.amount,
       }));
-      setResult(await importReceivables(associationId, asOf, items, { confirmDuplicate }));
+      setResult(await importReceivables(associationId, asOf, items, { confirmDuplicate, complete }));
     } catch (e) {
       setFailure(e instanceof Error ? e.message : 'The import failed. Try again.');
     } finally {
@@ -340,6 +343,7 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
           asOf={asOf}
           associations={associations}
           importReceivables={importReceivables}
+          complete={!parsed?.problems?.length && Boolean(tiesOut)}
         />
       ))}
     </div>

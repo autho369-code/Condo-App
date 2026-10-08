@@ -72,7 +72,11 @@ export async function importAppfolioReceivables(
   associationId: string,
   asOf: string,
   items: ReceivableImportItem[],
-  options: { confirmDuplicate?: boolean } = {},
+  /**
+   * complete: the browser read every row of the file and it ties to its own total. Only then
+   * are earlier items missing from this file reported (a row the parser skipped is not "gone").
+   */
+  options: { confirmDuplicate?: boolean; complete?: boolean } = {},
 ): Promise<ReceivablesImportSummary> {
   await requireFinanceStaff();
   const supabase = await createClient();
@@ -236,15 +240,18 @@ export async function importAppfolioReceivables(
         if (amounts && amounts.length) {
           const before = amounts.shift()! / 100;
           skipped++;
-          changed.push(`Line ${c.line} (${c.unitNumber}): ${c.description.slice(MEMO_PREFIX.length).trim()} was imported earlier as ${usd(before)} and is ${usd(c.amount)} in this file. Not posted again; adjust the unit's balance by hand if the change is real.`);
+          changed.push(`Line ${c.line} (${c.unitNumber}): ${c.description.slice(MEMO_PREFIX.length).trim()} was imported earlier as ${usd(before)} and is ${usd(c.amount)} in this file. Not posted again; compare the unit's current balance with AppFolio (Import Variances report) before changing it.`);
         } else work.push(c);
       }
 
       // Items imported earlier that this file no longer lists (paid in full or removed in
-      // AppFolio; a fully paid item drops out of the report): the file is the association's
-      // whole snapshot, so their posted amounts no longer reflect what is owed.
+      // AppFolio; a fully paid item drops out of the report). Only for a complete file: the
+      // page sends the association's whole snapshot, but a row the parser could not read
+      // would otherwise look paid.
       const gone = new Map<string, { count: number; amount: number }>();
+      let goneUnchecked = 0;
       for (const [key, amounts] of already) {
+        if (amounts.length && options.complete !== true) { goneUnchecked += amounts.length; continue; }
         if (!amounts.length) continue;
         const unitId = key.slice(0, key.indexOf('|'));
         const g = gone.get(unitId) ?? { count: 0, amount: 0 };
@@ -254,7 +261,10 @@ export async function importAppfolioReceivables(
       }
       for (const [unitId, g] of gone) {
         const unitNumber = unitNumberById.get(unitId);
-        changed.push(`${unitNumber ? `Unit "${unitNumber}"` : 'An archived unit'}: ${g.count} item${g.count === 1 ? '' : 's'} imported earlier (${usd(g.amount)}) ${g.count === 1 ? 'is' : 'are'} no longer in this file (paid or removed in AppFolio). Adjust the unit's balance by hand.`);
+        changed.push(`${unitNumber ? `Unit "${unitNumber}"` : 'An archived unit'}: ${g.count} item${g.count === 1 ? '' : 's'} imported earlier (${usd(g.amount)}) ${g.count === 1 ? 'is' : 'are'} no longer in this file (paid or removed in AppFolio). Compare the unit's current balance with AppFolio (Import Variances report) before changing it.`);
+      }
+      if (goneUnchecked) {
+        changed.push(`${goneUnchecked} item${goneUnchecked === 1 ? '' : 's'} imported earlier ${goneUnchecked === 1 ? 'is' : 'are'} not in this file, but the file had rows that could not be read or does not tie to its total, so ${goneUnchecked === 1 ? 'it was' : 'they were'} not checked.`);
       }
 
       let imported = 0;
