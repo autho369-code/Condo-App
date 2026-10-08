@@ -12,14 +12,20 @@ Back to [[Home]]. Updated 2026-10-08 (after #256).
   pilot).
 
 ## Open PR
-- In progress: AppFolio importer, step 1 (units). `/owners/import/appfolio`
-  reads AppFolio's Unit Directory export (grouped by property or flat with a
-  Property Name column; parser `lib/imports/appfolio.ts`, tested on Mirsad's
-  real export in `tests/fixtures/appfolio/`), previews per association,
-  suggests the matching Portier association, creates missing units and fills
-  ownership % (Mirsad: "we need unit percentage") on existing 0% units only;
-  warns when shares don't total 100%. Next exports: Owner Directory, Aged
-  Receivables/ledger, Chart of Accounts + Trial Balance, Vendors, Work Orders.
+- Open PR: AppFolio importer (one page, `/owners/import/appfolio`), built
+  from Mirsad's real exports/screenshots: units + ownership % (Unit
+  Directory), chart of accounts + read-only trial balance tie-out, vendors
+  (Vendor Directory), open balances (Aged Receivable Detail -> opening
+  charges + imported_balances), work orders (dedupe by "AppFolio WO #n"
+  description prefix). Parsers in `lib/imports/appfolio*.ts`. Chart, open
+  balances and tie-out are finance-staff only. Migration 20261008070000:
+  Import Variances sums imported rows per unit + as-of date (per-item
+  receivables imports no longer show false variances). Apply after merge.
+  Known limits: credits not imported (charges must be >= 0); trial balance
+  sign assumed debit-positive (confirm on a real export); work-order insert
+  fires the work_order.created webhook per row if a company subscribed.
+  Homeowners: AppFolio's Owner Directory lists associations, not
+  homeowners - still to do (use the existing CSV owner import meanwhile).
 - #256 merged (7b37b23); migration 20261008060000 applied and verified (7
   SETOF uuid identity helpers are PL/pgSQL, SECURITY DEFINER, search_path
   kept). Live timings for 30 tables per role, original -> now: board
@@ -120,11 +126,10 @@ Back to [[Home]]. Updated 2026-10-08 (after #256).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-0. AppFolio importer: waiting on Mirsad's AppFolio CSV exports (unit
-   directory, owner directory, vendor directory, work orders, aged
-   receivables / owner ledgers, chart of accounts, trial balance) so headers
-   are matched exactly, not guessed. Existing importers: owners+units,
-   opening balances, journal entries, bills. Then: Stripe live for one
+0. AppFolio importer follow-ups: homeowners (find the AppFolio report that
+   lists unit owners - not Owner Directory), credit balances, confirm the
+   trial balance sign on a real export. Don't ask Mirsad for more files -
+   build from what's in the repo. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
    step would be per-request identity caching (riskier, measure first).
