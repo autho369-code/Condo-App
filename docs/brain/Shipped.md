@@ -4,6 +4,9 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-08
+- #248 (merged be2f13b; no migration): association profile shows the
+  public violation-report link on the company's own address with a shared
+  `CopyButton`; warns when the company has no workspace address.
 - #247 (merged 9d7f1e8; no migration): `/sign/[token]` and
   `/vendor-upload/[token]` treat another company's token as invalid on a
   company's address and move to the company's address from the platform
