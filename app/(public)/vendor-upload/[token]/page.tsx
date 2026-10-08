@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { CheckCircle2, Upload } from 'lucide-react';
 import { Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { Field, Input } from '@/components/ui/input';
 import { consumePublicRateLimit } from '@/lib/server/rate-limit';
 import { hashSigningToken, isWellFormedToken } from '@/lib/signatures/crypto';
 import { createServiceClient } from '@/lib/supabase/server';
+import { companyAddressOf, companyAddressRedirect, noticeQuery, tokenMatchesAddress } from '@/lib/tenant/token-company';
 import { vendorDocExpires, vendorDocLabel } from '@/lib/vendors/document-requests';
 import { submitVendorUpload } from './actions';
 
@@ -38,11 +40,14 @@ export default async function VendorUploadPage({
   if (!isWellFormedToken(token)) return invalid;
 
   const svc = createServiceClient() as any;
-  const limit = await consumePublicRateLimit(svc, await headers(), { scope: 'vendor_upload_view', windowSeconds: 600, maxRequests: 60 });
+  const h = await headers();
+  const limit = await consumePublicRateLimit(svc, h, { scope: 'vendor_upload_view', windowSeconds: 600, maxRequests: 60 });
   if (!limit.allowed) return <Shell><Alert tone="warning">Too many requests. Please wait a few minutes and reload.</Alert></Shell>;
 
   const { data: r } = await svc.rpc('vendor_request_session', { p_token_hash: hashSigningToken(token) });
-  if (!r) return invalid;
+  if (!r || !tokenMatchesAddress(h, r.portfolio_id)) return invalid;
+  const move = companyAddressRedirect(h, await companyAddressOf(svc, r.portfolio_id), `/vendor-upload/${token}${noticeQuery(sp)}`);
+  if (move) redirect(move);
 
   const label = vendorDocLabel(r.doc_type);
   const open = ['requested', 'in_progress', 'rejected'].includes(r.status);

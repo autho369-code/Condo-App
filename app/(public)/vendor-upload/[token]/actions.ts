@@ -7,6 +7,7 @@ import { consumePublicRateLimit } from '@/lib/server/rate-limit';
 import { hashSigningToken, isWellFormedToken } from '@/lib/signatures/crypto';
 import { createServiceClient } from '@/lib/supabase/server';
 import { COMPANY_ADDRESS_COLUMNS, companyUrl } from '@/lib/tenant/host';
+import { tokenMatchesAddress } from '@/lib/tenant/token-company';
 import { vendorDocExpires, vendorDocLabel } from '@/lib/vendors/document-requests';
 
 // Public, token-authenticated upload. The token is the only credential; it is
@@ -24,12 +25,14 @@ export async function submitVendorUpload(formData: FormData) {
   const token = String(formData.get('token') ?? '');
   if (!isWellFormedToken(token)) redirect('/vendor-upload/invalid');
   const svc = createServiceClient() as any;
-  const limit = await consumePublicRateLimit(svc, await headers(), { scope: 'vendor_upload_action', windowSeconds: 600, maxRequests: 10 });
+  const h = await headers();
+  const limit = await consumePublicRateLimit(svc, h, { scope: 'vendor_upload_action', windowSeconds: 600, maxRequests: 10 });
   if (!limit.allowed) back(token, 'error', 'Too many attempts. Please wait a few minutes and try again.');
 
   const hash = hashSigningToken(token);
   const { data: session } = await svc.rpc('vendor_request_session', { p_token_hash: hash });
-  if (!session) back(token, 'error', 'This upload link is not valid.');
+  // A token from another company is not valid on this company's address.
+  if (!session || !tokenMatchesAddress(h, session.portfolio_id)) back(token, 'error', 'This upload link is not valid.');
 
   const file = formData.get('file') as File | null;
   if (!file || file.size === 0) back(token, 'error', 'Choose the file to upload.');

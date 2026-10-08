@@ -3,6 +3,12 @@
 Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
+## 2026-10-08
+- #246 (merged fbad2ae; no migration): `/report-violation`, its submit
+  action and the AI photo route only list and accept the host company's
+  associations (and spend only its AI key); Stripe receipts send in the
+  company's name; public layout falls back to a neutral name.
+
 ## 2026-10-07
 - #245 (merged e25b1d1; migration 20261007100000 applied): delinquency sync
   scoped to the caller's associations; 30 saves that RLS could silently skip

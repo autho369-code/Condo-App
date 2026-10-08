@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-07 (after #245).
+Back to [[Home]]. Updated 2026-10-08 (after #246; token pages PR open).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,7 +12,14 @@ Back to [[Home]]. Updated 2026-10-07 (after #245).
   pilot).
 
 ## Open PR
-- Open: public violation reports scoped to the address's company.
+- Open: token pages belong to one company. `/sign/[token]` and
+  `/vendor-upload/[token]` (pages and actions) treat another company's token
+  as invalid on a company's address (checked before the signing view is
+  recorded); on the platform address they move to the company's own address.
+  Public pages get a neutral title on the platform address, and company
+  pages no longer inherit the root author/creator/description/keywords tags
+  (brandedMetadata clears them). No migration.
+- #246 merged (fbad2ae); no migration. Public violation reports scoped to the address's company.
   `/report-violation`, its submit action and the AI photo route listed and
   accepted every company's associations (and spent any company's AI key);
   now only the host company's (tenantFromHeaders). Stripe receipts no longer
@@ -46,18 +53,11 @@ Back to [[Home]]. Updated 2026-10-07 (after #245).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-1. Public token pages (`/sign/[token]`, `/vendor-upload/[token]`) don't
-   check the token's company against the address (as `/invite` does): a
-   company A link opened on company B's address shows B's header with A's
-   content (mixed branding, phishing risk; no data leak - the token is the
-   credential). Redirect to the right address or show invalid. Also their
-   fixed `metadata.title` reads "... - Portier369" on an address with no
-   company (layout `signInMetadata` should give a neutral template).
-2. Nothing in the app gives a company its public `/report-violation` link
+1. Nothing in the app gives a company its public `/report-violation` link
    (only `lib/server/public-paths.ts`); the page now tells visitors to use
    their management company's link - add a "share this link" spot for
    managers (e.g. association profile or settings).
-3. Leftovers from the silent-save sweep (security review, low):
+2. Leftovers from the silent-save sweep (security review, low):
    `acknowledgeReminder` / `resendMaintenanceNotification` in
    `lib/rpcs/calendar.ts` return `{ error }` (no caller today; redirect if
    ever wired to a form). Maintenance "complete" writes history and the
@@ -68,5 +68,5 @@ Back to [[Home]]. Updated 2026-10-07 (after #245).
    scoped manager's associations; vendor notes are portfolio-level.
    Next: look for the next white-label / sign-in / data-exposure gap with
    the overseer.
-4. Optional: ask whether the remaining reason-required void/cancel forms
+3. Optional: ask whether the remaining reason-required void/cancel forms
    should also confirm.

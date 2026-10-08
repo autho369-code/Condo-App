@@ -20,3 +20,6 @@
 - Nullability: read the `CREATE TABLE` block in the baseline (no `NOT NULL` = nullable), then grep migrations for `alter column <col>` / `set not null`; `lib/types/database.ts` Insert types (`col?: T | null`) confirm it fast.
 - `email_queue.from_name = null` is the white-label path: `app/api/email/process-queue/route.ts` fills the company name/sender when `portfolio_id` is set and `from_name` is blank (e.g. app/api/stripe/webhook/route.ts:81, 2026-10-07).
 - When a `select('*')` is narrowed to explicit columns, compare against the consumer's TS interface and every `r.<field>` it reads (e.g. house_rules in app/(public)/report-violation/page.tsx vs report-violation-form.tsx `HouseRule`).
+
+## Public token pages
+- Token lookups: `signature_signers.token_hash` and `document_request_links.token_hash` are UNIQUE (so `.maybeSingle()` is safe); hex digest from `hashSigningToken` is lowercase, matching the RPCs' `lower(p_token_hash)`. `vendor_request_session` jsonb includes `portfolio_id` (20260929220000). Company lookup helpers live in `lib/tenant/token-company.ts` (2026-10-08, all clean).

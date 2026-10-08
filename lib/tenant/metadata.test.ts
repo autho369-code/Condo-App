@@ -21,6 +21,10 @@ describe('brandedMetadata', () => {
   it("titles the pages with the company's name", async () => {
     const { brandedMetadata } = await import('./metadata');
     expect(brandedMetadata(' Stellar Property Group ')).toMatchObject({
+      description: null,
+      keywords: null,
+      authors: null,
+      creator: null,
       title: { template: '%s · Stellar Property Group', default: 'Stellar Property Group' },
       applicationName: 'Stellar Property Group',
       appleWebApp: { title: 'Stellar Property Group' },

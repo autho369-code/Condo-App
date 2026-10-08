@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { CheckCircle2, FileText, ShieldCheck } from 'lucide-react';
 import { Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { Input, Textarea } from '@/components/ui/input';
 import { clientAddress, consumePublicRateLimit } from '@/lib/server/rate-limit';
 import { SIGNATURE_BUCKET, hashSigningToken, isWellFormedToken } from '@/lib/signatures/crypto';
 import { createServiceClient } from '@/lib/supabase/server';
+import { companyAddressOf, companyAddressRedirect, noticeQuery, signingTokenPortfolio, tokenMatchesAddress } from '@/lib/tenant/token-company';
 import { declineDocument, signDocument } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -45,8 +47,15 @@ export default async function SignPage({
     return <Shell><Alert tone="warning">Too many requests. Please wait a few minutes and reload.</Alert></Shell>;
   }
 
+  // The token's company before signature_session, which records a view.
+  const tokenHash = hashSigningToken(token);
+  const portfolioId = await signingTokenPortfolio(service, tokenHash);
+  if (!portfolioId || !tokenMatchesAddress(h, portfolioId)) return invalid;
+  const move = companyAddressRedirect(h, await companyAddressOf(service, portfolioId), `/sign/${token}${noticeQuery(sp)}`);
+  if (move) redirect(move);
+
   const { data: session } = await service.rpc('signature_session', {
-    p_token_hash: hashSigningToken(token),
+    p_token_hash: tokenHash,
     p_ip: clientAddress(h),
     p_user_agent: (h.get('user-agent') ?? 'unknown').slice(0, 400),
   });
