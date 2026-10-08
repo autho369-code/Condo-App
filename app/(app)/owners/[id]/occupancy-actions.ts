@@ -10,12 +10,51 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { queueEmails } from '@/lib/email/queue';
 import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { NEUTRAL_COMPANY_NAME } from '@/lib/tenant/resolve';
+import { hasVisibleText } from '@/lib/company-admin/settings';
 import { escapeLike } from '@/lib/db/escape-like';
 
 const BUCKET = 'association-documents';
 
 function fail(ownerId: string, message: string): never {
   redirect(`/owners/${ownerId}?error=${encodeURIComponent(message)}`);
+}
+
+/**
+ * The recipient's company (the owner's or resident's portfolio), not the
+ * caller's: a platform operator acting on another company's owner must send
+ * that company's name, reply-to and sign-in address.
+ */
+async function recipientCompany(svc: any, portfolioId: string | null | undefined, ownerId: string) {
+  const { data, error } = portfolioId
+    ? await svc.from('portfolios').select('slug, company_name, support_email').eq('id', portfolioId).maybeSingle()
+    : { data: null, error: null };
+  // Without the company's address the link would point at the platform.
+  if (error || !data?.slug) fail(ownerId, 'Could not load the company for this record. Nothing was sent.');
+  return {
+    slug: (data?.slug as string | null) ?? null,
+    name: hasVisibleText(data?.company_name) ? String(data.company_name).trim() : null,
+    supportEmail: (data?.support_email as string | null) || null,
+  };
+}
+
+/**
+ * The owner's current home at this unit (read with the caller's session, so
+ * RLS applies) and the company it belongs to. New residents and pets take
+ * that company, not the caller's: a platform operator works across companies.
+ */
+async function currentHome(db: any, ownerId: string, unitId: string) {
+  const { data: occ, error } = await db
+    .from('occupancies')
+    .select('association_id, associations(portfolio_id)')
+    .eq('owner_id', ownerId)
+    .eq('unit_id', unitId)
+    .eq('status', 'current')
+    .limit(1)
+    .maybeSingle();
+  const portfolioId = occ?.associations?.portfolio_id as string | undefined;
+  if (error || !occ?.association_id || !portfolioId) return null;
+  return { associationId: occ.association_id as string, portfolioId };
 }
 
 async function uploadDoc(svc: any, tenantKey: string, kind: string, file: File | null): Promise<string | null> {
@@ -45,7 +84,7 @@ export async function saveOwnerEmergencyContact(ownerId: string, formData: FormD
 }
 
 export async function addTenant(ownerId: string, formData: FormData) {
-  const me = await requireStaff();
+  await requireStaff();
   const unitId = formData.get('unit_id') as string;
   const firstName = (formData.get('first_name') as string)?.trim();
   const lastName = (formData.get('last_name') as string)?.trim();
@@ -54,18 +93,9 @@ export async function addTenant(ownerId: string, formData: FormData) {
   const supabase = await createClient();
   const db = supabase as any;
 
-  // Resolve association from the owner's occupancy of this unit
-  const { data: occ, error: occupancyError } = await db
-    .from('occupancies')
-    .select('association_id')
-    .eq('owner_id', ownerId)
-    .eq('unit_id', unitId)
-    .eq('status', 'current')
-    .limit(1)
-    .maybeSingle();
-  if (occupancyError || !occ?.association_id) {
-    fail(ownerId, occupancyError?.message ?? 'The selected unit is not a current home for this owner.');
-  }
+  // Resolve association and company from the owner's occupancy of this unit
+  const home = await currentHome(db, ownerId, unitId);
+  if (!home) fail(ownerId, 'The selected unit is not a current home for this owner.');
 
   const svc = createServiceClient() as any;
   const tenantKey = crypto.randomUUID();
@@ -81,8 +111,8 @@ export async function addTenant(ownerId: string, formData: FormData) {
 
   const { error } = await db.from('tenants').insert({
     id: tenantKey,
-    portfolio_id: me.portfolio?.id,
-    association_id: occ?.association_id ?? null,
+    portfolio_id: home.portfolioId,
+    association_id: home.associationId,
     unit_id: unitId,
     owner_id: ownerId,
     first_name: firstName,
@@ -141,18 +171,29 @@ export async function endTenancy(tenantId: string, ownerId: string) {
 }
 
 export async function addPet(ownerId: string, formData: FormData) {
-  const me = await requireStaff();
+  await requireStaff();
   const unitId = formData.get('unit_id') as string;
   const petType = (formData.get('pet_type') as string)?.trim();
   const name = (formData.get('name') as string)?.trim();
   if (!unitId || !petType || !name) fail(ownerId, 'Unit, pet type, and pet name are required.');
 
   const supabase = await createClient();
-  const { error } = await (supabase as any).from('unit_pets').insert({
-    portfolio_id: me.portfolio?.id,
+  const db = supabase as any;
+  // The unit must be this owner's current home (the ids come from the form),
+  // and a named resident must live there for this owner.
+  const home = await currentHome(db, ownerId, unitId);
+  if (!home) fail(ownerId, 'The selected unit is not a current home for this owner.');
+  const tenantId = (formData.get('tenant_id') as string) || null;
+  if (tenantId) {
+    const { data: resident } = await db.from('tenants').select('id')
+      .eq('id', tenantId).eq('owner_id', ownerId).eq('unit_id', unitId).maybeSingle();
+    if (!resident) fail(ownerId, 'That resident does not live in the selected unit.');
+  }
+  const { error } = await db.from('unit_pets').insert({
+    portfolio_id: home.portfolioId,
     unit_id: unitId,
     owner_id: ownerId,
-    tenant_id: (formData.get('tenant_id') as string) || null,
+    tenant_id: tenantId,
     pet_type: petType,
     name,
     breed: (formData.get('breed') as string)?.trim() || null,
@@ -180,15 +221,19 @@ export async function removePet(petId: string, ownerId: string) {
 
 // ── Vehicles (person-level, independent of parking-space assignment) ──
 export async function addVehicle(ownerId: string, formData: FormData) {
-  const me = await requireStaff();
+  await requireStaff();
   const make = (formData.get('make') as string)?.trim();
   const plate = (formData.get('license_plate') as string)?.trim();
   if (!make && !plate) fail(ownerId, 'Enter at least a make or a license plate.');
 
   const supabase = await createClient();
+  // The vehicle belongs to the owner's company (read with the caller's
+  // session: an owner the caller can't see can't be given a vehicle).
+  const { data: owner } = await (supabase as any).from('owners').select('portfolio_id').eq('id', ownerId).maybeSingle();
+  if (!owner?.portfolio_id) fail(ownerId, 'Owner not found or unavailable.');
   const yearRaw = (formData.get('year') as string)?.trim();
   const { error } = await (supabase as any).from('owner_vehicles').insert({
-    portfolio_id: me.portfolio?.id,
+    portfolio_id: owner.portfolio_id,
     owner_id: ownerId,
     make: make || null,
     model: (formData.get('model') as string)?.trim() || null,
@@ -243,10 +288,11 @@ export async function sendOwnerPasswordReset(ownerId: string) {
     fail(ownerId, 'The owner record must match a verified portal sign-in email before a reset link can be sent.');
   }
 
+  const company = await recipientCompany(svc, owner.portfolio_id, ownerId);
   const { data: linkData, error } = await svc.auth.admin.generateLink({
     type: 'recovery',
     email: verifiedEmail,
-    options: { redirectTo: tenantWorkspaceUrl(me.portfolio?.slug, '/api/auth/callback?next=/reset-password') },
+    options: { redirectTo: tenantWorkspaceUrl(company.slug, '/api/auth/callback?next=/reset-password') },
   });
   if (
     error
@@ -258,7 +304,7 @@ export async function sendOwnerPasswordReset(ownerId: string) {
   }
 
   // White-label: the owner sees their management company as the sender.
-  const companyName = me.portfolio?.company_name ?? 'Your management company';
+  const companyName = company.name ?? NEUTRAL_COMPANY_NAME;
   const queued = await queueEmails(svc, [{
     to: verifiedEmail,
     toName: owner.full_name,
@@ -267,12 +313,12 @@ export async function sendOwnerPasswordReset(ownerId: string) {
       `Hello${owner.full_name ? ` ${owner.full_name}` : ''},`,
       '',
       `${companyName} sent you a link to reset your owner-portal password:`,
-      verifiedAuthLink(linkData, tenantWorkspaceUrl(me.portfolio?.slug, '/api/auth/callback?next=/reset-password'), 'recovery'),
+      verifiedAuthLink(linkData, tenantWorkspaceUrl(company.slug, '/api/auth/callback?next=/reset-password'), 'recovery'),
       '',
       'This link expires after a short time. If you did not expect this email, contact your management office.',
     ].join('\n'),
-    fromName: me.portfolio?.company_name ?? null,
-    replyTo: me.portfolio?.support_email ?? null,
+    fromName: company.name,
+    replyTo: company.supportEmail,
     portfolioId: owner.portfolio_id,
     sentBy: me.auth_user_id,
   }]);
@@ -335,6 +381,8 @@ export async function sendTenantPortalInvitation(tenantId: string, ownerId: stri
   const email = String(tenant.email).trim().toLowerCase();
   const fullName = `${tenant.first_name ?? ''} ${tenant.last_name ?? ''}`.trim() || 'Resident';
   const svc = createServiceClient() as any;
+  // Load the company first: if it fails, the resident's current invitation stays untouched.
+  const company = await recipientCompany(svc, tenant.portfolio_id, ownerId);
   const { error: revokeError } = await svc.from('user_invitations')
     .update({ status: 'revoked', updated_at: new Date().toISOString() })
     .eq('portfolio_id', tenant.portfolio_id)
@@ -359,7 +407,7 @@ export async function sendTenantPortalInvitation(tenantId: string, ownerId: stri
   }).select('id, token').single();
   if (inviteError || !invitation?.token) fail(ownerId, inviteError?.message ?? 'Could not create the resident invitation.');
 
-  const inviteUrl = tenantWorkspaceUrl(me.portfolio?.slug, `/invite?token=${encodeURIComponent(invitation.token)}`);
+  const inviteUrl = tenantWorkspaceUrl(company.slug, `/invite?token=${encodeURIComponent(invitation.token)}`);
   const queued = await queueEmails(svc, [{
     to: email,
     toName: fullName,
@@ -367,7 +415,7 @@ export async function sendTenantPortalInvitation(tenantId: string, ownerId: stri
     text: [
       `Hello ${fullName},`,
       '',
-      `${me.portfolio?.company_name ?? 'Your property management company'} invited you to its resident portal.`,
+      `${company.name ?? NEUTRAL_COMPANY_NAME} invited you to its resident portal.`,
       'Use this private link to verify your email and choose your own password:',
       inviteUrl,
       '',
@@ -375,8 +423,8 @@ export async function sendTenantPortalInvitation(tenantId: string, ownerId: stri
       '',
       'This link expires in 30 days. If you did not expect it, contact your management office.',
     ].join('\n'),
-    fromName: me.portfolio?.company_name ?? null,
-    replyTo: me.portfolio?.support_email ?? null,
+    fromName: company.name,
+    replyTo: company.supportEmail,
     portfolioId: tenant.portfolio_id,
     sentBy: me.auth_user_id,
   }]);
@@ -425,10 +473,11 @@ export async function sendTenantPasswordReset(tenantId: string, ownerId: string)
     fail(ownerId, 'The resident record must match a verified sign-in email before a reset link can be sent.');
   }
 
+  const company = await recipientCompany(svc, tenant.portfolio_id, ownerId);
   const { data: linkData, error: linkError } = await svc.auth.admin.generateLink({
     type: 'recovery',
     email,
-    options: { redirectTo: tenantWorkspaceUrl(me.portfolio?.slug, '/api/auth/callback?next=/reset-password') },
+    options: { redirectTo: tenantWorkspaceUrl(company.slug, '/api/auth/callback?next=/reset-password') },
   });
   if (linkError || !linkData?.properties?.action_link || linkData.user?.id !== tenant.auth_user_id) {
     fail(ownerId, linkError?.message ?? 'Could not generate a verified resident reset link.');
@@ -441,13 +490,13 @@ export async function sendTenantPasswordReset(tenantId: string, ownerId: string)
     text: [
       `Hello ${fullName},`,
       '',
-      `${me.portfolio?.company_name ?? 'Your property management company'} sent you a secure password reset link:`,
-      verifiedAuthLink(linkData, tenantWorkspaceUrl(me.portfolio?.slug, '/api/auth/callback?next=/reset-password'), 'recovery'),
+      `${company.name ?? NEUTRAL_COMPANY_NAME} sent you a secure password reset link:`,
+      verifiedAuthLink(linkData, tenantWorkspaceUrl(company.slug, '/api/auth/callback?next=/reset-password'), 'recovery'),
       '',
       'This link expires after a short time. If you did not expect this email, contact your management office.',
     ].join('\n'),
-    fromName: me.portfolio?.company_name ?? null,
-    replyTo: me.portfolio?.support_email ?? null,
+    fromName: company.name,
+    replyTo: company.supportEmail,
     portfolioId: tenant.portfolio_id,
     sentBy: me.auth_user_id,
   }]);

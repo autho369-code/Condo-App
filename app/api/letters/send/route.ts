@@ -66,6 +66,19 @@ export async function POST(request: NextRequest) {
       scopedAssociationId = association.id;
     }
 
+    // The letter is the template's company's: a platform operator sending a
+    // client's letter must not sign it with (or route replies to) the
+    // operator's own company. Another company's letter carries no from name,
+    // so the queue brands it from portfolio_id, and replies go to that
+    // company's support address.
+    const ownCompany = template.portfolio_id === me.portfolio?.id;
+    let replyTo: string | null = ownCompany ? (me.portfolio?.support_email || me.email || null) : null;
+    if (!ownCompany) {
+      const { data: company, error: companyError } = await db.from('portfolios').select('support_email').eq('id', template.portfolio_id).maybeSingle();
+      if (companyError || !company) throw new Error('Could not load the letter company. Nothing was sent.');
+      replyTo = company.support_email || null;
+    }
+
     const row = emailQueueRow({
       to: recipient,
       subject: cleanSubject,
@@ -74,9 +87,9 @@ export async function POST(request: NextRequest) {
       associationId: scopedAssociationId,
       templateId: template.id,
       sentBy: me.auth_user_id,
-      fromName: me.portfolio?.company_name ?? null,
+      fromName: ownCompany ? (me.portfolio?.company_name ?? null) : null,
       // Replies reach the company (its support address, else the sender), never the platform.
-      replyTo: me.portfolio?.support_email || me.email || null,
+      replyTo,
       idempotencyKey: `letter:${requestKey}`,
     });
     const { data: queued, error } = await db
