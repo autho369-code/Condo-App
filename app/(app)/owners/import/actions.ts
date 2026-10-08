@@ -465,7 +465,7 @@ export async function importAppfolioUnits(
           if (rowErr) {
             skipped++;
             errors.push(`Line ${p.line} (${p.unitNumber}): ${rowErr.message}`);
-            const k = p.unitNumber.toLowerCase();
+            const k = unitKey(p.unitNumber);
             if (have.get(k)?.id === '') have.delete(k);
           } else {
             imported++;
