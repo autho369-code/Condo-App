@@ -7,6 +7,7 @@ import { SIGNATURE_BUCKET, hashSigningToken, isWellFormedToken, newSigningToken,
 import { signatureCompletedEmail, signatureRequestEmail } from '@/lib/signatures/email';
 import { createServiceClient } from '@/lib/supabase/server';
 import { COMPANY_ADDRESS_COLUMNS, companyUrl, type CompanyAddress } from '@/lib/tenant/host';
+import { signingTokenPortfolio, tokenMatchesAddress } from '@/lib/tenant/token-company';
 
 /** The sending company's workspace slug, so links stay on its own address. */
 async function companyAddress(service: any, portfolioId: string | null | undefined): Promise<CompanyAddress | null> {
@@ -31,7 +32,10 @@ async function context(token: string) {
   const service = createServiceClient() as any;
   const limit = await consumePublicRateLimit(service, h, SIGN_LIMIT);
   if (!limit.allowed) back(token, 'error', 'Too many attempts. Please wait a few minutes and try again.');
-  return { service, ip: clientAddress(h), ua: (h.get('user-agent') ?? 'unknown').slice(0, 400), hash: hashSigningToken(token) };
+  const hash = hashSigningToken(token);
+  // A token from another company is not valid on this company's address.
+  if (!tokenMatchesAddress(h, await signingTokenPortfolio(service, hash))) back(token, 'error', 'This signing link is not valid.');
+  return { service, ip: clientAddress(h), ua: (h.get('user-agent') ?? 'unknown').slice(0, 400), hash };
 }
 
 /** Recompute the fingerprint from the stored bytes so a swapped file cannot be signed. */

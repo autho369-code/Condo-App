@@ -23,6 +23,13 @@ export function brandedMetadata(companyName: string, previewImage?: string | nul
   const images = previewImage ? [{ url: previewImage, width: 1200, height: 630, alt: PREVIEW_ALT }] : undefined;
   return {
     title: { template: `%s · ${name}`, default: name },
+    // The root layout's platform author, creator, sales description and SEO
+    // keywords would otherwise carry through to the company's pages and
+    // link previews.
+    description: null,
+    keywords: null,
+    authors: null,
+    creator: null,
     applicationName: name,
     appleWebApp: { capable: true, title: name, statusBarStyle: 'default' },
     openGraph: { siteName: name, title: name, ...(images ? { images } : {}) },

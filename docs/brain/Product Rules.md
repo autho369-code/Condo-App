@@ -13,6 +13,9 @@ Back to [[Home]].
   the service client filters every read and write by the host's company
   (`tenantFromHeaders(headers).portfolioId`, set by middleware) - never lists
   or accepts another company's data; an address with no company fails closed.
+  Token pages (`/sign`, `/vendor-upload`, `/invite`) belong to the token's
+  company instead: on another company's address the token is invalid; on
+  the platform address the page moves to the company's own address.
 - **All sign-ins go through Portier369's own Supabase sign-in:** auth links
   (sign-in, reset, invites, callbacks) stay on `<slug>.portier369.com`, never a
   custom domain.

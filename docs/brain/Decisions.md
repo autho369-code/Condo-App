@@ -26,3 +26,9 @@ Back to [[Home]]. Don't redo these.
 - **AI setup is company-admin only; every company brings its own provider
   key** (no platform fallback key yet). Managers see an "ask your company
   admin" note, never a bouncing link.
+- **Token pages belong to the token's company.** On another company's address
+  a signing or vendor-upload token reads as "isn't valid" (never says whose it
+  is). On the platform address (no company) the page moves to the company's
+  own address instead of failing: email links already use that address, so
+  this only catches older or copied links. Pages with no token to name a
+  company (`/report-violation`) still fail closed there.

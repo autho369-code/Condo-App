@@ -1,11 +1,16 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { NEUTRAL_COMPANY_NAME, tenantFromHeaders } from '@/lib/tenant/resolve';
-import { signInMetadata } from '@/lib/tenant/metadata';
+import type { Metadata } from 'next';
+import { brandedMetadata, signInMetadata } from '@/lib/tenant/metadata';
 
-// Token pages (signing, vendor uploads, violation reports): branded and kept
-// out of search results on a company's own address.
-export const generateMetadata = signInMetadata;
+// Token pages (signing, vendor uploads, violation reports): branded on a
+// company's own address, neutral on the platform address (never "· Portier369"
+// in the tab or link preview), and kept out of search results either way.
+export async function generateMetadata(): Promise<Metadata> {
+  if (tenantFromHeaders(await headers())) return signInMetadata();
+  return { ...brandedMetadata(NEUTRAL_COMPANY_NAME), robots: { index: false, follow: false } };
+}
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const tenant = tenantFromHeaders(await headers());
