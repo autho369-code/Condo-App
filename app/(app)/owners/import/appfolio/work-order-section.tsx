@@ -30,9 +30,36 @@ const WARNINGS_SHOWN = 20;
 
 const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-/** The Portier369 association whose name matches the AppFolio property, if exactly one does. */
-/** Work orders per request: at most ~25k characters each, so 200 stays far below 12 MB. */
+/** Work orders per request, and bytes per request (well under the 12 MB server-action limit). */
 const BATCH_SIZE = 200;
+const BATCH_BYTES = 4_000_000;
+/** The server keeps at most 20,000 characters of any text field; trim before sending. */
+const MAX_FIELD = 20_000;
+
+/** Split into requests of at most BATCH_SIZE rows and BATCH_BYTES of JSON, long text trimmed. */
+function batchesOf(rows: AppfolioWorkOrder[]): AppfolioWorkOrder[][] {
+  const encoder = new TextEncoder();
+  const out: AppfolioWorkOrder[][] = [];
+  let current: AppfolioWorkOrder[] = [];
+  let bytes = 0;
+  for (const row of rows) {
+    const trimmed = Object.fromEntries(
+      Object.entries(row).map(([k, v]) => [k, typeof v === 'string' ? v.slice(0, MAX_FIELD) : v]),
+    ) as AppfolioWorkOrder;
+    const size = encoder.encode(JSON.stringify(trimmed)).length;
+    if (current.length && (current.length >= BATCH_SIZE || bytes + size > BATCH_BYTES)) {
+      out.push(current);
+      current = [];
+      bytes = 0;
+    }
+    current.push(trimmed);
+    bytes += size;
+  }
+  if (current.length) out.push(current);
+  return out;
+}
+
+/** The association whose name matches the AppFolio property, if exactly one does. */
 
 function suggestAssociation(name: string, associations: Association[]): string {
   const target = normalize(name);
@@ -65,8 +92,8 @@ function GroupCard({ group, associations, importWorkOrders }: { group: AppfolioW
       // Send in batches so each request stays well under the server-action body limit
       // (12 MB); the server skips work orders an earlier batch already created.
       const total: WorkOrderImportSummary = { imported: 0, skipped: 0, errors: [] };
-      for (let i = 0; i < group.workOrders.length; i += BATCH_SIZE) {
-        const part = await importWorkOrders(associationId, group.workOrders.slice(i, i + BATCH_SIZE).map((w) => ({ ...w })));
+      for (const batch of batchesOf(group.workOrders)) {
+        const part = await importWorkOrders(associationId, batch);
         total.imported += part.imported;
         total.skipped += part.skipped;
         total.errors!.push(...(part.errors ?? []));

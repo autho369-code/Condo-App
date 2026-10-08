@@ -88,16 +88,14 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
 
       // Existing vendors in this company, for the duplicate check (paged: PostgREST caps a read at 1000 rows).
       const existingNames = new Set<string>();
-      const existingEmails = new Set<string>();
       for (let from = 0; ; from += 1000) {
         const { data, error } = await db
-          .from('vendors').select('id, name, emails')
+          .from('vendors').select('id, name')
           .eq('portfolio_id', portfolioId).is('archived_at', null)
           .order('id').range(from, from + 999);
         if (error) return { imported: 0, skipped: vendors.length, errors: [`Could not check existing vendors: ${error.message}`] };
         for (const v of data ?? []) {
           if (typeof v.name === 'string') existingNames.add(nameKey(v.name));
-          for (const e of Array.isArray(v.emails) ? v.emails : []) if (typeof e === 'string') existingEmails.add(e.trim().toLowerCase());
         }
         if (!data || data.length < 1000) break;
       }
@@ -147,10 +145,8 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
         if (keys.some((k) => existingNames.has(k))) {
           skipped++; errors.push(`Row ${line} (${name}): skipped — a vendor with this name already exists.`); continue;
         }
-        const dupEmail = emails.find((e) => existingEmails.has(e));
-        if (dupEmail) {
-          skipped++; errors.push(`Row ${line} (${name}): skipped — a vendor with ${dupEmail} already exists.`); continue;
-        }
+        // A shared email alone doesn't make two vendors the same: one contact can represent
+        // several companies. Vendors are matched by name (above).
 
         const glNumber = str(v?.gl_account_number, 30);
         const glId = glNumber ? glByNumber.get(glNumber) ?? null : null;
@@ -193,7 +189,6 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
         });
         // Later rows of the same file count as duplicates too.
         keys.forEach((k) => existingNames.add(k));
-        emails.forEach((e) => existingEmails.add(e));
       }
 
       let imported = 0;

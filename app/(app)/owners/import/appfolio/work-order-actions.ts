@@ -62,7 +62,8 @@ const money = (v: unknown): number | null =>
 const usd = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 /** Unit and vendor names compare case-insensitively with whitespace collapsed. */
 const nameKey = (v: unknown) => clean(v, 300).toLowerCase().replace(/\s+/g, ' ');
-const unitKey = (v: unknown) => nameKey(v).replace(/^(unit|apt|apartment|suite|ste)\.?\s+/, '').replace(/^#\s*/, '');
+/** Units also ignore spacing around dashes ("3817 - 1" = "3817-1"), like the other AppFolio imports. */
+const unitKey = (v: unknown) => nameKey(v).replace(/^(unit|apt|apartment|suite|ste)\.?\s+/, '').replace(/^#\s*/, '').replace(/\s*-\s*/g, '-');
 
 function titleFor(w: AppfolioWorkOrder, number: string): string {
   const firstLine = clean(w.job_description, 2000).split(/\r?\n/)[0].trim();
