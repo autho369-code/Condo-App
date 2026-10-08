@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #254).
+Back to [[Home]]. Updated 2026-10-08 (after #255).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,18 +12,14 @@ Back to [[Home]]. Updated 2026-10-08 (after #254).
   pilot).
 
 ## Open PR
-- Open: the RLS speed migration
-  `20261008050000_security_helpers_plpgsql.sql` (Mirsad: "ship the speed
-  migration"; apply after merge, then re-measure /charges, /command-center,
-  /accounting).
-  It converts the 204 SECURITY DEFINER LANGUAGE sql helpers to PL/pgSQL
-  with unchanged bodies. Measured on production in a rolled-back
-  transaction: identical rows for every role, ~4x faster (manager 2.9 s ->
-  0.6 s, owner 7.5 s -> 1.6 s, board 14.9 s -> 4.5 s for 30 tables).
-  Cause: nested SQL helpers re-plan on every call (~1 ms per row for
-  is_platform_operator / can_access_portfolio), so /charges,
-  /command-center and /accounting hit the 8 s statement timeout. Migration
-  reviewer: no blockers. Board pages are still ~4.5 s after it (next gap).
+- None open.
+- #255 merged (9ced138); migration 20261008050000 applied and verified:
+  221 SECURITY DEFINER scalar helpers are PL/pgSQL (3 skipped by design:
+  app_portal_url, app_ownership_bounds, report_data_units_by_owner),
+  search_path kept, anon unchanged. Live timings for 30 tables as each
+  role (before -> after): manager 2.9 s -> 0.7 s, company admin 3.8 s ->
+  0.7 s, owner 7.5 s -> 2.6 s, vendor 5.8 s -> 1.3 s, operator 2.6 s ->
+  0.4 s, board 14.9 s -> 5.1 s.
 - #254 merged (5446724; tree equals PR head cc1a2c7); migration
   20261008040000 applied and verified (trigger, SECURITY DEFINER,
   search_path, no execute for anon/authenticated). Speed: functions in
@@ -112,6 +108,11 @@ Back to [[Home]]. Updated 2026-10-08 (after #254).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+0. SPEED FIRST (Mirsad: clicks take 4-5 s, some links fail). Board role is
+   still ~5 s for 30 tables and owners ~2.6 s: find which policies cost the
+   most for board/owner (current_board_association_ids /
+   current_resident_* set-returning helpers are still LANGUAGE sql) and
+   measure per page; then the AppFolio deficiency documents Mirsad has.
 Second-round gaps 1-6 are in the open PR; 7 closed with no change (the
 worker keeps the company's sender name; an unverified domain can't send).
 1. `checkLinkedRecords` with no association (calendar events without one):

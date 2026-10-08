@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-08
+- #255 (merged 9ced138; migration 20261008050000 applied): RLS helpers run
+  as PL/pgSQL (nested SQL helpers re-planned per row, ~1 ms each); pages
+  stop hitting the 8 s statement timeout; manager 2.9 s -> 0.7 s, board
+  14.9 s -> 5.1 s for 30 tables.
 - #254 (merged 5446724; migration 20261008040000 applied): speed (pdx1
   region next to the DB, me() once per request, loading screens), one-time
   tokens on ad-hoc charges, chargebacks and bulk vendor emails, records use
