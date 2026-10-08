@@ -125,7 +125,7 @@ async function deleteTask(formData: FormData) {'use server';
 
 async function completeTask(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
-  const me = await requireStaff();
+  await requireStaff();
   const id = formData.get('id') as string;
   const { data: task } = await db.from('maintenance_tasks').select('*').eq('id',id).single();
   if(!task) maintenanceFail('That task was not found.');
@@ -138,16 +138,11 @@ async function completeTask(formData: FormData) {'use server';
   if (typeof seen !== 'string') maintenanceFail('Not completed: reload the page and try again.');
   if ((task.last_completed_at ?? '') !== seen) maintenanceFail('Not completed: the task was already completed since this page loaded. Reload to see it.');
 
-  const now = new Date().toISOString();
-  // The task changes first, guarded on that same state (its last completion,
-  // and the due date of a recurring task), so concurrent requests complete it
-  // once; history and the calendar follow. Removed (archived) tasks can't be
-  // completed.
-  const unchanged = (q: any) => {
-    const open = q.eq('id', id).is('archived_at', null);
-    return seen ? open.eq('last_completed_at', seen) : open.is('last_completed_at', null);
-  };
+  // Next occurrence of a recurring task, and its 9 AM-5 PM calendar slot in
+  // the association's time zone.
   let nextDue: string | null = null;
+  let nextStart: string | null = null;
+  let nextEnd: string | null = null;
   if(task.next_due_date && task.frequency){
     // Month steps clamp to the month's length (Jan 31 -> Feb 28 -> Mar 31)
     // instead of overflowing into the next month.
@@ -160,45 +155,26 @@ async function completeTask(formData: FormData) {'use server';
       : freq === 'custom' && cd > 0 ? nextRecurringDate(due, 'daily', cd)
       : monthSteps[freq] ? nextRecurringDate(due, 'monthly', monthSteps[freq], anchorDay)
       : null) ?? due;
-    const { data: advanced, error: nextError } = await unchanged(db.from('maintenance_tasks').update({
-      last_completed_at: now,
-      next_due_date: nextDue,
-      status: 'active',
-    })).eq('next_due_date', task.next_due_date).select('id');
-    if (nextError) maintenanceFail(`Not completed: ${nextError.message}`);
-    if (!advanced?.length) maintenanceFail('Not completed: the task was already completed, changed, or your account cannot edit it. Reload and try again.');
-  } else {
-    // No frequency — mark task completed
-    const { data: closed, error: closeError } = await unchanged(db.from('maintenance_tasks').update({
-      last_completed_at: now,
-      status: 'completed',
-    })).or('status.is.null,status.neq.completed').select('id');
-    if (closeError) maintenanceFail(`Not completed: ${closeError.message}`);
-    if (!closed?.length) maintenanceFail('Not completed: the task was already completed, or your account cannot edit it.');
+    const zone = await associationZone(db, task.association_id);
+    nextStart = wallDateTimeToIso(`${nextDue}T09:00`, zone) ?? new Date().toISOString();
+    nextEnd = wallDateTimeToIso(`${nextDue}T17:00`, zone);
   }
 
-  // Record completion in history
-  const { error: historyError } = await db.from('maintenance_task_history').insert({
-    task_id: id,
-    completed_at: now,
-    completed_by: me.auth_user_id,
-    notes: task.notes,
-    vendor_id: task.vendor_id,
+  // One transaction (complete_maintenance_task): the task is claimed with a
+  // compare-and-set on what the page showed, then the history entry, the
+  // calendar event closed and the next occurrence's event are written, so a
+  // failure leaves nothing half done and the same click can be retried.
+  const { error } = await db.rpc('complete_maintenance_task', {
+    p_task_id: id,
+    p_seen_completed_at: seen || null,
+    p_seen_due: task.next_due_date ?? null,
+    p_next_due: nextDue,
+    p_notes: task.notes ?? null,
+    p_event_type: MAINTENANCE_CATEGORY_EVENT_TYPE[task.category] || 'custom_event',
+    p_next_start: nextStart,
+    p_next_end: nextEnd,
   });
-  if (historyError) maintenanceFail(`Task completed, but its history entry was not saved: ${historyError.message}`);
-
-  // Mark existing calendar event as completed
-  const { error: doneError } = await db.from('calendar_events').update({ operations_status: 'completed' }).eq('maintenance_task_id', id).is('archived_at', null).eq('operations_status', 'scheduled');
-  if (doneError) maintenanceFail(`Task completed, but its calendar event was not closed: ${doneError.message}`);
-
-  // Create calendar event for the next occurrence
-  if (nextDue && me.portfolio?.id) {
-    await syncMaintenanceCalendarEvent(
-      db, me.portfolio.id, id, task.association_id, task.vendor_id,
-      task.task_name, task.category, nextDue, task.end_date,
-      task.notes, me.auth_user_id
-    );
-  }
+  if (error) maintenanceFail(`Not completed: ${error.message}`);
   revalidatePath('/maintenance');
   revalidatePath('/calendar');
 }

@@ -12,13 +12,15 @@ Back to [[Home]]. Updated 2026-10-08 (after #248).
   pilot).
 
 ## Open PR
-- Open: maintenance "complete" updates the
-  task first, guarded on what was read (last completion, due date, not
-  archived), so a double click completes it once; history and the calendar
-  follow. Removed the uncalled `acknowledgeReminder` /
-  `resendMaintenanceNotification` server actions (reachable endpoints scoped
-  only by portfolio). `update_record_note` needs no change (record_notes row
-  trigger). No migration.
+- Open: maintenance "complete" is one transaction
+  (`complete_maintenance_task`, SECURITY INVOKER; migration
+  20261008020000 - apply after merge): the task is claimed with a
+  compare-and-set on what the page showed (`seen_completed_at`, due date,
+  not archived), then history, the calendar close and the next occurrence's
+  event, so a double click / stale page completes once and a failure leaves
+  nothing half done. Removed the uncalled `acknowledgeReminder` /
+  `resendMaintenanceNotification` server actions. `update_record_note` needs
+  no change (record_notes row trigger).
 - #248 merged (be2f13b); no migration. Association profile shows the
   public violation-report link (`companyUrl`, the company's own address,
   `?assoc=` preselects) with a shared `components/ui/CopyButton`; warns when
