@@ -202,7 +202,7 @@ export async function createCalendarEvent(formData: FormData) {
 
   if (str(formData, 'vendor_id') || reminderActions.includes('notify_vendor')) {
     const { error: vendorDraftError } = await db.from('communication_messages').insert({
-      portfolio_id: me.portfolio?.id,
+      portfolio_id: eventPortfolioId,
       association_id: assocId,
       calendar_event_id: event.id,
       channel: 'email',
@@ -217,7 +217,7 @@ export async function createCalendarEvent(formData: FormData) {
 
   if (reminderActions.includes('create_follow_up_task')) {
     const { error: taskError } = await db.from('automation_tasks').insert({
-      portfolio_id: me.portfolio?.id,
+      portfolio_id: eventPortfolioId,
       association_id: assocId,
       calendar_event_id: event.id,
       task_type: 'calendar_follow_up',
@@ -421,7 +421,7 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
   const horizon = new Date(now.getTime() + 30 * 86_400_000);
   const { data: events } = await db
     .from('calendar_events')
-    .select('id, title, start_datetime, location, associations(name)')
+    .select('id, title, start_datetime, location, associations(name, portfolio_id)')
     .eq('association_id', associationId)
     .is('archived_at', null)
     .gte('start_datetime', now.toISOString())
@@ -464,14 +464,17 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
   }
 
   const html = textToHtml(body);
-  // Unset when the company has no name: delivery brands it from the portfolio
-  // (a 'Portier369' name would be sent as platform mail).
-  const fromName = me.portfolio?.company_name ?? null;
+  // The notice belongs to the association's company, not the sender's (a
+  // platform operator's workspace is not the client's). No sender name:
+  // delivery brands it from that company's portfolio.
+  const companyId: string | null = (events[0] as any).associations?.portfolio_id ?? null;
+  if (!companyId) return { error: 'The association\'s company could not be loaded.' };
+  const fromName = null;
 
   // Log one communication_messages row per recipient (queued) and deliver via email_queue.
   const commRows = recipients.map((r: any) => ({
     association_id: associationId,
-    portfolio_id: me.portfolio?.id,
+    portfolio_id: companyId,
     calendar_event_id: (events[0] as any).id,
     channel: 'email',
     status: 'queued',
@@ -494,7 +497,7 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
     toName: r.name,
     subject,
     html,
-    portfolioId: me.portfolio?.id,
+    portfolioId: companyId,
     associationId,
     communicationMessageId: messageIdByEmail.get(String(r.email).toLowerCase()) ?? null,
     fromName,
