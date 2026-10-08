@@ -41,7 +41,7 @@ export default async function AcceptInvitationPage({
   // another company there to sign in and accept.
   const { data: invite } = await (createServiceClient() as any)
     .from('user_invitations')
-    .select('portfolio_id, portfolios(company_name)')
+    .select('portfolio_id, email, expires_at, portfolios(company_name)')
     .eq('token', token)
     .eq('status', 'pending')
     .maybeSingle();
@@ -51,6 +51,25 @@ export default async function AcceptInvitationPage({
         <CardHeader><CardTitle>This invitation isn&apos;t valid here</CardTitle></CardHeader>
         <CardBody>
           <p className="text-sm text-gray-600">It may have been used or replaced, or it belongs to a different company. Open the link from your most recent invitation email.</p>
+          <div className="mt-4"><Link href="/login"><Button variant="secondary">Go to sign in</Button></Link></div>
+        </CardBody>
+      </Card>
+    );
+  }
+  // Expired, or sent to another email address: say so before offering a
+  // button the RPC would refuse (the invitee's address is never shown).
+  const expired = invite.expires_at && new Date(invite.expires_at) < new Date();
+  const otherAccount = String(invite.email ?? '').toLowerCase() !== String(user.email ?? '').toLowerCase();
+  if (expired || otherAccount) {
+    return (
+      <Card className="mx-auto max-w-sm">
+        <CardHeader><CardTitle>{expired ? 'This invitation has expired' : 'This invitation is for another account'}</CardTitle></CardHeader>
+        <CardBody>
+          <p className="text-sm text-gray-600">
+            {expired
+              ? 'Ask the person who invited you to send a new invitation.'
+              : <>You&apos;re signed in as <span className="font-medium text-gray-950">{user.email}</span>, but the invitation was sent to a different email address. Sign out and open the link again with that account.</>}
+          </p>
           <div className="mt-4"><Link href="/login"><Button variant="secondary">Go to sign in</Button></Link></div>
         </CardBody>
       </Card>
