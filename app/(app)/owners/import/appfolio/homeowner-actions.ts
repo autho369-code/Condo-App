@@ -167,7 +167,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
 
       // Per unit: who is linked now (owner ids, names, emails) and whether dues are already set.
       // `rowKey` is set for people planned from this file, unset for owners already linked.
-      type Person = { name: string; emails: Set<string>; phone: string; rowKey?: string };
+      type Person = { name: string; emails: Set<string>; phone: string; rowKey?: string; matched?: boolean };
       const linked = new Map<string, { ownerIds: Set<string>; people: Person[]; hasOwner: boolean; hasDues: boolean }>();
       const unitState = (unitId: string) => {
         let s = linked.get(unitId);
@@ -183,9 +183,11 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       //   each homeowner once per unit, so two rows for one unit are two people.
       // - An owner already linked (an earlier import): same name, and no contact detail
       //   filled on both sides conflicts (keeps re-imports from adding them twice).
+      // Each linked owner matches at most one row (one-to-one), so a co-owner whose link
+      // failed last time is still added on a re-import.
       const samePerson = (p: Person, name: string, emails: string[], phone: string, rowKey: string) => {
         if (p.rowKey !== undefined) return p.rowKey === rowKey;
-        if (p.name !== name) return false;
+        if (p.matched || p.name !== name) return false;
         if (emails.length > 0 && p.emails.size > 0 && !emails.some((e) => p.emails.has(e))) return false;
         if (phone.length >= 7 && p.phone.length >= 7 && phone !== p.phone) return false;
         return true;
@@ -234,7 +236,9 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         const key = nameKey(name.display);
         const rowPhone = phoneKey(parseLabeledPhones(clean(r.phones).slice(0, 500)).primary);
         const rowKey = identityKey(key, emails, rowPhone, line);
-        if (state.people.some((p) => samePerson(p, key, emails, rowPhone, rowKey))) {
+        const match = state.people.find((p) => samePerson(p, key, emails, rowPhone, rowKey));
+        if (match) {
+          if (match.rowKey === undefined) match.matched = true;
           skipped++;
           // A unit whose dues failed to schedule last time (dues reset to 0): schedule them now.
           const dues = parseDues(clean(r.dues));

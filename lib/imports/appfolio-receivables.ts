@@ -226,7 +226,8 @@ export function parseAppfolioAgedReceivables(text: string): AppfolioReceivablesP
       if (amount === null) { problems.push(`Line ${r.row} (${unit}): unreadable Amount Receivable "${amountRaw}".`); continue; }
       if (amount === 0) continue; // fully paid: nothing open
       const bucket = (h: string) => parseAppfolioAmount(r[h]) ?? 0;
-      const key = assoc.name.toLowerCase();
+      // Name + address: two properties may share a name (their units must never mix).
+      const key = `${assoc.name}|${assoc.address ?? ''}`.toLowerCase();
       let b = byAssociation.get(key);
       if (!b) { b = { ...assoc, items: [] }; byAssociation.set(key, b); }
       b.items.push({

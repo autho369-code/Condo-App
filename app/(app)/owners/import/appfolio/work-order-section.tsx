@@ -237,7 +237,7 @@ export function WorkOrderImportSection({ associations, importWorkOrders }: Props
 
       {error && <Alert tone="danger">{error}</Alert>}
       {groups?.map((g) => (
-        <GroupCard key={g.name || 'work-orders'} group={g} associations={associations} importWorkOrders={importWorkOrders} />
+        <GroupCard key={`${g.name}|${g.address ?? ''}`} group={g} associations={associations} importWorkOrders={importWorkOrders} />
       ))}
     </div>
   );

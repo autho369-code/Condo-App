@@ -165,7 +165,7 @@ export function AppfolioImportClient({ associations, importUnits }: Props) {
         </Alert>
       )}
       {groups?.map((g) => (
-        <GroupCard key={g.name || 'units'} group={g} associations={associations} importUnits={importUnits} />
+        <GroupCard key={`${g.name}|${g.address ?? ''}`} group={g} associations={associations} importUnits={importUnits} />
       ))}
     </div>
   );

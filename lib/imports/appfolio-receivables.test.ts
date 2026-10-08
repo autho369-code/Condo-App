@@ -142,6 +142,21 @@ describe('AppFolio Aged Receivable Detail', () => {
     expect(parsed.fileTotal).toBe(695.14);
   });
 
+  it('keeps two same-named properties at different addresses in separate associations', () => {
+    const header = 'Payer Name,Charge Date,Posting Date,GL Account Number,GL Account Name,Total Amount,Amount Receivable,0-30,31-60,61-90,91+';
+    const parsed = parseAppfolioAgedReceivables([
+      header,
+      '"-> Lakeview Condominium - 100 N Main St Chicago, IL 60601 - Unit 101 - Doe, Jane","","","","","","","","","",""',
+      '"Doe, Jane",10/01/2026,10/01/2026,4101,Regular Assessment,100.00,100.00,100.00,0.00,0.00,0.00',
+      '"-> Lakeview Condominium - 200 S Oak Ave Chicago, IL 60602 - Unit 101 - Roe, Ann","","","","","","","","","",""',
+      '"Roe, Ann",10/01/2026,10/01/2026,4101,Regular Assessment,50.00,50.00,50.00,0.00,0.00,0.00',
+    ].join('\n'));
+    expect(parsed.associations?.map((a) => [a.name, a.address, a.totals.amount])).toEqual([
+      ['Lakeview Condominium', '100 N Main St Chicago, IL 60601', 100],
+      ['Lakeview Condominium', '200 S Oak Ave Chicago, IL 60602', 50],
+    ]);
+  });
+
   it('reads a flat export with a Unit Name column and a parenthesised credit', () => {
     const parsed = parseAppfolioAgedReceivables(FLAT);
     expect(parsed.error).toBeUndefined();

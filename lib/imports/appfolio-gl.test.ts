@@ -150,7 +150,7 @@ describe('AppFolio Trial Balance', () => {
   it('works without title lines and with property groups', () => {
     const tb = parseAppfolioTrialBalance([
       'GL Account,Balance Forward,Debit,Credit,Ending Balance',
-      '-> Pine Tree Court - 5460 W Higgins Ave Chicago, IL 60630,,,,',
+      '"-> Pine Tree Court - 5460 W Higgins Ave Chicago, IL 60630",,,,',
       '1150: Operating,,,,"10.00"',
       ',,,,10.00',
       '-> Granville Courts,,,,',
@@ -158,8 +158,22 @@ describe('AppFolio Trial Balance', () => {
       'Total,,,,30.00',
     ].join('\n'));
     expect(tb.asOf).toBeUndefined();
-    expect(tb.groups).toEqual(['Pine Tree Court', 'Granville Courts']);
-    expect(tb.rows?.map((r) => [r.group, r.ending])).toEqual([['Pine Tree Court', 10], ['Granville Courts', 20]]);
+    // Groups keep the full heading (name + address): two properties may share a name.
+    const pine = 'Pine Tree Court - 5460 W Higgins Ave Chicago, IL 60630';
+    expect(tb.groups).toEqual([pine, 'Granville Courts']);
+    expect(tb.rows?.map((r) => [r.group, r.ending])).toEqual([[pine, 10], ['Granville Courts', 20]]);
+  });
+
+  it('keeps two same-named properties at different addresses apart', () => {
+    const tb = parseAppfolioTrialBalance([
+      'GL Account,Balance Forward,Debit,Credit,Ending Balance',
+      '"-> Lakeview - 100 N Main St",,,,',
+      '1150: Operating,,,,"10.00"',
+      '"-> Lakeview - 200 S Oak Ave",,,,',
+      '1150: Operating,,,,"20.00"',
+      'Total,,,,30.00',
+    ].join('\n'));
+    expect(tb.groups).toEqual(['Lakeview - 100 N Main St', 'Lakeview - 200 S Oak Ave']);
   });
 
   it('refuses a file that is not a trial balance', () => {

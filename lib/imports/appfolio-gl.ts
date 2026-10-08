@@ -316,7 +316,7 @@ export function parseAppfolioTrialBalance(text: string): {
         : { balance_forward: bf, debit, credit, ending };
       const acct = splitGlAccountCell(cell);
       if (!acct) {
-        if (amounts && PRIOR_YEARS_RE.test(cell)) { priorYears[g.name] = addAmounts(priorYears[g.name], amounts); continue; }
+        if (amounts && PRIOR_YEARS_RE.test(cell)) { priorYears[g.heading] = addAmounts(priorYears[g.heading], amounts); continue; }
         if (cell) ignored.push(`Line ${line}: "${cell}"`);
         continue;
       }
@@ -324,7 +324,8 @@ export function parseAppfolioTrialBalance(text: string): {
         ignored.push(`Line ${line} (${acct.number}): an amount could not be read.`);
         continue;
       }
-      rows.push({ row: line, group: g.name, number: acct.number, name: acct.name, ...amounts });
+      // The full heading (name + address): two properties may share a name.
+      rows.push({ row: line, group: g.heading, number: acct.number, name: acct.name, ...amounts });
     }
   }
   if (!rows.length) return { error: 'The file has no GL account rows.' };

@@ -209,7 +209,7 @@ export function HomeownerImportSection({ associations, importHomeowners }: Props
 
       {error && <Alert tone="danger">{error}</Alert>}
       {groups?.map((g) => (
-        <GroupCard key={g.name || 'homeowners'} group={g} associations={associations} importHomeowners={importHomeowners} />
+        <GroupCard key={`${g.name}|${g.address ?? ''}`} group={g} associations={associations} importHomeowners={importHomeowners} />
       ))}
     </div>
   );

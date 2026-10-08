@@ -320,7 +320,7 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
 
       {groups.map((g) => (
         <AssociationCard
-          key={`${fileKey}-${g.name}`}
+          key={`${fileKey}-${g.name}|${g.address ?? ""}`}
           group={g}
           asOf={asOf}
           associations={associations}
