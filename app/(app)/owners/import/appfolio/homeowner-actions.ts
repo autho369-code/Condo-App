@@ -105,8 +105,9 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
   if (assocErr || !association) {
     return fail(assocErr ? `Could not check the association: ${assocErr.message}` : 'That association was not found or is outside your access.');
   }
-  const portfolioId: string | null = association.portfolio_id ?? me.portfolio?.id ?? null;
-  if (!portfolioId) return fail('That association has no company.');
+  // Owners belong to the association's own company; never fall back to the caller's.
+  const portfolioId: string | null = association.portfolio_id ?? null;
+  if (!portfolioId) return fail('That association is not linked to a company, so homeowners cannot be imported into it.');
 
   try {
     // Locked per company, not per association: owners are looked up and created
