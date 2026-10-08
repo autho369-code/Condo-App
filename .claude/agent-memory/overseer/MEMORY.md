@@ -81,3 +81,7 @@
   line is updated to "fixed in <migration/PR>", not left saying the hole is
   open (2026-10-08 property-group PR: security-reviewer memory still said "no
   DB trigger backs it" while 20261008030000 adds it).
+- Pre-PR on staged work: compare `git diff --cached --stat` with `git status`;
+  a vault note edited but not staged (Shipped.md, 2026-10-08 after #253) is
+  left out of the commit. Also check the Open PR entry of the PR that just
+  merged was moved out of Open PR, and "pushed after #N merges" wording.

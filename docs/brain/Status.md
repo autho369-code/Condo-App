@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #252).
+Back to [[Home]]. Updated 2026-10-08 (after #253).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -122,15 +122,12 @@ Back to [[Home]]. Updated 2026-10-08 (after #252).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-Found 2026-10-08 by the overseer + a security-reviewer audit.
-Found 2026-10-08 (overseer + security-reviewer audit, second round):
-1-2. Done locally (wip-next): ad-hoc charge and chargeback form tokens.
-3. Done locally (wip-next): owner statements from the association's company.
-4. Done locally (wip-next): bulk vendor emails per vendor company + token.
-5. Done locally (wip-next): reset links open the company's workspace.
-6. Done locally (wip-next): committee members checked.
-7. Closed, no change: the worker sends a stored non-platform from_address
-   from the platform address only when the company hasn't verified that
-   domain (sending from it would fail); the sender NAME stays the company's.
-8. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
+Second-round gaps 1-6 are in the open PR; 7 closed with no change (the
+worker keeps the company's sender name; an unverified domain can't send).
+1. `checkLinkedRecords` with no association (calendar events without one):
+   a vendor/owner only has to be visible, so a platform operator could attach
+   another company's. Compare against the record's company (DB trigger
+   already covers calendar vendors). Low.
+2. Run a third overseer + security-reviewer audit for new gaps.
+3. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
    forms.

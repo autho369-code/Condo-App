@@ -12,6 +12,7 @@ import type { EventClickArg, EventDropArg, EventInput } from '@fullcalendar/core
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import { listCalendarEvents, updateCalendarEventDates } from '@/lib/rpcs/calendar';
 import { EVENT_TYPES, type CalendarEventType } from '@/lib/operations/calendar';
+import { Alert } from '@/components/ui/shell';
 
 const EVENT_TYPE_COLORS: Record<CalendarEventType, { bg: string; text: string; border: string }> = {
   board_meeting: { bg: '#1E40AF', text: '#DBEAFE', border: '#3B82F6' },
@@ -53,6 +54,8 @@ export default function CalendarGrid({ associations, initialAssocId, initialType
   const [typeFilter, setTypeFilter] = useState(initialType);
   const [viewMode, setViewMode] = useState<string>('dayGridMonth');
   const [problem, setProblem] = useState<string | null>(null);
+  // A move that worked but left something to fix (not a failure).
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Load whatever range is on screen, so any month (past or future) shows
   // its events instead of a fixed window around today.
@@ -77,10 +80,12 @@ export default function CalendarGrid({ associations, initialAssocId, initialType
     const name = String(info.event.extendedProps.title ?? info.event.title);
     try {
       const result = await updateCalendarEventDates(info.event.id, info.event.startStr, info.event.endStr || null, info.event.allDay);
-      if (result && 'error' in result && result.error) { info.revert(); setProblem(`Could not move "${name}": ${result.error}`); return; }
-      setProblem(result && 'warning' in result && result.warning ? `"${name}": ${result.warning}` : null);
+      if (result && 'error' in result && result.error) { info.revert(); setNotice(null); setProblem(`Could not move "${name}": ${result.error}`); return; }
+      setProblem(null);
+      setNotice(result && 'warning' in result && result.warning ? `"${name}": ${result.warning}` : null);
     } catch (err) {
       info.revert();
+      setNotice(null);
       setProblem(`Could not move "${name}": ${err instanceof Error ? err.message : 'unknown error'}`);
     }
   }, []);
@@ -136,9 +141,8 @@ export default function CalendarGrid({ associations, initialAssocId, initialType
         })}
       </div>
 
-      {problem && (
-        <div role="alert" className="border-b border-red-200 bg-red-50 px-5 py-2 text-[13px] text-red-800">{problem}</div>
-      )}
+      {problem && <Alert tone="danger" className="rounded-none border-x-0 border-t-0">{problem}</Alert>}
+      {notice && <Alert tone="warning" className="rounded-none border-x-0 border-t-0">{notice}</Alert>}
 
       {/* Calendar */}
       <div className="h-[calc(100vh-330px)] min-h-[560px] overflow-hidden bg-white p-3">
