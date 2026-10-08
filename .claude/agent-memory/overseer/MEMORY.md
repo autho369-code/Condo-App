@@ -61,3 +61,8 @@
 - A rule found in review that applies to future work (e.g. "public pages filter
   every service-client read by the host's tenant", 2026-10-07) belongs in
   docs/brain/Product Rules.md too, not only in reviewer/overseer memory.
+- Vault edits made after `git add` stay unstaged (2026-10-08 report-link PR:
+  Shipped.md unstaged, Status.md MM). Before commit check `git status` shows
+  no ` M docs/brain/*`; run `git add docs/brain` last.
+- A new shared component (components/ui/*) should be listed in
+  docs/DESIGN_SYSTEM.md so later work reuses it (CopyButton, 2026-10-08).

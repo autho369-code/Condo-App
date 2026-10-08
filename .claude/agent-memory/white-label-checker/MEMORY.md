@@ -12,6 +12,7 @@
 
 ## Helpers (since custom-domain links branch, Oct 2026)
 - `companyUrl(portfolio, path)` (lib/tenant/host.ts) = verified custom domain else slug; needs `COMPANY_ADDRESS_COLUMNS` selected. Staff `me.portfolio` is the full row (has the columns); owner/board/vendor `me.portfolio` is a redacted subset WITHOUT custom_domain, so companyUrl(me.portfolio) from portal code silently falls back to slug.
+- Association profile violation-report link (Oct 2026, app/(app)/associations/[id]/profile ~:291): companyUrl(assoc.portfolio) with embed of COMPANY_ADDRESS_COLUMNS: clean. Staff read own portfolio via portfolios_staff_read, operators via portfolios_platform_all, so the embed is present. Off-production companyUrl returns the preview/local origin, where the public page shows its "use your company's link" notice (expected).
 - `sameHostCompanyUrl` (lib/tenant/request-url.ts) for Stripe-style return URLs; Plaid + auth links stay on tenantWorkspaceUrl by design.
 - PDF generators audited Oct 2026 (generated-pdf, check-pdf, monthly-package, board-package, reports/output): all head with company/association; only footers credit the platform. Quick check: grep -rln "jspdf|jsPDF" app lib, then grep each for Portier.
 - Company name for an association-scoped document: prefer `associations.portfolios(company_name)` over `me.portfolio` (operators pass requireStaff with another/no portfolio). Staff RLS `portfolios_staff_read` allows the embed for their own company.
