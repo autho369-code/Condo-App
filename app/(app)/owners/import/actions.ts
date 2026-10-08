@@ -15,6 +15,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { todayInZone } from '@/lib/time/zoned';
 import { escapeLike } from '@/lib/db/escape-like';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export type ImportSummary = { imported: number; skipped: number; errors?: string[] };
 
@@ -372,12 +373,14 @@ export async function importAppfolioUnits(
     return { imported: 0, skipped: units.length, errors: [assocErr ? `Could not check the association: ${assocErr.message}` : 'That association was not found or is outside your access.'] };
   }
 
-  const { data: existing, error: existingErr } = await db
+  // Paged: PostgREST returns at most 1,000 rows, and a missed unit would be created twice.
+  const { rows: existing, error: existingErr } = await fetchAllRows<any>(() => db
     .from('units')
     .select('id, unit_number, ownership_pct, buildings!inner(association_id)')
     .eq('buildings.association_id', associationId)
-    .is('archived_at', null);
-  if (existingErr) return { imported: 0, skipped: units.length, errors: [`Could not load the association's units: ${existingErr.message}`] };
+    .is('archived_at', null)
+    .order('id'));
+  if (existingErr) return { imported: 0, skipped: units.length, errors: [`Could not load the association's units: ${existingErr}`] };
   const have = new Map<string, { id: string; pct: number }>(
     (existing ?? []).map((u: any) => [clean(u.unit_number).toLowerCase(), { id: u.id, pct: Number(u.ownership_pct ?? 0) }]),
   );

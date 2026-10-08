@@ -107,7 +107,9 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
   if (!portfolioId) return fail('That association has no company.');
 
   try {
-    return await withImportLock(db, associationId, 'appfolio_homeowners', async () => {
+    // Locked per company, not per association: owners are looked up and created
+    // company-wide, so two associations' imports must not interleave either.
+    return await withImportLock(db, portfolioId, 'appfolio_homeowners', async () => {
       const units = await fetchAll((from, to) => db
         .from('units')
         .select('id, unit_number, ownership_pct, buildings!inner(association_id)')
@@ -140,7 +142,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         .range(from, to));
       if (owners.error) return fail(`Could not load the company's homeowners: ${owners.error}`);
       const ownerById = new Map<string, { name: string; emails: Set<string> }>();
-      const ownerIdByEmail = new Map<string, string>();
+      const ownerIdsByEmail = new Map<string, string[]>();
       for (const o of owners.rows) {
         const emails = new Set<string>();
         for (const e of [o.email, ...(Array.isArray(o.emails) ? o.emails : [])]) {
@@ -148,7 +150,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           if (k) emails.add(k);
         }
         ownerById.set(o.id, { name: nameKey(o.full_name), emails });
-        for (const e of emails) if (!ownerIdByEmail.has(e)) ownerIdByEmail.set(e, o.id);
+        for (const e of emails) ownerIdsByEmail.set(e, [...(ownerIdsByEmail.get(e) ?? []), o.id]);
       }
 
       // Per unit: who is linked now (owner ids, names, emails) and whether dues are already set.
@@ -189,7 +191,9 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         const emails = splitEmails(Array.isArray(r.emails) ? r.emails.filter((e) => typeof e === 'string').join(',') : '').slice(0, 10);
         const state = unitState(unit.id);
         const key = nameKey(name.display);
-        if (state.names.has(key) || emails.some((e) => state.emails.has(e))) {
+        // Same person already on this unit: identified by name (a shared family email alone
+        // must not drop a co-owner).
+        if (state.names.has(key)) {
           skipped++;
           errors.push(`${label}: already a homeowner of this unit; left as it is.`);
           continue;
@@ -197,7 +201,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
 
         // Reuse an owner the company has only when both the email and the name match: a shared
         // family or placeholder email must not link another association's owner to this unit.
-        const existingId = emails.map((e) => ownerIdByEmail.get(e)).find((id) => id && ownerById.get(id)?.name === key);
+        const existingId = emails.flatMap((e) => ownerIdsByEmail.get(e) ?? []).find((id) => ownerById.get(id)?.name === key);
         const link: Link = {
           line, unitNumber, unitId: unit.id, label,
           dues: parseDues(clean(r.dues)),

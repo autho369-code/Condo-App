@@ -20,6 +20,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { withImportLock } from '@/lib/imports/import-lock';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import type { AppfolioReceivableItem } from '@/lib/imports/appfolio-receivables';
 
 export type ReceivablesImportSummary = {
@@ -99,12 +100,14 @@ export async function importAppfolioReceivables(
     return fail(`Could not find an active "Other" charge category for this company${catErr ? `: ${catErr.message}` : ''}.`);
   }
 
-  const { data: units, error: unitsErr } = await db
+  // Paged: PostgREST returns at most 1,000 rows; a missed unit's charges would be skipped.
+  const { rows: units, error: unitsErr } = await fetchAllRows<any>(() => db
     .from('units')
     .select('id, unit_number, buildings!inner(association_id)')
     .eq('buildings.association_id', associationId)
-    .is('archived_at', null);
-  if (unitsErr) return fail(`Could not load the association's units: ${unitsErr.message}`);
+    .is('archived_at', null)
+    .order('id'));
+  if (unitsErr) return fail(`Could not load the association's units: ${unitsErr}`);
   const unitByNumber = new Map<string, string>(
     (units ?? []).map((u: any) => [unitKey(u.unit_number), u.id as string]),
   );
