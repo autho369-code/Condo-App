@@ -68,9 +68,14 @@ export default async function AcceptInvitationPage({
           <p className="text-sm text-gray-600">
             {expired
               ? 'Ask the person who invited you to send a new invitation.'
-              : <>You&apos;re signed in as <span className="font-medium text-gray-950">{user.email}</span>, but the invitation was sent to a different email address. Sign out and open the link again with that account.</>}
+              : <>You&apos;re signed in as <span className="font-medium text-gray-950">{user.email}</span>, but the invitation was sent to a different email address. Sign in with that account to accept it.</>}
           </p>
-          <div className="mt-4"><Link href="/login"><Button variant="secondary">Go to sign in</Button></Link></div>
+          <div className="mt-4">
+            {/* Signing in with the invited account comes back here to accept. */}
+            <Link href={expired ? '/login' : `/login?next=${encodeURIComponent(`/accept-invitation?token=${encodeURIComponent(token)}`)}`}>
+              <Button variant="secondary">{expired ? 'Go to sign in' : 'Sign in with that account'}</Button>
+            </Link>
+          </div>
         </CardBody>
       </Card>
     );
