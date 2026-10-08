@@ -207,6 +207,7 @@
 "gl_accounts.portfolio_id":"portfolios",
 "gl_accounts.sub_account_of_id":"gl_accounts",
 "house_rules.association_id":"associations",
+"import_locks.association_id":"associations",
 "imported_balances.association_id":"associations",
 "imported_balances.charge_id":"charges",
 "imported_balances.portfolio_id":"portfolios",

@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/server';
 import { importAppfolioUnits } from '../actions';
 import { AppfolioImportClient } from './appfolio-client';
 import { importAppfolioChartOfAccounts, tieOutAppfolioTrialBalance } from './gl-actions';
+import { importAppfolioHomeowners } from './homeowner-actions';
+import { HomeownerImportSection } from './homeowner-section';
 import { GlImportSection, TrialBalanceTieOutSection } from './gl-section';
 import { importAppfolioReceivables } from './receivables-actions';
 import { ReceivablesImportSection } from './receivables-section';
@@ -32,11 +34,12 @@ export default async function AppfolioImportPage() {
   return (
     <DataWorkspace
       title="Import from AppFolio"
-      description="Bring associations over from AppFolio's own report exports, top to bottom: units, chart of accounts, vendors, open balances and work orders. Tie out the trial balance last. Nothing is saved until you review the preview and choose Import."
+      description="Bring associations over from AppFolio's own report exports, top to bottom: units, homeowners, chart of accounts, vendors, open balances and work orders, then tie out the trial balance. Nothing is saved until you review the preview and choose Import."
       actions={<Link href="/owners/import"><Button variant="secondary">Other imports</Button></Link>}
     >
       <div className="max-w-5xl space-y-8">
         <AppfolioImportClient associations={associations} importUnits={importAppfolioUnits} />
+        <HomeownerImportSection associations={associations} importHomeowners={importAppfolioHomeowners} />
         {canFinance && <GlImportSection importChartOfAccounts={importAppfolioChartOfAccounts} />}
         <VendorImportSection importVendors={importAppfolioVendors} />
         {canFinance && <ReceivablesImportSection associations={associations} importReceivables={importAppfolioReceivables} />}
