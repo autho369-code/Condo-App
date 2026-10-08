@@ -166,17 +166,25 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       }
 
       // Per unit: who is linked now (owner ids, names, emails) and whether dues are already set.
-      type Person = { name: string; emails: Set<string>; phone: string };
+      // `rowKey` is set for people planned from this file, unset for owners already linked.
+      type Person = { name: string; emails: Set<string>; phone: string; rowKey?: string };
       const linked = new Map<string, { ownerIds: Set<string>; people: Person[]; hasOwner: boolean; hasDues: boolean }>();
       const unitState = (unitId: string) => {
         let s = linked.get(unitId);
         if (!s) { s = { ownerIds: new Set(), people: [], hasOwner: false, hasDues: false }; linked.set(unitId, s); }
         return s;
       };
-      // The same person: same name, and no contact detail filled on both sides conflicts.
-      // Two same-named people with different emails, or different phones, are different
-      // co-owners (even when they share a family email but not a phone).
-      const samePerson = (p: Person, name: string, emails: string[], phone: string) => {
+      // Identity of a row: name + email + phone. With no email and no phone the row is only
+      // itself (its line): two such rows never merge.
+      const identityKey = (name: string, emails: string[], phone: string, line: string) =>
+        emails.length || phone.length >= 7 ? `n:${name}|e:${emails[0] ?? ''}|p:${phone}` : `n:${name}|line:${line}`;
+      // Already on this unit?
+      // - Another row of this file: only an exact duplicate (same identity). AppFolio lists
+      //   each homeowner once per unit, so two rows for one unit are two people.
+      // - An owner already linked (an earlier import): same name, and no contact detail
+      //   filled on both sides conflicts (keeps re-imports from adding them twice).
+      const samePerson = (p: Person, name: string, emails: string[], phone: string, rowKey: string) => {
+        if (p.rowKey !== undefined) return p.rowKey === rowKey;
         if (p.name !== name) return false;
         if (emails.length > 0 && p.emails.size > 0 && !emails.some((e) => p.emails.has(e))) return false;
         if (phone.length >= 7 && p.phone.length >= 7 && phone !== p.phone) return false;
@@ -225,9 +233,8 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         const state = unitState(unit.id);
         const key = nameKey(name.display);
         const rowPhone = phoneKey(parseLabeledPhones(clean(r.phones).slice(0, 500)).primary);
-        // Same person already on this unit (see samePerson): a shared family email alone, or
-        // a shared name alone, must not drop a co-owner.
-        if (state.people.some((p) => samePerson(p, key, emails, rowPhone))) {
+        const rowKey = identityKey(key, emails, rowPhone, line);
+        if (state.people.some((p) => samePerson(p, key, emails, rowPhone, rowKey))) {
           skipped++;
           // A unit whose dues failed to schedule last time (dues reset to 0): schedule them now.
           const dues = parseDues(clean(r.dues));
@@ -263,14 +270,11 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           reused++;
           reusedLines.push(`${label}: linked to the existing homeowner with the same name and ${emails.length ? 'email' : 'phone'}.`);
         } else {
-          // One new owner per name + email within this file: people sharing a family or
-          // placeholder email stay separate owners (same rule as reusing existing owners).
-          // Without an email, name + phone; with neither, the row stays its own owner rather
-          // than merging two people who only share a name.
+          // One new owner per identity (name + email + phone; a row with neither is its own
+          // owner): the same person on several units becomes one owner, while people who only
+          // share a name or a family email stay separate.
           const phones = parseLabeledPhones(clean(r.phones).slice(0, 500));
-          const ownerKey = emails[0]
-            ? `n:${key}|e:${emails[0]}`
-            : phoneKey(phones.primary).length >= 7 ? `n:${key}|p:${phoneKey(phones.primary)}` : `n:${key}|line:${line}`;
+          const ownerKey = rowKey;
           let owner = newOwners.get(ownerKey);
           if (!owner) {
             const notes = [
@@ -303,7 +307,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           }
           link.newOwner = owner;
         }
-        state.people.push({ name: key, emails: new Set(emails), phone: rowPhone });
+        state.people.push({ name: key, emails: new Set(emails), phone: rowPhone, rowKey });
         links.push(link);
       }
 
