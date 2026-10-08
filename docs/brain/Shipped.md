@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-08
+- #257 (merged 6d10b58; migration 20261008070000 applied, 20261008080000
+  applied except claim_import_lock, which waits on Mirsad because its body
+  has a DELETE): AppFolio importer — units, homeowners, chart of accounts,
+  vendors, open balances, work orders, trial balance tie-out — checked on
+  the real exports.
 - #256 (merged 7b37b23; migration 20261008060000 applied): the SETOF uuid
   identity helpers (board/resident/tenant/vendor) run as PL/pgSQL; board
   30-table timing 5.1 s -> 1.8 s, owner 2.6 s -> 0.97 s.

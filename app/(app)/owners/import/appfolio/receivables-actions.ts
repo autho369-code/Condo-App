@@ -58,12 +58,13 @@ function isoDate(v: unknown): string | null {
 const unitKey = (v: unknown) => clean(v).toLowerCase().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ');
 
 /**
- * An imported source item, independent of the report cutoff: unit + description (GL name and
- * original charge date) + amount. Re-importing the same file with a different as-of date
- * therefore still recognises every item already posted.
+ * An imported source item, independent of the report cutoff and of its outstanding amount:
+ * unit + description (GL name and original charge date). Re-importing a later snapshot (other
+ * as-of date, or an item partly paid since) therefore still recognises every item already
+ * posted, and a changed amount is reported instead of posted again in full.
  */
-const itemKey = (unitId: string, memo: string, amount: number) =>
-  `${unitId}|${memo}|${amount.toFixed(2)}`;
+const itemKey = (unitId: string, memo: string) => `${unitId}|${memo}`;
+const cents = (n: number) => Math.round(n * 100);
 
 const usd = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 
@@ -71,7 +72,11 @@ export async function importAppfolioReceivables(
   associationId: string,
   asOf: string,
   items: ReceivableImportItem[],
-  options: { confirmDuplicate?: boolean } = {},
+  /**
+   * complete: the browser read every row of the file and it has a Total line it ties to. Only then
+   * are earlier items missing from this file reported (a row the parser skipped is not "gone").
+   */
+  options: { confirmDuplicate?: boolean; complete?: boolean } = {},
 ): Promise<ReceivablesImportSummary> {
   await requireFinanceStaff();
   const supabase = await createClient();
@@ -122,8 +127,10 @@ export async function importAppfolioReceivables(
   // A unit number used in more than one building is ambiguous: its items stay unmatched
   // rather than landing on an arbitrary unit.
   const unitByNumber = new Map<string, string>();
+  const unitNumberById = new Map<string, string>();
   const ambiguousUnits = new Set<string>();
   for (const u of units ?? []) {
+    unitNumberById.set(u.id as string, clean(u.unit_number));
     const k = unitKey(u.unit_number);
     if (unitByNumber.has(k)) ambiguousUnits.add(k);
     else unitByNumber.set(k, u.id as string);
@@ -138,9 +145,11 @@ export async function importAppfolioReceivables(
       // imported_balances with the description as memo, so earlier AppFolio
       // postings for this association are known. With any present the import is
       // refused until the user confirms; once confirmed, items already posted
-      // (same unit, description and amount, whatever the as-of date) are still skipped, so a second
-      // run only adds what the first one missed (e.g. units added since).
-      const already = new Map<string, number>();
+      // (same unit and description, whatever the as-of date) are still skipped, so a second
+      // run only adds what the first one missed (e.g. units added since). An item whose
+      // amount changed since (e.g. partly paid) is reported, never posted again.
+      // Per unit + description: the amounts (in cents) already posted.
+      const already = new Map<string, number[]>();
       let existingCount = 0;
       for (let from = 0; ; from += 1000) {
         const { data: rows, error: existingErr } = await db
@@ -152,8 +161,8 @@ export async function importAppfolioReceivables(
           .range(from, from + 999);
         if (existingErr) return fail(`Could not check for an earlier AppFolio import: ${existingErr.message}`);
         for (const r of rows ?? []) {
-          const key = itemKey(r.unit_id, r.memo, Number(r.imported_balance));
-          already.set(key, (already.get(key) ?? 0) + 1);
+          const key = itemKey(r.unit_id, r.memo);
+          already.set(key, [...(already.get(key) ?? []), cents(Number(r.imported_balance))]);
           existingCount++;
         }
         if (!rows || rows.length < 1000) break;
@@ -174,7 +183,8 @@ export async function importAppfolioReceivables(
       const credits: string[] = [];
       let zero = 0;
       let previously = 0;
-      const work: Array<{ line: string; unitNumber: string; unitId: string; amount: number; description: string; asOf: string }> = [];
+      const changed: string[] = [];
+      const candidates: Array<{ line: string; unitNumber: string; unitId: string; amount: number; description: string; asOf: string }> = [];
 
       for (const it of items) {
         const line = clean(it?.row).slice(0, 10) || '?';
@@ -205,19 +215,56 @@ export async function importAppfolioReceivables(
         const chargeDate = isoDate(it?.charge_date);
         const glName = clean(it?.gl_name).slice(0, 120) || 'Opening balance';
         const description = chargeDate ? `${MEMO_PREFIX} ${glName} (charged ${chargeDate})` : `${MEMO_PREFIX} ${glName}`;
-        const key = itemKey(unitId, description, amount);
-        const seen = already.get(key) ?? 0;
-        if (seen > 0) {
-          already.set(key, seen - 1);
-          skipped++;
-          previously++;
-          continue;
-        }
-        work.push({
+        candidates.push({
           line, unitNumber, unitId, amount,
           description,
           asOf: asOfDate,
         });
+      }
+
+      // Items already posted: exact amounts first (so two same-day items of one GL account
+      // pair up correctly), then any left on the same unit + description with another amount.
+      const pending: typeof candidates = [];
+      for (const c of candidates) {
+        const amounts = already.get(itemKey(c.unitId, c.description));
+        const at = amounts?.indexOf(cents(c.amount)) ?? -1;
+        if (amounts && at >= 0) {
+          amounts.splice(at, 1);
+          skipped++;
+          previously++;
+        } else pending.push(c);
+      }
+      const work: typeof candidates = [];
+      for (const c of pending) {
+        const amounts = already.get(itemKey(c.unitId, c.description));
+        if (amounts && amounts.length) {
+          const before = amounts.shift()! / 100;
+          skipped++;
+          changed.push(`Line ${c.line} (${c.unitNumber}): ${c.description.slice(MEMO_PREFIX.length).trim()} was imported earlier as ${usd(before)} and is ${usd(c.amount)} in this file. Not posted again; compare the unit's current balance with AppFolio (Import Variances report) before changing it.`);
+        } else work.push(c);
+      }
+
+      // Items imported earlier that this file no longer lists (paid in full or removed in
+      // AppFolio; a fully paid item drops out of the report). Only for a complete file: the
+      // page sends the association's whole snapshot, but a row the parser could not read
+      // would otherwise look paid.
+      const gone = new Map<string, { count: number; amount: number }>();
+      let goneUnchecked = 0;
+      for (const [key, amounts] of already) {
+        if (amounts.length && options.complete !== true) { goneUnchecked += amounts.length; continue; }
+        if (!amounts.length) continue;
+        const unitId = key.slice(0, key.indexOf('|'));
+        const g = gone.get(unitId) ?? { count: 0, amount: 0 };
+        g.count += amounts.length;
+        g.amount += amounts.reduce((sum, a) => sum + a, 0) / 100;
+        gone.set(unitId, g);
+      }
+      for (const [unitId, g] of gone) {
+        const unitNumber = unitNumberById.get(unitId);
+        changed.push(`${unitNumber ? `Unit "${unitNumber}"` : 'An archived unit'}: ${g.count} item${g.count === 1 ? '' : 's'} imported earlier (${usd(g.amount)}) ${g.count === 1 ? 'is' : 'are'} no longer in this file (paid or removed in AppFolio). Compare the unit's current balance with AppFolio (Import Variances report) before changing it.`);
+      }
+      if (goneUnchecked) {
+        changed.push(`${goneUnchecked} item${goneUnchecked === 1 ? '' : 's'} imported earlier ${goneUnchecked === 1 ? 'is' : 'are'} not in this file, but the file had rows that could not be read or has no Total line it ties to, so ${goneUnchecked === 1 ? 'it was' : 'they were'} not checked.`);
       }
 
       let imported = 0;
@@ -247,6 +294,7 @@ export async function importAppfolioReceivables(
         errors.push(`Unit "${unitNumber}" is not in this association: ${u.count} item${u.count === 1 ? '' : 's'} (${usd(u.amount)}) not imported. Add the unit, then import this file again: items already posted are skipped.`);
       }
       errors.push(...credits);
+      errors.push(...changed);
       if (previously) errors.push(`${previously} item${previously === 1 ? ' was' : 's were'} already imported earlier and skipped.`);
       if (zero) errors.push(`${zero} item${zero === 1 ? '' : 's'} with nothing receivable skipped.`);
 
