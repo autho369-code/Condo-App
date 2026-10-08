@@ -28,6 +28,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { parseLabeledPhones } from '@/lib/contacts/labeled-phones';
+import { phoneNumberList } from '@/lib/sms/phone-entries';
 import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
 import { IMPORT_LOCK_HELD_MESSAGE, withImportLock } from '@/lib/imports/import-lock';
 import { homeownerName, parseDues, parseHomeownerPct } from '@/lib/imports/appfolio-homeowners';
@@ -134,7 +135,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       // Current owners of the association's units, to skip owners already linked.
       const occupancies = await fetchAll((from, to) => db
         .from('occupancies')
-        .select('id, unit_id, owner_id, dues_amount')
+        .select('id, unit_id, owner_id, dues_amount, is_primary')
         .eq('association_id', associationId)
         .eq('occupancy_type', 'owner')
         .eq('status', 'current')
@@ -168,9 +169,9 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           const k = clean(e).toLowerCase();
           if (k) emails.add(k);
         }
-        // Every stored number counts (phone and phone_numbers), not only the primary.
+        // Every stored number counts (phone and phone_numbers, objects or legacy strings), not only the primary.
         const phones = new Set<string>();
-        for (const n of [o.phone, ...(Array.isArray(o.phone_numbers) ? o.phone_numbers.map((e: any) => e?.number) : [])]) {
+        for (const n of [o.phone, ...phoneNumberList(o.phone_numbers)]) {
           const k = phoneKey(n);
           if (k.length >= 7) phones.add(k);
         }
@@ -185,7 +186,8 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       type Person = { name: string; emails: Set<string>; phones: Set<string>; rowKey?: string; matched?: boolean; occupancyId?: string };
       // Two sets of numbers conflict when both are filled and share none.
       const phonesConflict = (a: Set<string>, b: Set<string>) => a.size > 0 && b.size > 0 && ![...a].some((x) => b.has(x));
-      const linked = new Map<string, { ownerIds: Set<string>; people: Person[]; hasOwner: boolean; hasDues: boolean }>();
+      // primaryOccupancyId: the unit's primary current occupancy, where a dues retry goes.
+      const linked = new Map<string, { ownerIds: Set<string>; people: Person[]; hasOwner: boolean; hasDues: boolean; primaryOccupancyId?: string }>();
       const unitState = (unitId: string) => {
         let s = linked.get(unitId);
         if (!s) { s = { ownerIds: new Set(), people: [], hasOwner: false, hasDues: false }; linked.set(unitId, s); }
@@ -217,6 +219,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         const s = unitState(o.unit_id);
         s.hasOwner = true;
         if (Number(o.dues_amount ?? 0) > 0) s.hasDues = true;
+        if (o.is_primary === true && !s.primaryOccupancyId) s.primaryOccupancyId = o.id;
         if (!o.owner_id) continue;
         s.ownerIds.add(o.owner_id);
         const owner = ownerById.get(o.owner_id);
@@ -259,10 +262,12 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         if (match) {
           if (match.rowKey === undefined) match.matched = true;
           skipped++;
-          // A unit whose dues failed to schedule last time (dues reset to 0): schedule them now.
+          // A unit whose dues failed to schedule last time (dues reset to 0): schedule them now,
+          // on the unit's primary occupancy (where the dues belong), whichever row carries them.
           const dues = parseDues(clean(r.dues));
-          if (dues !== null && dues > 0 && !state.hasDues && match.occupancyId) {
-            duesRetries.push({ label, unitId: unit.id, occupancyId: match.occupancyId, dues });
+          const retryOn = state.primaryOccupancyId ?? match.occupancyId;
+          if (dues !== null && dues > 0 && !state.hasDues && retryOn) {
+            duesRetries.push({ label, unitId: unit.id, occupancyId: retryOn, dues });
             state.hasDues = true;
           }
           errors.push(`${label}: already a homeowner of this unit; left as it is.`);
@@ -352,13 +357,17 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         else o.id = data.id;
       });
 
-      // Link them, unit by unit (rows of one unit in file order: the first new link is primary and carries the dues).
+      // Link them, unit by unit (rows of one unit in file order: the first new link is primary and carries the unit's dues).
       const byUnit = new Map<string, Link[]>();
       for (const l of links) byUnit.set(l.unitId, [...(byUnit.get(l.unitId) ?? []), l]);
       let imported = 0;
       let pctFilled = 0;
       await inPool([...byUnit.entries()], async ([unitId, unitLinks]) => {
         const state = unitState(unitId);
+        // The unit's dues, whichever of its rows carries them: they go on the first new link
+        // (the primary occupancy when the unit had no owner), not on a later co-owner's.
+        const unitDues = unitLinks.map((l) => l.dues).find((d): d is number => d !== null && d > 0) ?? null;
+        let duesPlaced = state.hasDues;
         for (const l of unitLinks) {
           const ownerId = l.ownerId ?? l.newOwner?.id;
           if (!ownerId) { skipped++; errors.push(`${l.label}: ${l.newOwner?.error ?? 'owner not created'}`); continue; }
@@ -373,7 +382,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
             share_pct: 100,
             // Unit dues live on the one occupancy that carries the schedule: a co-owner
             // added after the unit already has dues stores 0, not the repeated amount.
-            dues_amount: state.hasDues ? 0 : l.dues ?? 0,
+            dues_amount: duesPlaced ? 0 : unitDues ?? 0,
             dues_frequency: 'monthly',
           }).select('id').single();
           if (occErr || !occ) { skipped++; errors.push(`${l.label}: ${occErr?.message ?? 'could not link the owner to the unit'}`); continue; }
@@ -382,12 +391,15 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           if (l.newOwner) l.newOwner.linked++;
 
           // Dues: once per unit, only when no current owner has them yet (co-owners share the unit's schedule).
-          if (l.dues !== null && l.dues > 0 && !state.hasDues) {
+          if (!duesPlaced && unitDues !== null) {
+            duesPlaced = true;
             const duesErr = await scheduleOwnerDues(db, occ.id, null);
             if (duesErr) {
               // Leave the unit marked "no dues" so running the import again schedules them.
-              await db.from('occupancies').update({ dues_amount: 0 }).eq('id', occ.id);
-              errors.push(`${l.label}: owner imported, but ${duesErr}. Fix that and run the import again to schedule the dues.`);
+              const { error: resetErr } = await db.from('occupancies').update({ dues_amount: 0 }).eq('id', occ.id);
+              errors.push(resetErr
+                ? `${l.label}: owner imported, but ${duesErr}, and the dues amount could not be cleared (${resetErr.message}). Clear the dues on this owner's unit link, then run the import again.`
+                : `${l.label}: owner imported, but ${duesErr}. Fix that and run the import again to schedule the dues.`);
             } else state.hasDues = true;
           }
 
@@ -408,8 +420,10 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         const { error: setErr } = await db.from('occupancies').update({ dues_amount: d.dues }).eq('id', d.occupancyId);
         const duesErr = setErr ? `dues: ${setErr.message}` : await scheduleOwnerDues(db, d.occupancyId, null);
         if (duesErr) {
-          await db.from('occupancies').update({ dues_amount: 0 }).eq('id', d.occupancyId);
-          errors.push(`${d.label}: ${duesErr}`);
+          const { error: resetErr } = await db.from('occupancies').update({ dues_amount: 0 }).eq('id', d.occupancyId);
+          errors.push(resetErr
+            ? `${d.label}: ${duesErr}, and the dues amount could not be cleared (${resetErr.message}). Clear the dues on this unit link, then run the import again.`
+            : `${d.label}: ${duesErr}`);
         } else duesScheduled++;
       });
 
