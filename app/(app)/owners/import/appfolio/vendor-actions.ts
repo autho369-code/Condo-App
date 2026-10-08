@@ -15,6 +15,7 @@ import { revalidatePath } from 'next/cache';
 import { requireStaff } from '@/lib/auth/me';
 import { withImportLock } from '@/lib/imports/import-lock';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { parseAppfolioDate, splitEmails, type AppfolioVendor } from '@/lib/imports/appfolio-vendors';
 
 export type VendorImportSummary = { imported: number; skipped: number; errors?: string[] };
@@ -109,10 +110,13 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
         vendors.map((v) => str(v?.gl_account_number, 30)).filter((n): n is string => !!n && /^\d{4}$/.test(n)),
       )];
       for (let i = 0; i < wantedGl.length; i += BATCH) {
-        const { data, error } = await db
+        // Paged: per-association charts can return more than PostgREST's 1,000 rows, and a
+        // missed row could make an ambiguous number look unique.
+        const numbers = wantedGl.slice(i, i + BATCH).map(Number);
+        const { rows: data, error } = await fetchAllRows<{ id: string; number: number; association_id: string | null }>(() => db
           .from('gl_accounts').select('id, number, association_id')
-          .eq('portfolio_id', portfolioId).in('number', wantedGl.slice(i, i + BATCH).map(Number));
-        if (error) return { imported: 0, skipped: vendors.length, errors: [`Could not load GL accounts: ${error.message}`] };
+          .eq('portfolio_id', portfolioId).in('number', numbers).order('id'));
+        if (error) return { imported: 0, skipped: vendors.length, errors: [`Could not load GL accounts: ${error}`] };
         const byNumber = new Map<string, Array<{ id: string; association_id: string | null }>>();
         for (const g of data ?? []) {
           const key = String(g.number);

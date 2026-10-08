@@ -88,14 +88,20 @@ export async function importAppfolioReceivables(
     return fail(assocErr ? `Could not check the association: ${assocErr.message}` : 'That association was not found or is outside your access.');
   }
 
-  // Same charge category as the CSV opening-balance import.
-  const { data: category, error: catErr } = await db
+  // Same charge category as the CSV opening-balance import. A company may also have an
+  // association-specific OTHER override: use it for this association, else the
+  // company-wide one (never another association's).
+  const { data: categories, error: catErr } = await db
     .from('charge_categories')
-    .select('id')
+    .select('id, association_id')
     .eq('portfolio_id', association.portfolio_id)
     .eq('code', 'OTHER')
     .eq('active', true)
-    .maybeSingle();
+    .or(`association_id.eq.${association.id},association_id.is.null`)
+    .order('association_id', { ascending: true, nullsFirst: false })
+    .order('id')
+    .limit(1);
+  const category = (categories ?? [])[0] as { id: string } | undefined;
   if (catErr || !category) {
     return fail(`Could not find an active "Other" charge category for this company${catErr ? `: ${catErr.message}` : ''}.`);
   }

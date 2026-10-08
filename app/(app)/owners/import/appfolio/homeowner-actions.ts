@@ -177,7 +177,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       // Identity of a row: name + email + phone. With no email and no phone the row is only
       // itself (its line): two such rows never merge.
       const identityKey = (name: string, emails: string[], phone: string, line: string) =>
-        emails.length || phone.length >= 7 ? `n:${name}|e:${emails[0] ?? ''}|p:${phone}` : `n:${name}|line:${line}`;
+        emails.length || phone.length >= 7 ? `n:${name}|e:${[...emails].sort().join(',')}|p:${phone}` : `n:${name}|line:${line}`;
       // Already on this unit?
       // - Another row of this file: only an exact duplicate (same identity). AppFolio lists
       //   each homeowner once per unit, so two rows for one unit are two people.
