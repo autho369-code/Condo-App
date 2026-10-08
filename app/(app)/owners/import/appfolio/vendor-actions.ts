@@ -115,7 +115,10 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
         const numbers = wantedGl.slice(i, i + BATCH).map(Number);
         const { rows: data, error } = await fetchAllRows<{ id: string; number: number; association_id: string | null }>(() => db
           .from('gl_accounts').select('id, number, association_id')
-          .eq('portfolio_id', portfolioId).in('number', numbers).order('id'));
+          .eq('portfolio_id', portfolioId).in('number', numbers)
+          // Only accounts the vendor editor offers as a default: active expense-type accounts.
+          .eq('active', true).in('account_type', ['expense', 'cost_of_goods_sold', 'other_expense'])
+          .order('id'));
         if (error) return { imported: 0, skipped: vendors.length, errors: [`Could not load GL accounts: ${error}`] };
         const byNumber = new Map<string, Array<{ id: string; association_id: string | null }>>();
         for (const g of data ?? []) {
@@ -223,7 +226,7 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
       // What the export has that the import does not carry over.
       const notImported: string[] = [];
       if (unmatchedGl.size) {
-        notImported.push(`Default GL account left blank for GL number(s) not found in your chart of accounts: ${[...unmatchedGl].slice(0, 20).join(', ')}${unmatchedGl.size > 20 ? '…' : ''}.`);
+        notImported.push(`Default GL account left blank for GL number(s) not found among the active expense accounts in your chart: ${[...unmatchedGl].slice(0, 20).join(', ')}${unmatchedGl.size > 20 ? '…' : ''}.`);
       }
       if (unknownPayment) notImported.push(`${unknownPayment} vendor(s) had a payment type that isn't supported; they were set to Check.`);
       if (portalActive) notImported.push(`Vendor portal access was not carried over for ${portalActive} vendor(s): invite them from the vendor page.`);

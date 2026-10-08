@@ -243,7 +243,8 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
       setProperty(parsed.property);
       setPriorYears(parsed.priorYearsRetainedEarnings ?? {});
       setChecks(parsed.warnings ?? []);
-      if (parsed.asOf) setAsOf(parsed.asOf);
+      // Every file sets its own date (blank when it has none): never reuse the previous file's.
+      setAsOf(parsed.asOf ?? '');
       // A file with no property name and no property groups was most likely
       // run for every property at once: default to all associations combined.
       const unnamed = !parsed.property && g.length === 1 && g[0] === '';
