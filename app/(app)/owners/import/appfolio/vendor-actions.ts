@@ -13,6 +13,7 @@
 // vendor_private by the vendors_move_private_fields trigger), created_by.
 import { revalidatePath } from 'next/cache';
 import { requireStaff } from '@/lib/auth/me';
+import { withImportLock } from '@/lib/imports/import-lock';
 import { createClient } from '@/lib/supabase/server';
 import { parseAppfolioDate, splitEmails, type AppfolioVendor } from '@/lib/imports/appfolio-vendors';
 
@@ -77,153 +78,161 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
   }
 
   const db = (await createClient()) as any;
-  const errors: string[] = [];
-  let skipped = 0;
+  try {
+    // One vendor import per company at a time: the duplicate check and the inserts
+    // must not interleave with another run (vendors have no unique key on name).
+    return await withImportLock(db, portfolioId, 'appfolio_vendors', async () => {
+      const errors: string[] = [];
+      let skipped = 0;
 
-  // Existing vendors in this company, for the duplicate check (paged: PostgREST caps a read at 1000 rows).
-  const existingNames = new Set<string>();
-  const existingEmails = new Set<string>();
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await db
-      .from('vendors').select('id, name, emails')
-      .eq('portfolio_id', portfolioId).is('archived_at', null)
-      .order('id').range(from, from + 999);
-    if (error) return { imported: 0, skipped: vendors.length, errors: [`Could not check existing vendors: ${error.message}`] };
-    for (const v of data ?? []) {
-      if (typeof v.name === 'string') existingNames.add(nameKey(v.name));
-      for (const e of Array.isArray(v.emails) ? v.emails : []) if (typeof e === 'string') existingEmails.add(e.trim().toLowerCase());
-    }
-    if (!data || data.length < 1000) break;
-  }
-
-  // Default GL accounts by number, this company's chart only. A number used by
-  // more than one account (e.g. per-association charts) is left unmapped.
-  // gl_accounts.number is an integer (CHECK 1000-9999): only four-digit numbers
-  // are looked up; anything else ends up in unmatchedGl below.
-  const glByNumber = new Map<string, string | null>();
-  const wantedGl = [...new Set(
-    vendors.map((v) => str(v?.gl_account_number, 30)).filter((n): n is string => !!n && /^\d{4}$/.test(n)),
-  )];
-  for (let i = 0; i < wantedGl.length; i += BATCH) {
-    const { data, error } = await db
-      .from('gl_accounts').select('id, number, association_id')
-      .eq('portfolio_id', portfolioId).in('number', wantedGl.slice(i, i + BATCH).map(Number));
-    if (error) return { imported: 0, skipped: vendors.length, errors: [`Could not load GL accounts: ${error.message}`] };
-    const byNumber = new Map<string, Array<{ id: string; association_id: string | null }>>();
-    for (const g of data ?? []) {
-      const key = String(g.number);
-      byNumber.set(key, [...(byNumber.get(key) ?? []), g]);
-    }
-    for (const [number, list] of byNumber) {
-      const companyWide = list.filter((g) => !g.association_id);
-      const pick = companyWide.length === 1 ? companyWide[0] : list.length === 1 ? list[0] : null;
-      glByNumber.set(number, pick?.id ?? null);
-    }
-  }
-
-  const prepared: Prepared[] = [];
-  const unmatchedGl = new Set<string>();
-  let expirationsKept = 0;
-  let portalActive = 0;
-  let withLastPayment = 0;
-  let unknownPayment = 0;
-
-  for (let i = 0; i < vendors.length; i++) {
-    const v = vendors[i] as Partial<AppfolioVendor> | null;
-    const line = str(v?.row, 10) ?? String(i + 2);
-    const name = str(v?.name, 200);
-    if (!name) { skipped++; errors.push(`Row ${line}: no vendor name.`); continue; }
-
-    const emails = splitEmails(Array.isArray(v?.emails) ? v!.emails.filter((e) => typeof e === 'string').join(',') : '').slice(0, 10);
-    const keys = [nameKey(name), nameKey(str(v?.appfolio_name, 200) ?? '')].filter(Boolean);
-    if (keys.some((k) => existingNames.has(k))) {
-      skipped++; errors.push(`Row ${line} (${name}): skipped — a vendor with this name already exists.`); continue;
-    }
-    const dupEmail = emails.find((e) => existingEmails.has(e));
-    if (dupEmail) {
-      skipped++; errors.push(`Row ${line} (${name}): skipped — a vendor with ${dupEmail} already exists.`); continue;
-    }
-
-    const glNumber = str(v?.gl_account_number, 30);
-    const glId = glNumber ? glByNumber.get(glNumber) ?? null : null;
-    if (glNumber && !glId) unmatchedGl.add(glNumber);
-
-    const paymentType = PAYMENT_TYPES.find((p) => p === v?.payment_type);
-    if (!paymentType && (v?.payment_type || str(v?.payment_type_raw, 40))) unknownPayment++;
-
-    const state = str(v?.address_state, 20)?.toUpperCase() ?? null;
-    const contact = str(v?.contact_name, 200);
-    const tags = str(v?.tags, 500);
-    const notes = [contact && `Contact: ${contact}`, tags && `AppFolio tags: ${tags}`].filter(Boolean).join('\n') || null;
-
-    const expirations = Object.fromEntries(
-      EXPIRATIONS.map((k) => [k, parseAppfolioDate(typeof v?.[k] === 'string' ? (v[k] as string) : null)]),
-    ) as Record<(typeof EXPIRATIONS)[number], string | null>;
-    if (Object.values(expirations).some(Boolean)) expirationsKept++;
-    if (v?.portal_activated === true) portalActive++;
-    if (str(v?.last_payment_date, 20)) withLastPayment++;
-
-    prepared.push({
-      line,
-      name,
-      insert: {
-        portfolio_id: portfolioId,
-        created_by: me.auth_user_id ?? null,
-        name,
-        phone_numbers: phonesOf(v?.phones),
-        emails,
-        address_street: str(v?.address_street, 200),
-        address_city: str(v?.address_city, 100),
-        address_state: state && /^[A-Z]{2}$/.test(state) ? state : null,
-        address_zip: str(v?.address_zip, 10),
-        default_gl_account_id: glId,
-        payment_type: paymentType ?? 'check',
-        send_1099: v?.send_1099 === true,
-        notes,
-        ...expirations,
-      },
-    });
-    // Later rows of the same file count as duplicates too.
-    keys.forEach((k) => existingNames.add(k));
-    emails.forEach((e) => existingEmails.add(e));
-  }
-
-  let imported = 0;
-  const insertOne = async (p: Prepared) => {
-    const { error } = await db.from('vendors').insert(p.insert);
-    if (!error) { imported++; return; }
-    // A GL account this role may not use blocks the whole row; keep the vendor without it.
-    if (p.insert.default_gl_account_id && /GL account/i.test(error.message)) {
-      const { error: again } = await db.from('vendors').insert({ ...p.insert, default_gl_account_id: null });
-      if (!again) {
-        imported++;
-        errors.push(`Row ${p.line} (${p.name}): imported without its default GL account (${error.message}).`);
-        return;
+      // Existing vendors in this company, for the duplicate check (paged: PostgREST caps a read at 1000 rows).
+      const existingNames = new Set<string>();
+      const existingEmails = new Set<string>();
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await db
+          .from('vendors').select('id, name, emails')
+          .eq('portfolio_id', portfolioId).is('archived_at', null)
+          .order('id').range(from, from + 999);
+        if (error) return { imported: 0, skipped: vendors.length, errors: [`Could not check existing vendors: ${error.message}`] };
+        for (const v of data ?? []) {
+          if (typeof v.name === 'string') existingNames.add(nameKey(v.name));
+          for (const e of Array.isArray(v.emails) ? v.emails : []) if (typeof e === 'string') existingEmails.add(e.trim().toLowerCase());
+        }
+        if (!data || data.length < 1000) break;
       }
-    }
-    skipped++;
-    errors.push(`Row ${p.line} (${p.name}): ${error.message}`);
-  };
 
-  for (let i = 0; i < prepared.length; i += BATCH) {
-    const batch = prepared.slice(i, i + BATCH);
-    const { error } = await db.from('vendors').insert(batch.map((p) => p.insert));
-    if (!error) { imported += batch.length; continue; }
-    // One bad row fails the whole batch: retry row by row to import the rest.
-    for (const p of batch) await insertOne(p);
+      // Default GL accounts by number, this company's chart only. A number used by
+      // more than one account (e.g. per-association charts) is left unmapped.
+      // gl_accounts.number is an integer (CHECK 1000-9999): only four-digit numbers
+      // are looked up; anything else ends up in unmatchedGl below.
+      const glByNumber = new Map<string, string | null>();
+      const wantedGl = [...new Set(
+        vendors.map((v) => str(v?.gl_account_number, 30)).filter((n): n is string => !!n && /^\d{4}$/.test(n)),
+      )];
+      for (let i = 0; i < wantedGl.length; i += BATCH) {
+        const { data, error } = await db
+          .from('gl_accounts').select('id, number, association_id')
+          .eq('portfolio_id', portfolioId).in('number', wantedGl.slice(i, i + BATCH).map(Number));
+        if (error) return { imported: 0, skipped: vendors.length, errors: [`Could not load GL accounts: ${error.message}`] };
+        const byNumber = new Map<string, Array<{ id: string; association_id: string | null }>>();
+        for (const g of data ?? []) {
+          const key = String(g.number);
+          byNumber.set(key, [...(byNumber.get(key) ?? []), g]);
+        }
+        for (const [number, list] of byNumber) {
+          const companyWide = list.filter((g) => !g.association_id);
+          const pick = companyWide.length === 1 ? companyWide[0] : list.length === 1 ? list[0] : null;
+          glByNumber.set(number, pick?.id ?? null);
+        }
+      }
+
+      const prepared: Prepared[] = [];
+      const unmatchedGl = new Set<string>();
+      let expirationsKept = 0;
+      let portalActive = 0;
+      let withLastPayment = 0;
+      let unknownPayment = 0;
+
+      for (let i = 0; i < vendors.length; i++) {
+        const v = vendors[i] as Partial<AppfolioVendor> | null;
+        const line = str(v?.row, 10) ?? String(i + 2);
+        const name = str(v?.name, 200);
+        if (!name) { skipped++; errors.push(`Row ${line}: no vendor name.`); continue; }
+
+        const emails = splitEmails(Array.isArray(v?.emails) ? v!.emails.filter((e) => typeof e === 'string').join(',') : '').slice(0, 10);
+        const keys = [nameKey(name), nameKey(str(v?.appfolio_name, 200) ?? '')].filter(Boolean);
+        if (keys.some((k) => existingNames.has(k))) {
+          skipped++; errors.push(`Row ${line} (${name}): skipped — a vendor with this name already exists.`); continue;
+        }
+        const dupEmail = emails.find((e) => existingEmails.has(e));
+        if (dupEmail) {
+          skipped++; errors.push(`Row ${line} (${name}): skipped — a vendor with ${dupEmail} already exists.`); continue;
+        }
+
+        const glNumber = str(v?.gl_account_number, 30);
+        const glId = glNumber ? glByNumber.get(glNumber) ?? null : null;
+        if (glNumber && !glId) unmatchedGl.add(glNumber);
+
+        const paymentType = PAYMENT_TYPES.find((p) => p === v?.payment_type);
+        if (!paymentType && (v?.payment_type || str(v?.payment_type_raw, 40))) unknownPayment++;
+
+        const state = str(v?.address_state, 20)?.toUpperCase() ?? null;
+        const contact = str(v?.contact_name, 200);
+        const tags = str(v?.tags, 500);
+        const notes = [contact && `Contact: ${contact}`, tags && `AppFolio tags: ${tags}`].filter(Boolean).join('\n') || null;
+
+        const expirations = Object.fromEntries(
+          EXPIRATIONS.map((k) => [k, parseAppfolioDate(typeof v?.[k] === 'string' ? (v[k] as string) : null)]),
+        ) as Record<(typeof EXPIRATIONS)[number], string | null>;
+        if (Object.values(expirations).some(Boolean)) expirationsKept++;
+        if (v?.portal_activated === true) portalActive++;
+        if (str(v?.last_payment_date, 20)) withLastPayment++;
+
+        prepared.push({
+          line,
+          name,
+          insert: {
+            portfolio_id: portfolioId,
+            created_by: me.auth_user_id ?? null,
+            name,
+            phone_numbers: phonesOf(v?.phones),
+            emails,
+            address_street: str(v?.address_street, 200),
+            address_city: str(v?.address_city, 100),
+            address_state: state && /^[A-Z]{2}$/.test(state) ? state : null,
+            address_zip: str(v?.address_zip, 10),
+            default_gl_account_id: glId,
+            payment_type: paymentType ?? 'check',
+            send_1099: v?.send_1099 === true,
+            notes,
+            ...expirations,
+          },
+        });
+        // Later rows of the same file count as duplicates too.
+        keys.forEach((k) => existingNames.add(k));
+        emails.forEach((e) => existingEmails.add(e));
+      }
+
+      let imported = 0;
+      const insertOne = async (p: Prepared) => {
+        const { error } = await db.from('vendors').insert(p.insert);
+        if (!error) { imported++; return; }
+        // A GL account this role may not use blocks the whole row; keep the vendor without it.
+        if (p.insert.default_gl_account_id && /GL account/i.test(error.message)) {
+          const { error: again } = await db.from('vendors').insert({ ...p.insert, default_gl_account_id: null });
+          if (!again) {
+            imported++;
+            errors.push(`Row ${p.line} (${p.name}): imported without its default GL account (${error.message}).`);
+            return;
+          }
+        }
+        skipped++;
+        errors.push(`Row ${p.line} (${p.name}): ${error.message}`);
+      };
+
+      for (let i = 0; i < prepared.length; i += BATCH) {
+        const batch = prepared.slice(i, i + BATCH);
+        const { error } = await db.from('vendors').insert(batch.map((p) => p.insert));
+        if (!error) { imported += batch.length; continue; }
+        // One bad row fails the whole batch: retry row by row to import the rest.
+        for (const p of batch) await insertOne(p);
+      }
+
+      // What the export has that the import does not carry over.
+      const notImported: string[] = [];
+      if (unmatchedGl.size) {
+        notImported.push(`Default GL account left blank for GL number(s) not found in your chart of accounts: ${[...unmatchedGl].slice(0, 20).join(', ')}${unmatchedGl.size > 20 ? '…' : ''}.`);
+      }
+      if (unknownPayment) notImported.push(`${unknownPayment} vendor(s) had a payment type that isn't supported; they were set to Check.`);
+      if (portalActive) notImported.push(`Vendor portal access was not carried over for ${portalActive} vendor(s): invite them from the vendor page.`);
+      if (withLastPayment) notImported.push(`Last payment dates were not imported (${withLastPayment} vendor(s)); payment history comes from bills.`);
+      if (expirationsKept) notImported.push(`Insurance, license and contract expiration dates were imported for ${expirationsKept} vendor(s).`);
+
+      if (imported) revalidatePath('/vendors');
+      const all = [...notImported, ...errors];
+      return { imported, skipped, errors: all.length ? all : undefined };
+    });
+  } catch (e) {
+    return { imported: 0, skipped: vendors.length, errors: [e instanceof Error ? e.message : 'The import failed. Try again.'] };
   }
-
-  // What the export has that the import does not carry over.
-  const notImported: string[] = [];
-  if (unmatchedGl.size) {
-    notImported.push(`Default GL account left blank for GL number(s) not found in your chart of accounts: ${[...unmatchedGl].slice(0, 20).join(', ')}${unmatchedGl.size > 20 ? '…' : ''}.`);
-  }
-  if (unknownPayment) notImported.push(`${unknownPayment} vendor(s) had a payment type that isn't supported; they were set to Check.`);
-  if (portalActive) notImported.push(`Vendor portal access was not carried over for ${portalActive} vendor(s): invite them from the vendor page.`);
-  if (withLastPayment) notImported.push(`Last payment dates were not imported (${withLastPayment} vendor(s)); payment history comes from bills.`);
-  if (expirationsKept) notImported.push(`Insurance, license and contract expiration dates were imported for ${expirationsKept} vendor(s).`);
-
-  if (imported) revalidatePath('/vendors');
-  const all = [...notImported, ...errors];
-  return { imported, skipped, errors: all.length ? all : undefined };
 }

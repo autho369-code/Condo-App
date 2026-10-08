@@ -31,6 +31,9 @@ const WARNINGS_SHOWN = 20;
 const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 /** The Portier369 association whose name matches the AppFolio property, if exactly one does. */
+/** Work orders per request: at most ~25k characters each, so 200 stays far below 12 MB. */
+const BATCH_SIZE = 200;
+
 function suggestAssociation(name: string, associations: Association[]): string {
   const target = normalize(name);
   if (!target) return '';
@@ -59,7 +62,16 @@ function GroupCard({ group, associations, importWorkOrders }: { group: AppfolioW
     setFailure(null);
     setResult(null);
     try {
-      setResult(await importWorkOrders(associationId, group.workOrders.map((w) => ({ ...w }))));
+      // Send in batches so each request stays well under the server-action body limit
+      // (12 MB); the server skips work orders an earlier batch already created.
+      const total: WorkOrderImportSummary = { imported: 0, skipped: 0, errors: [] };
+      for (let i = 0; i < group.workOrders.length; i += BATCH_SIZE) {
+        const part = await importWorkOrders(associationId, group.workOrders.slice(i, i + BATCH_SIZE).map((w) => ({ ...w })));
+        total.imported += part.imported;
+        total.skipped += part.skipped;
+        total.errors!.push(...(part.errors ?? []));
+      }
+      setResult({ ...total, errors: total.errors!.length ? total.errors : undefined });
     } catch (e) {
       setFailure(e instanceof Error ? e.message : 'The import failed. Try again.');
     } finally {

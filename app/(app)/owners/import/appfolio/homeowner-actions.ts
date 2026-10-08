@@ -214,8 +214,9 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           reused++;
           reusedLines.push(`${label}: linked to the existing homeowner with the same name and email.`);
         } else {
-          // One new owner per email (or, without an email, per name within this file).
-          const ownerKey = emails[0] ? `e:${emails[0]}` : `n:${key}`;
+          // One new owner per name + email within this file: people sharing a family or
+          // placeholder email stay separate owners (same rule as reusing existing owners).
+          const ownerKey = `n:${key}|e:${emails[0] ?? ''}`;
           let owner = newOwners.get(ownerKey);
           if (!owner) {
             const phones = parseLabeledPhones(clean(r.phones).slice(0, 500));
