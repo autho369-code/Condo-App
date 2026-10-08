@@ -25,3 +25,9 @@
 - Grep callers before reviewing lib/rpcs changes: updateAssociation, archiveAssociation, updateUnit, acknowledgeReminder, resendMaintenanceNotification had no callers (dead code).
 - Target pages still using hand-rolled red boxes: sms/opt-ins/page.tsx:130 (open as of 2026-10-07). associations/[id]/profile renders sp.error twice (:319 and :374); `saved=1` from Site Manager shows "Payment instructions updated."
 - Client edit pages (letters/[id]/edit, documents/templates/[id]/edit) put the error Alert at the top and Save at the bottom: on a long form at 375px the error is off-screen. Suggest scrollIntoView or an Alert next to Save.
+
+## Public token pages (app/(public), 2026-10)
+- Layout already wraps children in `<main>`; pages must not render their own `<main>` (report-violation/page.tsx UnavailableReport nests one). Flag on touch.
+- Error Alert wrappers must match the form's container (`mx-auto max-w-3xl px-4`) so the banner aligns at 375px; report-violation now does.
+- report-violation-form.tsx is still ad-hoc (dashed blue upload box, emoji icons, hand-picked SEVERITY_LABELS colors :201) - open migration debt, not yet in any diff.
+- Tenant-scoped actions that `redirect('/x')` without `?error=` are fine only if the page's no-tenant branch itself renders an Alert (it does for report-violation).

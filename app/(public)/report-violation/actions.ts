@@ -3,6 +3,7 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
+import { tenantFromHeaders } from '@/lib/tenant/resolve';
 import {
   consumePublicRateLimit,
   consumeScopedRateLimit,
@@ -32,6 +33,10 @@ export async function submitReport(formData: FormData) {
   if (field(formData, 'website_confirm', 200)) {
     redirect('/report-violation/confirmation');
   }
+
+  // Only this address's company's associations accept reports (see page.tsx).
+  const tenant = tenantFromHeaders(await headers());
+  if (!tenant) redirect('/report-violation');
 
   let service: any;
   let ipLimit: RateLimitResult;
@@ -87,9 +92,10 @@ export async function submitReport(formData: FormData) {
     .from('associations')
     .select('id')
     .eq('id', report.association_id)
+    .eq('portfolio_id', tenant!.portfolioId)
     .is('archived_at', null)
     .maybeSingle();
-  if (!association) redirect('/report-violation?error=missing');
+  if (!association) redirect('/report-violation?error=association');
 
   const associationLimit = await consumeScopedRateLimit(service, association.id, ASSOCIATION_POLICY);
   if (!associationLimit.allowed) {

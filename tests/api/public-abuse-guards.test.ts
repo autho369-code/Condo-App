@@ -158,7 +158,7 @@ describe('public endpoint abuse guards', () => {
     mocks.consumePublic.mockResolvedValueOnce(denied);
     const request = new Request('http://localhost/api/ai/analyze-violation-photo', {
       method: 'POST',
-      headers: { 'x-forwarded-for': '203.0.113.4' },
+      headers: { 'x-forwarded-for': '203.0.113.4', 'x-portfolio-id': '22222222-2222-4222-8222-222222222222' },
     });
 
     const response = await photoPost(request as any);
@@ -201,7 +201,7 @@ describe('public endpoint abuse guards', () => {
     form.append('file', file);
     form.append('association_id', associationId);
     const request = {
-      headers: new Headers({ 'x-forwarded-for': '203.0.113.4' }),
+      headers: new Headers({ 'x-forwarded-for': '203.0.113.4', 'x-portfolio-id': portfolioId }),
       formData: vi.fn().mockResolvedValue(form),
     };
 
@@ -219,7 +219,63 @@ describe('public endpoint abuse guards', () => {
     );
   });
 
+  it('refuses photo analysis for another company\'s association, before its AI key or rate limit', async () => {
+    const associationQuery: any = {};
+    associationQuery.select = vi.fn(() => associationQuery);
+    associationQuery.eq = vi.fn(() => associationQuery);
+    associationQuery.is = vi.fn(() => associationQuery);
+    associationQuery.maybeSingle = vi.fn().mockResolvedValue({ data: { portfolio_id: '33333333-3333-4333-8333-333333333333' } });
+    const service = { rpc: vi.fn(), from: vi.fn(() => associationQuery) };
+    mocks.createServiceClient.mockReturnValue(service);
+    const file = new File([new Uint8Array([137, 80, 78, 71])], 'photo.png', { type: 'image/png' });
+    const tenantCases: Record<string, string>[] = [{ 'x-portfolio-id': '22222222-2222-4222-8222-222222222222' }, {}];
+    for (const tenantHeaders of tenantCases) {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('association_id', '11111111-1111-4111-8111-111111111111');
+      const response = await photoPost({
+        headers: new Headers({ 'x-forwarded-for': '203.0.113.4', ...tenantHeaders }),
+        formData: vi.fn().mockResolvedValue(form),
+      } as any);
+      expect(response.status).toBe(404);
+    }
+    expect(mocks.consumeScoped).not.toHaveBeenCalled();
+    expect(mocks.getAIConfig).not.toHaveBeenCalled();
+    expect(mocks.visionCompletion).not.toHaveBeenCalled();
+  });
+
+  it('refuses violation reports on an address with no management company', async () => {
+    const form = new FormData();
+
+    await expect(submitReport(form)).rejects.toThrow('REDIRECT:/report-violation');
+
+    expect(mocks.createServiceClient).not.toHaveBeenCalled();
+  });
+
+  it('only accepts a report for an association of this address\'s company', async () => {
+    mocks.headers.mockResolvedValue(new Headers({ 'x-forwarded-for': '203.0.113.4', 'x-portfolio-id': '22222222-2222-4222-8222-222222222222' }));
+    const associationQuery: any = {};
+    associationQuery.select = vi.fn(() => associationQuery);
+    associationQuery.eq = vi.fn(() => associationQuery);
+    associationQuery.is = vi.fn(() => associationQuery);
+    associationQuery.maybeSingle = vi.fn().mockResolvedValue({ data: null });
+    const service = { rpc: vi.fn(), from: vi.fn(() => associationQuery) };
+    mocks.createServiceClient.mockReturnValue(service);
+    const form = new FormData();
+    for (const [k, v] of Object.entries({
+      association_id: '11111111-1111-4111-8111-111111111111', reporter_name: 'A', reporter_contact: 'a@example.test',
+      violation_description: 'Noise', reporter_signature: 'A', violation_type: 'noise', requested_action: 'warning',
+      ack_share_info: 'on', ack_true_accurate: 'on', ack_may_contact: 'on',
+    })) form.append(k, v);
+
+    await expect(submitReport(form)).rejects.toThrow('REDIRECT:/report-violation?error=association');
+
+    expect(associationQuery.eq).toHaveBeenCalledWith('portfolio_id', '22222222-2222-4222-8222-222222222222');
+    expect(mocks.consumeScoped).not.toHaveBeenCalled();
+  });
+
   it('stops anonymous violation reports before association or case writes when denied', async () => {
+    mocks.headers.mockResolvedValue(new Headers({ 'x-forwarded-for': '203.0.113.4', 'x-portfolio-id': '22222222-2222-4222-8222-222222222222' }));
     mocks.consumePublic.mockResolvedValueOnce(denied);
     const form = new FormData();
 

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIConfig, visionCompletion } from '@/lib/ai/service';
 import { createServiceClient } from '@/lib/supabase/server';
+import { tenantFromHeaders } from '@/lib/tenant/resolve';
 import {
   consumePublicRateLimit,
   consumeScopedRateLimit,
@@ -35,6 +36,11 @@ export async function POST(request: NextRequest) {
     if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) {
       return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
     }
+
+    // Reporting belongs to the company whose address this is; on an address
+    // with no company there is nothing to analyse (see report-violation).
+    const tenant = tenantFromHeaders(request.headers);
+    if (!tenant) return NextResponse.json({ error: 'Association not found' }, { status: 404 });
 
     let db: any;
     try {
@@ -73,8 +79,11 @@ export async function POST(request: NextRequest) {
       .is('archived_at', null)
       .maybeSingle();
 
-    if (!association?.portfolio_id) {
-      return NextResponse.json({ error: 'Association not found or has no portfolio' }, { status: 400 });
+    // Only the company whose address this is: its AI key and house rules are
+    // never used for another company's association. Checked before the
+    // association's rate limit is spent.
+    if (!association || association.portfolio_id !== tenant.portfolioId) {
+      return NextResponse.json({ error: 'Association not found' }, { status: 404 });
     }
 
     const associationLimit = await consumeScopedRateLimit(db, associationId, ASSOCIATION_POLICY);
