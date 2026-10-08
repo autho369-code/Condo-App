@@ -32,3 +32,6 @@ Back to [[Home]]. Don't redo these.
   own address instead of failing: email links already use that address, so
   this only catches older or copied links. Pages with no token to name a
   company (`/report-violation`) still fail closed there.
+- **Links managers share with the public use `companyUrl`** (the company's own
+  address), never the platform host; with no workspace address, show an
+  Alert instead of a link that wouldn't work.

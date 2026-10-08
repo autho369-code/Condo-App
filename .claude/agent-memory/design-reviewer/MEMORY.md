@@ -31,3 +31,7 @@
 - Error Alert wrappers must match the form's container (`mx-auto max-w-3xl px-4`) so the banner aligns at 375px; report-violation now does.
 - report-violation-form.tsx is still ad-hoc (dashed blue upload box, emoji icons, hand-picked SEVERITY_LABELS colors :201) - open migration debt, not yet in any diff.
 - Tenant-scoped actions that `redirect('/x')` without `?error=` are fine only if the page's no-tenant branch itself renders an Alert (it does for report-violation).
+
+## Copy/share links (2026-10)
+- components/ui/copy-button.tsx (CopyButton, Button secondary h-10) is the shared copy control; violation-letter-drafter.tsx:46 still hand-rolls the same copy(). Check new copies reuse it and that clipboard failure is visible (catch was silent at first review).
+- Public tenant links must use companyUrl(portfolio, path) (needs slug, custom_domain, custom_domain_verified_at); with no valid slug it falls back to the platform origin, where /report-violation renders "unavailable".

@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-08
+- #247 (merged 9d7f1e8; no migration): `/sign/[token]` and
+  `/vendor-upload/[token]` treat another company's token as invalid on a
+  company's address and move to the company's address from the platform
+  address; neutral public metadata; company pages no longer inherit the root
+  author/creator/description/keywords.
 - #246 (merged fbad2ae; no migration): `/report-violation`, its submit
   action and the AI photo route only list and accept the host company's
   associations (and spend only its AI key); Stripe receipts send in the

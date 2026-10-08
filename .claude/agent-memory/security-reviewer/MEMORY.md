@@ -50,3 +50,4 @@
 - Middleware matcher skips paths ending `.png/.svg/...`, so a dynamic page like `/sign/x.png` runs without header stripping. Server actions are still safe: Next 15.5 forwards an action not bundled in the current page's worker via a real fetch to its own page path (`createForwardedActionResponse`), which re-runs middleware. Re-check if an action that trusts `x-portfolio-id` is ever imported by a dynamic-segment page.
 - `tenant_branding` (20261006060000) excludes archived portfolios, matches custom_domain without requiring verification (Vercel routing is the guard).
 - Platform-wide public tables are fine without tenant scope: `receptionist_knowledge`, `phone_messages` (`/api/piper`), demo requests.
+- `app/(app)/associations/[id]/profile/page.tsx` is `requireStaff` + `(app)/layout.tsx` bounces non-staff; portfolio slug/custom_domain are public addresses, not secrets. Report-link embed (2026-10-08) clean.

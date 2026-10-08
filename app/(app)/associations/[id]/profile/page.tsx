@@ -19,6 +19,8 @@ import { mergePrivateFieldsOne } from '@/lib/private-fields';
 import { AdditionalFees, AuditLog, InsuranceList, KeysList, LinkedRecords, NotesList, UpcomingActivities } from '@/components/associations/record-lists';
 import { todayInZone } from '@/lib/time/zoned';
 import { PendingSubmit } from '@/components/ui/pending-submit';
+import { CopyButton } from '@/components/ui/copy-button';
+import { companyUrl, isPortfolioSlug } from '@/lib/tenant/host';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +49,7 @@ export default async function AssociationProfileTab({
       remit_payee, remit_address, payment_instructions,
       late_fee_enabled, late_fee_amount, late_fee_is_percent, late_fee_grace_days,
       site_manager, site_manager_user_id,
-      portfolio:portfolios ( id, company_name )
+      portfolio:portfolios ( id, company_name, slug, custom_domain, custom_domain_verified_at )
     `)
     .eq('id', id)
     .maybeSingle();
@@ -285,6 +287,8 @@ export default async function AssociationProfileTab({
   await mergePrivateFieldsOne(supabase as any, 'association_vendor_private', 'association_id', ['maintenance_notes'], record);
   const assocGl = ((glAccounts ?? []) as any[]).filter((g) => !g.association_id || g.association_id === id);
   const recordBack = `/associations/${assocParam}/profile`;
+  // The company's own address (custom domain or workspace), never the platform's.
+  const reportUrl = companyUrl(assoc.portfolio, `/report-violation?assoc=${id}`);
 
   const rail = null;
 
@@ -336,6 +340,25 @@ export default async function AssociationProfileTab({
       <div className="grid gap-6 lg:grid-cols-2">
         <KeysList keys={keys ?? []} associationId={id} back={recordBack} />
         <NotesList notes={notes ?? []} associationId={id} back={recordBack} />
+      </div>
+
+      <div className="mt-6">
+        <Section title="Violation reporting link" padded>
+          <p className="mb-4 text-sm leading-6 text-gray-500">
+            Anyone with this link can report a violation at {assoc.name} without signing in.
+            Share it with owners and residents (newsletter, website, notice board). Reports
+            arrive in <Link href="/violations/reports" className="font-medium text-gray-900 underline-offset-2 hover:underline">Violation reports</Link> for review.
+          </p>
+          {assoc.archived_at && <Alert tone="warning" className="mb-4">Hidden associations don&apos;t accept reports. Unhide it to use this link.</Alert>}
+          {isPortfolioSlug(assoc.portfolio?.slug) ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <code className="flex min-h-10 min-w-0 flex-1 select-all items-center break-all rounded-lg bg-gray-50 px-3 py-2 font-mono text-xs text-gray-700">{reportUrl}</code>
+              <CopyButton value={reportUrl} />
+            </div>
+          ) : (
+            <Alert tone="warning">Your company needs a workspace address before this link works. Ask your company admin to set one.</Alert>
+          )}
+        </Section>
       </div>
 
       <div className="mt-6">

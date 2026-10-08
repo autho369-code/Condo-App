@@ -23,3 +23,6 @@
 
 ## Public token pages
 - Token lookups: `signature_signers.token_hash` and `document_request_links.token_hash` are UNIQUE (so `.maybeSingle()` is safe); hex digest from `hashSigningToken` is lowercase, matching the RPCs' `lower(p_token_hash)`. `vendor_request_session` jsonb includes `portfolio_id` (20260929220000). Company lookup helpers live in `lib/tenant/token-company.ts` (2026-10-08, all clean).
+
+## Portfolios embeds
+- `portfolios` has no column-level grants (baseline GRANT ALL to authenticated); reads go through `portfolios_staff_read` (is_any_staff/is_company_admin AND id = current_portfolio_id()) or `portfolios_platform_read`. `portfolios_admin_own` is disabled (USING false). Embed via `associations.portfolio_id` FK is fine for staff (2026-10-08, profile page slug/custom_domain embed clean).

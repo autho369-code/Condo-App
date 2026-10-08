@@ -43,6 +43,8 @@ or `StatusChip` (`components/operations/status-chip.tsx`). Never hand-pick statu
 
 ### Forms
 - `Button` (primary/secondary/ghost/danger/link) — `components/ui/button.tsx`
+- `CopyButton` — `components/ui/copy-button.tsx` — copy a link or value; says
+  "Copied" or "Copy failed" (show the value selectable next to it).
 - `Input`, `Select`, `Textarea`, `Label`, `Field` — `components/ui/input.tsx`
 - Forms live inside `Surface`; one column on mobile, `sm:grid-cols-2` where
   fields pair naturally; primary action bottom-left, `Button` md size.

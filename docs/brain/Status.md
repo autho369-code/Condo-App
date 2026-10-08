@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #246; token pages PR open).
+Back to [[Home]]. Updated 2026-10-08 (after #247).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,7 +12,12 @@ Back to [[Home]]. Updated 2026-10-08 (after #246; token pages PR open).
   pilot).
 
 ## Open PR
-- Open: token pages belong to one company. `/sign/[token]` and
+- Open: association profile shows the
+  public violation-report link (`companyUrl`, the company's own address,
+  `?assoc=` preselects) with a shared `components/ui/CopyButton`; warns when
+  the company has no workspace address; notes that hidden associations don't
+  take reports. No migration.
+- #247 merged (9d7f1e8); no migration. Token pages belong to one company. `/sign/[token]` and
   `/vendor-upload/[token]` (pages and actions) treat another company's token
   as invalid on a company's address (checked before the signing view is
   recorded); on the platform address they move to the company's own address.
@@ -53,11 +58,7 @@ Back to [[Home]]. Updated 2026-10-08 (after #246; token pages PR open).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-1. Nothing in the app gives a company its public `/report-violation` link
-   (only `lib/server/public-paths.ts`); the page now tells visitors to use
-   their management company's link - add a "share this link" spot for
-   managers (e.g. association profile or settings).
-2. Leftovers from the silent-save sweep (security review, low):
+1. Leftovers from the silent-save sweep (security review, low):
    `acknowledgeReminder` / `resendMaintenanceNotification` in
    `lib/rpcs/calendar.ts` return `{ error }` (no caller today; redirect if
    ever wired to a form). Maintenance "complete" writes history and the
@@ -68,5 +69,5 @@ Back to [[Home]]. Updated 2026-10-08 (after #246; token pages PR open).
    scoped manager's associations; vendor notes are portfolio-level.
    Next: look for the next white-label / sign-in / data-exposure gap with
    the overseer.
-3. Optional: ask whether the remaining reason-required void/cancel forms
+2. Optional: ask whether the remaining reason-required void/cancel forms
    should also confirm.
