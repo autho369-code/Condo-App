@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #251).
+Back to [[Home]]. Updated 2026-10-08 (after #252).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,12 +12,23 @@ Back to [[Home]]. Updated 2026-10-08 (after #251).
   pilot).
 
 ## Open PR
-- Open: a property group must be
+- Open: white label on company
+  addresses. Middleware redirects `/demo` and `/legal` to login there, serves
+  a disallow-all robots.txt and 404s the platform's sitemap, llms.txt,
+  IndexNow key, `report-card.html` and marketing APIs (`.html` now goes
+  through middleware). Client-facing fallbacks use `NEUTRAL_COMPANY_NAME`
+  (new `lib/tenant/neutral-name.ts`, client-safe): portal/board/vendor/
+  resident/company-admin/app layouts, sidebars, invite page + subject,
+  suspended-company login error, error page, help page (company support
+  email or none), MFA issuer/friendly name, search palette label, send-email
+  From fallback. No migration.
+- #252 merged (7cbc3dd); migration 20261008030000 applied and verified
+  (both triggers, FOR SHARE lock, report join; grants unchanged). A property group must be
   the association's company's: checked in associations/new and createBuilding
   (before any write; createBuilding's group update fails loudly), enforced by
   a trigger on associations and on moving a group between companies, and the
   group directory report counts only the company's associations. Migration
-  20261008030000 (apply after merge).
+  20261008030000.
 - #251 merged (331d709); no migration. Letters a
   platform operator sends from a client's template carry no from name (queue
   brands the template's company) and reply to that company; owner/resident
@@ -90,18 +101,10 @@ Back to [[Home]]. Updated 2026-10-08 (after #251).
 
 ## Next gaps (pick up here, top first)
 Found 2026-10-08 by the overseer + a security-reviewer audit.
-1. Portier369 marketing still opens on company addresses: `/demo`, `/legal/*`
-   (and `/api/demo-request`) aren't in middleware `MARKETING_PATHS`;
-   `app/robots.ts` always points at portier369.com; `public/llms.txt` served
-   on custom domains.
-2. Platform name in client-facing fallbacks: `lib/auth/login-errors.ts:16`
-   ("Contact Portier369 support" for suspended companies), `?? 'Portier369'`
-   in board/vendor/portal/resident/company-admin layouts, sidebars,
-   `app/invite/page.tsx` (email subject) -> `NEUTRAL_COMPANY_NAME`.
-3. `rescheduleReminders` (`lib/rpcs/calendar.ts` ~260-269) ignores errors and
+1. `rescheduleReminders` (`lib/rpcs/calendar.ts` ~260-269) ignores errors and
    0-row updates: event moves, reminders keep old times, user sees "saved".
-4. Inspection "create work order" (`app/(app)/inspections/[id]/page.tsx`
+2. Inspection "create work order" (`app/(app)/inspections/[id]/page.tsx`
    ~130-147) can create duplicate work orders on a double submit
    (unconditional link update, no `.select()`).
-5. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
+3. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
    forms.

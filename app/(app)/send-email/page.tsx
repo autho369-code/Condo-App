@@ -36,7 +36,7 @@ export default async function SendEmailPage({
     (supabase as any).from('profiles').select('email, full_name').eq('id', me.auth_user_id ?? '').maybeSingle(),
   ]);
 
-  const fromEmail = profile?.email ?? me.email ?? 'hello@portier369.com';
+  const fromEmail = profile?.email ?? me.email ?? me.portfolio?.support_email ?? '';
   const preAssoc = sp.association ?? '';
   const returnTo = safeInternalNext(sp.return_to);
   const closeHref = returnTo ?? '/associations';
@@ -106,7 +106,7 @@ export default async function SendEmailPage({
 
           {/* From */}
           <Field label="From" required>
-            <Input value={fromEmail} readOnly className="bg-gray-50 text-gray-700" />
+            <Input value={fromEmail} readOnly placeholder="Your company's sending address" className="bg-gray-50 text-gray-700" />
             <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" name="from_donotreply" className="h-4 w-4 rounded border-gray-300" />
               Send from the no-reply address

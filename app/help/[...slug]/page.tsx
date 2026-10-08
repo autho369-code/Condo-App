@@ -3,11 +3,14 @@ import { ArrowLeft, ArrowRight, CheckCircle2, LifeBuoy } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { getHelpArticle } from '@/lib/help/articles';
+import { hasVisibleText } from '@/lib/company-admin/settings';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HelpArticlePage({ params }: { params: Promise<{ slug?: string[] }> }) {
-  await requireStaff();
+  const me = await requireStaff();
+  // Support is the company's own (white label), shown only when it has one.
+  const supportEmail = hasVisibleText(me.portfolio?.support_email) ? me.portfolio!.support_email!.trim() : null;
   const { slug } = await params;
   const article = slug?.length === 1 ? getHelpArticle(slug[0]) : undefined;
 
@@ -24,7 +27,7 @@ export default async function HelpArticlePage({ params }: { params: Promise<{ sl
           <div className="mt-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-950 text-white">
             <LifeBuoy className="h-6 w-6" />
           </div>
-          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Portier help</p>
+          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Help</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-gray-950">{article.title}</h1>
           <p className="mt-3 max-w-2xl text-base leading-7 text-gray-600">{article.summary}</p>
         </div>
@@ -48,9 +51,11 @@ export default async function HelpArticlePage({ params }: { params: Promise<{ sl
               {article.action.label}
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <a href="mailto:hello@portier369.com" className="inline-flex h-10 items-center rounded-xl border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50">
-              Contact support
-            </a>
+            {supportEmail && (
+              <a href={`mailto:${supportEmail}`} className="inline-flex h-10 items-center rounded-xl border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Contact support
+              </a>
+            )}
           </div>
         </div>
       </article>

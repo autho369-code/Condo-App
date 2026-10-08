@@ -3,6 +3,7 @@ import { boardModules } from '@/lib/navigation/role-modules'
 import { requireBoard } from '@/lib/auth/me'
 import { createClient } from '@/lib/supabase/server'
 import { workspaceMetadata } from '@/lib/tenant/metadata'
+import { NEUTRAL_COMPANY_NAME } from '@/lib/tenant/neutral-name';
 
 export const generateMetadata = workspaceMetadata
 
@@ -33,7 +34,7 @@ export default async function BoardLayout({ children }: { children: React.ReactN
   return (
     <div className="flex min-h-screen">
       <Sidebar
-        portfolioName={associationName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier369'}
+        portfolioName={associationName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? NEUTRAL_COMPANY_NAME}
         userEmail={me.email ?? undefined}
         modules={modules}
         subtitle="Board portal"

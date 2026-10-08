@@ -3,6 +3,8 @@ import { MfaVerification } from '@/components/auth/mfa-verification';
 import { getMe, requireMatchingTenantWorkspace, roleHome } from '@/lib/auth/me';
 import { requiresMfa } from '@/lib/auth/mfa-policy';
 import { safeInternalNext } from '@/lib/security/redirects';
+import { hasVisibleText } from '@/lib/company-admin/settings';
+import { NEUTRAL_COMPANY_NAME } from '@/lib/tenant/neutral-name';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +47,7 @@ export default async function MfaPage({
           required={required}
           manage={params.manage === '1'}
           initialError={params.error}
+          issuerName={me.is_platform_operator ? 'Portier369' : (hasVisibleText(me.portfolio?.company_name) ? me.portfolio!.company_name!.trim() : NEUTRAL_COMPANY_NAME)}
         />
       </div>
 

@@ -13,7 +13,7 @@ const LOGIN_ERRORS: Record<string, string> = {
   auth_callback_failed: 'We could not complete sign-in from that link. Request a new email and try again.',
   account_disabled: 'This account is disabled. Contact your management company for access.',
   portal_access_disabled: 'Portal access for this account is turned off. Contact your management company.',
-  company_suspended: 'This company workspace is suspended. Contact Portier369 support.',
+  company_suspended: 'This company workspace is suspended. Company administrators: contact your software provider to reactivate it. Everyone else: contact your management company.',
 };
 
 const GENERIC_ERROR = 'We could not sign you in. Try again, or contact your management company if the problem continues.';

@@ -2,6 +2,7 @@ import Sidebar from '@/components/nav/sidebar'
 import { vendorModules } from '@/lib/navigation/role-modules'
 import { requireVendor } from '@/lib/auth/me'
 import { workspaceMetadata } from '@/lib/tenant/metadata'
+import { NEUTRAL_COMPANY_NAME } from '@/lib/tenant/neutral-name';
 
 export const generateMetadata = workspaceMetadata
 
@@ -10,7 +11,7 @@ export default async function VendorLayout({ children }: { children: React.React
   return (
     <div className="flex min-h-screen">
       <Sidebar
-        portfolioName={me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier369'}
+        portfolioName={me.portfolio?.company_name ?? me.portfolio?.name ?? NEUTRAL_COMPANY_NAME}
         userEmail={me.email ?? undefined}
         modules={vendorModules}
         subtitle="Vendor portal"

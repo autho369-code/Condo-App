@@ -7,6 +7,7 @@ import { Search } from 'lucide-react'
 import { openCommandPalette } from '@/components/search/command-palette'
 import { appModules, type AppModule } from '@/lib/navigation/modules'
 import { createClient } from '@/lib/supabase/client'
+import { NEUTRAL_COMPANY_NAME } from '@/lib/tenant/neutral-name';
 
 function matchesPathname(pathname: string, href: string) {
   const path = href.split('?')[0]
@@ -127,7 +128,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
             </div>
             <div className="min-w-0">
               <div className="truncate text-[13px] font-semibold tracking-[-0.01em] text-[#f4f4f5]">
-                {portfolioName ?? 'Portier369'}
+                {portfolioName ?? NEUTRAL_COMPANY_NAME}
               </div>
               <div className="text-[11px] leading-4 text-[#52525b]">{subtitle}</div>
             </div>

@@ -41,3 +41,8 @@ Back to [[Home]]. Don't redo these.
   `/invite` sends people whose account belongs to another company there to
   sign in and accept, and their session lives on that address. The RPC binds
   the invitation to its email, so this is safe.
+- **A company's address is its portal, never the platform's site.** There,
+  marketing paths redirect to login, robots.txt is disallow-all, and the
+  platform's own files and marketing APIs 404 (`PLATFORM_ONLY_PATHS` in
+  `middleware.ts`). A new platform-only file (sitemap-like, `public/*.html`,
+  marketing API) must be added there; `public/*.html` also to `PUBLIC_ASSETS`.

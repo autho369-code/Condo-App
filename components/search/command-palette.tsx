@@ -158,7 +158,7 @@ export function CommandPalette({ pages, actions }: { pages: PaletteLink[]; actio
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Search Portier369"
+        aria-label="Search"
         className="w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_24px_64px_-16px_rgba(16,24,40,0.35)]"
         onMouseDown={(e) => e.stopPropagation()}
       >

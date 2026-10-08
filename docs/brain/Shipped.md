@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-08
+- #252 (merged 7cbc3dd; migration 20261008030000 applied): a property group
+  must be the association's company's (app checks before writes; DB triggers
+  on associations and on group moves, serialized with a row lock; group
+  directory report counts only the company's associations).
 - #251 (merged 331d709; no migration): letters, owner/resident resets and
   resident invites use the recipient's company (name, reply-to, sign-in
   address); residents, pets and vehicles take the owner's company; addPet

@@ -2,6 +2,7 @@ import Sidebar from '@/components/nav/sidebar';
 import { requireTenant } from '@/lib/auth/me';
 import { residentModules } from '@/lib/navigation/role-modules';
 import { workspaceMetadata } from '@/lib/tenant/metadata';
+import { NEUTRAL_COMPANY_NAME } from '@/lib/tenant/neutral-name';
 
 export const generateMetadata = workspaceMetadata;
 
@@ -10,7 +11,7 @@ export default async function ResidentLayout({ children }: { children: React.Rea
   return (
     <div className="flex min-h-screen">
       <Sidebar
-        portfolioName={me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier369'}
+        portfolioName={me.portfolio?.company_name ?? me.portfolio?.name ?? NEUTRAL_COMPANY_NAME}
         logoUrl={me.portfolio?.logo_url ?? null}
         brandColor={me.portfolio?.brand_color ?? undefined}
         userEmail={me.email ?? undefined}

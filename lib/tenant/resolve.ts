@@ -28,7 +28,8 @@ const APEX_DOMAIN = process.env.NEXT_PUBLIC_APEX_DOMAIN || 'portier369.com';
  * (company_name is NOT NULL, so this means a missing or garbled header).
  * White label: never fall back to the platform's name on a client's pages.
  */
-export const NEUTRAL_COMPANY_NAME = 'Your management company';
+export { NEUTRAL_COMPANY_NAME } from '@/lib/tenant/neutral-name';
+import { NEUTRAL_COMPANY_NAME } from '@/lib/tenant/neutral-name';
 
 /**
  * Resolve a tenant from the request hostname.
