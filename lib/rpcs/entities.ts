@@ -365,6 +365,18 @@ export async function createBuilding(formData: FormData) {
   if (!str(formData, 'name')) { failTo('Enter the building name.'); return; }
   if (!str(formData, 'address')) { failTo('Enter the building address.'); return; }
 
+  // The form offers a property group; it lives on the association and must
+  // be the association's company's (the foreign key accepts any company's).
+  // Checked before the building is created.
+  const propertyGroupId = str(formData, 'property_group_id');
+  if (propertyGroupId) {
+    const { data: assoc } = await (supabase as any).from('associations').select('portfolio_id').eq('id', associationId).maybeSingle();
+    const { data: group } = assoc?.portfolio_id
+      ? await (supabase as any).from('property_groups').select('id').eq('id', propertyGroupId).eq('portfolio_id', assoc.portfolio_id).maybeSingle()
+      : { data: null };
+    if (!group) { failTo('That property group was not found. Choose another group.'); return; }
+  }
+
   // Parse amenities as comma-separated → jsonb array
   const amenitiesCsv = str(formData, 'amenities');
   const amenities = amenitiesCsv
@@ -421,11 +433,12 @@ export async function createBuilding(formData: FormData) {
   const { data: b, error } = await (supabase as any).from('buildings').insert(payload).select('id').single();
   if (error || !b) { failTo(error?.message ?? 'Failed to create building'); return; }
 
-  // The form offers a property group; it lives on the association.
-  const propertyGroupId = str(formData, 'property_group_id');
   if (propertyGroupId) {
-    const { error: groupErr } = await (supabase as any).from('associations').update({ property_group_id: propertyGroupId }).eq('id', associationId);
-    if (groupErr) redirect(`/associations/${associationId}?error=${encodeURIComponent(`Building created, but the property group was not saved: ${groupErr.message}`)}`);
+    const { data: grouped, error: groupErr } = await (supabase as any).from('associations')
+      .update({ property_group_id: propertyGroupId }).eq('id', associationId).select('id');
+    if (groupErr || !grouped?.length) {
+      redirect(`/associations/${associationId}?error=${encodeURIComponent(`Building created, but the property group was not saved: ${groupErr?.message ?? 'your account cannot edit this association'}`)}`);
+    }
   }
 
   revalidatePath(`/associations/${associationId}`);

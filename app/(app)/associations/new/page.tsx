@@ -69,6 +69,15 @@ export default async function NewPropertyPage({ searchParams }: { searchParams: 
     if (!m?.portfolio?.id) newPropertyFail('Could not determine portfolio.');
     if (!m.auth_user_id) newPropertyFail('Could not determine current user.');
 
+    // The property group must be one of this company's (the id comes from
+    // the form; the foreign key alone accepts any company's group).
+    const propertyGroupId = (formData.get('property_group_id') as string) || null;
+    if (propertyGroupId) {
+      const { data: group } = await (supabase as any).from('property_groups').select('id')
+        .eq('id', propertyGroupId).eq('portfolio_id', m.portfolio.id).maybeSingle();
+      if (!group) newPropertyFail('That property group was not found. Choose another group.');
+    }
+
     const { data: assoc, error: aErr } = await (supabase as any)
       .from('associations')
       .insert({
@@ -113,7 +122,7 @@ export default async function NewPropertyPage({ searchParams }: { searchParams: 
         unit_entry_pre_authorized: formData.get('unit_entry_pre_authorized') === 'on',
         maintenance_notes: (formData.get('maintenance_notes') as string) || null,
         online_maintenance_request_instructions: (formData.get('online_maintenance_request_instructions') as string) || null,
-        property_group_id: (formData.get('property_group_id') as string) || null,
+        property_group_id: propertyGroupId,
       })
       .select('id')
       .single();

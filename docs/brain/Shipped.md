@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-08
+- #251 (merged 331d709; no migration): letters, owner/resident resets and
+  resident invites use the recipient's company (name, reply-to, sign-in
+  address); residents, pets and vehicles take the owner's company; addPet
+  checks the unit and resident (closed a cross-company pet plant).
 - #250 (merged c959991; no migration): `/accept-invitation` refuses another
   company's invitation on a company's address (platform address allowed),
   names the inviting company, shows expired / other-account states (sign-in
