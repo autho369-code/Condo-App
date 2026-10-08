@@ -106,7 +106,7 @@ export default async function SendEmailPage({
 
           {/* From */}
           <Field label="From" required>
-            <Input value={fromEmail} readOnly className="bg-gray-50 text-gray-700" />
+            <Input value={fromEmail} readOnly placeholder="Your company's sending address" className="bg-gray-50 text-gray-700" />
             <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" name="from_donotreply" className="h-4 w-4 rounded border-gray-300" />
               Send from the no-reply address

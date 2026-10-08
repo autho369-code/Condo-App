@@ -3,13 +3,14 @@ import { ArrowLeft, ArrowRight, CheckCircle2, LifeBuoy } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { getHelpArticle } from '@/lib/help/articles';
+import { hasVisibleText } from '@/lib/company-admin/settings';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HelpArticlePage({ params }: { params: Promise<{ slug?: string[] }> }) {
   const me = await requireStaff();
   // Support is the company's own (white label), shown only when it has one.
-  const supportEmail = me.portfolio?.support_email ?? null;
+  const supportEmail = hasVisibleText(me.portfolio?.support_email) ? me.portfolio!.support_email!.trim() : null;
   const { slug } = await params;
   const article = slug?.length === 1 ? getHelpArticle(slug[0]) : undefined;
 
