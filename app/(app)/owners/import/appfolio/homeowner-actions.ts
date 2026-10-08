@@ -54,8 +54,10 @@ const PAGE = 1000;
 const clean = (v: unknown): string => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v).trim());
 /** Unit numbers compare case-insensitively, ignoring spacing around dashes ("3817 - 1" = "3817-1"). */
 const unitKey = (v: unknown) => clean(v).toLowerCase().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ');
-/** Names compare on letters and digits only ("Leon & Ariel Abbey" = "leon ariel abbey"). */
-const nameKey = (v: unknown) => clean(v).toLowerCase().replace(/[^a-z0-9]/g, '');
+/** Names compare on letters and digits only, in any script ("Leon & Ariel Abbey" = "leonarielabbey"). */
+const nameKey = (v: unknown) => clean(v).normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+/** Phone numbers compare on their last 10 digits. */
+const phoneKey = (v: unknown) => clean(v).replace(/\D/g, '').slice(-10);
 
 async function fetchAll(page: (from: number, to: number) => any): Promise<{ rows: any[]; error?: string }> {
   const rows: any[] = [];
@@ -135,7 +137,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       // The company's owners (for reuse by email and the already-linked check by name).
       const owners = await fetchAll((from, to) => db
         .from('owners')
-        .select('id, full_name, email, emails')
+        .select('id, full_name, email, emails, phone')
         .eq('portfolio_id', portfolioId)
         .is('archived_at', null)
         .order('id')
@@ -143,6 +145,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       if (owners.error) return fail(`Could not load the company's homeowners: ${owners.error}`);
       const ownerById = new Map<string, { name: string; emails: Set<string> }>();
       const ownerIdsByEmail = new Map<string, string[]>();
+      const ownerIdsByPhone = new Map<string, string[]>();
       for (const o of owners.rows) {
         const emails = new Set<string>();
         for (const e of [o.email, ...(Array.isArray(o.emails) ? o.emails : [])]) {
@@ -151,6 +154,8 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         }
         ownerById.set(o.id, { name: nameKey(o.full_name), emails });
         for (const e of emails) ownerIdsByEmail.set(e, [...(ownerIdsByEmail.get(e) ?? []), o.id]);
+        const ph = phoneKey(o.phone);
+        if (ph.length >= 7) ownerIdsByPhone.set(ph, [...(ownerIdsByPhone.get(ph) ?? []), o.id]);
       }
 
       // Per unit: who is linked now (owner ids, names, emails) and whether dues are already set.
@@ -160,8 +165,12 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         if (!s) { s = { ownerIds: new Set(), names: new Set(), emails: new Set(), hasOwner: false, hasDues: false }; linked.set(unitId, s); }
         return s;
       };
+      // Current owner occupancy per unit and owner name (to retry dues that failed to schedule).
+      const occByUnitName = new Map<string, { id: string; dues: number }>();
       for (const o of occupancies.rows) {
         const s = unitState(o.unit_id);
+        const ownerName = o.owner_id ? ownerById.get(o.owner_id)?.name : undefined;
+        if (ownerName !== undefined) occByUnitName.set(`${o.unit_id}|${ownerName}`, { id: o.id, dues: Number(o.dues_amount ?? 0) });
         s.hasOwner = true;
         if (Number(o.dues_amount ?? 0) > 0) s.hasDues = true;
         if (!o.owner_id) continue;
@@ -175,6 +184,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       const links: Link[] = [];
       const newOwners = new Map<string, NewOwner>();
       let reused = 0;
+      const duesRetries: Array<{ label: string; unitId: string; occupancyId: string; dues: number }> = [];
       const reusedLines: string[] = [];
       let noEmail = 0;
 
@@ -195,13 +205,25 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         // must not drop a co-owner).
         if (state.names.has(key)) {
           skipped++;
+          // A unit whose dues failed to schedule last time (dues reset to 0): schedule them now.
+          const dues = parseDues(clean(r.dues));
+          const occ = occByUnitName.get(`${unit.id}|${key}`);
+          if (dues !== null && dues > 0 && !state.hasDues && occ) {
+            duesRetries.push({ label, unitId: unit.id, occupancyId: occ.id, dues });
+            state.hasDues = true;
+          }
           errors.push(`${label}: already a homeowner of this unit; left as it is.`);
           continue;
         }
 
         // Reuse an owner the company has only when both the email and the name match: a shared
         // family or placeholder email must not link another association's owner to this unit.
-        const existingId = emails.flatMap((e) => ownerIdsByEmail.get(e) ?? []).find((id) => ownerById.get(id)?.name === key);
+        // Without an email, name + phone (the same rule new owners in this file are grouped by).
+        const rowPhone = phoneKey(parseLabeledPhones(clean(r.phones).slice(0, 500)).primary);
+        const candidates = emails.length
+          ? emails.flatMap((e) => ownerIdsByEmail.get(e) ?? [])
+          : rowPhone.length >= 7 ? ownerIdsByPhone.get(rowPhone) ?? [] : [];
+        const existingId = candidates.find((id) => ownerById.get(id)?.name === key);
         const link: Link = {
           line, unitNumber, unitId: unit.id, label,
           dues: parseDues(clean(r.dues)),
@@ -216,7 +238,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           link.ownerId = existingId;
           state.ownerIds.add(existingId);
           reused++;
-          reusedLines.push(`${label}: linked to the existing homeowner with the same name and email.`);
+          reusedLines.push(`${label}: linked to the existing homeowner with the same name and ${emails.length ? 'email' : 'phone'}.`);
         } else {
           // One new owner per name + email within this file: people sharing a family or
           // placeholder email stay separate owners (same rule as reusing existing owners).
@@ -225,7 +247,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           const phones = parseLabeledPhones(clean(r.phones).slice(0, 500));
           const ownerKey = emails[0]
             ? `n:${key}|e:${emails[0]}`
-            : phones.primary ? `n:${key}|p:${phones.primary.replace(/\D/g, '')}` : `n:${key}|line:${line}`;
+            : phoneKey(phones.primary).length >= 7 ? `n:${key}|p:${phoneKey(phones.primary)}` : `n:${key}|line:${line}`;
           let owner = newOwners.get(ownerKey);
           if (!owner) {
             const notes = [
@@ -300,8 +322,11 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           // Dues: once per unit, only when no current owner has them yet (co-owners share the unit's schedule).
           if (l.dues !== null && l.dues > 0 && !state.hasDues) {
             const duesErr = await scheduleOwnerDues(db, occ.id, null);
-            if (duesErr) errors.push(`${l.label}: owner imported, but ${duesErr}`);
-            else state.hasDues = true;
+            if (duesErr) {
+              // Leave the unit marked "no dues" so running the import again schedules them.
+              await db.from('occupancies').update({ dues_amount: 0 }).eq('id', occ.id);
+              errors.push(`${l.label}: owner imported, but ${duesErr}. Fix that and run the import again to schedule the dues.`);
+            } else state.hasDues = true;
           }
 
           // Ownership %: only while the unit's is still 0 (never overwrite one someone set).
@@ -313,6 +338,17 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
             else if (changed?.length) { unit.pct = l.pct; pctFilled++; }
           }
         }
+      });
+
+      // Dues that failed to schedule on an earlier run.
+      let duesScheduled = 0;
+      await inPool(duesRetries, async (d) => {
+        const { error: setErr } = await db.from('occupancies').update({ dues_amount: d.dues }).eq('id', d.occupancyId);
+        const duesErr = setErr ? `dues: ${setErr.message}` : await scheduleOwnerDues(db, d.occupancyId, null);
+        if (duesErr) {
+          await db.from('occupancies').update({ dues_amount: 0 }).eq('id', d.occupancyId);
+          errors.push(`${d.label}: ${duesErr}`);
+        } else duesScheduled++;
       });
 
       // Don't leave owners with no unit behind (like importOwners): remove ones whose every link failed.
@@ -329,6 +365,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       if (created) notes.push(`${created} new homeowner record${created === 1 ? '' : 's'} created.`);
       if (reused) notes.push(`${reused} link${reused === 1 ? '' : 's'} went to homeowners the company already had (same name and email).`);
       if (noEmail) notes.push(`${noEmail} homeowner${noEmail === 1 ? ' has' : 's have'} no email in AppFolio; their preferred contact is set to mail.`);
+      if (duesScheduled) notes.push(`${duesScheduled} unit${duesScheduled === 1 ? '' : 's'} had no dues schedule and now have one.`);
       if (pctFilled) notes.push(`${pctFilled} unit${pctFilled === 1 ? '' : 's'} had no ownership % and now have the one from the export.`);
       errors.unshift(...notes);
       errors.push(...reusedLines);

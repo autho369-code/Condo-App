@@ -262,7 +262,22 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
     if (suggested) setAssociationId(suggested);
   }
 
-  const selected = rows?.filter((r) => r.group === group) ?? [];
+  // "All associations combined" compares the whole file: every property group, summed per account.
+  const combined = associationId === TIE_OUT_ALL_ASSOCIATIONS;
+  const selected = React.useMemo(() => {
+    if (!rows) return [];
+    if (!combined) return rows.filter((r) => r.group === group);
+    const byNumber = new Map<number, { number: number; name: string; ending: number }>();
+    for (const r of rows) {
+      const cur = byNumber.get(r.number);
+      if (cur) cur.ending = Math.round((cur.ending + r.ending) * 100) / 100;
+      else byNumber.set(r.number, { number: r.number, name: r.name, ending: r.ending });
+    }
+    return [...byNumber.values()];
+  }, [rows, group, combined]);
+  const priorYearsTotal = combined
+    ? Object.values(priorYears).reduce<number | null>((sum, p) => (p?.ending == null ? sum : (sum ?? 0) + p.ending), null)
+    : priorYears[group]?.ending ?? null;
 
   async function run() {
     setBusy(true);
@@ -273,7 +288,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
         associationId,
         asOf,
         selected.map((r) => ({ number: r.number, name: r.name, ending: r.ending })),
-        { incomeBasis, priorYearsRetainedEarnings: priorYears[group]?.ending ?? null },
+        { incomeBasis, priorYearsRetainedEarnings: priorYearsTotal },
       );
       if (res.error) setError(res.error);
       else setResult(res);

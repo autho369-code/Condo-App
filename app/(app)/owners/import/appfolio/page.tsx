@@ -4,6 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { importAppfolioUnits } from '../actions';
 import { AppfolioImportClient } from './appfolio-client';
 import { importAppfolioChartOfAccounts, tieOutAppfolioTrialBalance } from './gl-actions';
@@ -24,12 +25,13 @@ export default async function AppfolioImportPage() {
   // The chart of accounts, open balances and trial balance need finance access (the actions re-check).
   const canFinance = Boolean(me.is_finance_staff || me.is_platform_operator);
   const supabase = await createClient();
-  const { data } = await (supabase as any)
+  // Paged: PostgREST returns at most 1,000 rows, and every association must be selectable.
+  const { rows: associations } = await fetchAllRows<{ id: string; name: string }>(() => (supabase as any)
     .from('associations')
     .select('id, name')
     .is('archived_at', null)
-    .order('name');
-  const associations = (data ?? []) as { id: string; name: string }[];
+    .order('name')
+    .order('id'));
 
   return (
     <DataWorkspace
