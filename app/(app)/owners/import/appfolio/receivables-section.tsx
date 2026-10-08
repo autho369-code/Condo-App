@@ -37,6 +37,15 @@ type Props = {
 
 const usd = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/** Saves every message of an import as a text file (the alert shows the first 50). */
+function downloadMessages(messages: string[]) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([messages.join('\n') + '\n'], { type: 'text/plain' }));
+  a.download = 'open-balance-import-messages.txt';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
 const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 /** Same comparison the server action uses: case-insensitive, spacing around dashes ignored. */
 const unitKey = (v: string) => v.trim().toLowerCase().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ');
@@ -228,6 +237,11 @@ function AssociationCard({
             </ul>
           ) : null}
           {(result.errors?.length ?? 0) > 50 && <p className="mt-1">…and {result.errors!.length - 50} more.</p>}
+          {result.errors?.length ? (
+            <Button type="button" variant="secondary" className="mt-3" onClick={() => downloadMessages(result.errors!)}>
+              Download all {plural(result.errors.length, 'message')}
+            </Button>
+          ) : null}
         </Alert>
       )}
     </Surface>

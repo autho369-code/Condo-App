@@ -123,8 +123,10 @@ export async function importAppfolioReceivables(
   // A unit number used in more than one building is ambiguous: its items stay unmatched
   // rather than landing on an arbitrary unit.
   const unitByNumber = new Map<string, string>();
+  const unitNumberById = new Map<string, string>();
   const ambiguousUnits = new Set<string>();
   for (const u of units ?? []) {
+    unitNumberById.set(u.id as string, clean(u.unit_number));
     const k = unitKey(u.unit_number);
     if (unitByNumber.has(k)) ambiguousUnits.add(k);
     else unitByNumber.set(k, u.id as string);
@@ -236,6 +238,23 @@ export async function importAppfolioReceivables(
           skipped++;
           changed.push(`Line ${c.line} (${c.unitNumber}): ${c.description.slice(MEMO_PREFIX.length).trim()} was imported earlier as ${usd(before)} and is ${usd(c.amount)} in this file. Not posted again; adjust the unit's balance by hand if the change is real.`);
         } else work.push(c);
+      }
+
+      // Items imported earlier that this file no longer lists (paid in full or removed in
+      // AppFolio; a fully paid item drops out of the report): the file is the association's
+      // whole snapshot, so their posted amounts no longer reflect what is owed.
+      const gone = new Map<string, { count: number; amount: number }>();
+      for (const [key, amounts] of already) {
+        if (!amounts.length) continue;
+        const unitId = key.slice(0, key.indexOf('|'));
+        const g = gone.get(unitId) ?? { count: 0, amount: 0 };
+        g.count += amounts.length;
+        g.amount += amounts.reduce((sum, a) => sum + a, 0) / 100;
+        gone.set(unitId, g);
+      }
+      for (const [unitId, g] of gone) {
+        const unitNumber = unitNumberById.get(unitId);
+        changed.push(`${unitNumber ? `Unit "${unitNumber}"` : 'An archived unit'}: ${g.count} item${g.count === 1 ? '' : 's'} imported earlier (${usd(g.amount)}) ${g.count === 1 ? 'is' : 'are'} no longer in this file (paid or removed in AppFolio). Adjust the unit's balance by hand.`);
       }
 
       let imported = 0;
