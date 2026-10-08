@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #255).
+Back to [[Home]]. Updated 2026-10-08 (after #256).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,13 +12,25 @@ Back to [[Home]]. Updated 2026-10-08 (after #255).
   pilot).
 
 ## Open PR
-- Open: migration 20261008060000 converts the 7 SETOF uuid identity helpers
-  (current_board_association_ids, current_resident_*, current_tenant_*,
-  current_vendor_bill_association_ids) to PL/pgSQL `return query`, same
-  body. Rolled-back production test: same rows for 6 roles; board 3.2 s ->
-  1.75 s, owner 1.6 s -> 0.94 s, vendor 1.3 s -> 0.69 s (30 tables).
-  Table-returning functions (tenant_branding etc.) left alone: RETURN QUERY
-  is stricter on column types. Apply after merge.
+- Open PR: AppFolio importer (one page, `/owners/import/appfolio`), every
+  parser verified on Mirsad's real exports (2026-10-08; not kept in the repo,
+  tests use made-up rows of the same shape): units (Unit Directory),
+  homeowners + ownership % + dues (Homeowner Directory: 29 associations,
+  1,288 rows), chart of accounts (367/367) + trial balance tie-out (company
+  -wide file ties to 0.00; "All associations combined"), vendors (1,332),
+  open balances (Aged Receivable Detail: 28 associations, 2,469 items,
+  ties to the file total $432,269.37; credits listed, not posted), work
+  orders (2,012/2,012, dedupe on "AppFolio WO #n"). Chart, open balances and
+  tie-out are finance-staff only. Migrations to apply after merge:
+  20261008070000 (Import Variances per unit + date) and 20261008080000
+  (import_locks + claim_import_lock: one import per association and kind at
+  a time; imports that use it fail until it's applied). Work-order import
+  announces each row to a subscribed work_order.created webhook.
+- #256 merged (7b37b23); migration 20261008060000 applied and verified (7
+  SETOF uuid identity helpers are PL/pgSQL, SECURITY DEFINER, search_path
+  kept). Live timings for 30 tables per role, original -> now: board
+  14.9 s -> 1.8 s, owner 7.5 s -> 0.97 s, vendor 5.8 s -> 0.71 s, manager
+  2.9 s -> 0.72 s, company admin 3.8 s -> 0.72 s, operator 2.6 s -> 0.32 s.
 - #255 merged (9ced138); migration 20261008050000 applied and verified:
   221 SECURITY DEFINER scalar helpers are PL/pgSQL (3 skipped by design:
   app_portal_url, app_ownership_bounds, report_data_units_by_owner),
@@ -114,16 +126,11 @@ Back to [[Home]]. Updated 2026-10-08 (after #255).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-0. AppFolio importer: waiting on Mirsad's AppFolio CSV exports (unit
-   directory, owner directory, vendor directory, work orders, aged
-   receivables / owner ledgers, chart of accounts, trial balance) so headers
-   are matched exactly, not guessed. Existing importers: owners+units,
-   opening balances, journal entries, bills. Then: Stripe live for one
+0. AppFolio importer follow-ups: credit balances (owner prepayments), and
+   run the real import for one association end to end after merge. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
    step would be per-request identity caching (riskier, measure first).
-Second-round gaps 1-6 are in the open PR; 7 closed with no change (the
-worker keeps the company's sender name; an unverified domain can't send).
 1. `checkLinkedRecords` with no association (calendar events without one):
    a vendor/owner only has to be visible, so a platform operator could attach
    another company's. Compare against the record's company (DB trigger

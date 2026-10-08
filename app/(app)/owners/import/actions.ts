@@ -15,6 +15,8 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { todayInZone } from '@/lib/time/zoned';
 import { escapeLike } from '@/lib/db/escape-like';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { withImportLock } from '@/lib/imports/import-lock';
 
 export type ImportSummary = { imported: number; skipped: number; errors?: string[] };
 
@@ -328,4 +330,165 @@ export async function importOpeningBalances(
   revalidatePath('/charges');
   revalidatePath('/units');
   return { imported, skipped, errors: errors.length ? errors : undefined };
+}
+
+export type AppfolioUnitRow = {
+  row: string;
+  unit_number: string;
+  sqft: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  address: string | null;
+  ownership_pct: number | null;
+};
+
+const MAX_APPFOLIO_UNITS = 5000;
+
+/**
+ * Units from AppFolio's Unit Directory export (parsed in the browser by
+ * lib/imports/appfolio.ts) into one association. New units go into its first
+ * building (a default "Main" building is created if it has none). A unit
+ * that already exists (same unit number in any of its buildings) is left as
+ * it is, except that its ownership percentage is filled in when it is still
+ * 0 and the export has one; a percentage someone already set is never
+ * overwritten. Nothing from the browser is trusted: the association is
+ * re-checked and every value is re-validated here.
+ */
+export async function importAppfolioUnits(
+  associationId: string,
+  units: AppfolioUnitRow[],
+): Promise<ImportSummary> {
+  await requireStaff();
+  const supabase = await createClient();
+  const db = supabase as any;
+
+  if (!Array.isArray(units) || units.length === 0) return { imported: 0, skipped: 0, errors: ['The file has no units.'] };
+  if (units.length > MAX_APPFOLIO_UNITS) {
+    return { imported: 0, skipped: units.length, errors: [`Import at most ${MAX_APPFOLIO_UNITS} units at a time.`] };
+  }
+  if (!associationId) return { imported: 0, skipped: units.length, errors: ['No association selected.'] };
+
+  const { data: association, error: assocErr } = await db
+    .from('associations').select('id').eq('id', associationId).is('archived_at', null).maybeSingle();
+  if (assocErr || !association) {
+    return { imported: 0, skipped: units.length, errors: [assocErr ? `Could not check the association: ${assocErr.message}` : 'That association was not found or is outside your access.'] };
+  }
+
+  // One units import per association at a time: the existing-unit lookup and the inserts
+  // must not interleave with another run (the database key is the exact unit-number text).
+  try {
+    return await withImportLock(db, associationId, 'appfolio_units', async () => {
+
+      // Paged: PostgREST returns at most 1,000 rows, and a missed unit would be created twice.
+      const { rows: existing, error: existingErr } = await fetchAllRows<any>(() => db
+        .from('units')
+        .select('id, unit_number, ownership_pct, buildings!inner(association_id)')
+        .eq('buildings.association_id', associationId)
+        .is('archived_at', null)
+        .order('id'));
+      if (existingErr) return { imported: 0, skipped: units.length, errors: [`Could not load the association's units: ${existingErr}`] };
+      // Unit numbers compare case-insensitively, ignoring spacing around dashes ("3817 - 1" =
+      // "3817-1"), the same key the homeowner and open-balance imports use. A number used in
+      // more than one building is ambiguous: such rows are left alone.
+      const unitKey = (v: unknown) => clean(v).toLowerCase().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ');
+      const have = new Map<string, { id: string; pct: number }>();
+      const ambiguous = new Set<string>();
+      // Shares of the extra units behind an ambiguous number: not matchable, but they still
+      // count toward the association's ownership total.
+      let ambiguousPct = 0;
+      for (const u of existing ?? []) {
+        const k = unitKey(u.unit_number);
+        if (have.has(k)) { ambiguous.add(k); ambiguousPct += Number(u.ownership_pct ?? 0); }
+        else have.set(k, { id: u.id, pct: Number(u.ownership_pct ?? 0) });
+      }
+
+      const building = await ensureBuilding(db, associationId);
+      if ('error' in building) return { imported: 0, skipped: units.length, errors: [`Could not resolve a building: ${building.error}`] };
+
+      const positive = (v: unknown, max: number): number | null => {
+        const n = typeof v === 'number' ? v : num(v);
+        return n !== null && n > 0 && n <= max ? n : null;
+      };
+
+      let imported = 0;
+      let updated = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+      const pending: Array<{ line: string; unitNumber: string; record: Record<string, unknown> }> = [];
+      for (const u of units) {
+        const line = clean(u?.row) || '?';
+        const unitNumber = clean(u?.unit_number).slice(0, 40);
+        if (!unitNumber) { skipped++; errors.push(`Line ${line}: no unit name.`); continue; }
+        const key = unitKey(unitNumber);
+        const pct = positive(u.ownership_pct, 100);
+        if (ambiguous.has(key)) {
+          skipped++;
+          errors.push(`Line ${line} (${unitNumber}): this unit number exists in more than one building; left as it is.`);
+          continue;
+        }
+        const found = have.get(key);
+        if (found) {
+          if (pct !== null && found.pct === 0) {
+            const { data: changed, error: pctErr } = await db.from('units').update({ ownership_pct: pct })
+              .eq('id', found.id).eq('ownership_pct', 0).select('id');
+            if (pctErr) { skipped++; errors.push(`Line ${line} (${unitNumber}): already exists; its ownership % was not set: ${pctErr.message}`); continue; }
+            if (changed?.length) { found.pct = pct; updated++; continue; }
+          }
+          skipped++;
+          errors.push(`Line ${line} (${unitNumber}): already in this association; left as it is.`);
+          continue;
+        }
+        const bedrooms = positive(u.bedrooms, 50);
+        const sqft = positive(u.sqft, 1_000_000);
+        pending.push({
+          line,
+          unitNumber,
+          record: {
+            building_id: building.id,
+            unit_number: unitNumber,
+            ownership_pct: pct ?? 0,
+            sqft: sqft === null ? null : Math.round(sqft),
+            bedrooms: bedrooms === null ? null : Math.round(bedrooms),
+            bathrooms: positive(u.bathrooms, 50),
+            address_override: clean(u.address).slice(0, 300) || null,
+          },
+        });
+        have.set(key, { id: '', pct: pct ?? 0 });
+      }
+
+      // New units go in batches (a large property in one request would otherwise
+      // be thousands of round trips); a batch that fails is retried row by row so
+      // the error names the line.
+      for (let i = 0; i < pending.length; i += 200) {
+        const batch = pending.slice(i, i + 200);
+        const { error: batchErr } = await db.from('units').insert(batch.map((p) => p.record));
+        if (!batchErr) { imported += batch.length; continue; }
+        for (const p of batch) {
+          const { error: rowErr } = await db.from('units').insert(p.record);
+          if (rowErr) {
+            skipped++;
+            errors.push(`Line ${p.line} (${p.unitNumber}): ${rowErr.message}`);
+            const k = unitKey(p.unitNumber);
+            if (have.get(k)?.id === '') have.delete(k);
+          } else {
+            imported++;
+          }
+        }
+      }
+
+      // Ownership shares should total 100% across the association (assessments
+      // and votes are split by them): say so when they don't.
+      const total = [...have.values()].reduce((sum, u) => sum + u.pct, ambiguousPct);
+      if (total > 0 && Math.abs(total - 100) > 0.01) {
+        errors.push(`Ownership percentages in this association now total ${Math.round(total * 10000) / 10000}%, not 100%. Check the units' ownership % before billing by share.`);
+      }
+      if (updated) errors.unshift(`${updated} existing unit${updated === 1 ? '' : 's'} had no ownership % and now have the one from the export.`);
+
+      revalidatePath('/units');
+      revalidatePath(`/associations/${associationId}/units`);
+      return { imported, skipped, errors: errors.length ? errors : undefined };
+    });
+  } catch (e) {
+    return { imported: 0, skipped: units.length, errors: [e instanceof Error ? e.message : 'The import failed. Try again.'] };
+  }
 }

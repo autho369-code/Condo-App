@@ -22,7 +22,12 @@ export default async function ImportDataPage() {
     <DataWorkspace
       title="Import Data"
       description="Onboard an association in bulk from CSV: import owners, units, and dues, then carry over opening balances — instead of entering each record by hand."
-      actions={<Link href="/owners"><Button variant="secondary">Back to owners</Button></Link>}
+      actions={
+        <div className="flex flex-wrap gap-2">
+          <Link href="/owners/import/appfolio"><Button>Import from AppFolio</Button></Link>
+          <Link href="/owners"><Button variant="secondary">Back to owners</Button></Link>
+        </div>
+      }
     >
       <ImportClient
         associations={(associations ?? []) as { id: string; name: string }[]}

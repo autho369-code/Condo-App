@@ -39,3 +39,7 @@
 ## Idempotency / RPC return quick refs
 - `email_queue.idempotency_key` has a full (non-partial) unique index `email_queue_idempotency_key_unique` (20260730003000), so `.upsert(..., { onConflict: 'idempotency_key' })` works. `form_submissions` cols: token, kind, result_id (uuid), created_by, created_at.
 - RPC returns: `post_ad_hoc_charge` returns a `charges` row (use `.id`); `charge_back_work_order` returns a bare uuid. `calendar_event_reminders` links via `calendar_event_id` (not event_id), times in `remind_at`. (2026-10-08 diff vs dbf551c4, all clean.)
+
+## Type mismatches the column check cannot see
+- `gl_accounts.number` is INTEGER (1000-9999 CHECK): PostgREST returns a JS number, so a Map keyed by the CSV string never matches, and a non-digit value (e.g. "6371.01") in `.in('number', …)` fails the whole query with 22P02. Example: app/(app)/owners/import/appfolio/vendor-actions.ts:106-113,141 (2026-10-08).
+- AppFolio import quick refs (2026-10-08, clean): enums work_order_status/priority/category, gl_account_type, gl_fund_account, vendor_payment_type (check/echeck/ach/online), recurring_frequency; `import_opening_balance(p_unit_id,p_charge_category_id,p_amount,p_description,p_as_of)` writes imported_balances.memo = p_description; `rpt_prm` returns aid/df/dt/cmp.

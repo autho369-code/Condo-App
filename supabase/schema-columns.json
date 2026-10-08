@@ -106,6 +106,7 @@
 "gl_account_role_permissions":["created_at","gl_account_id","id","permission","role_id","updated_at"],
 "gl_accounts":["account_type","active","association_id","created_at","description","fund_account","id","include_on_cash_flow","name","number","portfolio_id","sub_account_of_id","subject_to_management_fees","updated_at"],
 "house_rules":["action_to_resolve","active","archived_at","association_id","category","created_at","custom_schedule","default_violation_type","description","fine_amount","id","penalty_type","rule_number","sort_order","title","updated_at"],
+"import_locks":["claimed_at","claimed_by","kind","scope_id"],
 "imported_balances":["as_of_date","association_id","charge_id","created_at","created_by","id","imported_balance","memo","portfolio_id","unit_id"],
 "income_recertifications":["approved_at","approved_by","association_id","created_at","current_income","documents","due_date","household_size","id","notes","occupancy_id","owner_id","portfolio_id","previous_income","program","status","submitted_at","unit_id","updated_at"],
 "inspection_checklist_items":["area","condition","id","inspection_id","item","note","sort_order","updated_at"],
