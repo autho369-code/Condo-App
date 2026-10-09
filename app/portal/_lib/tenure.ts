@@ -1,5 +1,6 @@
 import 'server-only';
 import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/time/display-zone';
+import { ownerIdList, type OwnerIds } from '@/lib/portal/own-units';
 
 // A unit's history belongs to whoever owned it at the time. When a unit is
 // sold, the buyer must still see the full open balance (that debt is real),
@@ -10,13 +11,14 @@ import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/time/display-zone';
 /** unit_id → the owner's move-in date (null = no recorded move-in, no cutoff). */
 export type TenureCutoffs = Map<string, string | null>;
 
-export async function ownerTenureCutoffs(db: any, ownerId: string | null | undefined): Promise<TenureCutoffs> {
+export async function ownerTenureCutoffs(db: any, ownerIds: OwnerIds): Promise<TenureCutoffs> {
   const cutoffs: TenureCutoffs = new Map();
-  if (!ownerId) return cutoffs;
+  const ids = ownerIdList(ownerIds);
+  if (!ids.length) return cutoffs;
   const { data } = await db
     .from('occupancies')
     .select('unit_id, move_in_date')
-    .eq('owner_id', ownerId)
+    .in('owner_id', ids)
     .eq('status', 'current');
   for (const row of (data ?? []) as { unit_id: string | null; move_in_date: string | null }[]) {
     if (!row.unit_id) continue;

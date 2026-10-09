@@ -9,6 +9,8 @@ import { AddInsurancePolicyForm } from '@/components/insurance/add-policy-form'
 import { isScopedStoragePath } from '@/lib/security/storage-paths'
 import { todayInZone } from '@/lib/time/zoned'
 import { associationZone } from '../_lib/tenure'
+import { RecordSwitcher } from '@/components/ui/record-switcher'
+import { loadOwnerRecords, pickOwnerRecord } from '@/lib/portal/owner-records'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,19 +20,25 @@ const BUCKET = 'association-documents'
 const input =
   'mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
 
-export default async function OwnerInsurancePage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; reminders?: string }> }) {
+export default async function OwnerInsurancePage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; reminders?: string; record?: string }> }) {
   const banner = await searchParams
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
 
-  // HO6 policies on file for this owner
+  // One login can hold an owner record per association, each with its own HO6
+  // policy. Work on one record at a time (?record=, checked against the login).
+  const { records, error: recordsError } = await loadOwnerRecords(db, me)
+  const recordId = pickOwnerRecord(me, banner.record)
+  const recordQuery = records.length > 1 && recordId ? `record=${encodeURIComponent(recordId)}&` : ''
+
+  // HO6 policies on file for this owner record
   // Supabase reports failures in `error` (it does not throw), so check it: a
   // failed read must not look like "no insurance on file".
   const { data: policyRows, error: policiesError } = await db
     .from('insurance_policies')
     .select('id, insurance_company, policy_number, coverage_amount, effective_date, expiration_date, certificate_file_url, remind_owner, remind_manager, status, created_at')
-    .eq('owner_id', me.owner_id)
+    .eq('owner_id', recordId)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
     .limit(5)
@@ -44,7 +52,7 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
   const { data: zoneOcc } = await db
     .from('occupancies')
     .select('associations(timezone)')
-    .eq('owner_id', me.owner_id)
+    .eq('owner_id', recordId)
     .eq('status', 'current')
     .order('is_primary', { ascending: false })
     .limit(1)
@@ -61,7 +69,7 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
   if (current?.certificate_file_url) {
     if (/^https?:\/\//i.test(current.certificate_file_url)) {
       certificateUrl = current.certificate_file_url
-    } else if (isScopedStoragePath(current.certificate_file_url, 'insurance', me.owner_id)) {
+    } else if (recordId && isScopedStoragePath(current.certificate_file_url, 'insurance', recordId)) {
       try {
         const svc = createServiceClient() as any
         const { data: signed } = await svc.storage.from(BUCKET).createSignedUrl(current.certificate_file_url, 3600)
@@ -75,7 +83,9 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
     const me2 = await requireOwner()
     const supabase2 = await createClient()
     const policyId = formData.get('policy_id') as string
-    if (!policyId) redirect('/portal/insurance?error=' + encodeURIComponent('Missing policy.'))
+    const back = String(formData.get('return_query') ?? '')
+    const backQuery = /^record=[0-9a-f-]{36}&$/i.test(back) ? back : ''
+    if (!policyId) redirect(`/portal/insurance?${backQuery}error=` + encodeURIComponent('Missing policy.'))
     const { data: changed, error } = await (supabase2 as any)
       .from('insurance_policies')
       .update({
@@ -83,12 +93,13 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
         remind_manager: formData.get('remind_manager') === 'on',
       })
       .eq('id', policyId)
-      .eq('owner_id', me2.owner_id)
+      // A policy of one of this login's owner records.
+      .in('owner_id', me2.owner_ids)
       .select('id')
-    if (error) redirect('/portal/insurance?error=' + encodeURIComponent(error.message))
-    if (!changed?.length) redirect('/portal/insurance?error=' + encodeURIComponent('Reminders were not saved: this policy was removed or is no longer linked to your account. Please contact your management company.'))
+    if (error) redirect(`/portal/insurance?${backQuery}error=` + encodeURIComponent(error.message))
+    if (!changed?.length) redirect(`/portal/insurance?${backQuery}error=` + encodeURIComponent('Reminders were not saved: this policy was removed or is no longer linked to your account. Please contact your management company.'))
     revalidatePath('/portal/insurance')
-    redirect('/portal/insurance?reminders=1')
+    redirect(`/portal/insurance?${backQuery}reminders=1`)
   }
 
   return (
@@ -98,6 +109,8 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
         <p className="mt-1.5 text-sm leading-6 text-gray-500">HO6 insurance certificate management</p>
       </div>
 
+      <RecordSwitcher records={records} currentId={recordId} basePath="/portal/insurance" caption="Each association keeps its own insurance on file. Showing:" />
+      {recordsError && <Alert tone="danger" title="Could not load your associations:">{recordsError}</Alert>}
       {banner.error && <Alert tone="danger" title="Could not save:">{banner.error}</Alert>}
       {policiesError && (
         <Alert tone="danger" title="Could not load your insurance policies:">
@@ -143,6 +156,7 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
           <p className="mt-1 mb-4 text-sm text-gray-500">Email notices are sent 30 days and 15 days before the policy expires.</p>
           <form action={updateReminders} className="space-y-3">
             <input type="hidden" name="policy_id" value={current.id} />
+            <input type="hidden" name="return_query" value={recordQuery} />
             <label className="flex items-center gap-2.5 text-sm text-gray-700">
               <input type="checkbox" name="remind_owner" defaultChecked={current.remind_owner !== false} className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-blue-500/30" />
               Email me before this policy expires
@@ -175,7 +189,7 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
       <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <h2 className="mb-1 text-sm font-semibold text-gray-950">Add Insurance Policy</h2>
         <p className="mb-4 text-sm text-gray-500">Upload your policy document — it is saved to your association records.</p>
-        <AddInsurancePolicyForm />
+        <AddInsurancePolicyForm ownerId={recordId} returnQuery={recordQuery} />
       </div>
     </div>
   )

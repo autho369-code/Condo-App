@@ -19,7 +19,7 @@ export default async function OwnerSurveysPage({ searchParams }: { searchParams:
       .order('created_at', { ascending: false })
       .limit(200),
     // Only portal answers (the detail page shows the same one).
-    db.from('survey_responses').select('survey_id, submitted_at').eq('submitted_by_owner_id', me.owner_id).is('work_order_id', null),
+    db.from('survey_responses').select('survey_id, submitted_at').in('submitted_by_owner_id', me.owner_ids).is('work_order_id', null),
   ]);
   const answered = new Map<string, string>(((mine ?? []) as any[]).map((r) => [r.survey_id, r.submitted_at]));
   const list = (surveys ?? []) as any[];

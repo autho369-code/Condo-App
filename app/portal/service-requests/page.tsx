@@ -32,7 +32,7 @@ export default async function ServiceRequestsList({
   const { submitted, error, cancelled, notice } = await searchParams;
   const supabase = await createClient();
 
-  const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_id);
+  const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_ids);
   const { data: unitRows, error: rowsError } = await (supabase as any)
     .from('service_requests')
     .select(`
@@ -46,14 +46,14 @@ export default async function ServiceRequestsList({
     .order('created_at', { ascending: false });
   // A buyer must not see the previous owner's requests: keep rows naming this
   // owner, or (when no owner is recorded) created on/after this owner's move-in.
-  const tenure = await ownerTenureCutoffs(supabase, me.owner_id);
+  const tenure = await ownerTenureCutoffs(supabase, me.owner_ids);
   const loadError = ownUnits.error ?? (rowsError ? rowsError.message as string : null);
   const rows = ((unitRows ?? []) as any[]).filter((r) =>
     r.homeowner_id || r.owner_id
-      ? Boolean(me.owner_id) && (r.homeowner_id === me.owner_id || r.owner_id === me.owner_id)
+      ? (me.owner_ids.includes(r.homeowner_id) || me.owner_ids.includes(r.owner_id))
       : withinTenure(tenure, r.unit_id, r.created_at));
   const files = await loadRequestAttachmentsByRequest((rows ?? []).map((r: any) => r.id));
-  const isMine = (r: any) => Boolean(me.owner_id) && (r.homeowner_id === me.owner_id || r.owner_id === me.owner_id);
+  const isMine = (r: any) => (me.owner_ids.includes(r.homeowner_id) || me.owner_ids.includes(r.owner_id));
   const justSubmitted = submitted ? (rows ?? []).find((r: any) => r.id === submitted && isMine(r)) : null;
 
   return (

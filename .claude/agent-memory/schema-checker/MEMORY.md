@@ -53,3 +53,6 @@
 
 ## owner_portal_logins (20261009050000)
 - Mirrors vendor_portal_logins: cols auth_user_id, invitation_id, linked_at, owner_id (PK), portfolio_id, revoked_at; auth_user_id FK -> auth.users is NOT in schema-foreign-keys.json (snapshot lists public FKs only, by design). Owner invites carry `association_id` + `metadata.owner_id`; revoke filters use `.or('metadata->>owner_id.eq.X,metadata->>owner_id.is.null')` (metadata is jsonb, valid). (2026-10-09, clean.)
+
+## Owner login part 2: me.owner_ids (20261009060000)
+- Portal reads moved from `.eq('owner_id', me.owner_id)` to `.in('owner_id', me.owner_ids)`; writes use the record holding the unit (`ownerRecordForUnit` in lib/portal/own-units.ts, occupancies owner_id/unit_id/status/created_at). `submit_owner_message` has a 4-arg overload `(p_subject,p_body,p_idempotency_key,p_owner_id)`; the 3-arg one delegates via current_owner_id(). All columns used in the RPC body exist (communications_log.idempotency_key, email_queue.communication_log_id, portfolios.support_email, profiles.disabled_at). (2026-10-09, clean.)

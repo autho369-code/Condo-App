@@ -13,7 +13,7 @@ export default async function OwnerHearingsPage({ searchParams }: { searchParams
 
   const { data: viols } = await db.from('violations')
     .select('id, title, violation_type, status, date_observed, hearing_date, hearing_required, hearing_at, board_decision, fine_amount')
-    .eq('owner_id', me.owner_id).is('archived_at', null)
+    .in('owner_id', me.owner_ids).is('archived_at', null)
     // hearing_pending = a hearing was requested/granted but not yet scheduled.
     .or('hearing_required.eq.true,hearing_date.not.is.null,hearing_at.not.is.null,status.eq.hearing_pending')
     .order('hearing_date', { ascending: true }).limit(50)

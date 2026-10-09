@@ -16,7 +16,7 @@ export default async function LedgerPage() {
 
   // Filter to the owner's own units explicitly: RLS also admits board members
   // to the whole association, which leaked every owner's ledger here.
-  const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_id);
+  const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_ids);
   const myUnits = unitFilter(ownUnits.ids);
   const { data: charges, error: chargesError } = await (supabase as any)
     .from('v_charge_balances')
@@ -28,7 +28,7 @@ export default async function LedgerPage() {
   // details only from the owner's own move-in on — a buyer must not see the
   // seller's payments or references. Staff `notes` are internal and never
   // shown to owners. Reversed (returned) payments are listed but marked.
-  const tenure = await ownerTenureCutoffs(supabase, me.owner_id);
+  const tenure = await ownerTenureCutoffs(supabase, me.owner_ids);
   const paymentScope = tenureFilter(tenure, 'payment_date', myUnits);
   const { data: payments, error: paymentsError } = paymentScope
     ? await (supabase as any)
@@ -49,11 +49,11 @@ export default async function LedgerPage() {
 
   // Association name for the export header (owner's first current occupancy)
   let associationName = 'Association';
-  if (me.owner_id) {
+  if (me.owner_ids.length) {
     const { data: occ } = await (supabase as any)
       .from('occupancies')
       .select('units(buildings(associations(name)))')
-      .eq('owner_id', me.owner_id)
+      .in('owner_id', me.owner_ids)
       .eq('status', 'current')
       .order('is_primary', { ascending: false })
       .limit(1)
@@ -89,7 +89,7 @@ export default async function LedgerPage() {
     .eq('status', 'active')
     .order('created_at', { ascending: false });
   const myPlans = ((activePlans ?? []) as any[]).filter((plan) =>
-    plan.owner_id ? plan.owner_id === me.owner_id : withinTenure(tenure, plan.unit_id, plan.created_at));
+    plan.owner_id ? me.owner_ids.includes(plan.owner_id) : withinTenure(tenure, plan.unit_id, plan.created_at));
   const plans = await Promise.all(myPlans.map(async (plan) => {
     const { data: sched } = await (supabase as any).rpc('payment_plan_schedule', { p_plan_id: plan.id });
     const rows = (sched ?? []) as { installment_number: number; due_date: string; amount: number; covered: number; status: string }[];

@@ -16,7 +16,7 @@ export default async function OwnerVehiclesPage() {
   const { data: assignments } = await db
     .from('parking_assignments')
     .select('id, status, start_date, end_date, monthly_fee, vehicle_make, vehicle_model, vehicle_color, license_plate, insurance_company, insurance_policy_number, parking_spaces(label, space_type), units(unit_number)')
-    .eq('owner_id', me.owner_id)
+    .in('owner_id', me.owner_ids)
     .order('start_date', { ascending: false })
 
   const rows = assignments ?? []

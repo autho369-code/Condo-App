@@ -12,7 +12,8 @@ const BUCKET = 'association-documents';
 const input =
   'mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15';
 
-export function AddInsurancePolicyForm() {
+/** ownerId: the owner record (association) the policy is for; returnQuery keeps the page's record. */
+export function AddInsurancePolicyForm({ ownerId, returnQuery = '' }: { ownerId?: string | null; returnQuery?: string } = {}) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -31,7 +32,7 @@ export function AddInsurancePolicyForm() {
       const file = fileRef.current?.files?.[0] ?? null;
       if (file && file.size > 0) {
         setPhase(`Uploading ${file.name}…`);
-        const signed = await createInsuranceCertUpload(file.name, file.size);
+        const signed = await createInsuranceCertUpload(file.name, file.size, ownerId ?? null);
         if (signed.error || !signed.path || !signed.token) throw new Error(signed.error ?? 'Could not authorize the upload');
         const supabase = createClient();
         const { error: upErr } = await supabase.storage
@@ -51,10 +52,11 @@ export function AddInsurancePolicyForm() {
         remindOwner: fd.get('remind_owner') === 'on',
         remindManager: fd.get('remind_manager') === 'on',
         cert,
+        ownerId: ownerId ?? null,
       });
       if (res.error) throw new Error(res.error);
 
-      router.push('/portal/insurance?saved=1');
+      router.push(`/portal/insurance?${returnQuery}saved=1`);
       router.refresh();
     } catch (err: any) {
       setError(err?.message ?? 'Could not save the policy');

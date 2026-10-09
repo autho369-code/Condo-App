@@ -37,13 +37,11 @@ export default async function NewPropertyPage({ searchParams }: { searchParams: 
     { data: bankAccounts },
     { data: propertyGroups },
     { data: feeSchedules },
-    { data: ownersList },
   ] = await Promise.all([
     (supabase as any).from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
     (supabase as any).from('bank_accounts').select('id, name, bank_name, account_type').is('archived_at', null).order('name'),
     (supabase as any).from('property_groups').select('id, name').order('name'),
     (supabase as any).from('management_fee_schedules').select('id, name, fee_type, percentage, amount').is('archived_at', null).order('name'),
-    (supabase as any).from('owners').select('id, full_name').is('archived_at', null).order('full_name'),
   ]);
 
   const cashGLAccounts = (glAccounts ?? []).filter((g: any) => {

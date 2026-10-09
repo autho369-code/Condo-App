@@ -49,7 +49,7 @@ export default async function NewServiceRequest({
 
   // Get the owner's units with association context.
   // RLS on v_unit_account_summary already filters to units the user belongs to.
-  const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_id);
+  const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_ids);
   const { data: units, error: unitsError } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('unit_id, unit_number, association_id')

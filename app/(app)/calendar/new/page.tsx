@@ -1,3 +1,4 @@
+import { OwnerSelect } from '@/components/owners/owner-select';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
@@ -26,7 +27,7 @@ export default async function NewCalendarEventPage({
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     // Every vendor (one request stops at 1,000 rows); the picker narrows to the chosen association.
     fetchAllRows<any>(() => db.from('vendors').select('id, name, emails, phone_numbers, association_id, is_management_company, portfolio_id').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
-    db.from('owners').select('id, full_name, email, phone').is('archived_at', null).order('full_name').limit(200),
+    db.from('owners').select('id, full_name, association_id').is('archived_at', null).order('full_name').limit(1000),
   ]);
 
   const reminders = DEFAULT_REMINDERS[eventType as keyof typeof DEFAULT_REMINDERS] ?? [];
@@ -114,12 +115,8 @@ export default async function NewCalendarEventPage({
 
               <div>
                 <Label htmlFor="owner_id">Owner / resident</Label>
-                <select id="owner_id" name="owner_id" defaultValue="" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-                  <option value="">Not applicable</option>
-                  {(owners ?? []).map((owner: any) => (
-                    <option key={owner.id} value={owner.id}>{owner.full_name}</option>
-                  ))}
-                </select>
+                <OwnerSelect id="owner_id" name="owner_id" defaultValue="" owners={owners ?? []} placeholder="Not applicable"
+                  associationNames={Object.fromEntries((associations ?? []).map((a: any) => [a.id, a.name]))} />
               </div>
 
               <label className="flex items-center gap-2 text-sm text-gray-700">

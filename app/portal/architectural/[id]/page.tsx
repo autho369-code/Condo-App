@@ -35,7 +35,7 @@ export default async function OwnerArchitecturalDetail({
     .from('architectural_requests')
     .select('id, title, description, category, status, decision_notes, decided_at, created_at, owner_id, attachments, units(unit_number)')
     .eq('id', id)
-    .eq('owner_id', me.owner_id)
+    .in('owner_id', me.owner_ids)
     .maybeSingle();
 
   if (!req) return notFound();

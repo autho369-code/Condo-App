@@ -35,7 +35,7 @@ export default async function OwnerArchitecturalList({
   const { data: rows } = await (supabase as any)
     .from('architectural_requests')
     .select('id, title, category, status, created_at, units(unit_number)')
-    .eq('owner_id', me.owner_id) // board members can read every request; show only mine
+    .in('owner_id', me.owner_ids) // board members can read every request; show only mine
     .order('created_at', { ascending: false });
 
   return (

@@ -12,18 +12,28 @@ import { isScopedStoragePath } from '@/lib/security/storage-paths';
 const BUCKET = 'association-documents';
 const MAX_CERT_BYTES = 25 * 1024 * 1024;
 
+// One login can hold an owner record per association; a policy belongs to one
+// of them. A client-sent id is used only if it is one of the login's records.
+function ownerRecord(me: { owner_id: string | null; owner_ids: string[] }, ownerId: string | null | undefined): string | null {
+  if (!ownerId) return me.owner_id && me.owner_ids.includes(me.owner_id) ? me.owner_id : null;
+  return me.owner_ids.includes(ownerId) ? ownerId : null;
+}
+
 export async function createInsuranceCertUpload(
   fileName: string,
   fileSize: number,
+  ownerId?: string | null,
 ): Promise<{ error?: string; path?: string; token?: string }> {
   const me = await requireOwner();
   if (!me.auth_user_id || !me.owner_id) return { error: 'Not signed in as an owner' };
+  const record = ownerRecord(me, ownerId);
+  if (!record) return { error: 'Choose one of your associations.' };
   if (!fileName) return { error: 'Missing file name' };
   if (!fileSize || fileSize <= 0) return { error: 'Empty file' };
   if (fileSize > MAX_CERT_BYTES) return { error: `Policy document must be under ${Math.round(MAX_CERT_BYTES / 1048576)} MB` };
 
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path = `insurance/${me.owner_id}/${Date.now()}-${safeName}`;
+  const path = `insurance/${record}/${Date.now()}-${safeName}`;
   const svc = createServiceClient() as any;
   const { data, error } = await svc.storage.from(BUCKET).createSignedUploadUrl(path);
   if (error || !data?.token) return { error: error?.message ?? 'Could not authorize the upload' };
@@ -39,9 +49,13 @@ export async function saveInsurancePolicy(input: {
   remindOwner: boolean;
   remindManager: boolean;
   cert?: { path: string; name: string } | null;
+  /** The owner record (association) the policy is for; one of the login's. */
+  ownerId?: string | null;
 }): Promise<{ error?: string; ok?: boolean }> {
   const me = await requireOwner();
   if (!me.auth_user_id || !me.owner_id) return { error: 'Not signed in as an owner' };
+  const record = ownerRecord(me, input.ownerId);
+  if (!record) return { error: 'Choose one of your associations.' };
 
   const carrier = (input.carrier ?? '').trim();
   const policyNumber = (input.policyNumber ?? '').trim();
@@ -56,24 +70,27 @@ export async function saveInsurancePolicy(input: {
   if (!expiration) return { error: 'Policy end date is required.' };
   if (expiration <= effective) return { error: 'Policy end date must be after the start date.' };
   if (coverage !== null && !Number.isFinite(coverage)) return { error: 'Coverage amount must be a number.' };
-  if (input.cert && !isScopedStoragePath(input.cert.path, 'insurance', me.owner_id)) return { error: 'Invalid document reference.' };
+  if (input.cert && !isScopedStoragePath(input.cert.path, 'insurance', record)) return { error: 'Invalid document reference.' };
 
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: occ } = await db
+  const { data: occ, error: occError } = await db
     .from('occupancies')
     .select('association_id')
-    .eq('owner_id', me.owner_id)
+    .eq('owner_id', record)
     // The insert policy requires a current occupancy in this association.
     .eq('status', 'current')
     .order('is_primary', { ascending: false })
     .limit(1)
     .maybeSingle();
 
+  if (occError) return { error: `Could not check your unit: ${occError.message}` };
+  if (!occ?.association_id) return { error: 'This association has no current unit of yours to insure.' };
+
   const { data: policy, error } = await db.from('insurance_policies').insert({
-    owner_id: me.owner_id,
-    association_id: occ?.association_id ?? null,
+    owner_id: record,
+    association_id: occ.association_id,
     insurance_company: carrier,
     policy_number: policyNumber,
     coverage_amount: coverage,
@@ -98,7 +115,7 @@ export async function saveInsurancePolicy(input: {
     const svc = createServiceClient() as any;
     const { error: documentError } = await svc.from('documents').insert({
       entity_type: 'owner',
-      entity_id: me.owner_id,
+      entity_id: record,
       doc_type: 'ho6',
       file_name: input.cert.name,
       file_url: input.cert.path,
@@ -107,7 +124,7 @@ export async function saveInsurancePolicy(input: {
       expires_at: new Date(expiration + 'T00:00:00Z').toISOString(),
     });
     if (documentError) {
-      await svc.from('insurance_policies').delete().eq('id', policy.id).eq('owner_id', me.owner_id);
+      await svc.from('insurance_policies').delete().eq('id', policy.id).eq('owner_id', record);
       await svc.storage.from(BUCKET).remove([input.cert.path]);
       return { error: `Could not file the policy document: ${documentError.message}` };
     }

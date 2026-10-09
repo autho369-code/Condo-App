@@ -51,19 +51,22 @@ async function startAutopaySetup(formData: FormData) {
   const svc = createServiceClient() as any;
   const { data: occ } = await svc
     .from('occupancies')
-    .select('unit_id, association_id, associations(portfolio_id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at)')
-    .eq('owner_id', me.owner_id)
+    // The login's owner record that holds this unit (one record per association).
+    .select('owner_id, unit_id, association_id, associations(portfolio_id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at)')
+    .in('owner_id', me.owner_ids.length ? me.owner_ids : ['00000000-0000-0000-0000-000000000000'])
     .eq('unit_id', unitId)
     .eq('status', 'current')
+    .order('created_at', { ascending: true })
+    .limit(1)
     .maybeSingle();
-  if (!occ?.association_id || !occ?.associations?.portfolio_id || !associationCanAcceptStripePayments(occ.associations)) {
+  if (!occ?.owner_id || !occ?.association_id || !occ?.associations?.portfolio_id || !associationCanAcceptStripePayments(occ.associations)) {
     redirect(`${RETURN}?error=${encodeURIComponent('Online payments are not enabled for your association yet.')}`);
   }
 
   const { data: existingMandate } = await svc
     .from('autopay_mandates')
     .select('id')
-    .eq('owner_id', me.owner_id)
+    .eq('owner_id', occ.owner_id)
     .eq('unit_id', unitId)
     .neq('status', 'canceled')
     .limit(1)
@@ -73,7 +76,7 @@ async function startAutopaySetup(formData: FormData) {
   }
 
   await svc.from('stripe_setup_attempts').update({ status: 'expired' })
-    .eq('owner_id', me.owner_id)
+    .eq('owner_id', occ.owner_id)
     .eq('unit_id', unitId)
     .in('status', ['pending', 'session_created'])
     .lt('expires_at', new Date().toISOString());
@@ -82,7 +85,7 @@ async function startAutopaySetup(formData: FormData) {
     portfolio_id: occ.associations.portfolio_id,
     association_id: occ.association_id,
     unit_id: unitId,
-    owner_id: me.owner_id,
+    owner_id: occ.owner_id,
     created_by: me.auth_user_id,
     processor_account_id: occ.associations.stripe_account_id,
     mode: config.mode,
@@ -138,7 +141,8 @@ async function updateMandate(formData: FormData) {
   const svc = createServiceClient() as any;
 
   const { data: mandate } = await svc.from('autopay_mandates').select('id, owner_id, next_run_date, day_of_month, associations(timezone)').eq('id', mandateId).maybeSingle();
-  if (!mandate || mandate.owner_id !== me.owner_id) redirect(`${RETURN}?error=${encodeURIComponent('AutoPay enrollment not found.')}`);
+  // The mandate must belong to one of this login's owner records.
+  if (!mandate || !me.owner_ids.includes(mandate.owner_id)) redirect(`${RETURN}?error=${encodeURIComponent('AutoPay enrollment not found.')}`);
 
   const updates: any = { updated_at: new Date().toISOString() };
   // "Today" in the association's time zone, not UTC.
@@ -164,7 +168,7 @@ async function updateMandate(formData: FormData) {
     .from('autopay_mandates')
     .update(updates)
     .eq('id', mandateId)
-    .eq('owner_id', me.owner_id);
+    .eq('owner_id', mandate.owner_id);
   if (error) redirect(`${RETURN}?error=${encodeURIComponent('Could not update AutoPay. Please try again.')}`);
   redirect(`${RETURN}?updated=1`);
 }
@@ -184,19 +188,19 @@ export default async function AutopayPage({
     ? await (createServiceClient() as any).from('stripe_setup_attempts')
         .select('status')
         .eq('id', setupId)
-        .eq('owner_id', me.owner_id)
+        .in('owner_id', me.owner_ids.length ? me.owner_ids : ['00000000-0000-0000-0000-000000000000'])
         .maybeSingle()
     : { data: null };
 
   const [{ data: mandates }, { data: occs }] = await Promise.all([
     db.from('autopay_mandates')
       .select('*, units(unit_number), payment_methods(brand, last_four, method_type, bank_name), associations(name, timezone)')
-      .eq('owner_id', me.owner_id)
+      .in('owner_id', me.owner_ids)
       .neq('status', 'canceled')
       .order('created_at', { ascending: false }),
     db.from('occupancies')
       .select('unit_id, units(unit_number), associations(id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at)')
-      .eq('owner_id', me.owner_id)
+      .in('owner_id', me.owner_ids)
       .eq('status', 'current'),
   ]);
 

@@ -15,7 +15,8 @@ export default async function OwnerDashboard() {
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
-  const ownerId = me.owner_id
+  // Every owner record of the login (one per association).
+  const ownerIds = me.owner_ids
   // Sections whose read failed — shown in an Alert instead of a silent zero.
   const loadErrors: string[] = []
   const track = (label: string, error: { message?: string } | null | undefined) => { if (error) loadErrors.push(`${label} (${error.message ?? 'error'})`) }
@@ -23,7 +24,7 @@ export default async function OwnerDashboard() {
   // Owner info + unit (occupancies has no archived_at column)
   // Current occupancies only: a sold unit must not keep showing its new
   // owner's balance, payments and work orders (board RLS would allow it).
-  const { data: occupancies, error: occError } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct').eq('owner_id', ownerId).eq('status', 'current').order('is_primary', { ascending: false }).limit(5)
+  const { data: occupancies, error: occError } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct').in('owner_id', ownerIds).eq('status', 'current').order('is_primary', { ascending: false }).limit(20)
   track('your units', occError)
   const occs = occupancies ?? []
   const unitIds = occs.map((o: any) => o.unit_id).filter(Boolean)
@@ -48,7 +49,7 @@ export default async function OwnerDashboard() {
 
   // Work orders (work_orders links to a unit, not an owner) — only those opened
   // during the owner's tenure, so a buyer never sees the seller's.
-  const tenure = await ownerTenureCutoffs(db, ownerId)
+  const tenure = await ownerTenureCutoffs(db, ownerIds)
   const woScope = tenureFilter(tenure, 'created_at', unitIds)
   let workOrders: any[] = []
   if (woScope) {
@@ -65,24 +66,26 @@ export default async function OwnerDashboard() {
   }
 
   // Violations
-  const { data: viols, error: violError } = await db.from('violations').select('id,title,status,date_observed').eq('owner_id', ownerId).is('archived_at', null).not('status','in','("closed","cured")').order('date_observed', { ascending: false }).limit(5)
+  const { data: viols, error: violError } = await db.from('violations').select('id,title,status,date_observed').in('owner_id', ownerIds).is('archived_at', null).not('status','in','("closed","cured")').order('date_observed', { ascending: false }).limit(5)
   const violations = viols ?? []
-  const { count: openViolationCount, error: violCountError } = await db.from('violations').select('id', { count: 'exact', head: true }).eq('owner_id', ownerId).is('archived_at', null).not('status','in','("closed","cured")')
+  const { count: openViolationCount, error: violCountError } = await db.from('violations').select('id', { count: 'exact', head: true }).in('owner_id', ownerIds).is('archived_at', null).not('status','in','("closed","cured")')
   track('violations', violError ?? violCountError)
   const openViolations = openViolationCount ?? 0
 
+  // Every association the owner holds a unit in, not just the primary one
+  // (a login can hold one owner record per association).
+  const assocIds = [...new Set(occs.map((o: any) => o.association_id).filter(Boolean))] as string[]
+
   // Calendar
   let events: any[] = []
-  if (assocId) {
-    const { data: ev, error: evError } = await db.from('calendar_events').select('id,title,start_datetime,location').eq('association_id', assocId).is('archived_at', null).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(5)
+  if (assocIds.length > 0) {
+    const { data: ev, error: evError } = await db.from('calendar_events').select('id,title,start_datetime,location').in('association_id', assocIds).is('archived_at', null).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(5)
     track('events', evError)
     events = ev ?? []
   }
 
   // Announcements
   let announcements: any[] = []
-  // Every association the owner holds a unit in, not just the primary one.
-  const assocIds = [...new Set(occs.map((o: any) => o.association_id).filter(Boolean))] as string[]
   if (assocIds.length > 0) {
     // Owner-facing only: tenant-only announcements are not for owners.
     const { data: ann, error: annError } = await db.from('communications_log').select('id,subject,body,created_at').in('association_id', assocIds).eq('channel','announcement')

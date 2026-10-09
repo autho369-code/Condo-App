@@ -12,13 +12,17 @@ export default async function EmergencyInfoPage() {
   const supabase = await createClient()
   const db = supabase as any
 
-  const { data: occ } = await db
+  // Every association of the login (one owner record each); they share one
+  // management company.
+  const { data: occs } = await db
     .from('occupancies')
     .select('association_id, associations(name)')
-    .eq('owner_id', me.owner_id)
+    .in('owner_id', me.owner_ids)
     .eq('status', 'current')
-    .limit(1)
-    .maybeSingle()
+    .order('created_at')
+    .limit(20)
+  const occ = (occs ?? [])[0] as { association_id: string | null } | undefined
+  const associationNames = [...new Set(((occs ?? []) as any[]).map((o) => o.associations?.name).filter(Boolean))] as string[]
 
   // Management contact — public branding fields only, resolved server-side.
   let support: { name: string | null; email: string | null; phone: string | null } | null = null
@@ -38,7 +42,7 @@ export default async function EmergencyInfoPage() {
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Emergency Information</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">
-          What to do — and who to call — when something goes wrong{occ?.associations?.name ? ` at ${occ.associations.name}` : ''}
+          What to do — and who to call — when something goes wrong{associationNames.length ? ` at ${associationNames.join(', ')}` : ''}
         </p>
       </div>
 

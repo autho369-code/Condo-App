@@ -4,9 +4,11 @@
  * the portal (RLS does the same) so a staffer, board member or platform
  * operator who is also an owner gets only the owner view.
  */
-export async function ownerSurveyScope(db: any, me: { owner_id: string | null; resident_association_ids?: string[] | null }) {
-  const { data: owner } = me.owner_id
-    ? await db.from('owners').select('portfolio_id').eq('id', me.owner_id).maybeSingle()
+export async function ownerSurveyScope(db: any, me: { owner_id: string | null; owner_ids?: string[] | null; resident_association_ids?: string[] | null }) {
+  // Every record of the login is in the login's own company (current_owner_ids).
+  const ownerIds = me.owner_ids?.length ? me.owner_ids : me.owner_id ? [me.owner_id] : [];
+  const { data: owner } = ownerIds.length
+    ? await db.from('owners').select('portfolio_id').in('id', ownerIds).limit(1).maybeSingle()
     : { data: null };
   const assocIds = me.resident_association_ids ?? [];
   return {

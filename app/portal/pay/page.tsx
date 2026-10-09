@@ -44,7 +44,7 @@ export default async function PayPage({
   const onlinePayments = isStripeConfigured();
 
   // Only the owner's own units (RLS alone also admits board members to every unit).
-  const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_id);
+  const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_ids);
   const myUnits = unitFilter(ownUnits.ids);
   const { data: units, error: unitsError } = await (supabase as any)
     .from('v_unit_account_summary')
@@ -82,7 +82,7 @@ export default async function PayPage({
   const { data: occRows, error: occRowsError } = await (supabase as any)
     .from('occupancies')
     .select('unit_id, allow_online_payments')
-    .eq('owner_id', me.owner_id)
+    .in('owner_id', me.owner_ids)
     .eq('status', 'current');
   const onlineBlocked = new Set<string>(
     ((occRows ?? []) as Array<{ unit_id: string | null; allow_online_payments: boolean | null }>)

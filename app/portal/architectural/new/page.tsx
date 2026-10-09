@@ -24,7 +24,7 @@ export default async function NewArchitecturalRequest() {
   const { data: units } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('unit_id, unit_number, association_id')
-    .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_id)));
+    .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_ids)));
 
   const unitRows = (units ?? []) as UnitRow[];
   const associationIds = Array.from(

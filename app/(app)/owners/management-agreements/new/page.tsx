@@ -1,3 +1,4 @@
+import { OwnerSelect } from '@/components/owners/owner-select';
 import Link from 'next/link';
 import { checkLinkedRecords, managesAssociation } from '@/lib/security/association-scope';
 import { redirect } from 'next/navigation';
@@ -15,7 +16,7 @@ export default async function NewManagementAgreementPage({ searchParams }: { sea
   const sp = await searchParams;
   const supabase = await createClient();
   const [{ data: owners }, { data: associations }] = await Promise.all([
-    (supabase as any).from('owners').select('id, full_name, email').order('full_name').limit(500),
+    (supabase as any).from('owners').select('id, full_name, association_id').is('archived_at', null).order('full_name').limit(1000),
     (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name').limit(500),
   ]);
 
@@ -74,18 +75,16 @@ export default async function NewManagementAgreementPage({ searchParams }: { sea
         {sp.error && <Alert tone="danger" title="Could not create agreement">{sp.error}</Alert>}
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <Label htmlFor="owner_id">Owner</Label>
-            <select id="owner_id" name="owner_id" defaultValue={sp.owner ?? ''} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-              <option value="">Select owner</option>
-              {(owners ?? []).map((owner: any) => <option key={owner.id} value={owner.id}>{owner.full_name}</option>)}
-            </select>
-          </div>
-          <div>
             <Label htmlFor="association_id">Association</Label>
-            <select id="association_id" name="association_id" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+            <select id="association_id" name="association_id" defaultValue={(owners ?? []).find((o: any) => o.id === sp.owner)?.association_id ?? ''} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="">Select association</option>
               {(associations ?? []).map((association: any) => <option key={association.id} value={association.id}>{association.name}</option>)}
             </select>
+          </div>
+          <div>
+            <Label htmlFor="owner_id">Owner</Label>
+            <OwnerSelect id="owner_id" name="owner_id" defaultValue={sp.owner ?? ''} owners={owners ?? []}
+              associationNames={Object.fromEntries((associations ?? []).map((a: any) => [a.id, a.name]))} />
           </div>
           <div>
             <Label htmlFor="management_start_date">Management start date <span className="text-red-500">*</span></Label>

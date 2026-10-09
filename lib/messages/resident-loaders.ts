@@ -11,7 +11,7 @@ function one<T>(value: T | T[] | null | undefined): T | null {
  * because a person who is also staff can read every company thread under RLS;
  * the portal must still only show their own conversations.
  */
-export type ResidentParty = { kind: 'owner'; ownerId: string } | { kind: 'tenant'; tenantIds: string[] };
+export type ResidentParty = { kind: 'owner'; ownerIds: string[] } | { kind: 'tenant'; tenantIds: string[] };
 
 export async function tenantParty(): Promise<ResidentParty> {
   const db = (await createClient()) as any;
@@ -23,7 +23,7 @@ export async function tenantParty(): Promise<ResidentParty> {
 }
 
 function scoped(query: any, party: ResidentParty) {
-  if (party.kind === 'owner') return query.eq('owner_id', party.ownerId);
+  if (party.kind === 'owner') return query.in('owner_id', party.ownerIds.length ? party.ownerIds : ['00000000-0000-0000-0000-000000000000']);
   return query.in('tenant_id', party.tenantIds.length ? party.tenantIds : ['00000000-0000-0000-0000-000000000000']);
 }
 
