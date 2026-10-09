@@ -64,42 +64,62 @@ begin
   end loop;
 end $function$;
 
--- Delete the rows of every table that points at p_table's rows p_ids without
--- cascading (no action / restrict), except the tables in p_skip.
-create or replace function public.purge_blocking_children(p_table regclass, p_ids uuid[], p_skip regclass[] default '{}')
+-- Delete rows p_ids of p_table together with everything that depends on
+-- them, children first, following every foreign key down: cascading and
+-- blocking ("no action" / "restrict") links are deleted, "set null" links are
+-- cleared. So a row many links deep (a reconciliation item on an adjustment on
+-- a bank account) never blocks the delete. A self-link is cleared on rows
+-- outside the set. Callers pause triggers first (purge_pause_triggers).
+create or replace function public.purge_rows(p_table regclass, p_ids uuid[], p_depth integer default 0)
 returns void
 language plpgsql
 set search_path to 'pg_catalog', 'public', 'pg_temp'
 as $function$
 declare
   r record;
-  v_blocked boolean;
+  v_child_ids uuid[];
+  v_has_id boolean;
 begin
-  if cardinality(p_ids) = 0 then return; end if;
+  if p_ids is null or cardinality(p_ids) = 0 then return; end if;
+  if p_depth > 30 then
+    raise exception 'Links under % go too deep to delete safely; nothing was deleted.', p_table;
+  end if;
+
   for r in
-    select c.conrelid::regclass as tbl, a.attname as col, cardinality(c.conkey) as ncols,
+    select c.conrelid::regclass as tbl, a.attname as col, c.confdeltype as on_delete,
+           cardinality(c.conkey) as ncols,
            (select ra.attname from pg_attribute ra where ra.attrelid = c.confrelid and ra.attnum = c.confkey[1]) as refcol
       from pg_constraint c
       join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
-     where c.contype = 'f' and c.confdeltype in ('a', 'r') and c.confrelid = p_table
-       and not (c.conrelid = any(p_skip))
+     where c.contype = 'f' and c.confrelid = p_table
   loop
-    -- Never delete core records this way (another association's, or ones the
-    -- caller must remove itself in the right order): refuse instead.
-    if r.tbl in ('public.associations'::regclass, 'public.owners'::regclass, 'public.units'::regclass,
-                 'public.buildings'::regclass, 'public.bank_accounts'::regclass, 'public.journal_entries'::regclass,
-                 'public.journal_lines'::regclass, 'public.payable_bills'::regclass) then
-      execute format('select exists (select 1 from %s where %I = any($1))', r.tbl, r.col) into v_blocked using p_ids;
-      if v_blocked then
-        raise exception 'Nothing was deleted: % rows outside this association still point at it (%.%). Handle them first.', r.tbl, r.tbl, r.col;
-      end if;
+    if r.ncols <> 1 or r.refcol <> 'id' then
+      raise exception 'Cannot follow %.% (its link to % is not a single id column); nothing was deleted.', r.tbl, r.col, p_table;
+    end if;
+
+    if r.tbl = p_table then
+      -- Self-link: rows outside the set only lose the link.
+      execute format('update %s set %I = null where %I = any($1) and not (id = any($1))', r.tbl, r.col, r.col) using p_ids;
       continue;
     end if;
-    if r.ncols <> 1 or r.refcol <> 'id' then
-      raise exception 'Cannot clear %.%: its link to % is not a single id column; remove those rows by hand', r.tbl, r.col, p_table;
+
+    if r.on_delete in ('n', 'd') then
+      execute format('update %s set %I = null where %I = any($1)', r.tbl, r.col, r.col) using p_ids;
+      continue;
     end if;
-    execute format('delete from %s where %I = any($1)', r.tbl, r.col) using p_ids;
+
+    select exists (select 1 from pg_attribute pa where pa.attrelid = r.tbl and pa.attname = 'id' and not pa.attisdropped
+                    and pa.atttypid = 'uuid'::regtype) into v_has_id;
+    if v_has_id then
+      execute format('select coalesce(array_agg(id), ''{}'') from %s where %I = any($1)', r.tbl, r.col)
+        into v_child_ids using p_ids;
+      perform public.purge_rows(r.tbl, v_child_ids, p_depth + 1);
+    else
+      execute format('delete from %s where %I = any($1)', r.tbl, r.col) using p_ids;
+    end if;
   end loop;
+
+  execute format('delete from %s where id = any($1)', p_table) using p_ids;
 end $function$;
 
 create or replace function public.delete_association_completely(p_association_id uuid)
@@ -115,7 +135,6 @@ declare
   v_owners uuid[];
   v_bills uuid[];
   v_entries uuid[];
-  v_lines uuid[];
   v_banks uuid[];
   v_shared text;
   v_has_owner_assoc boolean;
@@ -145,7 +164,6 @@ begin
   if v_shared is not null then
     raise exception 'These ledger entries also have lines outside this association (another association or none), so nothing was deleted: %. Reverse or move them first.', v_shared;
   end if;
-  select coalesce(array_agg(id), '{}') into v_lines from public.journal_lines where entry_id = any(v_entries);
 
   -- Homeowners linked only here (and, once owners carry their association, those records).
   select coalesce(array_agg(distinct o.owner_id), '{}') into v_owners
@@ -168,8 +186,20 @@ begin
   -- Refuse (nothing deleted) when something of another association depends on what goes.
   if exists (select 1 from public.associations a
               where a.id <> p_association_id
-                and (a.operating_bank_account_id = any(v_banks) or a.reserve_bank_account_id = any(v_banks))) then
+                and (a.operating_bank_account_id = any(v_banks) or a.reserve_bank_account_id = any(v_banks)
+                     or a.stripe_settlement_bank_account_id = any(v_banks))) then
     raise exception 'Another association uses one of this association''s bank accounts, so nothing was deleted. Change its bank accounts first.';
+  end if;
+  if exists (select 1 from public.journal_lines l join public.gl_accounts g on g.id = l.gl_account_id
+              where g.association_id = p_association_id and l.association_id is distinct from p_association_id
+                and not (l.entry_id = any(v_entries))) then
+    raise exception 'Another association''s books use one of this association''s own GL accounts, so nothing was deleted.';
+  end if;
+  if exists (select 1 from public.charges ch
+               join public.charge_categories cc on cc.id = ch.charge_category_id
+               join public.units u on u.id = ch.unit_id
+              where cc.association_id = p_association_id and not (u.id = any(v_units))) then
+    raise exception 'Another association''s charges use one of this association''s charge categories, so nothing was deleted.';
   end if;
   if exists (select 1 from public.bank_transfers bt
               where (bt.from_bank_account_id = any(v_banks)) <> (bt.to_bank_account_id = any(v_banks))) then
@@ -184,37 +214,25 @@ begin
   end if;
 
   -- The association's own links to its bank accounts go first (they would otherwise block).
-  update public.associations set operating_bank_account_id = null, reserve_bank_account_id = null
+  update public.associations
+     set operating_bank_account_id = null, reserve_bank_account_id = null, stripe_settlement_bank_account_id = null
    where id = p_association_id;
-
-  -- An entry outside this set that was reversed by one of ours keeps its row; only the link goes.
-  update public.journal_entries set reversed_by_entry_id = null
-   where reversed_by_entry_id = any(v_entries) and not (id = any(v_entries));
-
-  -- Rows elsewhere that point at what is being deleted without cascading.
-  perform public.purge_blocking_children('public.journal_lines'::regclass, v_lines);
-  perform public.purge_blocking_children('public.journal_entries'::regclass, v_entries, array['public.journal_entries'::regclass]);
-  perform public.purge_blocking_children('public.payable_bills'::regclass, v_bills);
-  perform public.purge_blocking_children('public.bank_accounts'::regclass, v_banks);
-  perform public.purge_blocking_children('public.owners'::regclass, v_owners);
-  -- Homeowners go before the association (owners.association_id is ON DELETE RESTRICT).
-  delete from public.owners where id = any(v_owners);
-  perform public.purge_blocking_children('public.units'::regclass, v_units);
-  perform public.purge_blocking_children('public.buildings'::regclass, v_buildings);
-  perform public.purge_blocking_children('public.associations'::regclass, array[p_association_id]);
 
   v_summary := jsonb_build_object('deleted', v_name, 'buildings', cardinality(v_buildings),
     'units', cardinality(v_units), 'homeowners', cardinality(v_owners), 'bills', cardinality(v_bills),
     'ledger_entries', cardinality(v_entries), 'bank_accounts', cardinality(v_banks));
-
-  delete from public.journal_entries where id = any(v_entries);
-  delete from public.payable_bills where id = any(v_bills);
-  delete from public.tenants where association_id = p_association_id or unit_id = any(v_units);
-  get diagnostics v_count = row_count;
+  select count(*) into v_count from public.tenants where association_id = p_association_id or unit_id = any(v_units);
   v_summary := v_summary || jsonb_build_object('tenants', v_count);
-  delete from public.associations where id = p_association_id;
-  get diagnostics v_count = row_count;
-  if v_count <> 1 then
+
+  -- Everything that depends on them, deepest first. Ledger entries and bills
+  -- first (their lines and checks), then homeowners (owners.association_id is
+  -- ON DELETE RESTRICT), then the association with all it contains.
+  perform public.purge_rows('public.journal_entries'::regclass, v_entries);
+  perform public.purge_rows('public.payable_bills'::regclass, v_bills);
+  perform public.purge_rows('public.owners'::regclass, v_owners);
+  perform public.purge_rows('public.associations'::regclass, array[p_association_id]);
+
+  if exists (select 1 from public.associations where id = p_association_id) then
     raise exception 'The association was not deleted; nothing was changed.';
   end if;
 
@@ -262,14 +280,13 @@ begin
   end if;
 
   v_paused := public.purge_pause_triggers();
-  perform public.purge_blocking_children('public.owners'::regclass, v_owners);
-  delete from public.owners where id = any(v_owners);
+  perform public.purge_rows('public.owners'::regclass, v_owners);
   perform public.purge_resume_triggers(v_paused);
   return jsonb_build_object('deleted', cardinality(v_owners), 'names', v_names);
 end $function$;
 
 revoke all on function public.purge_pause_triggers() from public, anon, authenticated, service_role;
 revoke all on function public.purge_resume_triggers(jsonb) from public, anon, authenticated, service_role;
-revoke all on function public.purge_blocking_children(regclass, uuid[], regclass[]) from public, anon, authenticated, service_role;
+revoke all on function public.purge_rows(regclass, uuid[], integer) from public, anon, authenticated, service_role;
 revoke all on function public.delete_association_completely(uuid) from public, anon, authenticated, service_role;
 revoke all on function public.delete_unlinked_owners(uuid, boolean) from public, anon, authenticated, service_role;

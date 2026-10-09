@@ -95,6 +95,25 @@ begin
       using errcode = '23514';
   end if;
   select count(*) into v_missing
+    from public.unit_owners uo
+    join public.owners ow on ow.id = uo.owner_id
+    join public.units u on u.id = uo.unit_id
+    join public.buildings b on b.id = u.building_id
+   where b.association_id is distinct from ow.association_id;
+  if v_missing > 0 then
+    raise exception '% unit ownership row(s) connect a homeowner to a unit of another association. Split those homeowners into one record per association, then run this migration again.', v_missing
+      using errcode = '23514';
+  end if;
+  select count(*) into v_missing
+    from public.occupancies o
+    join public.units u on u.id = o.unit_id
+    join public.buildings b on b.id = u.building_id
+   where o.association_id is distinct from b.association_id;
+  if v_missing > 0 then
+    raise exception '% unit link(s) record a different association than their unit''s. Correct them, then run this migration again.', v_missing
+      using errcode = '23514';
+  end if;
+  select count(*) into v_missing
     from public.owners ow join public.associations a on a.id = ow.association_id
    where a.portfolio_id is null;
   if v_missing > 0 then
@@ -141,6 +160,11 @@ begin
   if tg_op = 'UPDATE' and new.association_id is distinct from old.association_id and exists (
     select 1 from public.occupancies o
     where o.owner_id = new.id and o.association_id <> new.association_id
+  ) or exists (
+    select 1 from public.unit_owners uo
+      join public.units u on u.id = uo.unit_id
+      join public.buildings bl on bl.id = u.building_id
+     where uo.owner_id = new.id and bl.association_id <> new.association_id
   ) then
     raise exception 'This homeowner has units in their current association. Add them as a new homeowner of the other association instead.'
       using errcode = '23514';
