@@ -97,3 +97,10 @@ Back to [[Home]]. Don't redo these.
   moved in once they provide the closing documents. So an owner record with
   no current unit is not a state to design for: former owners get no
   association access (no widening of `associations` reads for them).
+- **Imported credits (2026-10-09):** a credit or prepayment in the previous
+  system's open-balance file posts as a homeowner credit that mirrors an
+  imported charge: Dr the income account a charge of the "Other" category
+  posts to, Cr A/R. The unit's A/R goes negative (the app's prepayment
+  model; used up by the next charges). No separate prepaid-liability
+  account (the chart of accounts is the company admin's). It is recorded as
+  a negative imported balance so re-imports skip it.

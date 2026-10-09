@@ -126,3 +126,13 @@
   as the SQL is settled (reviewers clean), read back, then open the PR with
   "do not merge until live". Also check Status "Where things stand" gets the
   just-merged PR, not only Open PR.
+- Importer credits (2026-10-09 start check): the trial balance step is a
+  read-only tie-out (posts nothing); open-balance charges post Dr A/R /
+  Cr income ("OTHER" category GL) via import_opening_balance ->
+  post_ad_hoc_charge. Credits are skipped at receivables-actions.ts:214.
+  The only credit path, post_homeowner_credit, allows income/expense
+  accounts only (Dr that / Cr A/R); no prepaid-liability account exists in
+  gl_pick. Check any credit PR for: offset GL stated, a record in
+  imported_balances (repeat-import dedupe + Import Variances), and the
+  "Credits are not imported" text in receivables-section.tsx:142 updated.
+  The end-to-end import is Mirsad's to run (his files, his data).

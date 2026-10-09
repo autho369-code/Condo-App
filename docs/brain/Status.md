@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #268 merged; owner login across associations complete; no open PR).
+Back to [[Home]]. Updated 2026-10-09 (after #268 merged; importer credits in PR).
 
 ## Where things stand
 - #267 merged (f06b9fb): owner login across associations, part 2. Owner
@@ -25,6 +25,16 @@ Back to [[Home]]. Updated 2026-10-09 (after #268 merged; owner login across asso
   pilot).
 
 ## Open PR
+- Importer credits (in PR, branch claude/serene-wozniak-hvgpxf): a credit
+  (prepayment) line in the open-balance file is posted as a homeowner credit
+  via new import_opening_credit (migration 20261009080000): Dr the income
+  account an imported charge of the "Other" category posts to / Cr A/R; the
+  unit's balance goes negative (prepayment), recorded as a negative
+  imported_balances row so a re-import skips it and Import Variances ties.
+  Mirsad uploaded the Randolph Station homeowner directory (2026-10-09):
+  parses clean (17 current homeowners, 17 units, ownership 100%, dues
+  $10,439.96/month); it needs the Unit Directory imported first (0 units
+  live). The import itself is Mirsad's to run on the import page.
 - #268 merged (65414f0): owner login leftovers. The
   account page has the per-association switcher (that record's details and
   every current unit); home lists each association's emergency contact;
@@ -200,8 +210,10 @@ Back to [[Home]]. Updated 2026-10-09 (after #268 merged; owner login across asso
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-0. AppFolio importer follow-ups: credit balances (owner prepayments), and
-   run the real import for one association end to end after merge. Then: Stripe live for one
+0. Randolph Station end-to-end import (Mirsad runs it on the import page,
+   in order: units, homeowners, chart of accounts, vendors, open balances,
+   work orders, trial-balance tie-out). Credits are posted once the credits
+   PR is in. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
    step would be per-request identity caching (riskier, measure first).
