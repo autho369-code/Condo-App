@@ -16,7 +16,7 @@ export default async function OwnerCalendarPage() {
     const { data: occs } = await (supabase as any)
       .from('occupancies')
       .select('association_id')
-      .eq('owner_id', me.owner_id)
+      .in('owner_id', me.owner_ids)
     assocIds = Array.from(new Set((occs ?? []).map((o: any) => o.association_id).filter(Boolean))) as string[]
   }
 

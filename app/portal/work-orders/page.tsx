@@ -18,8 +18,8 @@ export default async function OwnerWorkOrdersPage() {
   // Scope to the owner's own units explicitly; RLS also admits board members
   // to every work order in the association. A buyer sees only work orders
   // opened during their tenure, not the seller's.
-  const myUnits = await ownPortalUnitIds(db, me.owner_id)
-  const woScope = tenureFilter(await ownerTenureCutoffs(db, me.owner_id), 'created_at', myUnits)
+  const myUnits = await ownPortalUnitIds(db, me.owner_ids)
+  const woScope = tenureFilter(await ownerTenureCutoffs(db, me.owner_ids), 'created_at', myUnits)
   const { data: wos, error: wosError } = woScope
     ? await db.from('work_orders')
         .select('id, title, category, priority, status, created_at, scheduled_date, completed_date, units!inner(unit_number)')

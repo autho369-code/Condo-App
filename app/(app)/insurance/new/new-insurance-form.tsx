@@ -35,6 +35,7 @@ export default function NewInsuranceForm({ owners, associations, addPolicy, serv
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [associationId, setAssociationId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── AI extraction ────────────────────────────────────────────────────
@@ -155,31 +156,37 @@ export default function NewInsuranceForm({ owners, associations, addPolicy, serv
       <form action={addPolicy} className="space-y-6">
         <Section title="Policy details" padded>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <Label htmlFor="owner_id">Owner <span className="text-red-500">*</span></Label>
-              <select
-                id="owner_id"
-                name="owner_id"
-                required
-                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-              >
-                <option value="">Select owner</option>
-                {(owners ?? []).map((o: any) => (
-                  <option key={o.id} value={o.id}>{o.full_name}</option>
-                ))}
-              </select>
-            </div>
-
             <div>
-              <Label htmlFor="association_id">Association</Label>
+              <Label htmlFor="association_id">Association <span className="text-red-500">*</span></Label>
               <select
                 id="association_id"
                 name="association_id"
+                required
+                value={associationId}
+                onChange={(e) => setAssociationId(e.target.value)}
                 className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="">Select association</option>
                 {(associations ?? []).map((a: any) => (
                   <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <Label htmlFor="owner_id">Owner <span className="text-red-500">*</span></Label>
+              {/* An owner has one record per association: list the chosen association's. */}
+              <select
+                key={associationId}
+                id="owner_id"
+                name="owner_id"
+                required
+                disabled={!associationId}
+                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-gray-50 disabled:text-gray-400"
+              >
+                <option value="">{associationId ? 'Select owner' : 'Choose an association first'}</option>
+                {(owners ?? []).filter((o: any) => o.association_id === associationId).map((o: any) => (
+                  <option key={o.id} value={o.id}>{o.full_name}</option>
                 ))}
               </select>
             </div>

@@ -32,7 +32,7 @@ export default async function OwnerViolationDetail({
 
   const { data: v } = await db.from('violations')
     .select('id, title, description, violation_type, status, date_observed, hearing_date, hearing_at, hearing_required, hearing_requested_at, hearing_request_note, fine_amount, fines_total, fine_assessed_at, notice_sent_at, board_decision, attachments, governing_document_reference, units!inner(unit_number)')
-    .eq('id', id).eq('owner_id', me.owner_id).maybeSingle()
+    .eq('id', id).in('owner_id', me.owner_ids).maybeSingle()
 
   if (!v) return notFound()
 

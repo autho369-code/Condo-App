@@ -3,7 +3,6 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
-import { ownPortalUnitIds } from '@/lib/portal/own-units'
 import { zonedWallTimeToUtc } from '@/lib/time/zoned'
 
 const DEFAULT_TZ = 'America/Chicago'
@@ -60,7 +59,7 @@ async function requestReservation(formData: FormData) {
     redirect('/portal/amenities?error=' + encodeURIComponent(msg))
 
   const me = await requireOwner()
-  if (!me.owner_id) { failTo('Only owners can request a reservation'); return }
+  if (!me.owner_ids.length) { failTo('Only owners can request a reservation'); return }
 
   const amenityId = String(formData.get('amenity_id') ?? '')
   const date = String(formData.get('date') ?? '')
@@ -95,16 +94,22 @@ async function requestReservation(formData: FormData) {
   if (end <= start) { failTo('End time must be after the start time'); return }
   if (start < new Date()) { failTo('Please pick a time in the future'); return }
 
-  // Resolve unit + portfolio from the owner's own unit in this association
-  // (an owner who is also on the board can read every unit there).
-  const myUnits = await ownPortalUnitIds(db, me.owner_id)
-  const { data: occ } = myUnits.length === 0 ? { data: null } : await db
-    .from('v_unit_account_summary')
-    .select('unit_id, portfolio_id')
+  // Resolve the owner record, unit and portfolio from the login's own current
+  // occupancy in this association (one owner record per association; an owner
+  // who is also on the board can read every unit there).
+  const { data: occRow, error: occErr } = await db
+    .from('occupancies')
+    .select('owner_id, unit_id, associations(portfolio_id)')
+    .in('owner_id', me.owner_ids)
     .eq('association_id', amenity.association_id)
-    .in('unit_id', myUnits)
+    .eq('status', 'current')
+    .order('is_primary', { ascending: false })
     .limit(1)
     .maybeSingle()
+  if (occErr) { failTo(`Could not check your unit: ${occErr.message}`); return }
+  const occ = occRow?.owner_id && occRow?.unit_id && occRow?.associations?.portfolio_id
+    ? { owner_id: occRow.owner_id as string, unit_id: occRow.unit_id as string, portfolio_id: occRow.associations.portfolio_id as string }
+    : null
   if (!occ) { failTo('You need a unit in this community to reserve its amenities'); return }
 
   let partySize: number | null = null
@@ -118,7 +123,7 @@ async function requestReservation(formData: FormData) {
     association_id: amenity.association_id,
     portfolio_id: occ.portfolio_id,
     unit_id: occ.unit_id,
-    owner_id: me.owner_id,
+    owner_id: occ.owner_id,
     reserved_by: me.auth_user_id,
     reserved_for_name: me.profile?.full_name ?? null,
     start_time: start.toISOString(),
@@ -141,7 +146,7 @@ async function cancelReservation(formData: FormData) {
     redirect('/portal/amenities?error=' + encodeURIComponent(msg))
 
   const me = await requireOwner()
-  if (!me.owner_id) { failTo('Only owners can cancel a reservation'); return }
+  if (!me.owner_ids.length) { failTo('Only owners can cancel a reservation'); return }
 
   const id = String(formData.get('reservation_id') ?? '')
   if (!id) { failTo('Missing reservation'); return }
@@ -153,7 +158,7 @@ async function cancelReservation(formData: FormData) {
     .from('amenity_reservations')
     .update({ status: 'cancelled' })
     .eq('id', id)
-    .eq('owner_id', me.owner_id)
+    .in('owner_id', me.owner_ids)
     .select('id')
 
   if (error) { failTo(error.message || 'Could not cancel that reservation'); return }
@@ -186,7 +191,7 @@ export default async function OwnerAmenitiesPage({
   const { data: resRows } = await db
     .from('amenity_reservations')
     .select('id, status, start_time, end_time, party_size, notes, association_id, association_amenities(name)')
-    .eq('owner_id', me.owner_id)
+    .in('owner_id', me.owner_ids)
     .order('start_time', { ascending: false })
     .limit(100)
   const reservations = (resRows ?? []) as Reservation[]

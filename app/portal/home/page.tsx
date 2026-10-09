@@ -20,14 +20,15 @@ export default async function MyHomePage() {
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
-  const ownerId = me.owner_id
+  // Every owner record of the login (one per association).
+  const ownerIds = me.owner_ids
 
   const [{ data: occupancies }, { data: owner }] = await Promise.all([
     db.from('occupancies')
       .select('id, unit_id, occupancy_type, status, move_in_date, dues_amount, dues_frequency, units(id, unit_number, sqft, bedrooms, bathrooms, storage_number, parking_spaces, home_warranty_company, home_warranty_expires), associations(name)')
-      .eq('owner_id', ownerId)
+      .in('owner_id', ownerIds)
       .eq('status', 'current'),
-    db.from('owners').select('emergency_contact_name, emergency_contact_phone').eq('id', ownerId).maybeSingle(),
+    db.from('owners').select('emergency_contact_name, emergency_contact_phone').eq('id', me.owner_id).maybeSingle(),
   ])
 
   const occs = occupancies ?? []

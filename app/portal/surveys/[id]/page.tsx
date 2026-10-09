@@ -37,7 +37,7 @@ export default async function OwnerSurveyPage({
   const [{ data: survey }, { data: mine }] = await Promise.all([
     scopeOwnerSurveys(db.from('surveys').select('id, name, description, questions, associations(name)').eq('id', id), scope).maybeSingle(),
     db.from('survey_responses').select('answers, comments, submitted_at')
-      .eq('survey_id', id).eq('submitted_by_owner_id', me.owner_id).is('work_order_id', null).maybeSingle(),
+      .eq('survey_id', id).in('submitted_by_owner_id', me.owner_ids).is('work_order_id', null).maybeSingle(),
   ]);
   if (!survey) notFound();
   const questions = readQuestions(survey.questions);

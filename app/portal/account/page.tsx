@@ -8,10 +8,11 @@ export default async function OwnerAccountPage() {
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
-  const ownerId = me.owner_id
+  // Every owner record of the login (one per association).
+  const ownerIds = me.owner_ids
 
-  const { data: owner } = await db.from('owners').select('*').eq('id', ownerId).maybeSingle()
-  const { data: occs } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct, occupancy_type, status').eq('owner_id', ownerId).eq('status', 'current').order('is_primary', { ascending: false }).order('created_at', { ascending: true }).order('id', { ascending: true }).limit(10)
+  const { data: owner } = await db.from('owners').select('*').eq('id', me.owner_id).maybeSingle()
+  const { data: occs } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct, occupancy_type, status').in('owner_id', ownerIds).eq('status', 'current').order('is_primary', { ascending: false }).order('created_at', { ascending: true }).order('id', { ascending: true }).limit(10)
   const o = owner ?? {}
   const occ = occs?.[0] ?? {}
 

@@ -126,7 +126,7 @@ export async function submitSurveyResponse(formData: FormData) {
   // (RLS enforces the same; repeated so another role held by the same person
   // cannot widen it).
   const scope = await ownerSurveyScope(db, me);
-  const { data: survey } = await scopeOwnerSurveys(db.from('surveys').select('id, questions').eq('id', id), scope).maybeSingle();
+  const { data: survey } = await scopeOwnerSurveys(db.from('surveys').select('id, questions, association_id').eq('id', id), scope).maybeSingle();
   if (!survey) fail('/portal/surveys', 'That survey is closed or not available to you.');
 
   const answers: Record<string, string | number> = {};
@@ -141,10 +141,16 @@ export async function submitSurveyResponse(formData: FormData) {
   }
   if (Object.keys(answers).length === 0) fail(back, 'Answer at least one question.');
 
-  const { data: owner } = await db.from('owners').select('full_name, email').eq('id', me.owner_id).maybeSingle();
+  // Answered by the login's owner record in the survey's association (one
+  // record per association); a company-wide survey by the login's first record.
+  const { data: owner, error: ownerError } = survey.association_id
+    ? await db.from('owners').select('id, full_name, email').in('id', me.owner_ids).eq('association_id', survey.association_id).limit(1).maybeSingle()
+    : await db.from('owners').select('id, full_name, email').eq('id', me.owner_id).maybeSingle();
+  if (ownerError) fail(back, ownerError.message);
+  if (!owner?.id) fail('/portal/surveys', 'That survey is closed or not available to you.');
   const { error } = await db.from('survey_responses').insert({
     survey_id: id,
-    submitted_by_owner_id: me.owner_id,
+    submitted_by_owner_id: owner.id,
     submitted_by_name: owner?.full_name ?? null,
     submitted_by_email: owner?.email ?? null,
     answers,

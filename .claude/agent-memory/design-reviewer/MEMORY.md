@@ -55,3 +55,7 @@
 
 ## Multi-record vendor login (vendor portal, 2026-10-09)
 - Per-record pages (compliance `?record=`): check every incoming link that points at ONE record carries `record=` (dashboard expiry Alert app/vendor/page.tsx:95 linked bare). Pill switcher precedent app/vendor/work-orders/page.tsx:51 is itself h-8 (<40px) with a hand-rolled shadow; no shared segmented control exists.
+
+## Multi-record owner login (owner portal, 2026-10-09)
+- components/ui/record-switcher.tsx (RecordSwitcher, `?record=`, min-h-10 pills) is now the shared segmented control; vendor work-orders pill (h-8) should adopt it. Check per-record actions carry `record=` back on every redirect (insurance `return_query`, profile `back()`).
+- components/owners/owner-select.tsx (OwnerSelect) follows the form's association field like VendorSelect: same field-ORDER check (management-agreements/new:77 put owner above association). Pass `associationNames` where duplicate names are possible (calendar/new:118 omits it).

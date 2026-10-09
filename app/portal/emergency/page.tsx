@@ -15,7 +15,7 @@ export default async function EmergencyInfoPage() {
   const { data: occ } = await db
     .from('occupancies')
     .select('association_id, associations(name)')
-    .eq('owner_id', me.owner_id)
+    .in('owner_id', me.owner_ids)
     .eq('status', 'current')
     .limit(1)
     .maybeSingle()

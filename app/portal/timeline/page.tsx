@@ -11,16 +11,17 @@ export default async function OwnerTimelinePage() {
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
-  const ownerId = me.owner_id
+  // Every owner record of the login (one per association).
+  const ownerIds = me.owner_ids
 
   // Work orders have no owner_id — resolve via the owner's current units.
   // Use occupancies (status='current') so this matches the work_orders RLS
   // predicate current_resident_unit_ids(); otherwise the work-order section is
   // silently empty when unit_owners and occupancies disagree.
-  const { data: myUnits } = await db.from('occupancies').select('unit_id').eq('owner_id', ownerId).eq('status', 'current')
+  const { data: myUnits } = await db.from('occupancies').select('unit_id').in('owner_id', ownerIds).eq('status', 'current')
   const unitIds = (myUnits ?? []).map((u: any) => u.unit_id)
   // Payments only from the owner's own move-in on (a buyer must not see the seller's).
-  const tenure = await ownerTenureCutoffs(db, ownerId)
+  const tenure = await ownerTenureCutoffs(db, ownerIds)
   const paymentScope = tenureFilter(tenure, 'payment_date', unitIds)
   // Same for work orders: only those opened during the owner's tenure.
   const woScope = tenureFilter(tenure, 'created_at', unitIds)
@@ -42,7 +43,7 @@ export default async function OwnerTimelinePage() {
     woScope
       ? db.from('work_orders').select('id, title, status, created_at').or(woScope).is('archived_at', null).order('created_at', { ascending: false }).limit(30)
       : Promise.resolve({ data: [] }),
-    db.from('violations').select('id, title, status, date_observed').eq('owner_id', ownerId).is('archived_at', null).order('date_observed', { ascending: false }).limit(30),
+    db.from('violations').select('id, title, status, date_observed').in('owner_id', ownerIds).is('archived_at', null).order('date_observed', { ascending: false }).limit(30),
     // sender_id holds the auth user id, not the owner id (matches /portal/communications)
     db.from('communications_log').select('subject, channel, status, created_at').eq('sender_id', me.auth_user_id).order('created_at', { ascending: false }).limit(30),
   ])

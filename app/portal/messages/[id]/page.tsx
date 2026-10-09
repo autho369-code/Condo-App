@@ -11,7 +11,7 @@ export default async function OwnerConversationPage({
   const me = await requireOwner();
   const { id } = await params;
   const sp = await searchParams;
-  const party = { kind: 'owner' as const, ownerId: me.owner_id! };
+  const party = { kind: 'owner' as const, ownerIds: me.owner_ids };
   const loaded = await residentThread(id, party);
   if (!loaded) notFound();
   return <ResidentConversation base="/portal/messages" thread={loaded.thread} messages={loaded.messages} sent={sp.sent === '1'} error={sp.error} />;

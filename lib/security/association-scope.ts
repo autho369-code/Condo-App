@@ -60,8 +60,10 @@ export async function checkLinkedRecords(
     }
   }
   if (ownerId) {
-    const { data } = await db.from('owners').select('id').eq('id', ownerId).maybeSingle();
+    const { data } = await db.from('owners').select('id, association_id').eq('id', ownerId).maybeSingle();
     if (!data) return 'The selected owner is unavailable or outside your access.';
+    // An owner has one record per association: it must be the chosen association's.
+    if (associationId && data.association_id !== associationId) return 'The selected owner is not in this association.';
   }
   return null;
 }

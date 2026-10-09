@@ -3,22 +3,33 @@ import { requireOwner } from '@/lib/auth/me'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Alert } from '@/components/ui/shell'
+import { RecordSwitcher } from '@/components/ui/record-switcher'
+import { loadOwnerRecords, pickOwnerRecord } from '@/lib/portal/owner-records'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OwnerProfilePage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string }> }) {
+export default async function OwnerProfilePage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; record?: string }> }) {
   const banner = await searchParams
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
 
-  const { data: owner } = await db.from('owners').select('*').eq('id', me.owner_id).maybeSingle()
+  // One login can hold an owner record per association, each with its own
+  // contact details on file. Edit one record at a time (?record=).
+  const { records, error: recordsError } = await loadOwnerRecords(db, me)
+  const recordId = pickOwnerRecord(me, banner.record)
+  const { data: owner } = await db.from('owners').select('*').eq('id', recordId).maybeSingle()
   const o = owner ?? {}
 
   async function saveProfile(formData: FormData) {
     'use server'
     const supabase2 = await createClient()
     const me2 = await requireOwner()
+    // The record (association) being edited: one of this login's.
+    const target = String(formData.get('record_id') ?? '')
+    const record = me2.owner_ids.includes(target) ? target : null
+    const back = (query: string) => `/portal/profile?${record && me2.owner_ids.length > 1 ? `record=${encodeURIComponent(record)}&` : ''}${query}`
+    if (!record) redirect(back('error=' + encodeURIComponent('Choose one of your associations.')))
     const { data: changed, error } = await (supabase2 as any).from('owners').update({
       phone: formData.get('phone') as string || null,
       email: formData.get('email') as string || null,
@@ -29,11 +40,11 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
       // My Home sends owners here to add an emergency contact.
       emergency_contact_name: (formData.get('emergency_contact_name') as string)?.trim() || null,
       emergency_contact_phone: (formData.get('emergency_contact_phone') as string)?.trim() || null,
-    }).eq('id', me2.owner_id).select('id')
-    if (error) redirect('/portal/profile?error=' + encodeURIComponent(error.message))
-    if (!changed?.length) redirect('/portal/profile?error=' + encodeURIComponent('Your profile was not saved. Please contact your management company if this keeps happening.'))
+    }).eq('id', record).select('id')
+    if (error) redirect(back('error=' + encodeURIComponent(error.message)))
+    if (!changed?.length) redirect(back('error=' + encodeURIComponent('Your profile was not saved. Please contact your management company if this keeps happening.')))
     revalidatePath('/portal/profile')
-    redirect('/portal/profile?saved=1')
+    redirect(back('saved=1'))
   }
 
   return (
@@ -43,6 +54,8 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Update your contact information</p>
       </div>
 
+      <RecordSwitcher records={records} currentId={recordId} basePath="/portal/profile" caption="Each association keeps its own contact details for you. Editing:" />
+      {recordsError && <Alert tone="danger" title="Could not load your associations:">{recordsError}</Alert>}
       {banner.error && (
         <Alert tone="danger">{banner.error}</Alert>
       )}
@@ -51,6 +64,7 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
       )}
 
       <form action={saveProfile} className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <input type="hidden" name="record_id" value={recordId ?? ''} />
         <div className="mb-2 rounded-xl bg-gray-50 p-3 text-sm text-gray-500">
           Name and unit assignment are managed by your association. Contact management for changes.
         </div>

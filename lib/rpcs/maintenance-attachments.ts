@@ -72,7 +72,7 @@ async function resolveParent(kind: MaintenanceParentKind, id: string): Promise<{
     if (!sr) return { error: 'Request not found' };
     let role: Parent['role'];
     if (isStaff && await staffCanManage(db, sr.portfolio_id, sr.association_id)) role = 'staff';
-    else if ((me.owner_id && (sr.homeowner_id === me.owner_id || sr.owner_id === me.owner_id))
+    else if ((me.owner_ids ?? []).some((ownerId) => ownerId === sr.homeowner_id || ownerId === sr.owner_id)
       || (sr.tenant_id && (await myTenantIds(db)).includes(sr.tenant_id))) {
       if (sr.status !== 'open' && sr.status !== 'waiting') return { error: 'This request is closed' };
       role = 'resident';

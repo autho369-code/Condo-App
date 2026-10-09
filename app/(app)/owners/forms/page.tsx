@@ -21,7 +21,7 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
   await requireStaff();
   const sp = await searchParams;
   const supabase = await createClient();
-  const { data: owners } = await (supabase as any).from('owners').select('id, full_name, email').order('full_name').limit(500);
+  const { data: owners } = await (supabase as any).from('owners').select('id, full_name, email, associations(name)').is('archived_at', null).order('full_name').limit(1000);
 
   async function handleSubmit(formData: FormData) {
     'use server';
@@ -164,7 +164,7 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
               <Field label="Owner" htmlFor="owner_id">
                 <Select id="owner_id" name="owner_id" defaultValue={sp.owner ?? ''}>
                   <option value="">Select an owner</option>
-                  {(owners ?? []).map((owner: any) => <option key={owner.id} value={owner.id}>{owner.full_name} - {owner.email}</option>)}
+                  {(owners ?? []).map((owner: any) => <option key={owner.id} value={owner.id}>{owner.full_name}{owner.associations?.name ? ` (${owner.associations.name})` : ''} - {owner.email}</option>)}
                 </Select>
               </Field>
               <Field label="Template" htmlFor="template">

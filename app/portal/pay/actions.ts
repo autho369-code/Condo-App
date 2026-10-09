@@ -32,15 +32,18 @@ export async function startOnlinePayment(formData: FormData) {
 
   const svc = createServiceClient() as any;
 
-  // Validate the unit belongs to this owner and resolve association/portfolio.
+  // Validate the unit belongs to one of this login's owner records (one per
+  // association) and resolve that record, its association and portfolio.
   const { data: occ } = await svc
     .from('occupancies')
-    .select('unit_id, association_id, allow_online_payments, require_full_online_payment, associations(portfolio_id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at), units(unit_number)')
-    .eq('owner_id', me.owner_id)
+    .select('owner_id, unit_id, association_id, allow_online_payments, require_full_online_payment, associations(portfolio_id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at), units(unit_number)')
+    .in('owner_id', me.owner_ids.length ? me.owner_ids : ['00000000-0000-0000-0000-000000000000'])
     .eq('unit_id', unitId)
     .eq('status', 'current')
+    .order('created_at', { ascending: true })
+    .limit(1)
     .maybeSingle();
-  if (!occ?.association_id || !occ?.associations?.portfolio_id) {
+  if (!occ?.owner_id || !occ?.association_id || !occ?.associations?.portfolio_id) {
     redirect(`${RETURN}?error=${encodeURIComponent('That unit is not linked to your account.')}`);
   }
   if (occ.allow_online_payments === false) {
@@ -54,7 +57,7 @@ export async function startOnlinePayment(formData: FormData) {
     const { data: inFlight, error: inFlightError } = await svc
       .from('payment_intents')
       .select('amount')
-      .eq('owner_id', me.owner_id)
+      .eq('owner_id', occ.owner_id)
       .eq('unit_id', unitId)
       .is('payment_id', null)
       .in('status', ['processing', 'succeeded']);
@@ -86,7 +89,8 @@ export async function startOnlinePayment(formData: FormData) {
       portfolio_id: occ.associations.portfolio_id,
       association_id: occ.association_id,
       unit_id: unitId,
-      owner_id: me.owner_id,
+      // The owner record that holds this unit (the login's record in its association).
+      owner_id: occ.owner_id,
       amount,
       status: 'pending',
       processor_account_id: occ.associations.stripe_account_id,

@@ -51,7 +51,7 @@ function sessionDb() {
 describe('owner insurance policy filing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.requireOwner.mockResolvedValue({ auth_user_id: 'auth-a', owner_id: 'owner-a' });
+    mocks.requireOwner.mockResolvedValue({ auth_user_id: 'auth-a', owner_id: 'owner-a', owner_ids: ['owner-a'] });
   });
 
   it('files an uploaded certificate with the supported HO6 document type', async () => {

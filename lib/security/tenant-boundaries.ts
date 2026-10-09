@@ -79,6 +79,11 @@ export function resolveAuthorizedOwnerUnit(input: {
   return { unitId: submittedUnitId, associationId, portfolioId };
 }
 
+/** Every owner record of the login (one per association); owner_id is the first. */
+function ownerIdsOf(me: { owner_id: string | null; owner_ids?: string[] }): string[] {
+  return me.owner_ids?.length ? me.owner_ids : me.owner_id ? [me.owner_id] : [];
+}
+
 export function architecturalAttachmentBasePath(value: string): string | null {
   return (ARCHITECTURAL_ATTACHMENT_BASE_PATHS as readonly string[]).includes(value) ? value : null;
 }
@@ -144,7 +149,7 @@ export function architecturalSurfaceAccessRole(input: {
     | 'is_company_admin'
     | 'is_platform_operator'
     | 'is_board'
-    | 'board_association_ids'>;
+    | 'board_association_ids'> & { owner_ids?: string[] };
   request: { owner_id: string | null; association_id: string };
   ownerPortalActive: boolean;
   staffCanAccessAssociation: boolean;
@@ -153,7 +158,7 @@ export function architecturalSurfaceAccessRole(input: {
   if (architecturalAttachmentBasePath(basePath) !== basePath) return null;
 
   if (basePath === '/portal/architectural') {
-    return ownerPortalActive && !!me.owner_id && me.owner_id === request.owner_id ? 'owner' : null;
+    return ownerPortalActive && !!request.owner_id && ownerIdsOf(me).includes(request.owner_id) ? 'owner' : null;
   }
   if (basePath === '/architectural-reviews') {
     if (me.is_platform_operator) return 'operator';
@@ -178,13 +183,13 @@ export function architecturalAttachmentAccessRole(
     | 'is_company_admin'
     | 'is_platform_operator'
     | 'is_board'
-    | 'board_association_ids'>,
+    | 'board_association_ids'> & { owner_ids?: string[] },
   request: { owner_id: string | null; association_id: string },
   staffCanAccessAssociation: boolean,
 ): ArchitecturalAttachmentAccessRole | null {
   if (me.is_platform_operator) return 'operator';
   if ((me.is_staff || me.is_company_admin) && staffCanAccessAssociation) return 'staff';
   if (me.is_board && (me.board_association_ids ?? []).includes(request.association_id)) return 'board';
-  if (me.owner_id && me.owner_id === request.owner_id) return 'owner';
+  if (request.owner_id && ownerIdsOf(me).includes(request.owner_id)) return 'owner';
   return null;
 }

@@ -62,14 +62,14 @@ export default async function OwnerDocumentsPage() {
   // own units, and association documents shared with owners. Relying on RLS
   // alone showed board-only association documents to board members who are
   // also owners.
-  const ownUnits = await loadOwnPortalUnitIds(db, me.owner_id)
+  const ownUnits = await loadOwnPortalUnitIds(db, me.owner_ids)
   const myUnits = unitFilter(ownUnits.ids)
   const assocIds = (me.resident_association_ids ?? []).length ? me.resident_association_ids : ['00000000-0000-0000-0000-000000000000']
   const { data, error: docsError } = await db
     .from('documents')
     .select('id, doc_type, entity_type, entity_id, file_name, file_url, uploaded_at, expires_at')
     .or([
-      `and(entity_type.eq.owner,entity_id.eq.${me.owner_id})`,
+      `and(entity_type.eq.owner,entity_id.in.(${me.owner_ids.join(',')}))`,
       `and(entity_type.eq.unit,entity_id.in.(${myUnits.join(',')}))`,
       `and(entity_type.eq.association,share_scope.eq.owners,entity_id.in.(${assocIds.join(',')}))`,
     ].join(','))
@@ -79,7 +79,7 @@ export default async function OwnerDocumentsPage() {
   // Forms the management company publishes to homeowners. Filtered
   // explicitly (not only by RLS) so an owner who is also staff sees just the
   // homeowner forms of their own management company.
-  const { data: ownerRow } = await db.from('owners').select('portfolio_id').eq('id', me.owner_id).maybeSingle()
+  const { data: ownerRow } = await db.from('owners').select('portfolio_id').in('id', me.owner_ids).limit(1).maybeSingle()
   const { data: formRows, error: formsError } = ownerRow?.portfolio_id
     ? await db.from('form_templates')
         .select('id, portfolio_id, name, description, file_url, file_path, file_name')

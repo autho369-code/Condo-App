@@ -65,7 +65,7 @@ async function reportConcern(formData: FormData) {
 
   // The unit must be one of the reporter's own current units (RLS alone
   // admits board members to every unit in the association).
-  const myUnitIds = await ownPortalUnitIds(supabase, me.owner_id)
+  const myUnitIds = await ownPortalUnitIds(supabase, me.owner_ids)
   if (!myUnitIds.includes(unitId)) { failTo('Unit not found or you no longer have access to it'); return }
 
   // Resolve association from the reporter's own unit — never trust the client.
@@ -127,7 +127,7 @@ export default async function ReportConcernPage({
   const { data: units } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('unit_id, unit_number, association_id')
-    .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_id)))
+    .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_ids)))
   const unitOptions = (units ?? []) as UnitOption[]
 
   return (

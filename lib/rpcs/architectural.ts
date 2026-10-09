@@ -11,7 +11,7 @@ import {
   validateArchitecturalAttachmentFile,
 } from '@/lib/security/tenant-boundaries';
 import { revalidatePath } from 'next/cache';
-import { loadOwnPortalUnitIds } from '@/lib/portal/own-units';
+import { loadOwnPortalUnitIds, ownerRecordForUnit } from '@/lib/portal/own-units';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 import { redirect } from 'next/navigation';
 
@@ -53,9 +53,12 @@ export async function submitArchitecturalRequest(formData: FormData) {
   const supabase = await createClient();
   // The unit must be one of the owner's own (RLS lets a board member who owns a
   // unit see every unit in the association).
-  const own = await loadOwnPortalUnitIds(supabase, me.owner_id);
+  const own = await loadOwnPortalUnitIds(supabase, me.owner_ids);
   if (own.error) { failTo(own.error); return; }
   if (!own.ids.includes(unitId)) { failTo('You can only submit requests for your own unit'); return; }
+  // Filed under the login's owner record that holds this unit (one per association).
+  const holder = await ownerRecordForUnit(supabase, me.owner_ids, unitId);
+  if (holder.error || !holder.ownerId) { failTo(holder.error ?? 'You can only submit requests for your own unit'); return; }
 
   const { data: unit, error: unitErr } = await (supabase as any)
     .from('units')
@@ -70,7 +73,7 @@ export async function submitArchitecturalRequest(formData: FormData) {
     association_id: associationId,
     portfolio_id:   portfolioId,
     unit_id:        unitId,
-    owner_id:       me.owner_id,
+    owner_id:       holder.ownerId,
     submitted_by:   me.auth_user_id,
     title,
     description,
@@ -108,9 +111,12 @@ export async function createArchitecturalRequest(input: {
   if (!description || description.length < 10) return { error: 'Please give us at least a sentence describing the work' };
 
   const supabase = await createClient();
-  const own = await loadOwnPortalUnitIds(supabase, me.owner_id);
+  const own = await loadOwnPortalUnitIds(supabase, me.owner_ids);
   if (own.error) return { error: own.error };
   if (!own.ids.includes(unitId)) return { error: 'You can only submit requests for your own unit' };
+  // Filed under the login's owner record that holds this unit (one per association).
+  const holder = await ownerRecordForUnit(supabase, me.owner_ids, unitId);
+  if (holder.error || !holder.ownerId) return { error: holder.error ?? 'You can only submit requests for your own unit' };
 
   const { data: unit, error: unitErr } = await (supabase as any)
     .from('units')
@@ -123,7 +129,7 @@ export async function createArchitecturalRequest(input: {
     association_id: (unit.buildings as any).association_id,
     portfolio_id:   (unit.buildings as any).associations.portfolio_id,
     unit_id:        unitId,
-    owner_id:       me.owner_id,
+    owner_id:       holder.ownerId,
     submitted_by:   me.auth_user_id,
     title,
     description,
@@ -249,11 +255,12 @@ async function verifyArchAttachmentAccess(requestId: string, basePath: string) {
   }
 
   let ownerPortalActive = false;
-  if (safeBasePath === '/portal/architectural' && me.owner_id) {
+  // The request's own owner record, which must be one of this login's.
+  if (safeBasePath === '/portal/architectural' && req.owner_id && me.owner_ids.includes(req.owner_id)) {
     const { data: owner, error: ownerError } = await (session as any)
       .from('owners')
       .select('id, portal_activated')
-      .eq('id', me.owner_id)
+      .eq('id', req.owner_id)
       .maybeSingle();
     ownerPortalActive = !ownerError && owner?.portal_activated === true;
   }
@@ -479,7 +486,7 @@ export async function withdrawArchitecturalRequest(requestId: string) {
     .from('architectural_requests')
     .update({ status: 'withdrawn' })
     .eq('id', requestId)
-    .eq('owner_id', me.owner_id)
+    .in('owner_id', me.owner_ids)
     .in('status', OPEN_STATUSES)
     .select('id')
     .maybeSingle();

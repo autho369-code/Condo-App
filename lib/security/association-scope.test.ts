@@ -59,6 +59,12 @@ describe('checkLinkedRecords', () => {
     expect(await checkLinkedRecords(fakeDb({}), { associationId: null, ownerId: B })).toMatch(/owner/);
   });
 
+  it("rejects the same person's owner record from another association", async () => {
+    const db = fakeDb({ owners: [{ id: B, association_id: 'other' }] });
+    expect(await checkLinkedRecords(db, { associationId: A, ownerId: B })).toMatch(/not in this association/);
+    expect(await checkLinkedRecords(fakeDb({ owners: [{ id: B, association_id: A }] }), { associationId: A, ownerId: B })).toBeNull();
+  });
+
   it('requires an association for units and buildings, and valid ids', async () => {
     expect(await checkLinkedRecords(fakeDb({}), { associationId: null, unitId: B })).toMatch(/association/);
     expect(await checkLinkedRecords(fakeDb({}), { associationId: A, vendorId: 'x' })).toMatch(/not valid/);

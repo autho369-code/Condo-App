@@ -14,7 +14,7 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
 
   const { data: viols, error: violsError } = await db.from('violations')
     .select('id, title, violation_type, status, date_observed, fine_amount, fines_total, hearing_date, hearing_at, units!inner(unit_number)')
-    .eq('owner_id', me.owner_id).is('archived_at', null)
+    .in('owner_id', me.owner_ids).is('archived_at', null)
     .order('date_observed', { ascending: false }).limit(100)
 
   const all = viols ?? []
