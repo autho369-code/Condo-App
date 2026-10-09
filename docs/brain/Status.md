@@ -1,9 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (open PR #270: temp-table truncate fix for Journal entries -> Upload batch, migration live; next: Mirsad re-uploads the Randolph Station opening journal).
+Back to [[Home]]. Updated 2026-10-09 (after #270 merged; no open PR; next: Mirsad re-uploads the Randolph Station opening journal).
 
 ## Open PR
-- #270 (branch claude/serene-wozniak-hvgpxf): Journal entries -> Upload
+- None.
+
+## Where things stand
+- #270 merged (a1a0add2): Journal entries -> Upload
   batch failed with "DELETE requires a WHERE clause" (Supabase's
   pg_safeupdate refuses a bare DELETE from API sessions, even inside a
   definer RPC). import_journal_entry_batch, import_bills (Bills upload) and
@@ -16,8 +19,6 @@ Back to [[Home]]. Updated 2026-10-09 (open PR #270: temp-table truncate fix for 
   function bodies to use truncate); Claude read it back: all three contain
   truncate and no bare delete, still security definer, owner postgres,
   search_path pg_catalog/public, grants unchanged, anon cannot execute.
-
-## Where things stand
 - Randolph Station vendors, open balances, work orders imported by Mirsad
   (2026-10-09), read back: 1 vendor; open balances 15 charges $4,387.69 on
   6 units, no credits, posted Dr 1300 / Cr 4101, GL in balance; 66 work
@@ -256,7 +257,7 @@ Back to [[Home]]. Updated 2026-10-09 (open PR #270: temp-table truncate fix for 
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-0. Randolph Station: after the truncate fix is live, Mirsad re-uploads the
+0. Randolph Station: the truncate fix is live (#270); Mirsad re-uploads the
    opening journal (Journal entries -> Upload batch) and runs the tie-out
    as of 2026-10-08; Claude reads the ledger back against the trial
    balance. The 8 added vendors need contact, tax and insurance details.
