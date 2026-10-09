@@ -7,6 +7,7 @@ import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createVendor } from '@/lib/rpcs/entities';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { VENDOR_PAYMENT_TYPES as PAYMENT_TYPES, VENDOR_TRADES as TRADES, VENDOR_TYPES, tradeLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
@@ -21,8 +22,10 @@ export default async function NewVendorPage({
   const canEditFinancials = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
   const sp = await searchParams;
   const supabase = await createClient();
-  const { data: associations, error: associationsError } = await (supabase as any)
-    .from('associations').select('id, name, portfolio_id, portfolios(company_name)').is('archived_at', null).order('name');
+  // Paged: a platform operator can see more than 1,000 associations.
+  const { rows: associations, error: associationsLoadError } = await fetchAllRows<any>(() => (supabase as any)
+    .from('associations').select('id, name, portfolio_id, portfolios(company_name)').is('archived_at', null).order('name').order('id'));
+  const associationsError = associationsLoadError ? { message: associationsLoadError } : null;
   // A platform operator sees every company's associations: name the company so
   // same-named associations of different companies can't be confused.
   const manyCompanies = new Set((associations ?? []).map((a: any) => a.portfolio_id)).size > 1;
