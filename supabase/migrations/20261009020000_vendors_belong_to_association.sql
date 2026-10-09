@@ -243,6 +243,14 @@ begin
       using errcode = '42501';
   end if;
 
+  -- Only staff move a vendor between associations (a vendor's own portal
+  -- session may edit its contact details, not which association it serves).
+  if tg_op = 'UPDATE' and auth.uid() is not null
+     and new.association_id is distinct from old.association_id
+     and not public.is_any_staff() then
+    raise exception 'Only staff can move a vendor to another association.' using errcode = '42501';
+  end if;
+
   if tg_op = 'UPDATE' and (new.association_id is distinct from old.association_id
                            or new.is_management_company is distinct from old.is_management_company) then
     v_linked := public.vendor_linked_association_ids(new.id);
@@ -261,6 +269,46 @@ revoke all on function public.vendors_set_portfolio_from_association() from publ
 create or replace trigger trg_vendors_set_portfolio_from_association
   before insert or update of association_id, portfolio_id, is_management_company on public.vendors
   for each row execute function public.vendors_set_portfolio_from_association();
+
+-- A vendor's default GL account is company-wide or one of its association's
+-- own accounts (company-wide only for the management company), whichever
+-- writer sets it or moves the vendor.
+create or replace function public.vendors_default_gl_in_association()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+declare
+  v_gl_association uuid;
+begin
+  if new.default_gl_account_id is null then
+    return new;
+  end if;
+  select g.association_id into v_gl_association
+    from public.gl_accounts g where g.id = new.default_gl_account_id;
+  if v_gl_association is not null and v_gl_association is distinct from new.association_id then
+    raise exception 'A vendor''s default account must be company-wide or one of its association''s accounts.'
+      using errcode = '23514';
+  end if;
+  return new;
+end;
+$function$;
+
+revoke all on function public.vendors_default_gl_in_association() from public, anon, authenticated;
+
+create or replace trigger trg_vendors_default_gl_in_association
+  before insert or update of default_gl_account_id, association_id on public.vendors
+  for each row execute function public.vendors_default_gl_in_association();
+
+do $$
+begin
+  if exists (select 1 from public.vendors v join public.gl_accounts g on g.id = v.default_gl_account_id
+              where g.association_id is not null and g.association_id is distinct from v.association_id) then
+    raise exception 'Some vendors have another association''s account as their default. Correct them, then run this migration again.'
+      using errcode = '23514';
+  end if;
+end $$;
 
 -- One management company per company.
 create unique index if not exists vendors_one_management_company

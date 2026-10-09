@@ -98,6 +98,13 @@ describe('vendors belong to exactly one association', () => {
     }
   });
 
+  it('keeps a vendor\'s association and default account under staff control', () => {
+    expect(migration).toContain("raise exception 'Only staff can move a vendor to another association.' using errcode = '42501';");
+    expect(migration).toContain('before insert or update of default_gl_account_id, association_id on public.vendors');
+    expect(migration).toContain('revoke all on function public.vendors_default_gl_in_association() from public, anon, authenticated;');
+    expect(read('app/(app)/vendors/forms/page.tsx')).toContain("v.is_management_company ? 'Management company' : v.associations?.name ?? 'No association'");
+  });
+
   it('lets only company-wide finance staff mark the one management company', () => {
     expect(migration).toMatch(/if auth\.uid\(\) is not null\s+and \(\(tg_op = 'INSERT' and new\.is_management_company\)/);
     expect(migration).toContain('and (not public.manager_is_scoped() or public.is_company_admin())) then');
