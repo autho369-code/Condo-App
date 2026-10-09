@@ -80,9 +80,9 @@ Back to [[Home]]. Updated 2026-10-09 (owner-login PR open, part 1 of 2; migratio
   triggers paused, journal entries/bills/tenants/blocking rows removed,
   triggers re-enabled; verified 0 disabled triggers, 0 orphan journal
   lines). The 14 old demo owners are gone (0 owners now).
-- Next gaps: (1) multi-property owner portal (one sign-in, all of a person's
-  records, same pattern as the vendor login) and owner pickers that still
-  list the whole company; (2) chart of accounts entered/changed by the
+- Next gaps: (1) multi-property owner portal: part 1 in PR (database +
+  invitations), part 2 next (portal pages, owner pickers; see Next gaps -1);
+  (2) chart of accounts entered/changed by the
   company admin only; (3) a real end-to-end import of Randolph Station;
   (4) credit balances from the Aged Receivable file (listed, not posted).
 - #256 merged (7b37b23); migration 20261008060000 applied and verified (7

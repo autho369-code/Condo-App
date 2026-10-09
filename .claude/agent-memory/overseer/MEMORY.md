@@ -90,3 +90,14 @@
   duplicate "Next gaps: (1) ..." bullet inside Open PR stale. grep
   `Next gaps` and the header line on every Status edit. Also ask whether the
   RLS rewrite was timed per role in a rolled-back tx (Product Rules: Speed).
+- Recurring 3rd time (owner-login part 1, 2026-10-09): stale "Next gaps: (1)
+  ..." bullet inside Status → Open PR (line ~83) still listed the gap now In
+  PR. Grep `Next gaps` on every Status edit. Also 2nd time: reviewer memory
+  still records holes the same PR fixed (security-reviewer: no owner
+  invite_scope, link_portal_user email linking) — must say "fixed in <mig>".
+- "No user text changed" is often wrong: new redirect `?error=` strings in
+  actions are user-facing (white-label-checker scope). Check the diff for
+  new string literals in redirects.
+- Status said "Claude applies once Codex is clean" — PR Rules say apply the
+  additive migration as soon as the SQL is settled and put "do not merge
+  until the migration is live" in the PR body. Check the wording.

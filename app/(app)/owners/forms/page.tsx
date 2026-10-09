@@ -45,7 +45,7 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
       // RLS: only an owner record the staffer can see.
       const { data: owner, error: ownerErr } = await (supabase as any)
         .from('owners')
-        .select('id, full_name, email, association_id, portfolio_id, archived_at')
+        .select('id, full_name, email, association_id, portfolio_id, archived_at, portfolios(company_name)')
         .eq('id', ownerId)
         .maybeSingle();
       if (ownerErr) redirect(`/owners/forms?error=${encodeURIComponent(ownerErr.message)}`);
@@ -67,7 +67,8 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
         association_id: owner.association_id,
         metadata: { owner_id: owner.id },
         invited_by: me.auth_user_id,
-        message: message || `Activate your owner portal for ${me.portfolio?.company_name ?? 'your community'}.`,
+        // The owner's own company (a platform operator may be acting for it).
+        message: message || `Activate your owner portal for ${owner.portfolios?.company_name ?? 'your community'}.`,
         expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
       }).select('id').single();
       if (inviteErr || !invitation) {
