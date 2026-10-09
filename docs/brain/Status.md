@@ -51,10 +51,11 @@ Back to [[Home]]. Updated 2026-10-09 (vendor-login PR open; migration 2026100904
   a SET NULL link of another association stops the call; purge_type_matches:
   no id-only matching). Definitions already live (Mirsad pasted them); no
   open PR.
-- In PR: one vendor login across a vendor's associations (migration
+- In PR #265: one vendor login across a vendor's associations (migration
   20261009040000: vendor_portal_logins, current_vendor_ids(), 28 vendor
   policies rewritten with ALTER POLICY; staff invite per record; staff can
-  turn off one record's portal access). Dry run as the vendor role (rolled
+  turn off one record's portal access, which unbinds it: auth_user_id
+  cleared, an added link revoked via revoked_at, never deleted). Dry run as the vendor role (rolled
   back): 28 policies rewritten, 23 vendor tables 62 ms -> 44 ms warm, the
   live vendor still resolves to its one record. Main stays compatible with the
   migration, so Claude applies it once Codex is clean, reads it back, then
@@ -174,7 +175,7 @@ Back to [[Home]]. Updated 2026-10-09 (vendor-login PR open; migration 2026100904
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
--1. In PR: one vendor login across associations. Next: the multi-property
+-1. In PR #265: one vendor login across associations. Next: the multi-property
    owner portal, using the same pattern (see [[Decisions]]).
 0. AppFolio importer follow-ups: credit balances (owner prepayments), and
    run the real import for one association end to end after merge. Then: Stripe live for one

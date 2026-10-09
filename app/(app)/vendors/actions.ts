@@ -79,7 +79,9 @@ export async function inviteVendorToPortal(formData: FormData) {
 }
 
 // Turn off this record's portal access. The login keeps the vendor's other
-// associations; this one drops out of it until staff invite it again.
+// associations; this one drops out of it until staff invite it again. The
+// record is unbound from the login (auth_user_id cleared here, an added link
+// revoked by the database), so a new contact can accept the next invitation.
 export async function turnOffVendorPortal(formData: FormData) {
   await requireStaff()
   const vendorId = String(formData.get('vendor_id') ?? '')
@@ -90,7 +92,7 @@ export async function turnOffVendorPortal(formData: FormData) {
   // company-wide staff) update it; zero rows means no access.
   const { data: changed, error } = await db
     .from('vendors')
-    .update({ portal_activated: false })
+    .update({ portal_activated: false, auth_user_id: null })
     .eq('id', vendorId)
     .select('id')
   if (error) redirect(back + '?error=' + encodeURIComponent(error.message))

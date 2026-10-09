@@ -16,8 +16,9 @@
 -- login's records; each write targets one exact record of that union.
 --
 -- 1. vendor_portal_logins (vendor_id -> auth_user_id): the records added to a
---    login by accepting their invitations. RLS on; written only by the
---    invitation trigger (SECURITY DEFINER).
+--    login by accepting their invitations. RLS on; written only by triggers
+--    (SECURITY DEFINER). Turning a record's portal off revokes its link
+--    (revoked_at) instead of deleting it.
 -- 2. current_vendor_ids(): every active record of the signed-in vendor login.
 --    current_vendor_id() is its first (the linked record), for callers that
 --    need one.
@@ -38,7 +39,10 @@ create table if not exists public.vendor_portal_logins (
   auth_user_id uuid not null references auth.users(id) on delete cascade,
   portfolio_id uuid not null references public.portfolios(id) on delete cascade,
   invitation_id uuid references public.user_invitations(id) on delete set null,
-  linked_at timestamptz not null default now()
+  linked_at timestamptz not null default now(),
+  -- Set when staff turn the record's portal off; a later accepted invitation
+  -- for the record (by any login) replaces the link.
+  revoked_at timestamptz
 );
 
 create index if not exists idx_vendor_portal_logins_auth_user on public.vendor_portal_logins(auth_user_id);
@@ -98,7 +102,7 @@ begin
      and v.archived_at is null
      and (v.auth_user_id = auth.uid()
           or exists (select 1 from public.vendor_portal_logins l
-                      where l.vendor_id = v.id and l.auth_user_id = auth.uid()))
+                      where l.vendor_id = v.id and l.auth_user_id = auth.uid() and l.revoked_at is null))
    order by (v.auth_user_id is not distinct from auth.uid()) desc, v.created_at, v.id;
 end
 $function$;
@@ -389,7 +393,7 @@ begin
           and c.auth_user_id is null
           and c.archived_at is null
           -- Never a record already added to another login.
-          and not exists (select 1 from public.vendor_portal_logins l where l.vendor_id = c.id)
+          and not exists (select 1 from public.vendor_portal_logins l where l.vendor_id = c.id and l.revoked_at is null)
           -- An invitation for one exact vendor record links that record or
           -- nothing (never another association's record with the same email);
           -- older invitations without one fall back to association, then email.
@@ -428,7 +432,11 @@ begin
                               when 'string' then e.val #>> '{}'
                               when 'object' then e.val ->> 'email'
                             end)) = lower(btrim(new.email)))
-    on conflict (vendor_id) do nothing;
+    -- A link revoked when staff turned the portal off is replaced.
+    on conflict (vendor_id) do update
+      set auth_user_id = excluded.auth_user_id, portfolio_id = excluded.portfolio_id,
+          invitation_id = excluded.invitation_id, linked_at = now(), revoked_at = null
+      where public.vendor_portal_logins.revoked_at is not null;
 
     -- Activate it for this login (also a record of this login that staff had
     -- turned off and invited again).
@@ -439,7 +447,7 @@ begin
        and v.archived_at is null
        and (v.auth_user_id = new.used_by
             or exists (select 1 from public.vendor_portal_logins l
-                        where l.vendor_id = v.id and l.auth_user_id = new.used_by));
+                        where l.vendor_id = v.id and l.auth_user_id = new.used_by and l.revoked_at is null));
   end if;
   return new;
 end
@@ -501,7 +509,7 @@ begin
         and candidate.auth_user_id is null
         and candidate.archived_at is null
         -- Never a record already added to another login.
-        and not exists (select 1 from public.vendor_portal_logins l where l.vendor_id = candidate.id)
+        and not exists (select 1 from public.vendor_portal_logins l where l.vendor_id = candidate.id and l.revoked_at is null)
         and exists (
           select 1 from jsonb_array_elements_text(candidate.emails) as e(email)
           where lower(e.email) = lower(new.email)
@@ -626,7 +634,7 @@ begin
       join public.vendors v on v.portfolio_id = p.portfolio_id
      where v.auth_user_id is null
        and v.archived_at is null
-       and not exists (select 1 from public.vendor_portal_logins l where l.vendor_id = v.id)
+       and not exists (select 1 from public.vendor_portal_logins l where l.vendor_id = v.id and l.revoked_at is null)
        and exists (
          select 1 from jsonb_array_elements_text(v.emails) as e(email)
          where lower(e.email) = lower(u.email)
@@ -680,3 +688,36 @@ begin
     ('tenants', n_tenants);
 end;
 $function$;
+
+-- 7) Turning a record's portal off revokes its link ---------------------------
+
+-- Staff turn a record off by clearing portal_activated (and auth_user_id, so a
+-- new contact can accept a later invitation). A link that added the record to
+-- a login is revoked at the same time. No row is deleted.
+create or replace function public.revoke_vendor_portal_login()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+begin
+  update public.vendor_portal_logins l
+     set revoked_at = now()
+   where l.vendor_id = new.id
+     and l.revoked_at is null;
+  return new;
+end
+$function$;
+
+revoke all on function public.revoke_vendor_portal_login() from public, anon, authenticated;
+
+do $$
+begin
+  if not exists (select 1 from pg_trigger where tgname = 'trg_vendors_revoke_portal_login'
+                  and tgrelid = 'public.vendors'::regclass) then
+    create trigger trg_vendors_revoke_portal_login
+      after update of portal_activated on public.vendors
+      for each row when (old.portal_activated and not new.portal_activated)
+      execute function public.revoke_vendor_portal_login();
+  end if;
+end $$;

@@ -9,6 +9,7 @@ import 'server-only';
 import { requireVendor } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { todayInZone } from '@/lib/time/zoned';
+import { vendorAssociationLabel } from '@/lib/vendors/options';
 
 const OPEN_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress'];
 const DONE_STATUSES = ['done', 'completed', 'billed', 'closed'];
@@ -35,12 +36,14 @@ export async function buildVendorSnapshot(): Promise<VendorSnapshot> {
   const todayDate = todayInZone();
 
   const [
-    { data: vendor, error: vendorError },
+    { data: vendorRecords, error: vendorError },
     { data: wos, error: wosError },
     { data: bills, error: billsError },
     { data: events, error: eventsError },
   ] = await Promise.all([
-    db.from('vendors').select('name, trade, workers_comp_expiration, general_liability_expiration, auto_insurance_expiration, epa_certification_expiration, state_license_expiration, contract_expiration').eq('id', me.vendor_id).maybeSingle(),
+    // Every vendor record of the login (one per association), each with its own
+    // compliance dates.
+    db.from('vendors').select('id, name, trade, is_management_company, associations(name), workers_comp_expiration, general_liability_expiration, auto_insurance_expiration, epa_certification_expiration, state_license_expiration, contract_expiration').in('id', me.vendor_ids),
     db.from('work_orders')
       .select('number, title, status, priority, scheduled_date, completed_date, associations(name), units(unit_number)')
       .in('vendor_id', me.vendor_ids)
@@ -76,16 +79,22 @@ export async function buildVendorSnapshot(): Promise<VendorSnapshot> {
   const open = rows.filter((w: any) => OPEN_STATUSES.includes((w.status ?? '').toLowerCase()));
   const done = rows.filter((w: any) => DONE_STATUSES.includes((w.status ?? '').toLowerCase()));
 
-  const compliance: VendorSnapshot['compliance'] = [
-    ['General liability (COI)', vendor?.general_liability_expiration],
-    ['Workers comp', vendor?.workers_comp_expiration],
-    ['Auto insurance', vendor?.auto_insurance_expiration],
-    ['EPA certification', vendor?.epa_certification_expiration],
-    ['State license', vendor?.state_license_expiration],
-    ['Contract', vendor?.contract_expiration],
-  ]
-    .filter(([, d]) => !!d)
-    .map(([item, d]) => ({ item: item as string, expires: d as string, expired: (d as string) < todayDate }));
+  const records = (vendorRecords ?? []) as any[];
+  const vendor = records.find((record) => record.id === me.vendor_id) ?? records[0];
+  // Each association keeps its own compliance file; name it when there are several.
+  const compliance: VendorSnapshot['compliance'] = records.flatMap((record) => {
+    const where = records.length > 1 ? ` (${vendorAssociationLabel(record)})` : '';
+    return [
+      ['General liability (COI)', record.general_liability_expiration],
+      ['Workers comp', record.workers_comp_expiration],
+      ['Auto insurance', record.auto_insurance_expiration],
+      ['EPA certification', record.epa_certification_expiration],
+      ['State license', record.state_license_expiration],
+      ['Contract', record.contract_expiration],
+    ]
+      .filter(([, d]) => !!d)
+      .map(([item, d]) => ({ item: `${item}${where}`, expires: d as string, expired: (d as string) < todayDate }));
+  });
 
   return {
     generatedAt: new Date().toISOString(),

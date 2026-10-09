@@ -2,7 +2,7 @@ import { requireVendor } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader, Surface, SectionTitle, MetricStrip, Metric } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
-import { buildVendorPerformanceScorecard, formatPerformanceDays } from '@/lib/vendors/performance';
+import { buildVendorPerformanceScorecard, formatPerformanceDays, weakestComplianceRecord } from '@/lib/vendors/performance';
 import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query';
 import { Stars, summarize } from '@/components/work-orders/rating';
 
@@ -13,23 +13,25 @@ export default async function VendorPerformancePage() {
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: vendor, error: vendorError } = await db
+  // Every vendor record of this login (one per association it serves).
+  const { data: records, error: vendorError } = await db
     .from('vendors')
     .select('id, portfolio_id, workers_comp_expiration, general_liability_expiration, auto_insurance_expiration, epa_certification_expiration, state_license_expiration, contract_expiration')
-    .eq('id', me.vendor_id)
-    .maybeSingle();
+    .in('id', me.vendor_ids);
   if (vendorError) throw new Error(`Could not load your vendor record: ${vendorError.message}`);
+  const vendor = ((records ?? []) as any[]).find((record) => record.id === me.vendor_id) ?? (records ?? [])[0];
   if (!vendor) throw new Error('Your vendor record was not found.');
   if (!vendor.portfolio_id) throw new Error('Vendor workspace is missing its management-company scope.');
 
-  // Every vendor record of this login (one per association it serves).
   const rows = await loadPortfolioVendorPerformanceRows(db, vendor.portfolio_id, me.vendor_ids.length ? me.vendor_ids : [vendor.id]);
   // Scores and comments only — my_vendor_ratings never returns who rated.
   const { data: ratingData, error: ratingError } = await db.rpc('my_vendor_ratings', { p_limit: 100 });
   if (ratingError) throw new Error(`Could not load ratings: ${ratingError.message}`);
   const ratings = (ratingData ?? []) as any[];
   const rating = summarize(ratings);
-  const scorecard = buildVendorPerformanceScorecard(rows, vendor);
+  // Compliance counts the weakest of the login's records (an expired item in
+  // any association shows).
+  const scorecard = buildVendorPerformanceScorecard(rows, weakestComplianceRecord(records ?? [vendor]));
   const recentlyCompleted = rows
     .filter((row) => row.completed_date)
     .sort((a, b) => (b.completed_date ?? '').localeCompare(a.completed_date ?? ''))

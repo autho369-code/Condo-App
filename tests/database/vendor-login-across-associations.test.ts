@@ -23,6 +23,7 @@ describe('vendor login across associations: database', () => {
     const body = helper.slice(0, helper.indexOf('$function$;'));
     expect(body).toContain('v.auth_user_id = auth.uid()');
     expect(body).toContain('from public.vendor_portal_logins l');
+    expect(body).toContain('l.auth_user_id = auth.uid() and l.revoked_at is null');
     expect(body).toContain('and v.portal_activated');
     expect(body).toContain('and v.archived_at is null');
     expect(body).not.toMatch(/emails/);
@@ -47,11 +48,11 @@ describe('vendor login across associations: database', () => {
     expect(migration).toContain("insert into public.vendor_portal_logins (vendor_id, auth_user_id, portfolio_id, invitation_id)");
     expect(migration).toContain("where c.id::text = new.metadata ->> 'vendor_id'");
     expect(migration).toContain('and c.auth_user_id is null');
-    expect(migration).toContain('on conflict (vendor_id) do nothing;');
+    expect(migration).toContain('where public.vendor_portal_logins.revoked_at is not null;');
   });
 
   it('never gives a record that is already on one login to another login', () => {
-    expect(migration.match(/not exists \(select 1 from public\.vendor_portal_logins l where l\.vendor_id = (c|candidate|v)\.id\)/g)).toHaveLength(3);
+    expect(migration.match(/not exists \(select 1 from public\.vendor_portal_logins l where l\.vendor_id = (c|candidate|v)\.id and l\.revoked_at is null\)/g)).toHaveLength(3);
     expect(migration).toContain('create or replace function public.auto_link_portal_user()');
     expect(migration).toContain('create or replace function public.relink_all_portal_users()');
   });
@@ -66,6 +67,13 @@ describe('vendor login across associations: database', () => {
 });
 
 describe('vendor login across associations: app', () => {
+  it('counts compliance from every record of the login', () => {
+    expect(read('app/vendor/performance/page.tsx')).toContain('weakestComplianceRecord(records ?? [vendor])');
+    const snapshot = read('lib/ai/vendor-snapshot.ts');
+    expect(snapshot).toContain(".in('id', me.vendor_ids)");
+    expect(snapshot).not.toContain(".eq('id', me.vendor_id)");
+  });
+
   it('lists work, bills and schedule across every record of the login', () => {
     for (const file of [
       'app/vendor/page.tsx',
@@ -97,7 +105,25 @@ describe('vendor login across associations: app', () => {
   it('lets staff turn off one record\'s portal access', () => {
     const actions = read('app/(app)/vendors/actions.ts');
     expect(actions).toContain('export async function turnOffVendorPortal(formData: FormData)');
-    expect(actions).toContain(".update({ portal_activated: false })");
+    // Unbound too, so a new contact can accept the next invitation; an added
+    // link is revoked by the database, never deleted.
+    expect(actions).toContain(".update({ portal_activated: false, auth_user_id: null })");
+    expect(migration).toContain('for each row when (old.portal_activated and not new.portal_activated)');
+    expect(migration).toContain('set revoked_at = now()');
+    expect(migration).not.toMatch(/delete from public\.vendor_portal_logins|drop trigger/i);
     expect(read('app/(app)/vendors/[id]/page.tsx')).toContain('<form action={turnOffVendorPortal}');
+  });
+});
+
+describe('weakestComplianceRecord', () => {
+  it('reports a date missing on any record and otherwise the earliest', async () => {
+    const { weakestComplianceRecord } = await import('@/lib/vendors/performance');
+    const combined = weakestComplianceRecord([
+      { workers_comp_expiration: '2027-05-01', general_liability_expiration: '2027-01-01' },
+      { workers_comp_expiration: '2026-01-01', general_liability_expiration: null },
+    ]);
+    expect(combined.workers_comp_expiration).toBe('2026-01-01');
+    expect(combined.general_liability_expiration).toBeNull();
+    expect(weakestComplianceRecord([]).contract_expiration).toBeNull();
   });
 });

@@ -88,7 +88,7 @@ export default async function VendorDetailPage({
   const meta = await loadRecordMeta(db, 'vendor', id);
   // Portal access is a login linked to this exact record: its first record
   // (vendors.auth_user_id) or one added by accepting this record's invitation.
-  const { data: addedLogin, error: addedLoginError } = await db.from('vendor_portal_logins').select('vendor_id').eq('vendor_id', id).maybeSingle();
+  const { data: addedLogin, error: addedLoginError } = await db.from('vendor_portal_logins').select('vendor_id').eq('vendor_id', id).is('revoked_at', null).maybeSingle();
   if (addedLoginError) throw new Error(`Could not load this vendor's portal access: ${addedLoginError.message}`);
   const portalLinked = !!vendor.portal_activated && (!!vendor.auth_user_id || !!addedLogin);
   const [performanceRows, { data: workOrders }, { data: ratingRows }, { data: auditRows }, { data: glRow }] = await Promise.all([
