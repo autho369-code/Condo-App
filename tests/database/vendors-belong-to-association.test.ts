@@ -103,6 +103,7 @@ describe('vendors belong to exactly one association', () => {
     expect(migration).toContain('before insert or update of default_gl_account_id, association_id on public.vendors');
     expect(migration).toContain('revoke all on function public.vendors_default_gl_in_association() from public, anon, authenticated;');
     expect(migration).toContain('if v_gl_portfolio is distinct from v_vendor_portfolio');
+    expect(read('app/(app)/vendors/compliance/page.tsx')).toContain('vendors(name, is_management_company, associations(name))');
     expect(read('app/(app)/vendors/forms/page.tsx')).toContain("v.is_management_company ? 'Management company' : v.associations?.name ?? 'No association'");
   });
 
