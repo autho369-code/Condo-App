@@ -1315,6 +1315,8 @@ begin
      and not exists (
        select 1 from public.user_invitations i
        where i.portfolio_id = v_portfolio_id and i.hoa_role::text = 'vendor' and i.status::text = 'pending'
+         -- An expired invitation (still 'pending') no longer holds the link.
+         and (i.expires_at is null or i.expires_at > now())
          and lower(btrim(i.email)) = lower(btrim(new.email))
      )
      and exists (
@@ -1434,6 +1436,7 @@ begin
        and not exists (
          select 1 from public.user_invitations i
          where i.portfolio_id = p.portfolio_id and i.hoa_role::text = 'vendor' and i.status::text = 'pending'
+           and (i.expires_at is null or i.expires_at > now())
            and lower(btrim(i.email)) = lower(btrim(u.email))
        )
      order by u.id, v.created_at, v.id

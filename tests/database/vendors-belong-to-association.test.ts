@@ -262,6 +262,8 @@ describe('vendors belong to exactly one association', () => {
   it('links an invitation for an exact vendor record to that record or none', () => {
     // Neither the sign-up link nor the bulk relink pre-empts a pending vendor invitation.
     expect(migration.match(/i\.hoa_role::text = 'vendor' and i\.status::text = 'pending'/g)).toHaveLength(2);
+    // An expired invitation still marked pending must not block linking forever.
+    expect(migration.match(/and \(i\.expires_at is null or i\.expires_at > now\(\)\)/g)).toHaveLength(2);
     expect(migration).toMatch(/and \(nullif\(new\.metadata ->> 'vendor_id', ''\) is null\s+or c\.id::text = new\.metadata ->> 'vendor_id'\)/);
   });
 
