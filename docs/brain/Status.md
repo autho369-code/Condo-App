@@ -31,8 +31,11 @@ Back to [[Home]]. Updated 2026-10-08 (after #258).
   (Import Variances per unit + date). 20261008080000 applied in parts:
   import_locks table + RLS + 3 policies + grants + can_hold_import_lock
   (PL/pgSQL) verified; claim_import_lock run by Mirsad (above).
-- #259 merged (bac812b). Open PR: work-order status "Assigned by AppFolio"
-  is shown and stored as "Assigned" (Codex P2 on #259).
+- #259 merged (bac812b); #260 merged: work-order status "Assigned by
+  AppFolio" is shown and stored as "Assigned". No open PR.
+- Randolph Station created by Mirsad (2026-10-09) for the first real import.
+  The 3 archived associations are still in the DB: his delete SQL did not
+  take; waiting for the error text.
 - **All associations archived 2026-10-09 at Mirsad's request** ("remove all
   associations from the records"): Granville Courts, 7241 N. Ridge Avenue,
   Pine Tree Court (Sample) have archived_at set (reversible; nothing
