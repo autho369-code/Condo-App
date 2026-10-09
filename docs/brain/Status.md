@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #267 merged; owner login leftovers in PR).
+Back to [[Home]]. Updated 2026-10-09 (after #268 merged; owner login across associations complete; no open PR).
 
 ## Where things stand
 - #267 merged (f06b9fb): owner login across associations, part 2. Owner
@@ -25,7 +25,7 @@ Back to [[Home]]. Updated 2026-10-09 (after #267 merged; owner login leftovers i
   pilot).
 
 ## Open PR
-- Owner login leftovers (in PR, branch claude/serene-wozniak-hvgpxf): the
+- #268 merged (65414f0): owner login leftovers. The
   account page has the per-association switcher (that record's details and
   every current unit); home lists each association's emergency contact;
   migration 20261009070000 lets added records read their association's
