@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-09
+- #264 (merged; migration 20261009030000 run by Mirsad in the SQL editor,
+  read back by Claude): bills CSV upload (`import_bills`) matches the vendor
+  inside the row's association plus the management company; another
+  association's vendor is named only to callers who can see it.
 - #263 (merged dfa8f42; migration 20261009020000 applied by Claude and read
   back): a vendor record belongs to one association; the management company
   is the one company-level vendor. 14 same-association triggers + parent-row

@@ -48,13 +48,17 @@ export async function inviteVendorToPortal(formData: FormData) {
   const companyName: string | null = vendor.portfolios?.company_name ?? null
   if (!portfolioId) fail('Vendor not found.')
   const svc = createServiceClient() as any
-  // Supersede any older pending invite for this email so only one link is live.
+  // Supersede an older pending invite for this same vendor record so only one
+  // link per record is live. Invites for the vendor's records in other
+  // associations stay valid: one login accepts each of them.
   await svc
     .from('user_invitations')
     .update({ status: 'revoked' })
     .eq('email', email!.toLowerCase())
     .eq('portfolio_id', portfolioId)
     .eq('status', 'pending')
+    // Older invites that name no record would link by email on accept.
+    .or(`metadata->>vendor_id.eq.${vendor.id},metadata->>vendor_id.is.null`)
 
   const { error } = await svc.from('user_invitations').insert({
     portfolio_id: portfolioId,
@@ -72,6 +76,31 @@ export async function inviteVendorToPortal(formData: FormData) {
 
   revalidatePath('/vendors')
   redirect(back + sep + 'invited=' + encodeURIComponent(email!))
+}
+
+// Turn off this record's portal access. The login keeps the vendor's other
+// associations; this one drops out of it until staff invite it again. The
+// record is unbound from the login (auth_user_id cleared here, an added link
+// revoked by the database), so a new contact can accept the next invitation.
+export async function turnOffVendorPortal(formData: FormData) {
+  // Same guard as the vendor page that shows the button (company admins too);
+  // RLS on the update decides which vendor records the caller may change.
+  await requireWorkspaceStaff()
+  const vendorId = String(formData.get('vendor_id') ?? '')
+  const back = `/vendors/${vendorId}`
+  if (!/^[0-9a-f-]{36}$/i.test(vendorId)) redirect('/vendors?error=' + encodeURIComponent('Vendor not found.'))
+  const db = (await createClient()) as any
+  // RLS: only staff who may change this vendor (the management company is for
+  // company-wide staff) update it; zero rows means no access.
+  const { data: changed, error } = await db
+    .from('vendors')
+    .update({ portal_activated: false, auth_user_id: null })
+    .eq('id', vendorId)
+    .select('id')
+  if (error) redirect(back + '?error=' + encodeURIComponent(error.message))
+  if (!changed?.length) redirect(back + '?error=' + encodeURIComponent('Portal access was not changed: the vendor was not found or you cannot change it.'))
+  revalidatePath(back)
+  redirect(back + '?portal_off=1')
 }
 
 const text = (f: FormData, k: string) => {

@@ -46,6 +46,7 @@ Back to [[Home]].
     2026-10-09) is a single company-level vendor (`is_management_company`,
     no association) that management fees bill from every association. One
     vendor login sees every association the vendor works for (Mirsad chose
-    "build it now").
+    "build it now"), each record reached only through its own staff
+    invitation, never by email match ([[Decisions]]).
   - **Chart of accounts: one per company**, entered and changed by the
     company admin; balances stay per association.

@@ -20,6 +20,7 @@ function me(overrides: Partial<MeResult>): MeResult {
     owner_id: null,
     tenant_id: null,
     vendor_id: null,
+    vendor_ids: [],
     board_association_ids: [],
     resident_association_ids: [],
     resident_unit_ids: [],

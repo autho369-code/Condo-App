@@ -29,6 +29,23 @@ export type VendorPerformanceWorkOrder = {
 
 export type VendorComplianceRecord = Partial<Record<VendorComplianceField, string | null>>;
 
+/**
+ * One login can hold several vendor records (one per association), each with
+ * its own compliance dates. The combined record is the weakest of them: a
+ * date missing on any record counts as not recorded, otherwise the earliest
+ * expiration counts.
+ */
+export function weakestComplianceRecord(records: VendorComplianceRecord[]): VendorComplianceRecord {
+  const combined: VendorComplianceRecord = {};
+  for (const field of VENDOR_COMPLIANCE_FIELDS) {
+    const values = records.map((record) => record[field] ?? null);
+    combined[field] = values.length === 0 || values.some((value) => !value)
+      ? null
+      : values.reduce((earliest, value) => (value!.slice(0, 10) < earliest!.slice(0, 10) ? value : earliest));
+  }
+  return combined;
+}
+
 export type VendorPerformanceTone = 'neutral' | 'success' | 'warning' | 'danger';
 
 export type VendorPerformanceScorecard = {

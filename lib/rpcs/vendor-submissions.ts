@@ -29,6 +29,25 @@ function validDate(value: string | null | undefined) {
   return !value || /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+/**
+ * One vendor login can hold several vendor records (one per association it
+ * was invited to). A write always targets one exact record of the login; a
+ * client-sent id is used only if it is one of them.
+ */
+function ownVendorRecord(me: { vendor_id: string | null; vendor_ids?: string[] }, vendorId?: string | null): string | null {
+  const ids = me.vendor_ids?.length ? me.vendor_ids : me.vendor_id ? [me.vendor_id] : [];
+  if (!vendorId) return me.vendor_id && ids.includes(me.vendor_id) ? me.vendor_id : null;
+  return ids.includes(vendorId) ? vendorId : null;
+}
+
+/** The vendor record of one of the login's work orders (RLS-scoped read). */
+async function workOrderVendorRecord(me: { vendor_id: string | null; vendor_ids?: string[] }, workOrderId: string): Promise<string | null> {
+  if (!workOrderId) return null;
+  const db = (await createClient()) as any;
+  const { data } = await db.from('work_orders').select('vendor_id').eq('id', workOrderId).is('archived_at', null).maybeSingle();
+  return data?.vendor_id ? ownVendorRecord(me, data.vendor_id) : null;
+}
+
 // Only an orphaned upload may be removed. The path comes from the vendor's
 // request, so a resubmitted path could point at a file already recorded as a
 // compliance document, an invoice attachment (documents.file_url, written by
@@ -57,10 +76,17 @@ export async function createVendorUpload(
   fileName: string,
   fileSize: number,
   category: 'compliance' | 'invoice',
+  // An invoice: the work order it bills. A compliance document: the vendor
+  // record (association) it is for. The file is stored under that record.
+  target?: string | null,
 ): Promise<{ error?: string; path?: string; token?: string }> {
   const me = await requireVendor();
   if (!me.auth_user_id || !me.vendor_id) return { error: 'Not signed in as a vendor.' };
   if (category !== 'compliance' && category !== 'invoice') return { error: 'Invalid upload category.' };
+  const vendorRecord = category === 'invoice'
+    ? await workOrderVendorRecord(me, String(target ?? ''))
+    : ownVendorRecord(me, target ?? null);
+  if (!vendorRecord) return { error: category === 'invoice' ? 'Select one of your work orders.' : 'Choose one of your associations.' };
 
   const normalizedName = safeFileName(fileName);
   const extension = normalizedName.split('.').pop()?.toLowerCase() ?? '';
@@ -70,7 +96,7 @@ export async function createVendorUpload(
   if (!Number.isSafeInteger(fileSize) || fileSize <= 0) return { error: 'The selected file is empty.' };
   if (fileSize > MAX_FILE_BYTES) return { error: 'Documents must be 25 MB or smaller.' };
 
-  const path = `vendors/${me.vendor_id}/${category}/${randomUUID()}-${normalizedName}`;
+  const path = `vendors/${vendorRecord}/${category}/${randomUUID()}-${normalizedName}`;
   const service = createServiceClient() as any;
   const { data, error } = await service.storage.from(BUCKET).createSignedUploadUrl(path);
   if (error || !data?.token) return { error: error?.message ?? 'Could not authorize the upload.' };
@@ -83,14 +109,18 @@ export async function saveVendorComplianceDocument(input: {
   documentType: string;
   expiresAt?: string | null;
   requestId?: string | null;
+  /** The vendor record (association) the document is for; one of the login's. */
+  vendorId?: string | null;
 }): Promise<{ error?: string; ok?: boolean }> {
   const me = await requireVendor();
   if (!me.auth_user_id || !me.vendor_id) return { error: 'Not signed in as a vendor.' };
+  const vendorRecord = ownVendorRecord(me, input.vendorId ?? null);
+  if (!vendorRecord) return { error: 'Choose one of your associations.' };
 
   const documentType = input.documentType.trim().toLowerCase();
   const fileName = safeFileName(input.fileName);
   const expiresAt = input.expiresAt || null;
-  if (!isScopedStoragePath(input.path, 'vendors', me.vendor_id) || !input.path.includes('/compliance/')) {
+  if (!isScopedStoragePath(input.path, 'vendors', vendorRecord) || !input.path.includes('/compliance/')) {
     return { error: 'Invalid document reference.' };
   }
   const reject = async (message: string) => {
@@ -111,7 +141,7 @@ export async function saveVendorComplianceDocument(input: {
       .from('document_requests')
       .select('id, attachment_urls')
       .eq('id', input.requestId)
-      .eq('vendor_id', me.vendor_id)
+      .eq('vendor_id', vendorRecord)
       // An approved request is closed: re-submitting would silently reopen it
       // for review (the vendor page only offers open requests).
       .neq('status', 'approved')
@@ -125,7 +155,7 @@ export async function saveVendorComplianceDocument(input: {
 
   const { data: document, error: documentError } = await service.from('documents').insert({
     entity_type: 'vendor',
-    entity_id: me.vendor_id,
+    entity_id: vendorRecord,
     doc_type: documentType,
     file_name: fileName,
     file_url: input.path,
@@ -143,7 +173,7 @@ export async function saveVendorComplianceDocument(input: {
       attachment_urls: [...prior, input.path],
       status: 'submitted',
       submitted_at: new Date().toISOString(),
-    }).eq('id', request.id).eq('vendor_id', me.vendor_id).neq('status', 'approved').select('id');
+    }).eq('id', request.id).eq('vendor_id', vendorRecord).neq('status', 'approved').select('id');
     // Zero rows = management approved the request in the meantime: undo the
     // upload rather than report a submission that was never linked.
     if (requestError || !updatedRequest || updatedRequest.length === 0) {
@@ -175,7 +205,9 @@ export async function submitVendorInvoice(input: {
   const invoiceNumber = input.invoiceNumber.trim();
   const amount = input.amount.trim().replace(/[$,\s]/g, '');
   const memo = input.memo?.trim() || null;
-  if (!isScopedStoragePath(input.attachment.path, 'vendors', me.vendor_id) || !input.attachment.path.includes('/invoice/')) {
+  // The invoice bills the work order's own vendor record (one of the login's).
+  const vendorRecord = await workOrderVendorRecord(me, input.workOrderId);
+  if (!vendorRecord || !isScopedStoragePath(input.attachment.path, 'vendors', vendorRecord) || !input.attachment.path.includes('/invoice/')) {
     return { error: 'Invalid invoice attachment reference.' };
   }
   const reject = async (message: string) => {

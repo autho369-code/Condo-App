@@ -57,7 +57,7 @@ export async function postWorkOrderMessage(
   if (authorRole === 'vendor') {
     const { data: wo, error: woError } = await (supabase as any)
       .from('work_orders').select('id')
-      .eq('id', workOrderId).eq('vendor_id', me.vendor_id).is('archived_at', null)
+      .eq('id', workOrderId).in('vendor_id', me.vendor_ids).is('archived_at', null)
       .maybeSingle();
     if (woError) { redirect(`${back}?error=${encodeURIComponent(woError.message)}`); return; }
     if (!wo) {

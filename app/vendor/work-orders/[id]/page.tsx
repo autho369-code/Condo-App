@@ -45,7 +45,7 @@ export default async function VendorWorkOrderDetail({
     .from('work_orders')
     .select('id, number, title, status, priority, description, job_description, service_request_id, scheduled_date, scheduled_time, completed_date, created_at, associations(name, address, city, state), units(unit_number)')
     .eq('id', id)
-    .eq('vendor_id', me.vendor_id)
+    .in('vendor_id', me.vendor_ids)
     .is('archived_at', null)
     .maybeSingle();
   if (woError) throw new Error(`Could not load the work order: ${woError.message}`);
@@ -94,10 +94,10 @@ export default async function VendorWorkOrderDetail({
     if (rawStatus && !isVendorSettableStatus(rawStatus)) fail('Pick a status from the list.');
     if (note.length > 4000) fail('Keep the note under 4,000 characters.');
 
-    // The work order must be assigned to THIS vendor and still active.
+    // The work order must be assigned to one of this login's vendor records and still active.
     const { data: current, error: loadErr } = await db2
       .from('work_orders').select('id, status')
-      .eq('id', woId).eq('vendor_id', me2.vendor_id).is('archived_at', null)
+      .eq('id', woId).in('vendor_id', me2.vendor_ids).is('archived_at', null)
       .maybeSingle();
     if (loadErr) fail(loadErr.message);
     if (!current) redirect(`/vendor/work-orders?error=${encodeURIComponent('That work order is not available.')}`);
@@ -116,7 +116,7 @@ export default async function VendorWorkOrderDetail({
       // completed_date is stamped by the database in the association's time zone.
       const { data: updated, error: upErr } = await db2.from('work_orders')
         .update({ status: newStatus })
-        .eq('id', woId).eq('vendor_id', me2.vendor_id)
+        .eq('id', woId).in('vendor_id', me2.vendor_ids)
         .select('id, status');
       if (upErr || !updated || updated.length === 0 || updated[0].status !== newStatus) {
         await releaseSubmission(db2, token);

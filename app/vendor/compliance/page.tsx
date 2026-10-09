@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { FileText, ShieldCheck } from 'lucide-react';
@@ -11,6 +12,7 @@ import { todayInZone } from '@/lib/time/zoned';
 import { ComplianceDocumentForm } from '@/components/vendor/compliance-document-form';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { date } from '@/lib/utils';
+import { vendorAssociationLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,25 +37,36 @@ function statusFor(d: string | null, today: string): { tone: 'complete' | 'pendi
 export default async function VendorCompliance({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; saved?: string; saved_document?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string; saved_document?: string; record?: string }>;
 }) {
   const me = await requireVendor();
   const sp = await searchParams;
   const supabase = await createClient();
   const today = todayInZone();
+  // One login can hold a vendor record per association; each keeps its own
+  // compliance dates, documents and requests. Work on one record at a time.
+  const { data: recordRows, error: recordError } = await (supabase as any)
+    .from('vendors').select('id, is_management_company, associations(name)').in('id', me.vendor_ids).order('id');
+  if (recordError) throw new Error(`Could not load your associations: ${recordError.message}`);
+  // The login's first record first, then by association name.
+  const records: any[] = [...(recordRows ?? [])].sort((a: any, b: any) =>
+    (a.id === me.vendor_id ? -1 : b.id === me.vendor_id ? 1 : 0)
+    || vendorAssociationLabel(a).localeCompare(vendorAssociationLabel(b)));
+  const recordId: string = sp.record && me.vendor_ids.includes(sp.record) ? sp.record : (me.vendor_id as string);
+  const recordQuery = records.length > 1 ? `record=${encodeURIComponent(recordId)}&` : '';
   const [complianceResult, claimResult, documentResult, requestResult] = await Promise.all([
     // Official dates live on the vendor record (what management sees). The
     // vendor's own entries in vendor_compliance are only claims: they are no
     // longer copied onto the vendor (trg_vendor_compliance_sync is disabled);
     // official dates change when management approves the uploaded document.
-    (supabase as any).from('vendors').select('workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration').eq('id', me.vendor_id).maybeSingle(),
-    (supabase as any).from('vendor_compliance').select('workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, updated_at').eq('vendor_id', me.vendor_id).maybeSingle(),
+    (supabase as any).from('vendors').select('workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration').eq('id', recordId).maybeSingle(),
+    (supabase as any).from('vendor_compliance').select('workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, updated_at').eq('vendor_id', recordId).maybeSingle(),
     (supabase as any).from('documents')
       .select('id, doc_type, file_name, file_url, expires_at, uploaded_at')
-      .eq('entity_type', 'vendor').eq('entity_id', me.vendor_id).order('uploaded_at', { ascending: false }),
+      .eq('entity_type', 'vendor').eq('entity_id', recordId).order('uploaded_at', { ascending: false }),
     (supabase as any).from('document_requests')
       .select('id, name, doc_type, status, due_date, requested_at')
-      .eq('vendor_id', me.vendor_id).neq('status', 'approved').order('requested_at', { ascending: false }),
+      .eq('vendor_id', recordId).neq('status', 'approved').order('requested_at', { ascending: false }),
   ]);
   if (complianceResult.error) throw new Error(`Could not load compliance dates: ${complianceResult.error.message}`);
   if (claimResult.error) throw new Error(`Could not load your submitted dates: ${claimResult.error.message}`);
@@ -65,7 +78,7 @@ export default async function VendorCompliance({
   const requests = requestResult.data ?? [];
 
   const safePaths = documents
-    .filter((document: any) => isScopedStoragePath(document.file_url, 'vendors', me.vendor_id))
+    .filter((document: any) => isScopedStoragePath(document.file_url, 'vendors', recordId))
     .map((document: any) => document.file_url);
   const signedByPath = new Map<string, string>();
   if (safePaths.length) {
@@ -79,16 +92,21 @@ export default async function VendorCompliance({
     'use server';
     const me2 = await requireVendor();
     const supabase2 = await createClient();
-    const patch: Record<string, any> = { vendor_id: me2.vendor_id, updated_at: new Date().toISOString() };
+    // The record (association) these dates are for: one of this login's.
+    const target = String(formData.get('record_id') ?? '');
+    const record = me2.vendor_ids.includes(target) ? target : null;
+    const back = (query: string) => `/vendor/compliance?${record && me2.vendor_ids.length > 1 ? `record=${encodeURIComponent(record)}&` : ''}${query}`;
+    if (!record) redirect(back(`error=${encodeURIComponent('Choose one of your associations.')}`));
+    const patch: Record<string, any> = { vendor_id: record, updated_at: new Date().toISOString() };
     for (const f of FIELDS) {
       const v = String(formData.get(f.key) ?? '').trim() || null;
-      if (v && !DATE_ONLY.test(v)) redirect(`/vendor/compliance?error=${encodeURIComponent(`Enter a valid ${f.label.toLowerCase()} date.`)}`);
+      if (v && !DATE_ONLY.test(v)) redirect(back(`error=${encodeURIComponent(`Enter a valid ${f.label.toLowerCase()} date.`)}`));
       patch[f.key] = v;
     }
     const { error } = await (supabase2 as any).from('vendor_compliance').upsert(patch, { onConflict: 'vendor_id' });
-    if (error) redirect(`/vendor/compliance?error=${encodeURIComponent(error.message)}`);
+    if (error) redirect(back(`error=${encodeURIComponent(error.message)}`));
     revalidatePath('/vendor/compliance');
-    redirect('/vendor/compliance?saved=1');
+    redirect(back('saved=1'));
   }
 
   return (
@@ -102,9 +120,31 @@ export default async function VendorCompliance({
       {sp.saved && <Alert tone="success" className="mb-5">Dates sent to management. They count toward your compliance once management approves the matching document.</Alert>}
       {sp.saved_document && <Alert tone="success" className="mb-5">Compliance document uploaded for management review.</Alert>}
 
+      {records.length > 1 && (
+        <div className="mb-5">
+          <p className="mb-2 text-[13px] text-gray-500">Each association keeps its own compliance file. Showing:</p>
+          <div className="inline-flex flex-wrap gap-1 rounded-xl border border-gray-200/80 bg-white p-1 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            {records.map((record: any) => (
+              <Link
+                key={record.id}
+                href={`/vendor/compliance?record=${encodeURIComponent(record.id)}`}
+                aria-current={record.id === recordId ? 'page' : undefined}
+                className={
+                  'flex min-h-10 items-center justify-center rounded-lg px-4 text-[13px] font-medium transition-colors ' +
+                  (record.id === recordId ? 'bg-gray-950 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900')
+                }
+              >
+                {vendorAssociationLabel(record)}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       <Surface>
         <SectionTitle title="Certificates & licenses" description="Enter the expiration date from each document. The status shows the date management has approved." />
         <form action={save} className="space-y-1">
+          <input type="hidden" name="record_id" value={recordId} />
           <ul className="divide-y divide-gray-50">
             {FIELDS.map((f) => {
               const official = c?.[f.key] ?? null;
@@ -143,7 +183,7 @@ export default async function VendorCompliance({
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <Surface>
           <SectionTitle title="Upload a compliance document" description="Send insurance, licenses, contracts, or tax documents securely to management." />
-          <ComplianceDocumentForm requests={requests.map((request: any) => ({ id: request.id, name: request.name, doc_type: request.doc_type }))} />
+          <ComplianceDocumentForm vendorId={recordId} returnQuery={recordQuery} requests={requests.map((request: any) => ({ id: request.id, name: request.name, doc_type: request.doc_type }))} />
         </Surface>
 
         <Surface>

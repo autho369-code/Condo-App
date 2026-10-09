@@ -69,3 +69,14 @@ Back to [[Home]]. Don't redo these.
   2026-10-09), as its own PR after vendors-per-association. Until then the
   auto-link links the oldest matching record (no more failed sign-ups when
   two records share an email).
+- **A login reaches records only through their own invitation** (Mirsad,
+  2026-10-09). Staff invite per record; accepting another record's invite
+  while signed in adds it to the login (`vendor_portal_logins`). Never by
+  email match (asked: "staff invites per record" vs "automatic by matching
+  email" — he chose invites; the old email fallback in `current_vendor_id()`
+  is gone). **Pattern for multi-record logins (owners next):** keep
+  `<table>.auth_user_id` unique for the first record, add a link table
+  (record_id PK, auth_user_id, portfolio_id, invitation_id) written only by
+  the invitation trigger, a PL/pgSQL `current_<x>_ids()` SETOF helper, and
+  `ALTER POLICY` every `= current_<x>_id()` to `IN (SELECT current_<x>_ids())`.
+  The portal shows the union; every write targets one exact record.

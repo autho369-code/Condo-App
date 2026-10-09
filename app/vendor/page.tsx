@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireVendor } from '@/lib/auth/me';
 import { PageHeader, Surface, SectionTitle, Badge, MetricStrip, Metric, EmptyState, Alert } from '@/components/ui/shell';
 import { date, money } from '@/lib/utils';
-import { tradeLabel } from '@/lib/vendors/options';
+import { tradeLabel, vendorAssociationLabel } from '@/lib/vendors/options';
 import { complianceState } from '@/lib/vendors/portal';
 import { todayInZone } from '@/lib/time/zoned';
 
@@ -23,20 +23,22 @@ export default async function VendorDashboard() {
     db.from('vendors').select('id, name, trade').eq('id', me.vendor_id).maybeSingle(),
     db.from('work_orders')
       .select('id, number, title, status, priority, scheduled_date, completed_date, created_at, associations(name)')
-      .eq('vendor_id', me.vendor_id)
+      .in('vendor_id', me.vendor_ids)
       .is('archived_at', null)
       .order('created_at', { ascending: false })
       .limit(100),
-    db.from('vendors').select('workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration').eq('id', me.vendor_id).maybeSingle(), // same dates management sees
+    // Every record of this login (one per association): same dates management sees.
+    db.from('vendors').select('id, is_management_company, associations(name), workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration').in('id', me.vendor_ids).order('id'),
     db.from('payable_bills')
       .select('amount, credit_applied, status')
-      .eq('vendor_id', me.vendor_id)
+      .in('vendor_id', me.vendor_ids)
       .is('archived_at', null)
       .not('status', 'in', '("paid","void")'),
   ]);
 
   const vendor = vendorResult.data;
-  const compliance = complianceResult.data;
+  const complianceRecords: any[] = complianceResult.data ?? [];
+  const severalRecords = complianceRecords.length > 1;
   const loadErrors = [
     vendorResult.error && `profile (${vendorResult.error.message})`,
     workOrderResult.error && `work orders (${workOrderResult.error.message})`,
@@ -55,20 +57,29 @@ export default async function VendorDashboard() {
   const pendingPay = (openBills ?? []).reduce((s: number, b: any) => s + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), 0);
 
   // Compliance expirations within 30 days or past (local calendar days).
-  const expiring: { label: string; date: string; expired: boolean }[] = [];
-  const checks: [string, string | null][] = [
-    ['Workers comp', compliance?.workers_comp_expiration],
-    ['General liability', compliance?.general_liability_expiration],
-    ['Auto insurance', compliance?.auto_insurance_expiration],
-    ['EPA certification', compliance?.epa_certification_expiration],
-    ['State license', compliance?.state_license_expiration],
-    ['Contract', compliance?.contract_expiration],
-  ];
-  for (const [label, d] of checks) {
-    const state = complianceState(d, todayDate);
-    if (state === 'expired' || state === 'expiring') expiring.push({ label, date: d as string, expired: state === 'expired' });
+  // Each association keeps its own compliance dates; name it when there are several.
+  const expiring: { label: string; date: string; expired: boolean; recordId: string }[] = [];
+  const emptyRecords: any[] = [];
+  for (const record of complianceRecords) {
+    const where = severalRecords ? ` (${vendorAssociationLabel(record)})` : '';
+    const checks: [string, string | null][] = [
+      [`Workers comp${where}`, record.workers_comp_expiration],
+      [`General liability${where}`, record.general_liability_expiration],
+      [`Auto insurance${where}`, record.auto_insurance_expiration],
+      [`EPA certification${where}`, record.epa_certification_expiration],
+      [`State license${where}`, record.state_license_expiration],
+      [`Contract${where}`, record.contract_expiration],
+    ];
+    for (const [label, d] of checks) {
+      const state = complianceState(d, todayDate);
+      if (state === 'expired' || state === 'expiring') expiring.push({ label, date: d as string, expired: state === 'expired', recordId: record.id });
+    }
+    if (checks.every(([, d]) => !d)) emptyRecords.push(record);
   }
-  const noComplianceOnFile = !complianceResult.error && checks.every(([, d]) => !d);
+  // Link to the association concerned when it is one of several.
+  const complianceHref = (recordIds: string[]) =>
+    severalRecords && new Set(recordIds).size === 1 ? `/vendor/compliance?record=${encodeURIComponent(recordIds[0])}` : '/vendor/compliance';
+  const noComplianceOnFile = !complianceResult.error && emptyRecords.length > 0;
 
   return (
     <div>
@@ -85,7 +96,7 @@ export default async function VendorDashboard() {
         <Alert tone={expiring.some((e) => e.expired) ? 'danger' : 'warning'} className="mb-5">
           {expiring.map((e) => `${e.label} ${e.expired ? 'expired' : 'expires'} ${date(e.date)}`).join(' · ')}
           {' — '}
-          <Link href="/vendor/compliance" className="font-semibold underline underline-offset-2">review compliance</Link>
+          <Link href={complianceHref(expiring.map((e) => e.recordId))} className="font-semibold underline underline-offset-2">review compliance</Link>
         </Alert>
       )}
 
@@ -142,8 +153,8 @@ export default async function VendorDashboard() {
           <div className="flex items-start gap-3">
             <ShieldAlert className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" />
             <div className="text-[13px] leading-5 text-gray-600">
-              No compliance documents on file yet. Keeping your insurance and license dates current helps you stay eligible for assignments.{' '}
-              <Link href="/vendor/compliance" className="font-medium text-blue-600 hover:text-blue-800">Add them now</Link>.
+              No compliance documents on file yet{severalRecords ? ` for ${emptyRecords.map((r) => vendorAssociationLabel(r)).join(', ')}` : ''}. Keeping your insurance and license dates current helps you stay eligible for assignments.{' '}
+              <Link href={complianceHref(emptyRecords.map((r) => r.id).slice(0, 1))} className="font-medium text-blue-600 hover:text-blue-800">Add them now</Link>.
             </div>
           </div>
         </Surface>

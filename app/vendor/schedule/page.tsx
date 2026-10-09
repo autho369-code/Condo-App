@@ -21,14 +21,14 @@ export default async function VendorSchedulePage() {
   const [{ data: wos, error: woError }, { data: events, error: eventError }, { data: tasks, error: taskError }] = await Promise.all([
     db.from('work_orders')
       .select('id, number, title, priority, status, scheduled_date, scheduled_time, associations(name), units(unit_number)')
-      .eq('vendor_id', me.vendor_id)
+      .in('vendor_id', me.vendor_ids)
       .is('archived_at', null)
       .in('status', OPEN_STATUSES)
       .not('scheduled_date', 'is', null)
       .order('scheduled_date'),
     db.from('calendar_events')
       .select('id, title, start_datetime, location, operations_status, associations(name)')
-      .eq('vendor_id', me.vendor_id)
+      .in('vendor_id', me.vendor_ids)
       .is('archived_at', null)
       // Maintenance tasks are listed from maintenance_tasks below; their
       // calendar events would show the same visit twice.
@@ -40,7 +40,7 @@ export default async function VendorSchedulePage() {
       .order('start_datetime'),
     db.from('maintenance_tasks')
       .select('id, task_name, next_due_date, associations(name)')
-      .eq('vendor_id', me.vendor_id)
+      .in('vendor_id', me.vendor_ids)
       .is('archived_at', null)
       .eq('status', 'active')
       .not('next_due_date', 'is', null)

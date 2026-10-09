@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #263 merged; no open PR).
+Back to [[Home]]. Updated 2026-10-09 (vendor-login PR open; migration 20261009040000 not yet applied).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -51,22 +51,30 @@ Back to [[Home]]. Updated 2026-10-09 (after #263 merged; no open PR).
   a SET NULL link of another association stops the call; purge_type_matches:
   no id-only matching). Definitions already live (Mirsad pasted them); no
   open PR.
-- In PR: bills CSV upload (`import_bills`) matches the vendor inside the
-  row's association plus the management company (migration
-  20261009030000; its body clears a temp table with DELETE, so Mirsad runs
-  it in the SQL editor, then Claude reads it back; merge only after it is
-  live).
+- In PR #265: one vendor login across a vendor's associations (migration
+  20261009040000: vendor_portal_logins, current_vendor_ids(), 28 vendor
+  policies rewritten with ALTER POLICY; staff invite per record; staff can
+  turn off one record's portal access, which unbinds it: auth_user_id
+  cleared, an added link revoked via revoked_at, never deleted). Dry run as the vendor role (rolled
+  back): 28 policies rewritten, 23 vendor tables 62 ms -> 44 ms warm, the
+  live vendor still resolves to its one record. Main stays compatible with the
+  migration, so Claude applies it once Codex is clean, reads it back, then
+  Mirsad merges.
+- #264 merged: bills CSV upload matches the vendor inside the row's
+  association (migration 20261009030000 run by Mirsad, read back: body
+  matches the file apart from 3 blank lines the editor dropped; grants
+  authenticated + service_role). No open PR.
 - Randolph Station created by Mirsad (2026-10-09) for the first real import;
   it is the only association. Granville Courts, 7241 N. Ridge and the Pine
   Tree sample were deleted by Mirsad in the SQL editor (one DO block: user
   triggers paused, journal entries/bills/tenants/blocking rows removed,
   triggers re-enabled; verified 0 disabled triggers, 0 orphan journal
   lines). The 14 old demo owners are gone (0 owners now).
-- Next gaps: (1) one vendor login across associations (Mirsad: build now);
-  (2) multi-property owner portal (one sign-in, all of a person's records) and owner pickers
-  that still list the whole company; (3) chart of accounts entered/changed by
-  the company admin only; (4) a real end-to-end import of Randolph Station;
-  (5) credit balances from the Aged Receivable file (listed, not posted).
+- Next gaps: (1) multi-property owner portal (one sign-in, all of a person's
+  records, same pattern as the vendor login) and owner pickers that still
+  list the whole company; (2) chart of accounts entered/changed by the
+  company admin only; (3) a real end-to-end import of Randolph Station;
+  (4) credit balances from the Aged Receivable file (listed, not posted).
 - #256 merged (7b37b23); migration 20261008060000 applied and verified (7
   SETOF uuid identity helpers are PL/pgSQL, SECURITY DEFINER, search_path
   kept). Live timings for 30 tables per role, original -> now: board
@@ -167,8 +175,8 @@ Back to [[Home]]. Updated 2026-10-09 (after #263 merged; no open PR).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
--1. In PR: `import_bills` association scoping (see Open PR). Then: one
-   vendor login across a vendor's associations; multi-property owner portal.
+-1. In PR #265: one vendor login across associations. Next: the multi-property
+   owner portal, using the same pattern (see [[Decisions]]).
 0. AppFolio importer follow-ups: credit balances (owner prepayments), and
    run the real import for one association end to end after merge. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.

@@ -25,6 +25,7 @@ const SYSTEM_PROMPT =
   'read-only snapshot of THEIR assigned work orders, schedule, bills, and compliance documents. ' +
   'If the answer is not in the DATA, say so plainly and suggest contacting the property manager. ' +
   'NEVER invent, estimate, or extrapolate numbers, dates, or amounts. ' +
+  'A compliance item with expires null has no date on file for that association. ' +
   'Be brief and practical; format money with a dollar sign. Do not output JSON or code unless asked.';
 
 async function getVendorAIConfig(vendorId: string): Promise<AIConfig | null> {

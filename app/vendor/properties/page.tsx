@@ -18,7 +18,7 @@ export default async function VendorPropertiesPage() {
   const { data: wos, error: woError } = await db
     .from('work_orders')
     .select('association_id')
-    .eq('vendor_id', me.vendor_id)
+    .in('vendor_id', me.vendor_ids)
     .is('archived_at', null)
     .not('status', 'in', '(done,completed,closed,cancelled,billed)');
 

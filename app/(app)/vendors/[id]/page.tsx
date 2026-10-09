@@ -11,7 +11,7 @@ import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
-import { inviteVendorToPortal } from '../actions';
+import { inviteVendorToPortal, turnOffVendorPortal } from '../actions';
 import { buildVendorPerformanceScorecard, formatPerformanceDays } from '@/lib/vendors/performance';
 import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query';
 import { Stars, summarize } from '@/components/work-orders/rating';
@@ -63,7 +63,7 @@ export default async function VendorDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string; error?: string; invited?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string; invited?: string; portal_off?: string }>;
 }) {
   const me = await requireWorkspaceStaff();
   const { id } = await params;
@@ -86,6 +86,11 @@ export default async function VendorDetailPage({
   await mergePrivateFieldsOne(db, 'vendor_private', 'vendor_id', ['notes'], vendor);
 
   const meta = await loadRecordMeta(db, 'vendor', id);
+  // Portal access is a login linked to this exact record: its first record
+  // (vendors.auth_user_id) or one added by accepting this record's invitation.
+  const { data: addedLogin, error: addedLoginError } = await db.from('vendor_portal_logins').select('vendor_id').eq('vendor_id', id).is('revoked_at', null).maybeSingle();
+  if (addedLoginError) throw new Error(`Could not load this vendor's portal access: ${addedLoginError.message}`);
+  const portalLinked = !!vendor.portal_activated && (!!vendor.auth_user_id || !!addedLogin);
   const [performanceRows, { data: workOrders }, { data: ratingRows }, { data: auditRows }, { data: glRow }] = await Promise.all([
     loadPortfolioVendorPerformanceRows(db, portfolioId, [vendor.id]),
     db
@@ -143,6 +148,7 @@ export default async function VendorDetailPage({
         {sp.saved && <Alert tone="success">{sp.saved === 'tags' ? 'Tags saved.' : sp.saved === 'note' ? 'Note added.' : 'Vendor saved.'}</Alert>}
         <RecordTagChips tags={meta.tags} href={(t) => `/vendors?tag=${t}`} />
         {sp.invited && <Alert tone="success">Portal invitation sent to {sp.invited}.</Alert>}
+        {sp.portal_off && <Alert tone="success">Portal access turned off for this vendor record.</Alert>}
         {sp.error && <Alert>{sp.error}</Alert>}
         <MetricStrip
           metrics={[
@@ -225,10 +231,17 @@ export default async function VendorDetailPage({
           <Surface>
             <SectionTitle title="Vendor portal" />
             <div className="flex flex-wrap items-center gap-3 text-sm">
-              <StatusChip tone={vendor.portal_activated ? 'success' : 'neutral'}>{vendor.portal_activated ? 'Activated' : 'Not activated'}</StatusChip>
+              <StatusChip tone={portalLinked ? 'success' : 'neutral'}>{portalLinked ? 'Activated' : 'Not activated'}</StatusChip>
               {vendor.portal_login_last_at && <span className="text-gray-500">Last login {date(vendor.portal_login_last_at)}</span>}
             </div>
-            {!vendor.portal_activated && (
+            {portalLinked && (
+              <form action={turnOffVendorPortal} className="mt-4">
+                <input type="hidden" name="vendor_id" value={vendor.id} />
+                <Button type="submit" variant="secondary">Turn off portal access</Button>
+                <p className="mt-2 text-xs text-gray-500">The vendor keeps access to their other associations.</p>
+              </form>
+            )}
+            {!portalLinked && (
               <form action={inviteVendorToPortal} className="mt-4">
                 <input type="hidden" name="vendor_id" value={vendor.id} />
                 <input type="hidden" name="return_to" value={`/vendors/${vendor.id}`} />

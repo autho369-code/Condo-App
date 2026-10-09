@@ -30,6 +30,8 @@ export interface MeResult {
   owner_id: string | null;
   tenant_id: string | null;
   vendor_id: string | null;
+  /** Every vendor record of this login (one per association it was invited to); vendor_id is the first. */
+  vendor_ids: string[];
   board_association_ids: string[];
   resident_association_ids: string[];
   resident_unit_ids: string[];
@@ -70,6 +72,7 @@ function localPreviewMe(): MeResult {
     owner_id: null,
     tenant_id: null,
     vendor_id: null,
+    vendor_ids: [],
     board_association_ids: [],
     resident_association_ids: [],
     resident_unit_ids: [],
@@ -157,6 +160,7 @@ export async function getMe(options: {
     throw error;
   }
   const me = data as MeResult;
+  if (me && !Array.isArray(me.vendor_ids)) me.vendor_ids = me.vendor_id ? [me.vendor_id] : [];
   if (me?.auth_user_id && !isActiveProfile(me.profile)) {
     await supabase.auth.signOut();
     redirect('/login?error=account_disabled');
@@ -313,7 +317,7 @@ export async function requireVendor() {
   const me = await getMe();
   if (!me.auth_user_id) redirect('/login?mode=vendor');
   await requireMatchingTenantWorkspace(me);
-  if (!me.vendor_id) redirect('/login?mode=vendor');
+  if (!me.vendor_id || !me.vendor_ids?.length) redirect('/login?mode=vendor');
 
   // Vendor access is tenant-local just like owner access. Never disable the
   // shared Auth identity because it may also hold staff/board/owner roles.

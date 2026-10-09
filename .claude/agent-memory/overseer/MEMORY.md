@@ -85,3 +85,8 @@
   a vault note edited but not staged (Shipped.md, 2026-10-08 after #253) is
   left out of the commit. Also check the Open PR entry of the PR that just
   merged was moved out of Open PR, and "pushed after #N merges" wording.
+- Recurring (vendor-login PR, 2026-10-09): the vault edit moved the gap to
+  "In PR" in Next gaps but left the Status header ("no open PR") and the
+  duplicate "Next gaps: (1) ..." bullet inside Open PR stale. grep
+  `Next gaps` and the header line on every Status edit. Also ask whether the
+  RLS rewrite was timed per role in a rolled-back tx (Product Rules: Speed).
