@@ -9,6 +9,7 @@ import { vendorComplianceStatus, VENDOR_EXPIRATION_COLUMNS } from '@/lib/company
 import { todayInZone } from '@/lib/time/zoned'
 import { Alert } from '@/components/ui/shell'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { vendorAssociationLabel } from '@/lib/vendors/options'
 import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
@@ -73,7 +74,7 @@ export default async function VendorsPage({
       .from('vendors')
       // Explicit columns: vendors also holds bank and taxpayer numbers this
       // list never shows.
-      .select(`id, name, vendor_type, trade, phone_numbers, emails, ach_status, ${VENDOR_EXPIRATION_COLUMNS}`)
+      .select(`id, name, vendor_type, trade, phone_numbers, emails, ach_status, is_management_company, associations(name), ${VENDOR_EXPIRATION_COLUMNS}`)
       .eq('portfolio_id', portfolioId)
       .is('archived_at', null)
       .order('name')
@@ -192,7 +193,7 @@ export default async function VendorsPage({
                   <tr key={v.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                     <td className="px-4 py-3">
                       <Link href={`/vendors/${v.id}`} className="font-medium text-gray-900 hover:underline">{v.name ?? 'Unnamed Vendor'}</Link>
-                      {v.vendor_type && <div className="mt-0.5 text-xs text-gray-500">{v.vendor_type}</div>}
+                      <div className="mt-0.5 text-xs text-gray-500">{[vendorAssociationLabel(v), v.vendor_type].filter(Boolean).join(' · ')}</div>
                     </td>
                     <td className="px-4 py-3 text-[13px] capitalize text-gray-700">{v.trade ?? '—'}</td>
                     <td className="px-4 py-3 text-[13px] tabular-nums text-gray-700">{firstFromJsonb(v.phone_numbers)}</td>

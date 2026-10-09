@@ -958,7 +958,8 @@ end $$;
 
 -- The vendor directory report runs with the service role, so it filters by
 -- the requested association itself (that association's vendors and the
--- management company); the other vendor reports already filter by it.
+-- management company); the other vendor reports already filter by it. Each
+-- row names its association, so same-named records stay distinguishable.
 create or replace function public.report_data_vendor_directory(
   p_portfolio_id uuid,
   p_params jsonb default '{}'::jsonb
@@ -973,14 +974,17 @@ as $function$
 begin
   -- PL/pgSQL wrapper as in 20261008060000 (plans kept per session).
   return (select s.x from (
-  select coalesce(jsonb_agg(to_jsonb(r.*) order by r.name), '[]'::jsonb)
+  select coalesce(jsonb_agg(to_jsonb(r.*) order by r.name, r.association), '[]'::jsonb)
   from (
-    select v.name, v.trade::text, v.vendor_type::text,
+    select v.name,
+           case when v.is_management_company then 'Management company' else a.name end as association,
+           v.trade::text, v.vendor_type::text,
            v.address_street, v.address_city, v.address_state, v.address_zip,
            v.send_1099, vc.workers_comp_expiration,
            vc.general_liability_expiration, vc.contract_expiration
     from public.vendors v
     left join public.vendor_compliance vc on vc.vendor_id = v.id
+    left join public.associations a on a.id = v.association_id
     where v.portfolio_id = p_portfolio_id
       and v.archived_at is null
       and (nullif(p_params->>'association_id', '') is null
