@@ -35,6 +35,11 @@ Back to [[Home]]. Updated 2026-10-08 (after #258).
   `/owners/import/previous-system` (old URL redirects), sidebar entry under
   Associations, no "AppFolio" in any product text or stored record (charge
   memo prefix "Prior system:", work-order key "Prior system WO #n").
+- **All associations archived 2026-10-09 at Mirsad's request** ("remove all
+  associations from the records"): Granville Courts, 7241 N. Ridge Avenue,
+  Pine Tree Court (Sample) have archived_at set (reversible; nothing
+  deleted). The import page's long list was the browser preview of his
+  29-association file, not saved data; the page now shows one at a time.
 - **Sample association for import testing** (created 2026-10-09 by Claude at
   Mirsad's request, company aaaaaaaa-…): "Pine Tree Court Condominium
   Association (Sample)", id 582e1b03-c04a-4c54-bcd6-745d8c84d23f, 1 building,
