@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/input';
+import { Input, Label, Select } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createVendor } from '@/lib/rpcs/entities';
@@ -31,9 +31,7 @@ export default async function NewVendorPage({
       actions={<Link href="/vendors"><Button variant="secondary">Back to vendors</Button></Link>}
     >
       {sp.error && (
-        <div className="mb-6 max-w-5xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          <span className="font-semibold">Could not create vendor:</span> {sp.error}
-        </div>
+        <div className="mb-6 max-w-5xl"><Alert tone="danger" title="Could not create vendor">{sp.error}</Alert></div>
       )}
 
       {associationsError && (
@@ -44,10 +42,10 @@ export default async function NewVendorPage({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
             <Label htmlFor="association_id">Association <span className="text-red-500">*</span></Label>
-            <select id="association_id" name="association_id" defaultValue="" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+            <Select id="association_id" name="association_id" defaultValue="">
               <option value="">Select association</option>
               {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            </Select>
             <p className="mt-1 text-xs text-gray-500">Each association has its own vendors. A company that works for another association is added there as its own vendor.</p>
           </div>
           {canEditFinancials && (

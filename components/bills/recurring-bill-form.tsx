@@ -48,14 +48,14 @@ export function RecurringBillForm({
           <Field label="Name" htmlFor="name" required className="sm:col-span-2">
             <Input id="name" name="name" required maxLength={120} defaultValue={values.name ?? ''} placeholder="Monthly janitorial service" />
           </Field>
-          <Field label="Vendor" htmlFor="vendor_id" required>
-            <VendorSelect id="vendor_id" name="vendor_id" required defaultValue={values.vendor_id ?? ''} vendors={vendors} placeholder="Choose a vendor" />
-          </Field>
           <Field label="Association" htmlFor="association_id" required>
             <Select id="association_id" name="association_id" required defaultValue={values.association_id ?? ''}>
               <option value="">Choose an association</option>
               {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </Select>
+          </Field>
+          <Field label="Vendor" htmlFor="vendor_id" required>
+            <VendorSelect id="vendor_id" name="vendor_id" required defaultValue={values.vendor_id ?? ''} vendors={vendors} placeholder="Choose a vendor" />
           </Field>
           <Field label="Expense account" htmlFor="gl_account_id" required>
             <Select id="gl_account_id" name="gl_account_id" required defaultValue={values.gl_account_id ?? ''}>

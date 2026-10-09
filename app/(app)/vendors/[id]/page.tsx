@@ -130,7 +130,7 @@ export default async function VendorDetailPage({
   return (
     <DataWorkspace
       title={vendor.name}
-      description={`${vendor.is_management_company ? 'Management company' : (vendor.associations?.name ?? 'Association')} · ${tradeLabel(vendor.trade)} · ${(vendor.vendor_type ?? 'general').replace(/_/g, ' ')}`}
+      description={`${vendor.is_management_company ? 'Management company' : (vendor.associations?.name ?? 'No association')} · ${tradeLabel(vendor.trade)} · ${(vendor.vendor_type ?? 'general').replace(/_/g, ' ')}`}
       actions={
         <div className="flex items-center gap-2">
           <Link href="/vendors"><Button variant="secondary"><ArrowLeft className="h-4 w-4" /> Vendors</Button></Link>

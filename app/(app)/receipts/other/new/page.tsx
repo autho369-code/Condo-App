@@ -49,8 +49,8 @@ export default async function NewOtherReceiptPage({ searchParams }: { searchPara
             <Surface>
               <SectionTitle title="Receipt" />
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Association">
-                  <Select name="association_id" required defaultValue="">
+                <Field label="Association" htmlFor="association_id">
+                  <Select id="association_id" name="association_id" required defaultValue="">
                     <option value="">Select association</option>
                     {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </Select>
@@ -69,8 +69,8 @@ export default async function NewOtherReceiptPage({ searchParams }: { searchPara
                     <option value="vendor">Vendor</option>
                   </Select>
                 </Field>
-                <Field label="Vendor (for vendor receipts)">
-                  <VendorSelect name="vendor_id" defaultValue="" vendors={vendors ?? []} placeholder="—" />
+                <Field label="Vendor (for vendor receipts)" htmlFor="vendor_id">
+                  <VendorSelect id="vendor_id" name="vendor_id" defaultValue="" vendors={vendors ?? []} placeholder="—" />
                 </Field>
                 <Field label="Payer name" hint="Required for other payers; defaults to the vendor's name.">
                   <Input name="payer_name" maxLength={200} placeholder="e.g. State Farm, Coinmach Laundry" />

@@ -224,6 +224,18 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
           <input type="hidden" name="portfolio_id" value={portfolioId} />
           <input type="hidden" name={submissionField} value={submissionToken} />
 
+          {/* ASSOCIATION */}
+          <div className="sm:col-span-2">
+            <Label htmlFor="association_id">Association *</Label>
+            <Select id="association_id" name="association_id" required defaultValue={matchedAssociationId}>
+              <option value="">Select an association…</option>
+              {(associations ?? []).map((a: any) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </Select>
+            <p className="mt-1 text-xs text-gray-500">The HOA the bill is billed to.</p>
+          </div>
+
           {/* VENDOR */}
           <div className="sm:col-span-2">
             <Label htmlFor="vendor_id">Vendor *</Label>
@@ -233,18 +245,6 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
                 AI read the vendor as &ldquo;{d.vendor_name}&rdquo; but found no matching vendor — select one manually.
               </p>
             )}
-          </div>
-
-          {/* ASSOCIATION */}
-          <div>
-            <Label htmlFor="association_id">Association *</Label>
-            <Select id="association_id" name="association_id" required defaultValue={matchedAssociationId}>
-              <option value="">Select an association…</option>
-              {(associations ?? []).map((a: any) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </Select>
-            <p className="mt-1 text-xs text-gray-500">The HOA the bill is billed to.</p>
           </div>
 
           {/* AMOUNT */}

@@ -164,7 +164,7 @@ export function VendorImportSection({ associations, importVendors }: { associati
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
               <Label htmlFor={selectId}>Import into</Label>
-              <Select id={selectId} value={associationId} onChange={(e) => setAssociationId(e.target.value)} disabled={busy || result !== null} required>
+              <Select id={selectId} value={associationId} onChange={(e) => setAssociationId(e.target.value)} disabled={busy || result !== null}>
                 <option value="">Select an association</option>
                 {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </Select>

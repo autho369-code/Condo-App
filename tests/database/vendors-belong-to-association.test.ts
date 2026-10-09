@@ -90,6 +90,19 @@ describe('vendors belong to exactly one association', () => {
     }
   });
 
+  it('lets only company-wide finance staff mark the one management company', () => {
+    expect(migration).toMatch(/if auth\.uid\(\) is not null\s+and \(\(tg_op = 'INSERT' and new\.is_management_company\)/);
+    expect(migration).toContain('and (not public.manager_is_scoped() or public.is_company_admin())) then');
+    expect(migration).toContain('create unique index if not exists vendors_one_management_company');
+  });
+
+  it('keeps estimate vendors in the work order\'s association', () => {
+    expect(migration).toContain('before insert or update of vendor_id, work_order_id on public.work_order_estimates');
+    expect(migration).toContain('revoke all on function public.work_order_estimate_vendor_same_association() from public, anon, authenticated;');
+    const estimate = read('lib/rpcs/work-orders.ts');
+    expect(estimate).toContain('!vendor.is_management_company && vendor.association_id !== workOrder.association_id');
+  });
+
   it('limits association-scoped managers to their associations\' vendors', () => {
     expect(migration).toMatch(/create policy mgr_assoc_scope on public\.vendors as restrictive for all to authenticated\s+using \(public\.can_view_association_row\(association_id\)\)/);
     for (const t of ['vendor_private', 'vendor_compliance', 'vendor_financial_details']) {

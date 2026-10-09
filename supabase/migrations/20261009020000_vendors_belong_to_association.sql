@@ -197,6 +197,20 @@ begin
     new.portfolio_id := v_portfolio_id;
   end if;
 
+  -- Marking a vendor as the management company makes it company-wide (every
+  -- association can use it and every manager sees it): only company-wide
+  -- finance staff or a company admin may do it, as with the management-fee
+  -- schedule. Sessions without a signed-in user (migrations, the SQL editor,
+  -- trusted server jobs) are exempt.
+  if auth.uid() is not null
+     and ((tg_op = 'INSERT' and new.is_management_company)
+          or (tg_op = 'UPDATE' and new.is_management_company is distinct from old.is_management_company))
+     and not (public.can_manage_finance(new.portfolio_id)
+              and (not public.manager_is_scoped() or public.is_company_admin())) then
+    raise exception 'Only company-wide accounting staff or a company admin can mark the management company.'
+      using errcode = '42501';
+  end if;
+
   if tg_op = 'UPDATE' and (new.association_id is distinct from old.association_id
                            or new.is_management_company is distinct from old.is_management_company) then
     v_linked := public.vendor_linked_association_ids(new.id);
@@ -215,6 +229,10 @@ revoke all on function public.vendors_set_portfolio_from_association() from publ
 create or replace trigger trg_vendors_set_portfolio_from_association
   before insert or update of association_id, portfolio_id, is_management_company on public.vendors
   for each row execute function public.vendors_set_portfolio_from_association();
+
+-- One management company per company.
+create unique index if not exists vendors_one_management_company
+  on public.vendors(portfolio_id) where is_management_company and archived_at is null;
 
 -- An association that moves to another company takes its vendors with it.
 create or replace function public.associations_move_vendor_portfolio()
@@ -302,6 +320,42 @@ begin
   end loop;
 end $$;
 
+-- Estimates carry no association of their own: the vendor must be one of the
+-- work order's association (or the management company).
+create or replace function public.work_order_estimate_vendor_same_association()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+declare
+  v_wo_association uuid;
+  v_vendor_association uuid;
+  v_management boolean;
+begin
+  if new.vendor_id is null then
+    return new;
+  end if;
+  select w.association_id into v_wo_association from public.work_orders w where w.id = new.work_order_id;
+  select ven.association_id, ven.is_management_company into v_vendor_association, v_management
+    from public.vendors ven where ven.id = new.vendor_id for share;
+  if not found or v_management then
+    return new;
+  end if;
+  if v_vendor_association is distinct from v_wo_association then
+    raise exception 'This vendor belongs to another association. Add it as a vendor of this association.'
+      using errcode = '23514';
+  end if;
+  return new;
+end;
+$function$;
+
+revoke all on function public.work_order_estimate_vendor_same_association() from public, anon, authenticated;
+
+create or replace trigger trg_work_order_estimate_vendor_same_association
+  before insert or update of vendor_id, work_order_id on public.work_order_estimates
+  for each row execute function public.work_order_estimate_vendor_same_association();
+
 -- 5) Association-scoped managers see only their associations' vendors -------
 
 do $$
@@ -372,6 +426,106 @@ begin
           jsonb_build_object('enabled', coalesce(p_enabled, false), 'day', p_day, 'vendor_id', p_vendor_id, 'gl_account_id', p_gl_account_id));
 end $function$;
 
+-- Billing management fees also needs the management company (a direct call
+-- with an association vendor would fail for every other association).
+create or replace function public.app_bill_management_fees(p_portfolio_id uuid, p_month date, p_association_ids uuid[], p_vendor_id uuid, p_gl_account_id uuid, p_bill_date date, p_actor uuid, p_source text)
+returns integer
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+declare
+  v_month date := date_trunc('month', p_month)::date;
+  v_bill_date date := coalesce(p_bill_date, (date_trunc('month', p_month) + interval '1 month - 1 day')::date);
+  r record;
+  v_bill uuid;
+  n integer := 0;
+begin
+  if not exists (select 1 from public.vendors v where v.id = p_vendor_id and v.portfolio_id = p_portfolio_id and v.archived_at is null
+                   and v.is_management_company) then
+    raise exception 'Choose the management company vendor' using errcode = '22023';
+  end if;
+  if not exists (select 1 from public.gl_accounts g where g.id = p_gl_account_id and g.portfolio_id = p_portfolio_id and g.active
+                   and g.association_id is null and g.account_type::text in ('expense', 'other_expense')) then
+    raise exception 'Choose a company-wide expense account for management fees' using errcode = '22023';
+  end if;
+
+  for r in
+    select * from public.app_management_fee_calc(p_portfolio_id, v_month) pv
+     where pv.association_id = any (p_association_ids) and not pv.already_billed and pv.fee > 0
+  loop
+    insert into public.payable_bills (portfolio_id, vendor_id, association_id, gl_account_id, bill_number, bill_date, due_date,
+                                      amount, memo, status, approval_required, approved_at, approved_by, created_by)
+    values (p_portfolio_id, p_vendor_id, r.association_id, p_gl_account_id,
+            'MGMT-' || to_char(v_month, 'YYYY-MM'), v_bill_date, v_bill_date, r.fee,
+            'Management fee ' || chr(8212) || ' ' || to_char(v_month, 'FMMonth YYYY') || ' (' ||
+              case r.fee_type when 'per_door' then r.door_count || ' units ' || chr(215) || ' ' || to_char(r.rate, 'FM$999,990.00')
+                              when 'flat_monthly' then 'flat monthly'
+                              else r.rate || '% of ' || to_char(r.basis, 'FM$999,999,990.00') || ' assessments' end || ')',
+            'approved', false, now(), p_actor, p_actor)
+    returning id into v_bill;
+    perform public.ensure_payable_bill_accrual(v_bill);
+
+    insert into public.management_fees (portfolio_id, association_id, month, fee_amount_cents, door_count,
+                                        avg_per_door_cents, fee_type, rate, basis_cents, bill_id, created_by)
+    values (p_portfolio_id, r.association_id, v_month, round(r.fee * 100)::int, r.door_count,
+            case when r.door_count > 0 then round(r.fee * 100 / r.door_count)::int end,
+            r.fee_type, r.rate, round(coalesce(r.basis, 0) * 100)::bigint, v_bill, p_actor)
+    on conflict (association_id, month) do update
+      set fee_amount_cents = excluded.fee_amount_cents, door_count = excluded.door_count,
+          avg_per_door_cents = excluded.avg_per_door_cents, fee_type = excluded.fee_type, rate = excluded.rate,
+          basis_cents = excluded.basis_cents, bill_id = excluded.bill_id, created_by = excluded.created_by
+      where public.management_fees.bill_id is null
+         or exists (select 1 from public.payable_bills vb where vb.id = public.management_fees.bill_id and vb.status = 'void'::public.payable_bill_status);
+    if not found then
+      raise exception 'Management fee for % was already billed', to_char(v_month, 'FMMonth YYYY') using errcode = '23505';
+    end if;
+    n := n + 1;
+  end loop;
+
+  insert into public.audit_logs (portfolio_id, entity_type, entity_id, action, actor_id, actor_email, changes)
+  values (p_portfolio_id, 'management_fees', null, 'management_fees_billed', p_actor,
+          (select email from auth.users where id = p_actor),
+          jsonb_build_object('month', v_month, 'bills', n, 'associations', to_jsonb(p_association_ids), 'source', p_source));
+  return n;
+end $function$;
+
+-- Accepting a vendor invitation links the exact vendor record it was sent
+-- for (metadata.vendor_id), else a record of the invitation's association,
+-- else the newest record with that email.
+create or replace function public.link_vendor_on_invitation_accept()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+begin
+  if new.hoa_role::text = 'vendor'
+     and new.status::text = 'accepted' and old.status::text is distinct from 'accepted'
+     and new.used_by is not null
+     and not exists (select 1 from public.vendors x where x.auth_user_id = new.used_by) then
+    update public.vendors v
+       set auth_user_id = new.used_by, portal_activated = true
+     where v.id = (
+       select c.id from public.vendors c
+        where c.portfolio_id = new.portfolio_id
+          and c.auth_user_id is null
+          and c.archived_at is null
+          and jsonb_typeof(c.emails) = 'array'
+          and exists (
+            select 1 from jsonb_array_elements(c.emails) as e(val)
+             where lower(btrim(case jsonb_typeof(e.val)
+                                 when 'string' then e.val #>> '{}'
+                                 when 'object' then e.val ->> 'email'
+                               end)) = lower(btrim(new.email)))
+        order by (c.id::text = coalesce(new.metadata ->> 'vendor_id', '')) desc,
+                 (c.association_id is not distinct from new.association_id and new.association_id is not null) desc,
+                 c.created_at desc, c.id
+        limit 1);
+  end if;
+  return new;
+end $function$;
+
 -- 7) Portal sign-in: link one vendor record per sign-in ---------------------
 -- vendors.auth_user_id stays unique. With one record per association, the
 -- same email can be on several records; link the oldest instead of failing
@@ -434,6 +588,13 @@ begin
       limit 1
    )
      and not exists (select 1 from public.vendors linked where linked.auth_user_id = new.id)
+     -- An invited vendor is linked to the exact record of the invitation when it
+     -- is accepted (link_vendor_on_invitation_accept), not to the oldest match.
+     and not exists (
+       select 1 from public.user_invitations i
+       where i.portfolio_id = v_portfolio_id and i.hoa_role::text = 'vendor' and i.status::text = 'pending'
+         and lower(btrim(i.email)) = lower(btrim(new.email))
+     )
      and exists (
        select 1 from public.profiles p
        where p.id = new.id and p.hoa_role = 'vendor' and p.disabled_at is null

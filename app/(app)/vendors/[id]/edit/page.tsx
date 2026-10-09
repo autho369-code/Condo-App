@@ -90,7 +90,7 @@ export default async function EditVendorPage({
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
-            <Label>Association</Label>
+            <p className="mb-1.5 text-sm font-medium text-gray-700">Association</p>
             <p className="text-sm text-gray-900">{v.is_management_company ? 'Management company (all associations)' : (v.associations?.name ?? '—')}</p>
             <p className="mt-1 text-xs text-gray-500">A vendor stays with its association. For another association, add the company there as its own vendor.</p>
           </div>

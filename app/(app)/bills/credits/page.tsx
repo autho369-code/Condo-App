@@ -77,14 +77,14 @@ export default async function VendorCreditsPage({
           <SectionTitle title="Enter a credit" description="Posts Dr Accounts Payable / Cr the account the credit reduces — usually the original expense." />
           <form action={enterVendorCredit} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
-            <Field label="Vendor" htmlFor="vendor_id">
-              <VendorSelect id="vendor_id" name="vendor_id" required defaultValue="" vendors={(vendors ?? []) as any[]} placeholder="Choose a vendor" />
-            </Field>
             <Field label="Association" htmlFor="association_id">
               <Select id="association_id" name="association_id" required defaultValue="">
                 <option value="">Choose an association</option>
                 {((associations ?? []) as any[]).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </Select>
+            </Field>
+            <Field label="Vendor" htmlFor="vendor_id">
+              <VendorSelect id="vendor_id" name="vendor_id" required defaultValue="" vendors={(vendors ?? []) as any[]} placeholder="Choose a vendor" />
             </Field>
             <Field label="Date" htmlFor="credit_date"><Input id="credit_date" name="credit_date" type="date" required defaultValue={today} /></Field>
             <Field label="Amount" htmlFor="amount"><Input id="amount" name="amount" type="number" min="0.01" step="0.01" required /></Field>

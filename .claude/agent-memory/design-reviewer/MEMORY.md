@@ -48,3 +48,7 @@
 ## Two-step GET pickers (owners/change, 2026-10-09)
 - New step forms copy the old card's hand-rolled `rounded-2xl ... shadow-[0_1px_2px...]` + raw `<select className={inputCls}>`; fix is `Surface` + `Select`/`Field required` (Surface's shadow has a 2nd layer, so the copy also drifts). Text-link Cancel/"Choose another unit" are ~20px tall: `inline-flex min-h-10 items-center`.
 - Step 1 that shows a "not found" warning for a stale `?unit=` also gets the action's `?error=` for the same cause: check for doubled Alerts and for the warning firing when the list itself failed to load.
+
+## Dependent pickers (VendorSelect, 2026-10-09)
+- components/vendors/vendor-select.tsx reads the form's `association_id` after mount. Check field ORDER: vendor placed above association (bills/credits:81, recurring-bill-form:52, new-bill-form:230) shows "Choose the association first" above the field it needs - reorder. Also edit pages: before hydration the saved vendor has no <option>, so an early submit clears it.
+- Swapping a control for a shared one can carry over old sizing via className (work-orders/[id]:200,214 `className="h-9"` overrides Select's h-10 through twMerge). Grep for h-8/h-9 passed to Select/Input.

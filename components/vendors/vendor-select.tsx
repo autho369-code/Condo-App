@@ -84,6 +84,9 @@ export function VendorSelect({
   return (
     <Select ref={ref} value={value} onChange={(e) => setValue(e.target.value)} {...rest}>
       <option value="">{association ? placeholder : 'Choose the association first'}</option>
+      {/* Until the form's association is read, keep the saved vendor selectable so a save never clears it. */}
+      {!ready && value && !options.own.some((v) => v.id === value) && !options.management.some((v) => v.id === value)
+        && vendors.filter((v) => v.id === value).map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
       {options.own.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
       {options.management.length > 0 && (
         <optgroup label="Management company">

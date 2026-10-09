@@ -26,7 +26,7 @@ export async function inviteVendorToPortal(formData: FormData) {
   const db = supabase as any
   const { data: vendor } = await db
     .from('vendors')
-    .select('id, name, emails, portfolio_id, portfolios(company_name)')
+    .select('id, name, emails, portfolio_id, association_id, portfolios(company_name)')
     .eq('id', vendorId)
     .maybeSingle()
   if (!vendor) fail('Vendor not found.')
@@ -54,6 +54,9 @@ export async function inviteVendorToPortal(formData: FormData) {
     email: email!.toLowerCase(),
     full_name: vendor.name,
     hoa_role: 'vendor',
+    // The exact vendor record (one per association) the sign-in links to on accept.
+    association_id: vendor.association_id ?? null,
+    metadata: { vendor_id: vendor.id },
     invited_by: me.auth_user_id,
     message: `Activate your vendor portal for ${companyName ?? 'your community'}.`,
     expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),

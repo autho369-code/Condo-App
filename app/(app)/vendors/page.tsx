@@ -92,7 +92,7 @@ export default async function VendorsPage({
   }
   const trades: string[] = Array.from(new Set(allRows.map((vendor: any) => vendor.trade).filter(Boolean) as string[])).sort((a, b) => tradeLabel(a).localeCompare(tradeLabel(b)));
   const associationOptions = Array.from(new Map(allRows.filter((vendor: any) => vendor.association_id)
-    .map((vendor: any) => [vendor.association_id, vendor.associations?.name ?? 'Association'])).entries())
+    .map((vendor: any) => [vendor.association_id, vendor.associations?.name ?? 'No association'])).entries())
     .sort((a, b) => String(a[1]).localeCompare(String(b[1])));
   let rows = allRows;
   if (association === 'company') rows = rows.filter((vendor: any) => vendor.is_management_company);

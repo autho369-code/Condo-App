@@ -197,7 +197,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
               <details className="mt-3">
                 <summary className="cursor-pointer text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Reassign</summary>
                 <form action={assignVendor.bind(null, id) as any} className="mt-3 space-y-2">
-                  <VendorSelect name="vendor_id" vendors={vendorOptions} associationId={wo.association_id ?? null} required className="h-9" />
+                  <VendorSelect name="vendor_id" vendors={vendorOptions} associationId={wo.association_id ?? null} required />
                   <Input name="note" placeholder="Reassignment reason (optional)" />
                   <label className="flex items-center gap-2 text-xs text-gray-600">
                     <input type="checkbox" name="bump_status" defaultChecked={wo.status === 'new'} /> set status to &quot;assigned&quot;
@@ -211,7 +211,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
             </div>
           ) : (
             <form action={assignVendor.bind(null, id) as any} className="space-y-2">
-              <VendorSelect name="vendor_id" vendors={vendorOptions} associationId={wo.association_id ?? null} required className="h-9" />
+              <VendorSelect name="vendor_id" vendors={vendorOptions} associationId={wo.association_id ?? null} required />
               <Input name="note" placeholder="Dispatch note (optional)" />
               <label className="flex items-center gap-2 text-xs text-gray-600">
                 <input type="checkbox" name="bump_status" defaultChecked /> set status to &quot;assigned&quot;
