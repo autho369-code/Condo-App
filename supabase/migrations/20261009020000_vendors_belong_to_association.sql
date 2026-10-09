@@ -824,6 +824,44 @@ begin
   end loop;
 end $$;
 
+-- The vendor directory report runs with the service role, so it filters by
+-- the requested association itself (that association's vendors and the
+-- management company); the other vendor reports already filter by it.
+create or replace function public.report_data_vendor_directory(
+  p_portfolio_id uuid,
+  p_params jsonb default '{}'::jsonb
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+#variable_conflict use_column
+begin
+  -- PL/pgSQL wrapper as in 20261008060000 (plans kept per session).
+  return (select s.x from (
+  select coalesce(jsonb_agg(to_jsonb(r.*) order by r.name), '[]'::jsonb)
+  from (
+    select v.name, v.trade::text, v.vendor_type::text,
+           v.address_street, v.address_city, v.address_state, v.address_zip,
+           v.send_1099, vc.workers_comp_expiration,
+           vc.general_liability_expiration, vc.contract_expiration
+    from public.vendors v
+    left join public.vendor_compliance vc on vc.vendor_id = v.id
+    where v.portfolio_id = p_portfolio_id
+      and v.archived_at is null
+      and (nullif(p_params->>'association_id', '') is null
+           or v.is_management_company
+           or v.association_id = (p_params->>'association_id')::uuid)
+  ) r
+  ) s(x) limit 1);
+end
+$function$;
+
+revoke all on function public.report_data_vendor_directory(uuid, jsonb) from public, anon, authenticated;
+grant execute on function public.report_data_vendor_directory(uuid, jsonb) to service_role;
+
 -- 6) Management fees go to the management company ---------------------------
 
 create or replace function public.set_management_fee_schedule(p_enabled boolean, p_day integer, p_vendor_id uuid, p_gl_account_id uuid)

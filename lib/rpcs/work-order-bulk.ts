@@ -38,9 +38,18 @@ export async function bulkWorkOrderAction(formData: FormData) {
   if (op === 'assign') {
     const vendorId = String(formData.get('vendor_id') ?? '');
     if (!UUID.test(vendorId)) fail('Pick a vendor to assign');
-    const { data: vendor } = await db.from('vendors').select('id, name, portfolio_id').eq('id', vendorId).is('archived_at', null).maybeSingle();
+    const { data: vendor } = await db.from('vendors').select('id, name, portfolio_id, association_id, is_management_company').eq('id', vendorId).is('archived_at', null).maybeSingle();
     if (!vendor) fail('Vendor not found');
     vendorPortfolio = vendor.portfolio_id;
+    // Each association has its own vendors (the management company serves all):
+    // refuse a mixed selection up front instead of assigning only some.
+    if (!vendor.is_management_company) {
+      const { data: selected, error: selErr } = await db.from('work_orders').select('id, association_id').in('id', ids);
+      if (selErr) fail(`Could not check the selected work orders: ${selErr.message}`);
+      if ((selected ?? []).some((w: any) => w.association_id !== vendor.association_id)) {
+        fail(`${vendor.name} is a vendor of one association. Select only that association's work orders, or pick the management company.`);
+      }
+    }
     patch = { vendor_id: vendor.id };
     note = `Assigned to vendor: ${vendor.name} (bulk)`;
   } else if (op === 'status') {

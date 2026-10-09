@@ -220,6 +220,15 @@ describe('vendors belong to exactly one association', () => {
     expect(migration).toContain("raise exception 'You do not manage this owner' using errcode = '42501';");
   });
 
+  it('keeps reports, bulk assignment and bank matching inside one association', () => {
+    expect(migration).toContain("or v.association_id = (p_params->>'association_id')::uuid)");
+    expect(read('lib/rpcs/work-order-bulk.ts')).toContain("is a vendor of one association. Select only that association's work orders");
+    const match = read('lib/plaid/auto-match.ts');
+    expect(match).toContain("? `association_id.eq.${associationId},is_management_company.eq.true`");
+    expect(match).toContain('exact && exact.length === 1 ? exact[0] : null');
+    expect(read('app/api/plaid/transactions/sync/route.ts')).toContain('bankAssociationId');
+  });
+
   it('links an invitation for an exact vendor record to that record or none', () => {
     expect(migration).toMatch(/and \(nullif\(new\.metadata ->> 'vendor_id', ''\) is null\s+or c\.id::text = new\.metadata ->> 'vendor_id'\)/);
   });

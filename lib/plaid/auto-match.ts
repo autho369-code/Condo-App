@@ -54,18 +54,29 @@ export async function autoMatchTransaction(
   transactionName: string,
   merchantName: string | null,
   plaidCategory: string,
-  amount: number
+  amount: number,
+  // The bank account's association. Each association has its own vendors, so
+  // only that association's vendors (and the management company, which serves
+  // every association) are candidates; a company-level account (null) only
+  // matches the management company.
+  associationId: string | null = null
 ): Promise<MatchResult> {
   const searchName = (merchantName || transactionName).trim();
+  const vendorScope = associationId
+    ? `association_id.eq.${associationId},is_management_company.eq.true`
+    : 'is_management_company.eq.true';
 
-  // Step 1: Try exact vendor name match (highest confidence)
+  // Step 1: Try exact vendor name match (highest confidence); a name on more
+  // than one record is ambiguous.
   if (searchName.length > 2) {
-    const { data: vendor } = await supabase
+    const { data: exact } = await supabase
       .from('vendors')
       .select('id, name, default_gl_account_id')
       .ilike('name', searchName)
       .eq('portfolio_id', portfolioId)
-      .maybeSingle();
+      .or(vendorScope)
+      .limit(2);
+    const vendor = exact && exact.length === 1 ? exact[0] : null;
 
     if (vendor?.default_gl_account_id) {
       return { gl_account_id: vendor.default_gl_account_id, confidence: 0.95, method: 'auto' };
@@ -92,10 +103,11 @@ export async function autoMatchTransaction(
       .from('vendors')
       .select('id, name, default_gl_account_id')
       .eq('portfolio_id', portfolioId)
+      .or(vendorScope)
       .ilike('name', `%${searchName.substring(0, Math.min(searchName.length, 8))}%`)
-      .limit(1);
+      .limit(2);
 
-    if (fuzzyVendors && fuzzyVendors.length > 0 && fuzzyVendors[0].default_gl_account_id) {
+    if (fuzzyVendors && fuzzyVendors.length === 1 && fuzzyVendors[0].default_gl_account_id) {
       return { gl_account_id: fuzzyVendors[0].default_gl_account_id, confidence: 0.7, method: 'auto' };
     }
   }
