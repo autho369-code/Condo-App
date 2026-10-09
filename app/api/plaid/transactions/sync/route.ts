@@ -63,9 +63,13 @@ export async function POST(request: NextRequest) {
     }
     const plaidItem = { ...visibleItem, ...secretRow };
     // Vendor matching stays inside the bank account's association.
-    const { data: bankAccount } = plaidItem.bank_account_id
+    // A failed or empty lookup must not fall back to company-level matching.
+    const { data: bankAccount, error: bankAccountError } = plaidItem.bank_account_id
       ? await db.from('bank_accounts').select('association_id').eq('id', plaidItem.bank_account_id).maybeSingle()
-      : { data: null };
+      : { data: null, error: null };
+    if (plaidItem.bank_account_id && (bankAccountError || !bankAccount)) {
+      return NextResponse.json({ error: 'The linked bank account could not be loaded. Nothing was synced; try again.' }, { status: 500 });
+    }
     const bankAssociationId: string | null = bankAccount?.association_id ?? null;
 
     let addedCount = 0;

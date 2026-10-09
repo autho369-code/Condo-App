@@ -22,7 +22,10 @@ export default async function NewVendorPage({
   const sp = await searchParams;
   const supabase = await createClient();
   const { data: associations, error: associationsError } = await (supabase as any)
-    .from('associations').select('id, name').is('archived_at', null).order('name');
+    .from('associations').select('id, name, portfolio_id, portfolios(company_name)').is('archived_at', null).order('name');
+  // A platform operator sees every company's associations: name the company so
+  // same-named associations of different companies can't be confused.
+  const manyCompanies = new Set((associations ?? []).map((a: any) => a.portfolio_id)).size > 1;
 
   return (
     <DataWorkspace
@@ -44,7 +47,7 @@ export default async function NewVendorPage({
             <Label htmlFor="association_id">Association <span className="text-red-500">*</span></Label>
             <Select id="association_id" name="association_id" defaultValue="">
               <option value="">Select association</option>
-              {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{manyCompanies ? `${a.name} · ${a.portfolios?.company_name ?? 'Unnamed company'}` : a.name}</option>)}
             </Select>
             <p className="mt-1 text-xs text-gray-500">Each association has its own vendors. A company that works for another association is added there as its own vendor.</p>
           </div>
