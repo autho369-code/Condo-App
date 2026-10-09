@@ -15,9 +15,9 @@
 --    while a vendor is linked to rows of two associations or cannot be
 --    placed.
 -- 2. vendors.portfolio_id stays (every vendors RLS policy uses it) but is now
---    derived from the association, and follows an association that moves
---    company. Moving a vendor to another association is refused while it has
---    rows (work orders, bills...) in its current one.
+--    derived from the association; an association with vendors cannot move
+--    to another company. Moving a vendor to another association is refused
+--    while it has rows (work orders, bills...) in its current one.
 -- 3. A BEFORE trigger on every table that links a vendor and an association
 --    (work_orders, payable_bills, payable_checks, purchase_orders,
 --    recurring_* , vendor_credits, credit_card_charges, other_receipts,
@@ -193,7 +193,7 @@ update public.vendors ven
  where a.id = ven.association_id
    and ven.portfolio_id is distinct from a.portfolio_id;
 
--- 3) vendors.portfolio_id follows the association; no move with rows ----------
+-- 3) vendors.portfolio_id comes from the association; no move with rows -------
 
 create or replace function public.vendors_set_portfolio_from_association()
 returns trigger
@@ -265,11 +265,13 @@ create or replace trigger trg_vendors_set_portfolio_from_association
 create unique index if not exists vendors_one_management_company
   on public.vendors(portfolio_id) where is_management_company and archived_at is null;
 
--- An association that moves to another company takes its vendors (and their
--- tax and bank records and document requests) with it. The old company's
--- management company cannot follow, so the move is refused while the
--- association's rows use it, and while its vendors are signed in to the
--- vendor portal.
+-- An association with vendors cannot move to another company. A vendor
+-- carries company-specific links (tax and bank records, document requests,
+-- default GL account, portal sign-in and invitations, company-level rows);
+-- moving them is a separate, deliberate job, so the move is refused instead
+-- of leaving any of them behind. The old company's management company cannot
+-- follow either, so the move is also refused while the association's rows
+-- use it.
 create or replace function public.associations_move_vendor_portfolio()
 returns trigger
 language plpgsql
@@ -280,6 +282,11 @@ declare
   r record;
   v_bad boolean;
 begin
+  if exists (select 1 from public.vendors ven where ven.association_id = new.id) then
+    raise exception 'This association has vendors. It cannot move to another company.'
+      using errcode = '23514';
+  end if;
+
   for r in select * from public.vendor_link_tables() loop
     execute format(
       'select exists (select 1 from %s x join public.vendors ven on ven.id = x.%I '
@@ -300,51 +307,6 @@ begin
         using errcode = '23514';
     end if;
   end loop;
-
-  -- Company-level rows (no association) using this association's vendors
-  -- stay with the old company, so they would point at a vendor of another one.
-  for r in select * from public.vendor_link_tables() loop
-    execute format(
-      'select exists (select 1 from %s x join public.vendors ven on ven.id = x.%I '
-      || 'where x.association_id is null and ven.association_id = $1)',
-      r.tbl, r.col) into v_bad using new.id;
-    if v_bad then
-      raise exception 'Company-level records use this association''s vendors. It cannot move to another company.'
-        using errcode = '23514';
-    end if;
-  end loop;
-  for r in select * from public.vendor_parent_link_tables() loop
-    execute format(
-      'select exists (select 1 from %s x join %s p on p.id = x.%I join public.vendors ven on ven.id = x.%I '
-      || 'where p.association_id is null and ven.association_id = $1)',
-      r.tbl, r.parent, r.parent_col, r.col) into v_bad using new.id;
-    if v_bad then
-      raise exception 'Company-level records use this association''s vendors. It cannot move to another company.'
-        using errcode = '23514';
-    end if;
-  end loop;
-
-  -- A vendor signed in to the portal belongs to its company through its
-  -- profile too (current_vendor_id() needs both to match); moving that sign-in
-  -- is a separate decision, so refuse instead of cutting its access.
-  if exists (select 1 from public.vendors ven
-              where ven.association_id = new.id and ven.auth_user_id is not null) then
-    raise exception 'This association has vendors signed in to the vendor portal. It cannot move to another company.'
-      using errcode = '23514';
-  end if;
-
-  update public.vendors set portfolio_id = new.portfolio_id
-   where association_id = new.id and portfolio_id is distinct from new.portfolio_id;
-  -- trg_vfd_000_bind_portfolio re-reads the vendor's (now moved) company.
-  update public.vendor_financial_details f set portfolio_id = new.portfolio_id
-    from public.vendors ven
-   where ven.id = f.vendor_id and ven.association_id = new.id
-     and f.portfolio_id is distinct from new.portfolio_id;
-  -- Document requests sent to those vendors follow them too.
-  update public.document_requests d set portfolio_id = new.portfolio_id
-    from public.vendors ven
-   where ven.id = d.vendor_id and ven.association_id = new.id
-     and d.portfolio_id is distinct from new.portfolio_id;
   return new;
 end;
 $function$;

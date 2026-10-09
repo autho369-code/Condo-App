@@ -84,12 +84,9 @@ describe('vendors belong to exactly one association', () => {
     expect(migration).toMatch(/before insert or update of association_id, portfolio_id, is_management_company on public\.vendors/);
     expect(migration).toContain('new.portfolio_id := v_portfolio_id;');
     expect(migration).toContain('after update of portfolio_id on public.associations');
-    // The move refuses rows on the old company's management company and carries tax/bank records along.
+    // An association with vendors cannot move company; nor while its rows use the old management company.
+    expect(migration).toContain("'This association has vendors. It cannot move to another company.'");
     expect(migration).toContain('It cannot move to another company.');
-    expect(migration).toContain('update public.vendor_financial_details f set portfolio_id = new.portfolio_id');
-    expect(migration).toContain('update public.document_requests d set portfolio_id = new.portfolio_id');
-    expect(migration).toContain('This association has vendors signed in to the vendor portal. It cannot move to another company.');
-    expect(migration).toContain("Company-level records use this association''s vendors. It cannot move to another company.");
     expect(migration).toContain('perform 1 from public.associations a where a.id = new.association_id for share;');
     // The management-company checks lock the association against a concurrent company move.
     expect(migration.match(/where a\.id = v_association_id\s+for share;/g)).toHaveLength(2);
