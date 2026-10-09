@@ -45,6 +45,9 @@ create table if not exists public.vendor_portal_logins (
   revoked_at timestamptz
 );
 
+-- Also when the table already exists (a database that ran an earlier draft).
+alter table public.vendor_portal_logins add column if not exists revoked_at timestamptz;
+
 create index if not exists idx_vendor_portal_logins_auth_user on public.vendor_portal_logins(auth_user_id);
 create index if not exists idx_vendor_portal_logins_portfolio on public.vendor_portal_logins(portfolio_id);
 create index if not exists idx_vendor_portal_logins_invitation on public.vendor_portal_logins(invitation_id);
@@ -62,7 +65,7 @@ begin
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'vendor_portal_logins'
                   and policyname = 'vendor_portal_logins_self_read') then
     create policy vendor_portal_logins_self_read on public.vendor_portal_logins for select to authenticated
-      using (auth_user_id = (select auth.uid()));
+      using (auth_user_id = (select auth.uid()) and revoked_at is null);
   end if;
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'vendor_portal_logins'
                   and policyname = 'vendor_portal_logins_staff_read') then
@@ -387,7 +390,11 @@ begin
      and not exists (select 1 from public.vendors x where x.auth_user_id = new.used_by) then
     update public.vendors v
        set auth_user_id = new.used_by, portal_activated = true
-     where v.id = (
+     -- Re-checked on the row itself, so two accepts at the same moment cannot
+     -- both bind it.
+     where v.auth_user_id is null
+       and not exists (select 1 from public.vendor_portal_logins l2 where l2.vendor_id = v.id and l2.revoked_at is null)
+       and v.id = (
        select c.id from public.vendors c
         where c.portfolio_id = new.portfolio_id
           and c.auth_user_id is null
@@ -689,11 +696,12 @@ begin
 end;
 $function$;
 
--- 7) Turning a record's portal off revokes its link ---------------------------
+-- 7) Turning a record's portal off unbinds it --------------------------------
 
--- Staff turn a record off by clearing portal_activated (and auth_user_id, so a
--- new contact can accept a later invitation). A link that added the record to
--- a login is revoked at the same time. No row is deleted.
+-- Whenever a record's portal is turned off (portal_activated true -> false, by
+-- any writer), the database clears its first-record binding (auth_user_id) and
+-- revokes a link that added it to a login, so a new contact can accept the
+-- next invitation. No row is deleted.
 create or replace function public.revoke_vendor_portal_login()
 returns trigger
 language plpgsql
@@ -701,6 +709,7 @@ security definer
 set search_path to 'pg_catalog', 'public'
 as $function$
 begin
+  new.auth_user_id := null;
   update public.vendor_portal_logins l
      set revoked_at = now()
    where l.vendor_id = new.id
@@ -716,7 +725,7 @@ begin
   if not exists (select 1 from pg_trigger where tgname = 'trg_vendors_revoke_portal_login'
                   and tgrelid = 'public.vendors'::regclass) then
     create trigger trg_vendors_revoke_portal_login
-      after update of portal_activated on public.vendors
+      before update of portal_activated on public.vendors
       for each row when (old.portal_activated and not new.portal_activated)
       execute function public.revoke_vendor_portal_login();
   end if;

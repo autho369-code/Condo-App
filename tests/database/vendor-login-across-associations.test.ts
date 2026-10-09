@@ -110,6 +110,10 @@ describe('vendor login across associations: app', () => {
     expect(actions).toContain(".update({ portal_activated: false, auth_user_id: null })");
     expect(migration).toContain('for each row when (old.portal_activated and not new.portal_activated)');
     expect(migration).toContain('set revoked_at = now()');
+    expect(migration).toContain('new.auth_user_id := null;');
+    expect(migration).toContain('before update of portal_activated on public.vendors');
+    expect(migration).toContain('alter table public.vendor_portal_logins add column if not exists revoked_at timestamptz;');
+    expect(migration).toContain('using (auth_user_id = (select auth.uid()) and revoked_at is null);');
     expect(migration).not.toMatch(/delete from public\.vendor_portal_logins|drop trigger/i);
     expect(read('app/(app)/vendors/[id]/page.tsx')).toContain('<form action={turnOffVendorPortal}');
   });
