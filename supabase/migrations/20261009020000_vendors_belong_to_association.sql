@@ -827,8 +827,8 @@ begin
 end $function$;
 
 -- Accepting a vendor invitation links the exact vendor record it was sent
--- for (metadata.vendor_id), else a record of the invitation's association,
--- else the newest record with that email.
+-- for (metadata.vendor_id) or nothing; an older invitation without one links
+-- a record of its association, else the newest record with that email.
 create or replace function public.link_vendor_on_invitation_accept()
 returns trigger
 language plpgsql
@@ -847,6 +847,11 @@ begin
         where c.portfolio_id = new.portfolio_id
           and c.auth_user_id is null
           and c.archived_at is null
+          -- An invitation for one exact vendor record links that record or
+          -- nothing (never another association's record with the same email);
+          -- older invitations without one fall back to association, then email.
+          and (nullif(new.metadata ->> 'vendor_id', '') is null
+               or c.id::text = new.metadata ->> 'vendor_id')
           and jsonb_typeof(c.emails) = 'array'
           and exists (
             select 1 from jsonb_array_elements(c.emails) as e(val)

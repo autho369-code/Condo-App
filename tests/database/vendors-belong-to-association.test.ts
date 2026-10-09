@@ -206,6 +206,10 @@ describe('vendors belong to exactly one association', () => {
     expect(billForm).toContain('if (exact.length > 1) return \'\';');
   });
 
+  it('links an invitation for an exact vendor record to that record or none', () => {
+    expect(migration).toMatch(/and \(nullif\(new\.metadata ->> 'vendor_id', ''\) is null\s+or c\.id::text = new\.metadata ->> 'vendor_id'\)/);
+  });
+
   it('checks the association on vendor create', () => {
     const entities = read('lib/rpcs/entities.ts');
     const create = entities.slice(entities.indexOf('export async function createVendor'));
