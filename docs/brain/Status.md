@@ -3,6 +3,11 @@
 Back to [[Home]]. Updated 2026-10-09 (after #269 merged; no open PR; next: Mirsad runs the Randolph Station import).
 
 ## Where things stand
+- Randolph Station vendors, open balances, work orders imported by Mirsad
+  (2026-10-09), read back: 1 vendor; open balances 15 charges $4,387.69 on
+  6 units, no credits, posted Dr 1300 / Cr 4101, GL in balance; 66 work
+  orders all on units, 14 of them name 8 vendors not in the app (kept in
+  the staff note). Next: trial balance tie-out; add/assign those vendors.
 - Randolph Station units and homeowners imported by Mirsad (2026-10-09),
   read back: 17 units in 1 building, 17 current homeowners (one per unit),
   ownership 100%, dues $10,439.96/month on every unit. Unit 304's owner has
