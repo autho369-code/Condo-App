@@ -94,12 +94,24 @@ describe('import_opening_credit migration', () => {
   const sql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261009080000_import_opening_credit.sql'), 'utf8');
 
   it('mirrors an imported charge and records a negative imported balance', () => {
-    expect(sql).toContain('v_income := (public.charge_gl_accounts(v_probe)).income;');
-    expect(sql).toContain('v_payment := public.post_homeowner_credit(p_unit_id, p_amount, p_as_of, v_income, p_description, null);');
-    expect(sql).toContain('values (v_pid, v_assoc, p_unit_id, p_as_of, -round(p_amount, 2), p_description, null, auth.uid());');
-    expect(sql).toContain('and cc.portfolio_id = v_pid');
-    expect(sql).not.toMatch(/security definer/i);
-    expect(sql).toContain('revoke all on function public.import_opening_credit(uuid, uuid, numeric, text, date) from public, anon;');
+    // charge_gl_accounts is service_role only: a definer helper that checks finance access.
+    const helper = sql.slice(sql.indexOf('create or replace function public.import_credit_income_account('), sql.indexOf('create or replace function public.import_opening_credit('));
+    expect(helper).toContain('security definer');
+    expect(helper).toContain('not public.can_manage_finance(v_pid) or not public.can_manage_association(v_assoc)');
+    expect(helper).toContain('and cc.portfolio_id = v_pid');
+    expect(helper).toContain('return (public.charge_gl_accounts(v_probe)).income;');
+    const rpc = sql.slice(sql.indexOf('create or replace function public.import_opening_credit('));
+    // Runs as the caller, so the imported_balances insert stays under RLS.
+    expect(rpc).toContain('security invoker');
+    expect(rpc).not.toMatch(/security definer/i);
+    expect(rpc).not.toContain('charge_gl_accounts(');
+    expect(rpc).toContain('v_income := public.import_credit_income_account(p_unit_id, p_charge_category_id);');
+    expect(rpc).toContain('v_payment := public.post_homeowner_credit(p_unit_id, p_amount, p_as_of, v_income, v_memo, null);');
+    expect(rpc).toContain('values (v_pid, v_assoc, p_unit_id, p_as_of, -round(p_amount, 2), v_memo, null, auth.uid());');
+    expect(rpc).toContain("if p_as_of is null then raise exception");
+    for (const fn of ['import_credit_income_account(uuid, uuid)', 'import_opening_credit(uuid, uuid, numeric, text, date)']) {
+      expect(sql).toContain(`revoke all on function public.${fn} from public, anon;`);
+    }
     expect(sql).not.toMatch(/drop |delete from/i);
     // eslint-disable-next-line no-control-regex
     expect(sql).not.toMatch(/[^\x00-\x7f]/);
