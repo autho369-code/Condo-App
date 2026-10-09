@@ -5,40 +5,37 @@
 -- units in any building of that association. The same person owning in a
 -- second association gets a separate owners row there.
 --
--- 1. owners.association_id (not null, FK -> associations, cascade), backfilled
---    from the owner's occupancies. The migration refuses to finish while any
---    owner has no association or more than one; those rows must be cleaned up
---    first (production had 14 orphan demo owners, deleted before this runs).
+-- 1. owners.association_id (not null, FK -> associations, ON DELETE RESTRICT:
+--    a plain association delete never removes homeowners silently; use
+--    delete_association_completely()), backfilled from the owner's
+--    occupancies. The migration refuses to finish while any owner has no
+--    association, units in more than one, or an association without a company.
 -- 2. owners.portfolio_id stays (every owners RLS policy uses it) but is now
---    derived: a BEFORE trigger copies it from the association, so the two can
---    never disagree. RLS WITH CHECK runs after BEFORE triggers, so an insert
---    naming another company's association fails the portfolio policy.
---    Moving a record to another association is refused while it still has
---    occupancies in the old one.
--- 3. A BEFORE trigger on occupancies refuses to link an owner to a unit of
---    another association. This covers every writer centrally:
---    change_unit_homeowner, transfer_unit_ownership, linkOccupancy, owner
---    create, CSV import and the previous-system import.
--- 4. Portal sign-in for a person with records in two associations: the UNIQUE
---    index on owners(auth_user_id) is replaced by a plain one, so one sign-in
---    can link to each of their records. auto_link_portal_user(),
---    relink_portal_user_on_email_change() and relink_all_portal_users()
---    (20260803050000_resident_portal_access.sql) already update EVERY matching
---    owners row (same company, same email); with the unique index gone they
---    link all of a person's records instead of failing on the second one, so
---    they are left unchanged. No ON CONFLICT (auth_user_id) depends on it.
+--    derived: a BEFORE trigger copies it from the association, and an
+--    association moving company takes its homeowners along. RLS WITH CHECK
+--    runs after BEFORE triggers, so an insert naming another company's
+--    association fails the portfolio policy. Moving a record to another
+--    association is refused while it still has occupancies in the old one.
+-- 3. BEFORE triggers on occupancies and unit_owners refuse to link an owner to
+--    a unit of another association, and an occupancy's association must be
+--    its unit's. This covers every writer centrally: change_unit_homeowner,
+--    transfer_unit_ownership, linkOccupancy, owner create, CSV import, the
+--    previous-system import and direct table writes.
+-- 4. Portal sign-in: owners(auth_user_id) stays unique (one sign-in, one
+--    record). auto_link_portal_user() and relink_all_portal_users() now link
+--    the oldest matching record instead of failing on a second one.
 --
 -- Phase 2 (not here): current_owner_id() still returns ONE record (the oldest
 -- active one), so the owner portal shows a single association for a person
 -- with records in two. A multi-property portal (association switcher, or
 -- current_owner_ids()) is the follow-up.
 --
--- Additive: no table is dropped; the only DROP is the unique index above.
+-- Additive: nothing is dropped except `drop trigger if exists` before each create.
 
 -- 1) Column + index ----------------------------------------------------------
 
 alter table public.owners
-  add column if not exists association_id uuid references public.associations(id) on delete cascade;
+  add column if not exists association_id uuid references public.associations(id) on delete restrict;
 
 create index if not exists idx_owners_association_id on public.owners(association_id);
 
@@ -88,6 +85,23 @@ begin
       using errcode = '23502';
   end if;
 
+  -- Every existing link must already respect the rule (no occupancy of an
+  -- owner in another association, no association without a company).
+  select count(*) into v_missing
+    from public.occupancies o join public.owners ow on ow.id = o.owner_id
+   where o.association_id is distinct from ow.association_id;
+  if v_missing > 0 then
+    raise exception '% unit link(s) connect a homeowner to another association. Split those homeowners into one record per association, then run this migration again.', v_missing
+      using errcode = '23514';
+  end if;
+  select count(*) into v_missing
+    from public.owners ow join public.associations a on a.id = ow.association_id
+   where a.portfolio_id is null;
+  if v_missing > 0 then
+    raise exception '% homeowner record(s) belong to an association that has no company. Give the association its company first.', v_missing
+      using errcode = '23502';
+  end if;
+
   alter table public.owners alter column association_id set not null;
 end $$;
 
@@ -117,8 +131,11 @@ begin
   from public.associations a
   where a.id = new.association_id;
 
-  if v_portfolio_id is null then
+  if not found then
     raise exception 'Association not found for this homeowner.' using errcode = '23503';
+  end if;
+  if v_portfolio_id is null then
+    raise exception 'This association has no company, so it cannot have homeowners yet.' using errcode = '23502';
   end if;
 
   if tg_op = 'UPDATE' and new.association_id is distinct from old.association_id and exists (
@@ -150,15 +167,28 @@ security definer
 set search_path to 'pg_catalog', 'public'
 as $function$
 declare
+  v_unit_association_id uuid;
   v_owner_association_id uuid;
 begin
+  -- The association a link records must be the unit's own (it is what the
+  -- access rules read), whoever writes it.
+  if new.unit_id is not null then
+    select b.association_id into v_unit_association_id
+      from public.units u join public.buildings b on b.id = u.building_id
+     where u.id = new.unit_id;
+    if found and new.association_id is distinct from v_unit_association_id then
+      raise exception 'This unit belongs to another association.' using errcode = '23514';
+    end if;
+  end if;
+
   if new.owner_id is null then
     return new;
   end if;
 
   select ow.association_id into v_owner_association_id
-  from public.owners ow
-  where ow.id = new.owner_id;
+    from public.owners ow
+   where ow.id = new.owner_id
+   for share;
 
   -- A missing owner is left to the owner_id foreign key.
   if found and v_owner_association_id is distinct from new.association_id then
@@ -174,12 +204,260 @@ revoke all on function public.occupancies_owner_same_association() from public, 
 
 drop trigger if exists trg_occupancies_owner_same_association on public.occupancies;
 create trigger trg_occupancies_owner_same_association
-  before insert or update of owner_id, association_id on public.occupancies
+  before insert or update of owner_id, association_id, unit_id on public.occupancies
   for each row execute function public.occupancies_owner_same_association();
 
--- 5) One sign-in may link to several homeowner records -----------------------
+-- unit_owners rows (written by the occupancy sync and by transfer_unit_ownership)
+-- follow the same rule: the owner and the unit share an association.
+create or replace function public.unit_owners_same_association()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+declare
+  v_unit_association_id uuid;
+  v_owner_association_id uuid;
+begin
+  select b.association_id into v_unit_association_id
+    from public.units u join public.buildings b on b.id = u.building_id
+   where u.id = new.unit_id;
+  select ow.association_id into v_owner_association_id
+    from public.owners ow where ow.id = new.owner_id for share;
+  if v_unit_association_id is not null and v_owner_association_id is not null
+     and v_unit_association_id <> v_owner_association_id then
+    raise exception 'This homeowner belongs to another association. Add them as a new homeowner of this association.'
+      using errcode = '23514';
+  end if;
+  return new;
+end;
+$function$;
 
-drop index if exists public.idx_owners_auth_user;
-create index if not exists idx_owners_auth_user
-  on public.owners(auth_user_id)
-  where auth_user_id is not null;
+revoke all on function public.unit_owners_same_association() from public, anon, authenticated;
+
+drop trigger if exists trg_unit_owners_same_association on public.unit_owners;
+create trigger trg_unit_owners_same_association
+  before insert or update of owner_id, unit_id on public.unit_owners
+  for each row execute function public.unit_owners_same_association();
+
+-- An association that moves to another company takes its homeowners with it.
+create or replace function public.associations_move_owner_portfolio()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+begin
+  update public.owners set portfolio_id = new.portfolio_id
+   where association_id = new.id and portfolio_id is distinct from new.portfolio_id;
+  return new;
+end;
+$function$;
+
+revoke all on function public.associations_move_owner_portfolio() from public, anon, authenticated;
+
+drop trigger if exists trg_associations_move_owner_portfolio on public.associations;
+create trigger trg_associations_move_owner_portfolio
+  after update of portfolio_id on public.associations
+  for each row when (new.portfolio_id is distinct from old.portfolio_id)
+  execute function public.associations_move_owner_portfolio();
+
+-- 5) Portal sign-in -----------------------------------------------------------
+-- owners.auth_user_id stays unique: one sign-in, one homeowner record (so a
+-- shared family email can never open another person's records). With one
+-- record per association the same email can be on several records, so the
+-- auto-link now links the oldest one instead of failing the sign-up on the
+-- second. A person with records in two associations sees one of them in the
+-- portal until the multi-property portal (Phase 2).
+
+create or replace function public.auto_link_portal_user()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+declare
+  v_portfolio_id uuid;
+begin
+  select p.portfolio_id into v_portfolio_id
+  from public.profiles p
+  where p.id = new.id and p.disabled_at is null;
+
+  if v_portfolio_id is null then
+    return new;
+  end if;
+
+  -- One homeowner record per sign-in (owners.auth_user_id is unique). With one
+  -- record per association, the same email can now be on several records:
+  -- link the oldest instead of failing the whole sign-up on the second.
+  update public.owners o
+     set auth_user_id = new.id, portal_activated = true
+   where o.id = (
+     select candidate.id
+       from public.owners candidate
+      where candidate.portfolio_id = v_portfolio_id
+        and candidate.auth_user_id is null
+        and candidate.archived_at is null
+        and lower(candidate.email) = lower(new.email)
+      order by candidate.created_at, candidate.id
+      limit 1
+   )
+     and not exists (select 1 from public.owners linked where linked.auth_user_id = new.id)
+     and exists (
+       select 1 from public.profiles p
+       where p.id = new.id and p.hoa_role in ('owner', 'board') and p.disabled_at is null
+     );
+
+  update public.vendors v
+     set auth_user_id = new.id, portal_activated = true
+   where v.portfolio_id = v_portfolio_id
+     and v.auth_user_id is null
+     and v.archived_at is null
+     and exists (
+       select 1 from public.profiles p
+       where p.id = new.id and p.hoa_role = 'vendor' and p.disabled_at is null
+     )
+     and exists (
+       select 1 from jsonb_array_elements_text(v.emails) as e(email)
+       where lower(e.email) = lower(new.email)
+     );
+
+  update public.board_members bm
+     set auth_user_id = new.id
+   where bm.auth_user_id is null
+     and bm.active
+     and lower(bm.email) = lower(new.email)
+     and exists (
+       select 1 from public.profiles p
+       where p.id = new.id and p.hoa_role = 'board' and p.disabled_at is null
+     )
+     and exists (
+       select 1 from public.associations a
+       where a.id = bm.association_id and a.portfolio_id = v_portfolio_id
+     );
+
+  update public.tenants t
+     set auth_user_id = new.id,
+         portal_activated = true,
+         updated_at = now()
+   where t.id = (
+     select candidate.id
+     from public.tenants candidate
+     where candidate.portfolio_id = v_portfolio_id
+       and candidate.auth_user_id is null
+       and candidate.status = 'active'
+       and candidate.archived_at is null
+       and lower(candidate.email) = lower(new.email)
+       and exists (
+         select 1 from public.profiles p
+         where p.id = new.id and p.hoa_role = 'tenant' and p.disabled_at is null
+       )
+     order by candidate.created_at desc, candidate.id
+     limit 1
+   );
+
+  update public.profiles p
+     set hoa_role = 'board'
+   where p.id = new.id
+     and p.hoa_role = 'owner'
+     and exists (
+       select 1 from public.board_members bm
+       where bm.auth_user_id = new.id and bm.active
+     );
+
+  return new;
+end;
+$function$;
+
+create or replace function public.relink_all_portal_users()
+returns table(target_table text, rows_linked integer)
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+declare
+  n_owners integer;
+  n_board integer;
+  n_vendors integer;
+  n_tenants integer;
+begin
+  -- At most one homeowner record per sign-in: the oldest unlinked match, and
+  -- only for sign-ins not linked to a homeowner record yet.
+  with pick as (
+    select distinct on (u.id) u.id as user_id, o.id as owner_id
+      from auth.users u
+      join public.profiles p on p.id = u.id and p.disabled_at is null and p.hoa_role in ('owner', 'board')
+      join public.owners o on o.portfolio_id = p.portfolio_id and lower(o.email) = lower(u.email)
+     where o.auth_user_id is null
+       and o.archived_at is null
+       and not exists (select 1 from public.owners linked where linked.auth_user_id = u.id)
+     order by u.id, o.created_at, o.id
+  ), upd as (
+    update public.owners o
+       set auth_user_id = pick.user_id
+      from pick
+     where o.id = pick.owner_id
+    returning 1
+  ) select count(*) into n_owners from upd;
+
+  with upd as (
+    update public.board_members bm
+       set auth_user_id = u.id
+      from auth.users u
+      join public.profiles p on p.id = u.id and p.disabled_at is null and p.hoa_role = 'board'
+     where bm.auth_user_id is null
+       and bm.active
+       and lower(u.email) = lower(bm.email)
+       and exists (
+         select 1 from public.associations a
+         where a.id = bm.association_id and a.portfolio_id = p.portfolio_id
+       )
+    returning 1
+  ) select count(*) into n_board from upd;
+
+  with upd as (
+    update public.vendors v
+       set auth_user_id = u.id
+      from auth.users u
+      join public.profiles p on p.id = u.id and p.disabled_at is null and p.hoa_role = 'vendor'
+     where v.auth_user_id is null
+       and v.archived_at is null
+       and v.portfolio_id = p.portfolio_id
+       and exists (
+         select 1 from jsonb_array_elements_text(v.emails) as e(email)
+         where lower(e.email) = lower(u.email)
+       )
+    returning 1
+  ) select count(*) into n_vendors from upd;
+
+  with candidates as (
+    select distinct on (u.id) t.id as tenant_id, u.id as auth_user_id
+    from auth.users u
+    join public.profiles p
+      on p.id = u.id
+     and p.disabled_at is null
+     and p.hoa_role = 'tenant'
+    join public.tenants t
+      on t.portfolio_id = p.portfolio_id
+     and t.auth_user_id is null
+     and t.status = 'active'
+     and t.archived_at is null
+     and lower(u.email) = lower(t.email)
+    order by u.id, t.created_at desc, t.id
+  ), upd as (
+    update public.tenants t
+       set auth_user_id = candidates.auth_user_id,
+           portal_activated = true,
+           updated_at = now()
+      from candidates
+     where t.id = candidates.tenant_id
+    returning 1
+  ) select count(*) into n_tenants from upd;
+
+  return query values
+    ('owners', n_owners),
+    ('board_members', n_board),
+    ('vendors', n_vendors),
+    ('tenants', n_tenants);
+end;
+$function$;

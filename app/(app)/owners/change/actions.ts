@@ -38,6 +38,10 @@ export async function changeHomeowner(formData: FormData) {
   const portfolioId: string | undefined = unit?.buildings?.associations?.portfolio_id;
   if (!unit || !associationId || !portfolioId) fail('That unit was not found in your workspace.');
   if (!me.is_platform_operator && portfolioId !== me.portfolio?.id) fail('That unit is outside your portfolio.');
+  // Check before creating anything: a buyer record must not be left behind if
+  // the caller cannot manage this association.
+  const { data: canManage, error: manageErr } = await db.rpc('can_manage_association', { p_association_id: associationId });
+  if (manageErr || canManage !== true) fail('You do not manage this unit\'s association.');
 
   // Buyer: an existing owner record, or a new one from the form.
   const existingOwnerId = s(formData, 'existing_owner_id');
@@ -84,7 +88,13 @@ export async function changeHomeowner(formData: FormData) {
     p_transfer_date: transferDate,
   });
   if (transferErr) {
-    if (createdOwner) await db.from('owners').update({ archived_at: new Date().toISOString() }).eq('id', newOwnerId!);
+    if (createdOwner) {
+      const { data: undone, error: undoErr } = await db.from('owners')
+        .update({ archived_at: new Date().toISOString() }).eq('id', newOwnerId!).select('id');
+      if (undoErr || !undone?.length) {
+        fail(`${transferErr.message} The new homeowner record was created but could not be archived; archive it from the homeowner directory.`);
+      }
+    }
     fail(transferErr.message);
   }
 

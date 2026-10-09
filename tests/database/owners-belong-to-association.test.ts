@@ -54,7 +54,7 @@ describe('owners belong to exactly one association', () => {
   const migration = read('supabase/migrations/20261009010000_owners_belong_to_association.sql');
 
   it('adds a required association_id and backfills it before requiring it', () => {
-    expect(migration).toContain('add column if not exists association_id uuid references public.associations(id) on delete cascade');
+    expect(migration).toContain('add column if not exists association_id uuid references public.associations(id) on delete restrict');
     expect(migration).toContain('create index if not exists idx_owners_association_id on public.owners(association_id)');
     const backfill = migration.indexOf('update public.owners ow');
     const guard = migration.indexOf('raise exception');
@@ -68,10 +68,10 @@ describe('owners belong to exactly one association', () => {
   it('derives portfolio_id from the association and guards occupancies, with locked-down trigger functions', () => {
     expect(migration).toMatch(/before insert or update of association_id, portfolio_id on public\.owners/);
     expect(migration).toContain('new.portfolio_id := v_portfolio_id;');
-    expect(migration).toMatch(/before insert or update of owner_id, association_id on public\.occupancies/);
+    expect(migration).toMatch(/before insert or update of owner_id, association_id, unit_id on public\.occupancies/);
     expect(migration).toContain("'This homeowner belongs to another association. Add them as a new homeowner of this association.'");
     expect(migration).toContain("errcode = '23514'");
-    for (const fn of ['owners_set_portfolio_from_association', 'occupancies_owner_same_association']) {
+    for (const fn of ['owners_set_portfolio_from_association', 'occupancies_owner_same_association', 'unit_owners_same_association', 'associations_move_owner_portfolio']) {
       expect(migration).toContain(`revoke all on function public.${fn}() from public, anon, authenticated;`);
       const body = migration.slice(migration.indexOf(`function public.${fn}()`));
       expect(body.slice(0, 400)).toContain('language plpgsql');
@@ -80,13 +80,18 @@ describe('owners belong to exactly one association', () => {
     }
   });
 
-  it('lets one sign-in link to records in several associations, dropping nothing but the unique index', () => {
-    expect(migration).toContain('drop index if exists public.idx_owners_auth_user;');
-    expect(migration).toMatch(/create index if not exists idx_owners_auth_user\s+on public\.owners\(auth_user_id\)\s+where auth_user_id is not null;/);
-    expect(migration).not.toMatch(/create unique index/i);
+  it('keeps one sign-in per homeowner record and links the oldest match', () => {
+    expect(migration).not.toMatch(/drop index/i);
+    expect(migration).toContain('create or replace function public.auto_link_portal_user()');
+    expect(migration).toContain('create or replace function public.relink_all_portal_users()');
+    expect(migration).toMatch(/order by candidate\.created_at, candidate\.id\s+limit 1/);
     const drops = migration.split('\n').filter((l) => /^\s*drop\s/i.test(l));
-    expect(drops.every((l) => /drop (index|trigger) if exists/i.test(l))).toBe(true);
+    expect(drops.every((l) => /drop trigger if exists/i.test(l))).toBe(true);
     expect(migration).not.toMatch(/drop table/i);
+  });
+
+  it('never deletes homeowners with a plain association delete', () => {
+    expect(migration).toContain('references public.associations(id) on delete restrict');
   });
 
   it('records the new column and foreign key in the schema snapshots', () => {
