@@ -17,16 +17,17 @@ export default async function OwnerAccountPage({ searchParams }: { searchParams:
   const recordId = pickOwnerRecord(me, sp.record)
 
   const [{ data: owner, error: ownerError }, { data: occs, error: occsError }] = await Promise.all([
-    db.from('owners').select('full_name, first_name, last_name, email, phone, phone_numbers, address_street, address_city, address_state, address_zip').eq('id', recordId).maybeSingle(),
+    db.from('owners').select('full_name, first_name, last_name, email, phone, phone_numbers, address_street, address_city, address_state, address_zip, associations(name, address, city, state, zip)').eq('id', recordId).maybeSingle(),
     db.from('occupancies')
-      .select('id, dues_amount, dues_paid_through, share_pct, occupancy_type, units(unit_number), associations(name, address, city, state, zip)')
+      .select('id, dues_amount, dues_paid_through, share_pct, occupancy_type, units(unit_number)')
       .eq('owner_id', recordId).eq('status', 'current')
       .order('is_primary', { ascending: false }).order('created_at', { ascending: true }).order('id', { ascending: true }).limit(10),
   ])
   const o = owner ?? {}
   const units = (occs ?? []) as any[]
-  const assocInfo: any = units[0]?.associations ?? null
-  const loadError = recordsError ?? ownerError?.message ?? occsError?.message ?? null
+  // The record's own association (also when it has no current unit).
+  const assocInfo: any = (owner as any)?.associations ?? null
+  const loadError = ownerError?.message ?? occsError?.message ?? null
 
   const address = [o.address_street, o.address_city, o.address_state, o.address_zip].filter(Boolean).join(', ') || 'Not set'
   const propAddress = [assocInfo?.address, assocInfo?.city, assocInfo?.state, assocInfo?.zip].filter(Boolean).join(', ') || 'Not set'
@@ -38,6 +39,7 @@ export default async function OwnerAccountPage({ searchParams }: { searchParams:
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Your account details and occupancy information</p>
       </div>
 
+      {recordsError && <Alert tone="danger">{recordsError}</Alert>}
       {loadError && <Alert tone="danger" title="Could not load your account:">{loadError}</Alert>}
       <RecordSwitcher records={records} currentId={recordId} basePath="/portal/account" caption="Each association keeps its own account details for you. Showing:" />
 

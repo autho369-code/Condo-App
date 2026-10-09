@@ -89,8 +89,9 @@ describe('owner login leftovers', () => {
 
   it('lets every record of the login read its association\'s shared files', () => {
     expect(sql).toContain('alter policy "owners can read shared association attachments" on public.association_attachments');
-    expect(sql).toContain('where occ.owner_id in (select public.current_owner_ids())');
-    expect(sql).toContain('and oc.owner_id in (select public.current_owner_ids())');
+    expect(sql).toContain('and association_id in (select public.current_resident_association_ids())');
+    expect(sql).toContain('and a_id in (select public.current_resident_association_ids())');
+    expect(sql).not.toContain('o.auth_user_id');
     expect(sql).not.toMatch(/auth_user_id = auth\.uid\(\)\s*\n\s*and oc\.status/);
     expect(sql).toContain('revoke all on function public.can_access_association_mvp(uuid) from public, anon;');
     expect(sql).not.toMatch(/drop (policy|function|table)/i);

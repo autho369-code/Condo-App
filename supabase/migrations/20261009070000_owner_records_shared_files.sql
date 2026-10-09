@@ -2,7 +2,9 @@
 -- owners.auth_user_id only, so a record added to a login (owner_portal_logins,
 -- one record per association) was left out. Both now use current_owner_ids(),
 -- like every other owner policy since 20261009050000. Additive: nothing is
--- dropped (the policy is altered in place).
+-- dropped (the policy is altered in place). Both go through
+-- current_resident_association_ids() (every record of the login, current and
+-- not moved out), so a paused or archived record no longer counts.
 
 -- Shared association files: an owner reads them for every association the
 -- login holds a current unit in.
@@ -10,13 +12,8 @@ alter policy "owners can read shared association attachments" on public.associat
   using (
     shared_with_owner
     and archived_at is null
-    and exists (
-      select 1
-        from public.occupancies occ
-       where occ.owner_id in (select public.current_owner_ids())
-         and occ.association_id = association_attachments.association_id
-         and occ.status = 'current'::public.occupancy_status
-    )
+    -- Current, not moved out (same helper as the other owner policies).
+    and association_id in (select public.current_resident_association_ids())
   );
 
 -- Association access check: the owner branch counts every record of the login.
@@ -64,14 +61,9 @@ begin
            and bm.association_id = a_id
            and bm.active = true
       )
-      or exists (
-        select 1
-          from public.occupancies oc
-          join public.units u on u.id = oc.unit_id
-          join public.buildings b on b.id = u.building_id
-         where b.association_id = a_id
-           and oc.owner_id in (select public.current_owner_ids())
-           and oc.status = 'current'
+      or (
+        public.current_owner_id() is not null
+        and a_id in (select public.current_resident_association_ids())
       )
     )
   );

@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
+import Link from 'next/link'
 import { Home, Car, PawPrint } from 'lucide-react'
+import { Alert } from '@/components/ui/shell'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +25,7 @@ export default async function MyHomePage() {
   // Every owner record of the login (one per association).
   const ownerIds = me.owner_ids
 
-  const [{ data: occupancies }, { data: ownerRows }] = await Promise.all([
+  const [{ data: occupancies }, { data: ownerRows, error: contactsError }] = await Promise.all([
     db.from('occupancies')
       .select('id, unit_id, occupancy_type, status, move_in_date, dues_amount, dues_frequency, units(id, unit_number, sqft, bedrooms, bathrooms, storage_number, parking_spaces, home_warranty_company, home_warranty_expires), associations(name)')
       .in('owner_id', ownerIds)
@@ -138,7 +140,9 @@ export default async function MyHomePage() {
 
       <div className={card}>
         <h2 className="mb-4 text-sm font-semibold text-gray-950">Emergency Contact on File</h2>
-        {contacts.length === 0 ? (
+        {contactsError ? (
+          <Alert tone="danger" title="Could not load your emergency contact:">{contactsError.message}</Alert>
+        ) : contacts.length === 0 ? (
           <p className="text-sm text-gray-400">No emergency contact on file — update it under Profile.</p>
         ) : (
           <div className="space-y-3">
@@ -153,7 +157,10 @@ export default async function MyHomePage() {
                     {c.phone ? <span className="text-gray-500"> · {c.phone}</span> : null}
                   </p>
                 ) : (
-                  <p className="text-sm text-gray-400">No emergency contact on file — update it under Profile.</p>
+                  <p className="text-sm text-gray-400">
+                    No emergency contact on file.{' '}
+                    <Link href={`/portal/profile?record=${encodeURIComponent(c.id)}`} className="inline-flex min-h-10 items-center font-medium text-gray-700 underline-offset-2 hover:underline">Add one in Profile</Link>
+                  </p>
                 )}
               </div>
             ))}
