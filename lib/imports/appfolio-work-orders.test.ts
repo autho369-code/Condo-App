@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   mapAppfolioPriority,
   mapAppfolioStatus,
+  neutralStatus,
   parseAppfolioAmount,
   parseAppfolioDate,
   parseAppfolioDateTime,
@@ -177,5 +178,12 @@ in unit, please check
     expect(parseAppfolioAmount('(12.00)')).toBe(-12);
     expect(parseAppfolioAmount('')).toBeNull();
     expect(parseAppfolioAmount('n/a')).toBeNull();
+  });
+});
+
+describe('neutralStatus', () => {
+  it('drops the old system name from a status', () => {
+    expect(neutralStatus('Assigned by AppFolio')).toBe('Assigned');
+    expect(neutralStatus('Assigned')).toBe('Assigned');
   });
 });
