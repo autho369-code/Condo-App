@@ -20,7 +20,7 @@ Back to [[Home]]. Updated 2026-10-09 (after #266 merged; owner login part 2 in P
   pilot).
 
 ## Open PR
-- Owner login part 2 (in PR, branch claude/serene-wozniak-hvgpxf): owner
+- Owner login part 2 (#267, in PR): owner
   portal reads every record of the login; each write names its record (pay,
   autopay, amenities, architectural, service requests by the unit's record;
   surveys by the survey's association; insurance + contact details with a

@@ -72,18 +72,20 @@ export default async function OwnerDashboard() {
   track('violations', violError ?? violCountError)
   const openViolations = openViolationCount ?? 0
 
+  // Every association the owner holds a unit in, not just the primary one
+  // (a login can hold one owner record per association).
+  const assocIds = [...new Set(occs.map((o: any) => o.association_id).filter(Boolean))] as string[]
+
   // Calendar
   let events: any[] = []
-  if (assocId) {
-    const { data: ev, error: evError } = await db.from('calendar_events').select('id,title,start_datetime,location').eq('association_id', assocId).is('archived_at', null).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(5)
+  if (assocIds.length > 0) {
+    const { data: ev, error: evError } = await db.from('calendar_events').select('id,title,start_datetime,location').in('association_id', assocIds).is('archived_at', null).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(5)
     track('events', evError)
     events = ev ?? []
   }
 
   // Announcements
   let announcements: any[] = []
-  // Every association the owner holds a unit in, not just the primary one.
-  const assocIds = [...new Set(occs.map((o: any) => o.association_id).filter(Boolean))] as string[]
   if (assocIds.length > 0) {
     // Owner-facing only: tenant-only announcements are not for owners.
     const { data: ann, error: annError } = await db.from('communications_log').select('id,subject,body,created_at').in('association_id', assocIds).eq('channel','announcement')

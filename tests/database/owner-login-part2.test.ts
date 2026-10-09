@@ -39,6 +39,10 @@ describe('owner login part 2: portal reads and writes', () => {
     }
   });
 
+  it('shows upcoming events from every association on the dashboard', () => {
+    expect(read('app/portal/page.tsx')).toContain(".from('calendar_events').select('id,title,start_datetime,location').in('association_id', assocIds)");
+  });
+
   it('writes for the record that holds the unit', () => {
     expect(read('lib/portal/own-units.ts')).toContain('export async function ownerRecordForUnit(');
     for (const file of ['lib/rpcs/architectural.ts', 'lib/rpcs/service-requests.ts']) {
