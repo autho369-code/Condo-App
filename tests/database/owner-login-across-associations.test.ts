@@ -136,6 +136,15 @@ describe('owner login across associations: app', () => {
     // The older links are revoked only once the new one exists, and a failure is reported.
     expect(forms.indexOf(".insert({\n        portfolio_id: owner.portfolio_id,")).toBeLessThan(forms.indexOf(".update({ status: 'revoked'"));
     expect(forms).toContain('if (revokeErr) {');
+    expect(forms).toContain(".lt('created_at', invitation.created_at)");
+    expect(read('lib/rpcs/owner-invitations.ts')).toContain(".lt('created_at', result.createdAt)");
+  });
+
+  it('lets staff reset and re-enable a record added to a login', () => {
+    const actions = read('app/(app)/owners/[id]/occupancy-actions.ts');
+    expect(actions).toContain(".from('owner_portal_logins')");
+    expect(actions).toContain('const signInId = await ownerSignInId(supabase, owner);');
+    expect(actions).toContain('if (enable && !(await ownerSignInId(supabase, owner))) {');
   });
 
   it('exposes every record of the login', () => {

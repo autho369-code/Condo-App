@@ -70,7 +70,7 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
         // The owner's own company (a platform operator may be acting for it).
         message: message || `Activate your owner portal for ${owner.portfolios?.company_name ?? 'your community'}.`,
         expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
-      }).select('id').single();
+      }).select('id, created_at').single();
       if (inviteErr || !invitation) {
         redirect(`/owners/forms?error=${encodeURIComponent(inviteErr?.message ?? 'Could not create the invitation.')}`);
       }
@@ -85,6 +85,9 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
         .eq('hoa_role', 'owner')
         .eq('status', 'pending')
         .or(`metadata->>owner_id.eq.${owner.id},metadata->>owner_id.is.null`)
+        // Only links created before this one: two overlapping sends never
+        // cancel each other's new link.
+        .lt('created_at', invitation.created_at)
         .neq('id', invitation.id);
       if (revokeErr) {
         redirect(`/owners/forms?error=${encodeURIComponent(`The new link was sent, but an older link could not be cancelled: ${revokeErr.message}`)}`);

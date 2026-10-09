@@ -84,7 +84,7 @@ export async function sendOwnerPortalInvitations(formData: FormData) {
       ownerId: o.id,
       associationId: o.association_id ?? null,
     });
-    if (result.error || !result.invitationId) {
+    if (result.error || !result.invitationId || !result.createdAt) {
       failures.push(`${o.full_name ?? email}: ${result.error ?? 'Could not create the invitation'}`);
       continue;
     }
@@ -98,6 +98,9 @@ export async function sendOwnerPortalInvitations(formData: FormData) {
       // Only this record's older links (and older ones naming no record): the
       // same person's invitations for their other associations stay live.
       .or(`metadata->>owner_id.eq.${o.id},metadata->>owner_id.is.null`)
+      // Only links created before this one: overlapping sends never cancel
+      // each other's new link.
+      .lt('created_at', result.createdAt)
       .neq('id', result.invitationId);
     if (revokeError) failures.push(`${o.full_name ?? email}: new link sent, but an older link could not be cancelled (${revokeError.message})`);
   }

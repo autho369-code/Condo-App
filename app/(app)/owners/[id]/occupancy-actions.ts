@@ -264,6 +264,22 @@ export async function removeVehicle(vehicleId: string, ownerId: string) {
 }
 
 // ── Owner portal access controls (audit: reset password / enable-disable) ──
+
+// The portal sign-in of an owner record: its first-record link
+// (owners.auth_user_id) or, for a record added to a login through its own
+// invitation, the active owner_portal_logins row (staff RLS read).
+async function ownerSignInId(supabase: any, owner: { id: string; auth_user_id: string | null }): Promise<string | null> {
+  if (owner.auth_user_id) return owner.auth_user_id;
+  const { data, error } = await supabase
+    .from('owner_portal_logins')
+    .select('auth_user_id')
+    .eq('owner_id', owner.id)
+    .is('revoked_at', null)
+    .maybeSingle();
+  if (error) fail(owner.id, `Could not check the owner's portal sign-in: ${error.message}`);
+  return data?.auth_user_id ?? null;
+}
+
 export async function sendOwnerPasswordReset(ownerId: string) {
   const me = await requireStaff();
   const supabase = await createClient();
@@ -272,16 +288,18 @@ export async function sendOwnerPasswordReset(ownerId: string) {
     .select('id, auth_user_id, email, full_name, portfolio_id')
     .eq('id', ownerId)
     .maybeSingle();
-  if (!owner?.email || !owner.auth_user_id) fail(ownerId, 'This owner does not have a linked portal account and email.');
+  if (!owner?.email) fail(ownerId, 'This owner does not have a linked portal account and email.');
+  const signInId = await ownerSignInId(supabase, owner);
+  if (!signInId) fail(ownerId, 'This owner does not have a linked portal account and email.');
 
   const svc = createServiceClient() as any;
   const verifiedEmail = String(owner.email).trim().toLowerCase();
-  const { data: authData, error: authLookupError } = await svc.auth.admin.getUserById(owner.auth_user_id);
+  const { data: authData, error: authLookupError } = await svc.auth.admin.getUserById(signInId);
   const authUser = authData?.user;
   if (
     authLookupError
     || !authUser
-    || authUser.id !== owner.auth_user_id
+    || authUser.id !== signInId
     || String(authUser.email ?? '').trim().toLowerCase() !== verifiedEmail
     || !authUser.email_confirmed_at
   ) {
@@ -297,7 +315,7 @@ export async function sendOwnerPasswordReset(ownerId: string) {
   if (
     error
     || !linkData?.properties?.action_link
-    || linkData.user?.id !== owner.auth_user_id
+    || linkData.user?.id !== signInId
     || String(linkData.user?.email ?? '').trim().toLowerCase() !== verifiedEmail
   ) {
     fail(ownerId, `Could not generate a reset link: ${error?.message ?? 'the linked portal identity did not match'}`);
@@ -346,7 +364,7 @@ export async function setOwnerPortalAccess(ownerId: string, enable: boolean) {
     .eq('id', ownerId)
     .maybeSingle();
   if (ownerError || !owner) fail(ownerId, ownerError?.message ?? 'Owner not found.');
-  if (enable && !owner.auth_user_id) {
+  if (enable && !(await ownerSignInId(supabase, owner))) {
     fail(ownerId, 'Create or invite the owner portal account before enabling portal access.');
   }
 

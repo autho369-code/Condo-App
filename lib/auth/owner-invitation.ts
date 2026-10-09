@@ -10,7 +10,7 @@ export async function queueOwnerPortalInvitation(db: any, input: {
   /** The exact owner record (one per association) the sign-in links to on accept. */
   ownerId: string;
   associationId: string | null;
-}): Promise<{ error: string | null; invitationId?: string }> {
+}): Promise<{ error: string | null; invitationId?: string; createdAt?: string }> {
   const expiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
   const { data: invitation, error: inviteError } = await db
     .from('user_invitations')
@@ -29,7 +29,7 @@ export async function queueOwnerPortalInvitation(db: any, input: {
       // sign-in, or added to it), never another record with the same email.
       metadata: { email_delivery: 'application', owner_id: input.ownerId },
     })
-    .select('id, token')
+    .select('id, token, created_at')
     .single();
   if (inviteError || !invitation?.token) return { error: inviteError?.message ?? 'Could not create portal invitation' };
 
@@ -60,5 +60,5 @@ export async function queueOwnerPortalInvitation(db: any, input: {
     await db.from('user_invitations').update({ status: 'revoked' }).eq('id', invitation.id);
     return { error: queued.error ?? 'Could not queue portal invitation' };
   }
-  return { error: null, invitationId: invitation.id };
+  return { error: null, invitationId: invitation.id, createdAt: invitation.created_at };
 }
