@@ -76,8 +76,8 @@ Back to [[Home]]. Updated 2026-10-09 (after #266 merged; owner login part 2 in p
   triggers paused, journal entries/bills/tenants/blocking rows removed,
   triggers re-enabled; verified 0 disabled triggers, 0 orphan journal
   lines). The 14 old demo owners are gone (0 owners now).
-- Next gaps: (1) multi-property owner portal: part 1 in PR (database +
-  invitations), part 2 next (portal pages, owner pickers; see Next gaps -1);
+- Next gaps: (1) multi-property owner portal: part 1 merged (#266), part 2
+  in progress (portal pages, owner pickers; see Next gaps -1);
   (2) chart of accounts entered/changed by the
   company admin only; (3) a real end-to-end import of Randolph Station;
   (4) credit balances from the Aged Receivable file (listed, not posted).
