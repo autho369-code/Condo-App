@@ -1,20 +1,16 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (owner-login PR open, part 1 of 2; migration 20261009050000 not yet applied).
+Back to [[Home]]. Updated 2026-10-09 (after #266 merged; owner login part 2 in progress).
 
 ## Where things stand
-- In PR: owner login across associations, part 1 (migration
-  20261009050000): owner_portal_logins, current_owner_ids() (no email
-  fallback), 41 owner policies rewritten with ALTER POLICY, 17 owner functions
-  over every record, owner invitations name their record (metadata.owner_id)
-  and link it on accept (same email, same association; scoped managers only
-  into their associations); owner records are never linked by email any
-  more; every owner write policy is tied to its record's association
-  (owner_record_matches: no voting twice as two records); fixes auth email
-  change (the trigger called a trigger function directly and always failed;
-  now it only unlinks). Dry run as owner and board (rolled back): 41 policies
-  rewritten, 16 write policies tied, 0 left; 51 tables warm owner 66 -> 58 ms,
-  board 70 -> 58 ms. Claude applies once Codex is clean, then Mirsad merges.
+- #266 merged (ffca485): owner login across associations, part 1 (database +
+  invitations). Migration 20261009050000 applied by Claude before merge and
+  read back: 43 policies use current_owner_ids() (the only remaining
+  `= current_owner_id()` is the company-wide survey rule), 16 owner write
+  policies tied with owner_record_matches, owner_portal_logins RLS select-only,
+  owner_invite_scope restrictive, no email fallback, 3 triggers enabled.
+  Owner and board 51 tables 58 ms warm. Fixed: auth email change (always
+  failed), board keeps board role on accepting an owner invitation.
 - Design-system migration done (all 219 pages); board + company-admin use the
   shared Sidebar + light body.
 - `docs/TODO.md` build queue done except resale/estoppel (declined — see
@@ -185,8 +181,7 @@ Back to [[Home]]. Updated 2026-10-09 (owner-login PR open, part 1 of 2; migratio
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
--1. In PR: owner login across associations, part 1 (database + invitations;
-   migration 20261009050000). Part 2 next: portal pages read every record of
+-1. In progress: owner login part 2 (part 1 = #266, merged): portal pages read every record of
    the login (`me.owner_ids`, union with association labels), each write
    targets its exact record (pay, autopay, insurance, architectural, service
    requests, amenities, surveys answered as the survey's association record,

@@ -4,6 +4,13 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-09
+- #266 (merged ffca485; migration 20261009050000 applied by Claude before
+  merge and read back): owner login across associations, part 1. A login
+  reaches its first owner record plus every record whose own invitation it
+  accepted (owner_portal_logins), never by email; 41 owner policies use
+  current_owner_ids(), 16 write policies tied to the record's association;
+  owner invitations name their record; auth email change fixed; board keeps
+  board role on accepting an owner invitation. Portal pages follow in part 2.
 - #265 (merged 2834717; migration 20261009040000 applied by Claude before
   merge and read back): one vendor login across a vendor's associations.
   A login reaches its first record plus every record whose own invitation it
