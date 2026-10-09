@@ -21,10 +21,11 @@ const B = '22222222-2222-4222-8222-222222222222';
 const V = '33333333-3333-4333-8333-333333333333';
 
 /** A chainable query builder whose terminal maybeSingle returns queued results. */
-function builder(results: unknown[]) {
+function builder(results: unknown[], inRows: unknown[] = []) {
   const q: any = {};
   for (const m of ['select', 'update', 'eq', 'is']) q[m] = vi.fn(() => q);
   q.maybeSingle = vi.fn(async () => ({ data: results.shift() ?? null, error: null }));
+  q.in = vi.fn(async () => ({ data: inRows, error: null }));
   return q;
 }
 
@@ -54,13 +55,26 @@ describe('bulkWorkOrderAction', () => {
   });
 
   it('never assigns a vendor from another company', async () => {
-    const vendors = builder([{ id: V, name: 'Vendor', portfolio_id: 'p-b' }]);
+    // The management company passes the association check; the company check still applies.
+    const vendors = builder([{ id: V, name: 'Vendor', portfolio_id: 'p-b', association_id: null, is_management_company: true }]);
     const workOrders = builder([{ id: A, status: 'new', portfolio_id: 'p-a' }]);
     const insert = vi.fn();
     mocks.createClient.mockResolvedValue({ from: (t: string) => (t === 'vendors' ? vendors : t === 'work_orders' ? workOrders : { insert }) });
 
     await expect(bulkWorkOrderAction(form({ op: 'assign', vendor_id: V, work_order_id: A })))
       .rejects.toThrow(/done=0&failed=1/);
+    expect(workOrders.update).not.toHaveBeenCalled();
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it('refuses a selection outside the vendor\'s association before updating anything', async () => {
+    const vendors = builder([{ id: V, name: 'Vendor', portfolio_id: 'p-a', association_id: 'as-a', is_management_company: false }]);
+    const workOrders = builder([], [{ id: A, association_id: 'as-a' }, { id: B, association_id: 'as-b' }]);
+    const insert = vi.fn();
+    mocks.createClient.mockResolvedValue({ from: (t: string) => (t === 'vendors' ? vendors : t === 'work_orders' ? workOrders : { insert }) });
+
+    await expect(bulkWorkOrderAction(form({ op: 'assign', vendor_id: V, work_order_id: [A, B] })))
+      .rejects.toThrow(/REDIRECT:\/work-orders\?error=Vendor%20is%20a%20vendor%20of%20one%20association/);
     expect(workOrders.update).not.toHaveBeenCalled();
     expect(insert).not.toHaveBeenCalled();
   });
