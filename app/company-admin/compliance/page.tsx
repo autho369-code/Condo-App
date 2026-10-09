@@ -4,6 +4,7 @@ import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { vendorAssociationLabel } from '@/lib/vendors/options'
 import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import { ShieldAlert, FileWarning, AlertTriangle, ShieldCheck } from 'lucide-react'
 import { addDaysToDate, todayInZone } from '@/lib/time/zoned'
@@ -39,10 +40,13 @@ export default async function CompliancePage() {
     { data: assocs, error: assocsError },
     { data: certTasks, error: certTasksError },
   ] = await Promise.all([
-    db.from('vendors')
-      .select('id, name, trade, general_liability_expiration, workers_comp_expiration, auto_insurance_expiration, state_license_expiration, epa_certification_expiration, contract_expiration, send_1099, has_taxpayer_id')
+    // Paged: with one record per association a company can pass 1,000 vendors.
+    fetchAllRows<any>(() => db.from('vendors')
+      .select('id, name, trade, general_liability_expiration, workers_comp_expiration, auto_insurance_expiration, state_license_expiration, epa_certification_expiration, contract_expiration, send_1099, has_taxpayer_id, is_management_company, associations(name)')
       .eq('portfolio_id', portfolioId)
-      .is('archived_at', null),
+      .is('archived_at', null)
+      .order('name')
+      .order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     db.from('insurance_policies')
       .select('id, owner_id, association_id, policy_number, expiration_date, status, owners(full_name)')
       .is('archived_at', null)
@@ -75,16 +79,16 @@ export default async function CompliancePage() {
       if (!value) {
         // Only COI, workers comp, and license count as "missing" requirements.
         if (['general_liability_expiration', 'workers_comp_expiration', 'state_license_expiration'].includes(f.key)) {
-          vendorIssues.push({ vendor: v.name, item: f.label, state: 'missing' })
+          vendorIssues.push({ vendor: `${v.name} · ${vendorAssociationLabel(v)}`, item: f.label, state: 'missing' })
         }
       } else if (value < today) {
-        vendorIssues.push({ vendor: v.name, item: f.label, state: 'expired', date: value })
+        vendorIssues.push({ vendor: `${v.name} · ${vendorAssociationLabel(v)}`, item: f.label, state: 'expired', date: value })
       } else if (value <= in60) {
-        vendorIssues.push({ vendor: v.name, item: f.label, state: 'expiring', date: value })
+        vendorIssues.push({ vendor: `${v.name} · ${vendorAssociationLabel(v)}`, item: f.label, state: 'expiring', date: value })
       }
     }
     if (v.send_1099 && !v.has_taxpayer_id) {
-      vendorIssues.push({ vendor: v.name, item: 'W-9 / Taxpayer ID', state: 'missing' })
+      vendorIssues.push({ vendor: `${v.name} · ${vendorAssociationLabel(v)}`, item: 'W-9 / Taxpayer ID', state: 'missing' })
     }
   }
   const missingCount = vendorIssues.filter((i) => i.state === 'missing').length

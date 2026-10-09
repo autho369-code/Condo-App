@@ -13,7 +13,7 @@ const svcWith = (slug: string | null) => ({
 
 const request = {
   to: 'vendor@example.com', vendorName: 'Ace Plumbing', companyName: 'Stellar Property Group', docType: 'w9',
-  token: 'tok123', portfolioId: 'p1', requestId: 'r1', attempt: 'initial',
+  token: 'tok123', portfolioId: 'p1', associationId: 'a1', requestId: 'r1', attempt: 'initial',
 };
 
 describe('vendor document request email', () => {
@@ -24,6 +24,7 @@ describe('vendor document request email', () => {
     const { emailVendorRequest } = await import('../../lib/vendors/document-requests');
     await emailVendorRequest(svcWith('stellar'), request);
     expect(queued[0].text).toContain('https://stellar.portier369.com/vendor-upload/tok123');
+    expect(queued[0].associationId).toBe('a1');
   });
 
   it('falls back to the platform address when the company address is unknown', async () => {

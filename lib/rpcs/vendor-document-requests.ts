@@ -40,7 +40,7 @@ export async function requestVendorDocument(formData: FormData) {
   const message = s(formData, 'message').slice(0, 2000) || null;
 
   const db = (await createClient()) as any;
-  const { data: vendor } = await db.from('vendors').select('id, name, emails, portfolio_id, portfolios(company_name)').eq('id', vendorId).is('archived_at', null).maybeSingle();
+  const { data: vendor } = await db.from('vendors').select('id, name, emails, portfolio_id, association_id, portfolios(company_name)').eq('id', vendorId).is('archived_at', null).maybeSingle();
   if (!vendor) go(to, 'error', 'Vendor not found.');
   const email = s(formData, 'email') || firstVendorEmail(vendor.emails);
   if (!email || !EMAIL_RE.test(email)) go(to, 'error', `${vendor.name} has no email address. Enter one to send the request.`);
@@ -56,7 +56,7 @@ export async function requestVendorDocument(formData: FormData) {
     const token = await issueLink(svc, request.id, email);
     const { error: mailError } = await emailVendorRequest(svc, {
       to: email, vendorName: vendor.name, companyName: vendor.portfolios?.company_name ?? 'Your property manager',
-      docType, message, dueDate, token, portfolioId: vendor.portfolio_id, requestId: request.id, attempt: 'initial',
+      docType, message, dueDate, token, portfolioId: vendor.portfolio_id, associationId: vendor.association_id ?? null, requestId: request.id, attempt: 'initial',
     });
     if (mailError) throw new Error(mailError);
   } catch (e: any) {
@@ -71,7 +71,7 @@ export async function resendVendorRequest(formData: FormData) {
   const to = backTo(formData);
   const db = (await createClient()) as any;
   const { data: r } = await db.from('document_requests')
-    .select('id, doc_type, description, due_date, status, portfolio_id, vendors(name, emails, portfolios(company_name))')
+    .select('id, doc_type, description, due_date, status, portfolio_id, vendors(name, emails, association_id, portfolios(company_name))')
     .eq('id', s(formData, 'request_id')).not('vendor_id', 'is', null).maybeSingle();
   if (!r) go(to, 'error', 'Request not found.');
   if (!['requested', 'in_progress', 'rejected'].includes(r.status)) go(to, 'error', 'This request has already been answered.');
@@ -82,7 +82,7 @@ export async function resendVendorRequest(formData: FormData) {
     const token = await issueLink(svc, r.id, email);
     const { error } = await emailVendorRequest(svc, {
       to: email, vendorName: r.vendors?.name ?? 'there', companyName: r.vendors?.portfolios?.company_name ?? 'Your property manager',
-      docType: r.doc_type, message: r.description, dueDate: r.due_date, token, portfolioId: r.portfolio_id, requestId: r.id,
+      docType: r.doc_type, message: r.description, dueDate: r.due_date, token, portfolioId: r.portfolio_id, associationId: r.vendors?.association_id ?? null, requestId: r.id,
       attempt: `resend-${Date.now()}`,
     });
     if (error) throw new Error(error);
@@ -106,7 +106,7 @@ export async function reviewVendorDocument(formData: FormData) {
   if (!approve) {
     // Ask again with a fresh link and the reason.
     const { data: r } = await db.from('document_requests')
-      .select('id, doc_type, description, due_date, portfolio_id, vendors(name, emails, portfolios(company_name))')
+      .select('id, doc_type, description, due_date, portfolio_id, vendors(name, emails, association_id, portfolios(company_name))')
       .eq('id', s(formData, 'request_id')).maybeSingle();
     const email = firstVendorEmail(r?.vendors?.emails);
     if (r && email) {
@@ -119,7 +119,7 @@ export async function reviewVendorDocument(formData: FormData) {
       }
       const { error: mailError } = await emailVendorRequest(svc, {
         to: email, vendorName: r.vendors?.name ?? 'there', companyName: r.vendors?.portfolios?.company_name ?? 'Your property manager',
-        docType: r.doc_type, message: r.description, dueDate: r.due_date, token, portfolioId: r.portfolio_id, requestId: r.id,
+        docType: r.doc_type, message: r.description, dueDate: r.due_date, token, portfolioId: r.portfolio_id, associationId: r.vendors?.association_id ?? null, requestId: r.id,
         attempt: `rejected-${Date.now()}`, reason: note,
       });
       if (mailError) go(to, 'error', `Marked as not accepted, but the email to the vendor failed: ${mailError}`);
