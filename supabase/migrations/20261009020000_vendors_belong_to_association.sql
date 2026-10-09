@@ -264,16 +264,47 @@ create or replace trigger trg_vendors_set_portfolio_from_association
 create unique index if not exists vendors_one_management_company
   on public.vendors(portfolio_id) where is_management_company and archived_at is null;
 
--- An association that moves to another company takes its vendors with it.
+-- An association that moves to another company takes its vendors (and their
+-- tax and bank records) with it. The old company's management company cannot
+-- follow, so the move is refused while the association's rows use it.
 create or replace function public.associations_move_vendor_portfolio()
 returns trigger
 language plpgsql
 security definer
 set search_path to 'pg_catalog', 'public'
 as $function$
+declare
+  r record;
+  v_bad boolean;
 begin
+  for r in select * from public.vendor_link_tables() loop
+    execute format(
+      'select exists (select 1 from %s x join public.vendors ven on ven.id = x.%I '
+      || 'where x.association_id = $1 and ven.is_management_company and ven.portfolio_id is distinct from $2)',
+      r.tbl, r.col) into v_bad using new.id, new.portfolio_id;
+    if v_bad then
+      raise exception 'This association has records that use the management company of its current company. It cannot move to another company.'
+        using errcode = '23514';
+    end if;
+  end loop;
+  for r in select * from public.vendor_parent_link_tables() loop
+    execute format(
+      'select exists (select 1 from %s x join %s p on p.id = x.%I join public.vendors ven on ven.id = x.%I '
+      || 'where p.association_id = $1 and ven.is_management_company and ven.portfolio_id is distinct from $2)',
+      r.tbl, r.parent, r.parent_col, r.col) into v_bad using new.id, new.portfolio_id;
+    if v_bad then
+      raise exception 'This association has records that use the management company of its current company. It cannot move to another company.'
+        using errcode = '23514';
+    end if;
+  end loop;
+
   update public.vendors set portfolio_id = new.portfolio_id
    where association_id = new.id and portfolio_id is distinct from new.portfolio_id;
+  -- trg_vfd_000_bind_portfolio re-reads the vendor's (now moved) company.
+  update public.vendor_financial_details f set portfolio_id = new.portfolio_id
+    from public.vendors ven
+   where ven.id = f.vendor_id and ven.association_id = new.id
+     and f.portfolio_id is distinct from new.portfolio_id;
   return new;
 end;
 $function$;
@@ -366,6 +397,7 @@ declare
   v_row jsonb := to_jsonb(new);
   v_vendor_id uuid := nullif(v_row->>tg_argv[0], '')::uuid;
   v_parent_id uuid := nullif(v_row->>tg_argv[1], '')::uuid;
+  v_parent jsonb;
   v_association_id uuid;
   v_vendor_association uuid;
   v_vendor_portfolio uuid;
@@ -375,13 +407,13 @@ begin
     return new;
   end if;
 
-  execute format('select association_id from %s where id = $1 for share', tg_argv[2]::regclass)
-    into v_association_id using v_parent_id;
-  -- A missing parent is left to the foreign key; a company-level parent to
-  -- the existing same-company checks.
-  if v_association_id is null then
+  execute format('select to_jsonb(p) from %s p where p.id = $1 for share', tg_argv[2]::regclass)
+    into v_parent using v_parent_id;
+  -- A missing parent is left to the foreign key.
+  if v_parent is null then
     return new;
   end if;
+  v_association_id := nullif(v_parent->>'association_id', '')::uuid;
 
   select ven.association_id, ven.portfolio_id, ven.is_management_company
     into v_vendor_association, v_vendor_portfolio, v_management
@@ -389,6 +421,15 @@ begin
    where ven.id = v_vendor_id
      for share;
   if not found then
+    return new;
+  end if;
+
+  -- A company-level parent (no association): the vendor must be of its company.
+  if v_association_id is null then
+    if v_vendor_portfolio is distinct from coalesce(nullif(v_parent->>'portfolio_id', '')::uuid,
+                                                    nullif(v_row->>'portfolio_id', '')::uuid, v_vendor_portfolio) then
+      raise exception 'This vendor belongs to another company.' using errcode = '23514';
+    end if;
     return new;
   end if;
 
@@ -495,6 +536,15 @@ begin
       r.tbl, r.parent, r.parent_col, r.col) into v_bad;
     if v_bad then
       raise exception '% has rows whose vendor belongs to another association. Correct them, then run this migration again.', r.tbl using errcode = '23514';
+    end if;
+    -- Company-level parents: the vendor must be of the parent's company.
+    execute format(
+      'select exists (select 1 from %s x join %s p on p.id = x.%I join public.vendors ven on ven.id = x.%I '
+      || 'where p.association_id is null and ven.portfolio_id is distinct from '
+      || 'coalesce(nullif(to_jsonb(p)->>''portfolio_id'', '''')::uuid, nullif(to_jsonb(x)->>''portfolio_id'', '''')::uuid, ven.portfolio_id))',
+      r.tbl, r.parent, r.parent_col, r.col) into v_bad;
+    if v_bad then
+      raise exception '% has rows whose vendor belongs to another company. Correct them, then run this migration again.', r.tbl using errcode = '23514';
     end if;
   end loop;
 end $$;

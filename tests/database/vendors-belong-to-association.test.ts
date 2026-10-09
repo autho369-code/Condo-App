@@ -82,6 +82,9 @@ describe('vendors belong to exactly one association', () => {
     expect(migration).toMatch(/before insert or update of association_id, portfolio_id, is_management_company on public\.vendors/);
     expect(migration).toContain('new.portfolio_id := v_portfolio_id;');
     expect(migration).toContain('after update of portfolio_id on public.associations');
+    // The move refuses rows on the old company's management company and carries tax/bank records along.
+    expect(migration).toContain('It cannot move to another company.');
+    expect(migration).toContain('update public.vendor_financial_details f set portfolio_id = new.portfolio_id');
     for (const fn of ['vendors_set_portfolio_from_association', 'vendor_link_same_association', 'associations_move_vendor_portfolio']) {
       expect(migration).toContain(`revoke all on function public.${fn}() from public, anon, authenticated;`);
       const body = migration.slice(migration.indexOf(`function public.${fn}()`));
@@ -112,7 +115,10 @@ describe('vendors belong to exactly one association', () => {
     // Counted when placing a vendor and when guarding its moves.
     expect(migration).toContain('for r in select * from public.vendor_parent_link_tables() loop');
     // Child writes lock and check the parent; parents cannot move away from their children's vendors.
-    expect(migration).toContain("execute format('select association_id from %s where id = $1 for share', tg_argv[2]::regclass)");
+    expect(migration).toContain("execute format('select to_jsonb(p) from %s p where p.id = $1 for share', tg_argv[2]::regclass)");
+    // A company-level parent still needs a vendor of its own company.
+    expect(migration).toContain('-- A company-level parent (no association): the vendor must be of its company.');
+    expect(migration).toContain('has rows whose vendor belongs to another company. Correct them, then run this migration again.');
     // Rows that existed before the migration are checked too.
     expect(migration).toContain('has rows whose vendor belongs to another association. Correct them, then run this migration again.');
     expect(migration).toContain('create or replace trigger trg_vendor_parent_same_association before insert or update of %I, %I on %s');
