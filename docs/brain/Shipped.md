@@ -4,6 +4,13 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-09
+- #268 (merged 65414f0; migration 20261009070000 applied by Claude before
+  the PR opened and read back): owner login leftovers. Account page per
+  association (switcher, every current unit); home lists each association's
+  emergency contact; shared association files and can_access_association_mvp
+  use current_resident_association_ids() (0 live policies still match
+  owners by auth_user_id). Decision: a sold unit removes the old owner, so
+  former owners get no association access.
 - #267 (merged f06b9fb; migration 20261009060000 applied by Claude before
   merge and read back): owner login across associations, part 2. Owner
   portal reads every record of the login; each write names its record (the

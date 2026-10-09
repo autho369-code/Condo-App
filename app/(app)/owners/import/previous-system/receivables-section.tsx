@@ -103,6 +103,11 @@ function AssociationCard({
   const { units, totals } = group;
   const chargeCount = group.items.filter((i) => i.amount > 0).length;
   const creditItems = group.items.filter((i) => i.amount < 0);
+  // A file can hold only credits for an association: those import too.
+  const importLabel = [
+    chargeCount ? `${plural(chargeCount, 'charge')} (${usd(totals.charges)})` : '',
+    creditItems.length ? `${plural(creditItems.length, 'credit')} (${usd(-totals.credits)})` : '',
+  ].filter(Boolean).join(' and ');
   const unmatchedCount = knownUnits ? units.filter((u) => !knownUnits.has(unitKey(u.unit_number))).length : 0;
   const done = result !== null && result.alreadyImported === undefined;
 
@@ -140,9 +145,9 @@ function AssociationCard({
       </div>
 
       {creditItems.length > 0 && (
-        <Alert tone="warning" title="Credits are not imported.">
-          Charges can&apos;t be negative here, so the {plural(creditItems.length, 'credit')} for this association
-          ({usd(totals.credits)}) will be listed after the import for you to enter as credits on those units.
+        <Alert tone="info" title="Credits are imported as credits on the unit.">
+          The {plural(creditItems.length, 'credit')} for this association ({usd(totals.credits)}) post as homeowner
+          credits: the unit&apos;s balance goes below zero by the credit, and it is used up by the next charges.
         </Alert>
       )}
 
@@ -211,10 +216,10 @@ function AssociationCard({
         </div>
         <Button
           type="button"
-          disabled={!associationId || !asOf || busy || done || chargeCount === 0}
+          disabled={!associationId || !asOf || busy || done || (chargeCount === 0 && creditItems.length === 0)}
           onClick={() => run(false)}
         >
-          {busy ? 'Importing…' : done ? 'Imported' : `Import ${plural(chargeCount, 'charge')} (${usd(totals.charges)})`}
+          {busy ? 'Importing…' : done ? 'Imported' : `Import ${importLabel || 'nothing'}`}
         </Button>
       </div>
       {knownUnits && unmatchedCount > 0 && (
@@ -232,8 +237,8 @@ function AssociationCard({
       )}
       {done && result && (
         <Alert
-          tone={result.imported > 0 ? 'success' : 'warning'}
-          title={`${plural(result.imported, 'charge')} imported (${usd(result.totalImported)}), ${result.skipped} skipped.`}
+          tone={result.imported > 0 || (result.creditsImported ?? 0) > 0 ? 'success' : 'warning'}
+          title={`${plural(result.imported, 'charge')} imported (${usd(result.totalImported)})${result.creditsImported ? `, ${plural(result.creditsImported, 'credit')} (${usd(result.totalCredits ?? 0)})` : ''}, ${result.skipped} skipped.`}
         >
           {result.errors?.length ? (
             <ul className="mt-1 list-disc space-y-0.5 pl-5">

@@ -29,6 +29,10 @@ export type ReceivablesImportSummary = {
   errors?: string[];
   /** Sum of the charges posted by this run. */
   totalImported: number;
+  /** Credits (prepayments) posted by this run as homeowner credits. */
+  creditsImported?: number;
+  /** Sum of those credits, as a positive amount. */
+  totalCredits?: number;
   /**
    * Set when the association already has AppFolio opening balances: nothing
    * was posted. Call again with `{ confirmDuplicate: true }` to import anyway.
@@ -187,7 +191,6 @@ export async function importAppfolioReceivables(
       let skipped = 0;
       const errors: string[] = [];
       const unmatched = new Map<string, { count: number; amount: number }>();
-      const credits: string[] = [];
       let zero = 0;
       let previously = 0;
       const changed: string[] = [];
@@ -211,17 +214,15 @@ export async function importAppfolioReceivables(
           unmatched.set(unitNumber, u);
           continue;
         }
-        if (amount < 0) {
-          // Charges cannot be negative (charges_amount_check), and this RPC only
-          // posts charges: a credit has to be entered as a credit on the unit.
-          skipped++;
-          credits.push(`Line ${line} (${unitNumber}): credit of ${usd(-amount)} not imported. Charges can't be negative; enter it as a credit on the unit.`);
-          continue;
-        }
-        if (amount > 10_000_000) { skipped++; errors.push(`Line ${line} (${unitNumber}): amount ${usd(amount)} is too large.`); continue; }
+        if (Math.abs(amount) > 10_000_000) { skipped++; errors.push(`Line ${line} (${unitNumber}): amount ${usd(amount)} is too large.`); continue; }
         const chargeDate = isoDate(it?.charge_date);
         const glName = clean(it?.gl_name).slice(0, 120) || 'Opening balance';
-        const description = chargeDate ? `${MEMO_PREFIX} ${glName} (charged ${chargeDate})` : `${MEMO_PREFIX} ${glName}`;
+        // A credit (prepayment) is posted as a homeowner credit (import_opening_credit)
+        // and recorded as a negative imported balance, so the same matching skips it on
+        // a re-import.
+        const description = amount < 0
+          ? (chargeDate ? `${MEMO_PREFIX} ${glName} (credit dated ${chargeDate})` : `${MEMO_PREFIX} ${glName} (credit)`)
+          : (chargeDate ? `${MEMO_PREFIX} ${glName} (charged ${chargeDate})` : `${MEMO_PREFIX} ${glName}`);
         candidates.push({
           line, unitNumber, unitId, amount,
           description,
@@ -255,20 +256,30 @@ export async function importAppfolioReceivables(
       // AppFolio; a fully paid item drops out of the report). Only for a complete file: the
       // page sends the association's whole snapshot, but a row the parser could not read
       // would otherwise look paid.
-      const gone = new Map<string, { count: number; amount: number }>();
+      // Charges and credits are reported apart: a charge drops out when paid, a credit
+      // (negative amount) when it was used up.
+      const gone = new Map<string, { count: number; amount: number; credits: number; creditAmount: number }>();
       let goneUnchecked = 0;
       for (const [key, amounts] of already) {
         if (amounts.length && options.complete !== true) { goneUnchecked += amounts.length; continue; }
         if (!amounts.length) continue;
         const unitId = key.slice(0, key.indexOf('|'));
-        const g = gone.get(unitId) ?? { count: 0, amount: 0 };
-        g.count += amounts.length;
-        g.amount += amounts.reduce((sum, a) => sum + a, 0) / 100;
+        const g = gone.get(unitId) ?? { count: 0, amount: 0, credits: 0, creditAmount: 0 };
+        for (const a of amounts) {
+          if (a < 0) { g.credits++; g.creditAmount += -a / 100; } else { g.count++; g.amount += a / 100; }
+        }
         gone.set(unitId, g);
       }
       for (const [unitId, g] of gone) {
-        const unitNumber = unitNumberById.get(unitId);
-        changed.push(`${unitNumber ? `Unit "${unitNumber}"` : 'An archived unit'}: ${g.count} item${g.count === 1 ? '' : 's'} imported earlier (${usd(g.amount)}) ${g.count === 1 ? 'is' : 'are'} no longer in this file (paid or removed in your previous system). Compare the unit's current balance with your previous system (Import Variances report) before changing it.`);
+        const unit = unitNumberById.get(unitId);
+        const who = unit ? `Unit "${unit}"` : 'An archived unit';
+        const compare = "Compare the unit's current balance with your previous system (Import Variances report) before changing it.";
+        if (g.count) {
+          changed.push(`${who}: ${g.count} item${g.count === 1 ? '' : 's'} imported earlier (${usd(g.amount)}) ${g.count === 1 ? 'is' : 'are'} no longer in this file (paid or removed in your previous system). ${compare}`);
+        }
+        if (g.credits) {
+          changed.push(`${who}: ${g.credits} credit${g.credits === 1 ? '' : 's'} imported earlier (${usd(g.creditAmount)}) ${g.credits === 1 ? 'is' : 'are'} no longer in this file (used up or removed in your previous system). ${compare}`);
+        }
       }
       if (goneUnchecked) {
         changed.push(`${goneUnchecked} item${goneUnchecked === 1 ? '' : 's'} imported earlier ${goneUnchecked === 1 ? 'is' : 'are'} not in this file, but the file had rows that could not be read or has no Total line it ties to, so ${goneUnchecked === 1 ? 'it was' : 'they were'} not checked.`);
@@ -276,12 +287,14 @@ export async function importAppfolioReceivables(
 
       let imported = 0;
       let totalImported = 0;
+      let creditsImported = 0;
+      let totalCredits = 0;
       for (let i = 0; i < work.length; i += CONCURRENCY) {
         const batch = work.slice(i, i + CONCURRENCY);
-        const results = await Promise.all(batch.map((w) => db.rpc('import_opening_balance', {
+        const results = await Promise.all(batch.map((w) => db.rpc(w.amount < 0 ? 'import_opening_credit' : 'import_opening_balance', {
           p_unit_id: w.unitId,
           p_charge_category_id: category.id,
-          p_amount: w.amount,
+          p_amount: Math.abs(w.amount),
           p_description: w.description,
           p_as_of: w.asOf,
         })));
@@ -289,7 +302,10 @@ export async function importAppfolioReceivables(
           const w = batch[idx];
           if (res.error) {
             skipped++;
-            errors.push(`Line ${w.line} (${w.unitNumber}): ${res.error.message}`);
+            errors.push(`Line ${w.line} (${w.unitNumber}): ${w.amount < 0 ? `credit of ${usd(-w.amount)} not posted: ` : ''}${res.error.message}`);
+          } else if (w.amount < 0) {
+            creditsImported++;
+            totalCredits = Math.round((totalCredits - w.amount) * 100) / 100;
           } else {
             imported++;
             totalImported = Math.round((totalImported + w.amount) * 100) / 100;
@@ -300,17 +316,16 @@ export async function importAppfolioReceivables(
       for (const [unitNumber, u] of unmatched) {
         errors.push(`Unit "${unitNumber}" is not in this association: ${u.count} item${u.count === 1 ? '' : 's'} (${usd(u.amount)}) not imported. Add the unit, then import this file again: items already posted are skipped.`);
       }
-      errors.push(...credits);
       errors.push(...changed);
       if (previously) errors.push(`${previously} item${previously === 1 ? ' was' : 's were'} already imported earlier and skipped.`);
       if (zero) errors.push(`${zero} item${zero === 1 ? '' : 's'} with nothing receivable skipped.`);
 
-      if (imported) {
+      if (imported || creditsImported) {
         revalidatePath('/charges');
         revalidatePath('/units');
         revalidatePath(`/associations/${associationId}`);
       }
-      return { imported, skipped, errors: errors.length ? errors : undefined, totalImported };
+      return { imported, skipped, errors: errors.length ? errors : undefined, totalImported, creditsImported, totalCredits };
     });
   } catch (e) {
     return fail(e instanceof Error ? e.message : 'The import failed. Try again.');
