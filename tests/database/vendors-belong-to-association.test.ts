@@ -74,6 +74,8 @@ describe('vendors belong to exactly one association', () => {
       expect(migration).toContain(`'public.${t}'::regclass`);
     }
     expect(migration).toContain("'public.inspections'::regclass, 'inspector_vendor_id'::name");
+    expect(migration).toContain("'create or replace trigger trg_vendor_same_association before insert or update of %I, association_id%s on %s '");
+    expect(migration).toContain("then ', portfolio_id' else '' end,");
     expect(migration).toContain("'This vendor belongs to another association. Add it as a vendor of this association.'");
     // Company-level rows (no association) need a vendor of their own company.
     expect(migration).toContain('-- A company-level row (no association): the vendor must be of its company.');

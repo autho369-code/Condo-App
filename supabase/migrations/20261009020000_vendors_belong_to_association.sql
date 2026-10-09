@@ -483,10 +483,14 @@ declare
   r record;
 begin
   for r in select * from public.vendor_link_tables() loop
+    -- Also re-check when a company-level row moves to another company.
     execute format(
-      'create or replace trigger trg_vendor_same_association before insert or update of %I, association_id on %s '
+      'create or replace trigger trg_vendor_same_association before insert or update of %I, association_id%s on %s '
       || 'for each row execute function public.vendor_link_same_association(%L)',
-      r.col, r.tbl, r.col);
+      r.col,
+      case when exists (select 1 from pg_attribute a where a.attrelid = r.tbl and a.attname = 'portfolio_id' and not a.attisdropped)
+           then ', portfolio_id' else '' end,
+      r.tbl, r.col);
   end loop;
 end $$;
 
