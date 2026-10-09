@@ -112,7 +112,9 @@ describe('vendors belong to exactly one association', () => {
     // Counted when placing a vendor and when guarding its moves.
     expect(migration).toContain('for r in select * from public.vendor_parent_link_tables() loop');
     // Child writes lock and check the parent; parents cannot move away from their children's vendors.
-    expect(migration).toContain("execute format('select association_id from %s where id = $1 for share', tg_argv[2])");
+    expect(migration).toContain("execute format('select association_id from %s where id = $1 for share', tg_argv[2]::regclass)");
+    // Rows that existed before the migration are checked too.
+    expect(migration).toContain('has rows whose vendor belongs to another association. Correct them, then run this migration again.');
     expect(migration).toContain('create or replace trigger trg_vendor_parent_same_association before insert or update of %I, %I on %s');
     expect(migration).toContain('create or replace trigger trg_vendor_parent_association_moved before update of association_id on %s');
     for (const fn of ['vendor_link_parent_same_association', 'vendor_parent_association_moved']) {

@@ -375,7 +375,7 @@ begin
     return new;
   end if;
 
-  execute format('select association_id from %s where id = $1 for share', tg_argv[2])
+  execute format('select association_id from %s where id = $1 for share', tg_argv[2]::regclass)
     into v_association_id using v_parent_id;
   -- A missing parent is left to the foreign key; a company-level parent to
   -- the existing same-company checks.
@@ -418,7 +418,8 @@ begin
     execute format(
       'create or replace trigger trg_vendor_parent_same_association before insert or update of %I, %I on %s '
       || 'for each row execute function public.vendor_link_parent_same_association(%L, %L, %L)',
-      r.col, r.parent_col, r.tbl, r.col, r.parent_col, r.parent::text);
+      r.col, r.parent_col, r.tbl, r.col, r.parent_col,
+      (select format('%I.%I', n.nspname, c.relname) from pg_class c join pg_namespace n on n.oid = c.relnamespace where c.oid = r.parent));
   end loop;
 end $$;
 
@@ -466,6 +467,35 @@ begin
       || 'for each row when (new.association_id is distinct from old.association_id) '
       || 'execute function public.vendor_parent_association_moved()',
       r.parent);
+  end loop;
+end $$;
+
+-- Existing rows already follow the rule (a vendor placed before this
+-- migration ran, or on a re-run, is checked here too).
+do $$
+declare
+  r record;
+  v_bad boolean;
+begin
+  for r in select * from public.vendor_link_tables() loop
+    execute format(
+      'select exists (select 1 from %s x join public.vendors ven on ven.id = x.%I '
+      || 'where x.association_id is not null and ((not ven.is_management_company and ven.association_id is distinct from x.association_id) '
+      || 'or (ven.is_management_company and not exists (select 1 from public.associations a where a.id = x.association_id and a.portfolio_id = ven.portfolio_id))))',
+      r.tbl, r.col) into v_bad;
+    if v_bad then
+      raise exception '% has rows whose vendor belongs to another association. Correct them, then run this migration again.', r.tbl using errcode = '23514';
+    end if;
+  end loop;
+  for r in select * from public.vendor_parent_link_tables() loop
+    execute format(
+      'select exists (select 1 from %s x join %s p on p.id = x.%I join public.vendors ven on ven.id = x.%I '
+      || 'where p.association_id is not null and ((not ven.is_management_company and ven.association_id is distinct from p.association_id) '
+      || 'or (ven.is_management_company and not exists (select 1 from public.associations a where a.id = p.association_id and a.portfolio_id = ven.portfolio_id))))',
+      r.tbl, r.parent, r.parent_col, r.col) into v_bad;
+    if v_bad then
+      raise exception '% has rows whose vendor belongs to another association. Correct them, then run this migration again.', r.tbl using errcode = '23514';
+    end if;
   end loop;
 end $$;
 
