@@ -91,6 +91,13 @@ describe('open-balance import: credits', () => {
     expect(r.errors?.some((e) => e.includes('2 items were already imported earlier'))).toBe(true);
   });
 
+  it('reports a credit used up since as used up, not paid', async () => {
+    state.imported = [{ unit_id: UNIT_A, imported_balance: -75.5, memo: 'Prior system: Prepaid (credit dated 2026-09-15)' }];
+    const r = await importAppfolioReceivables(ASSOC, '2026-10-31', [items[0]], { confirmDuplicate: true, complete: true });
+    expect(r.errors?.some((e) => e.includes('1 credit imported earlier ($75.50) is no longer in this file (used up or removed'))).toBe(true);
+    expect(r.errors?.some((e) => e.includes('paid or removed'))).toBe(false);
+  });
+
   it('reports a credit whose amount changed instead of posting it again', async () => {
     state.imported = [{ unit_id: UNIT_A, imported_balance: -50, memo: 'Prior system: Prepaid (credit dated 2026-09-15)' }];
     const r = await importAppfolioReceivables(ASSOC, '2026-09-30', [items[1]], { confirmDuplicate: true, complete: true });

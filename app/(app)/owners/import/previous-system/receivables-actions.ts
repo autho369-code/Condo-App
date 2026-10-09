@@ -256,20 +256,30 @@ export async function importAppfolioReceivables(
       // AppFolio; a fully paid item drops out of the report). Only for a complete file: the
       // page sends the association's whole snapshot, but a row the parser could not read
       // would otherwise look paid.
-      const gone = new Map<string, { count: number; amount: number }>();
+      // Charges and credits are reported apart: a charge drops out when paid, a credit
+      // (negative amount) when it was used up.
+      const gone = new Map<string, { count: number; amount: number; credits: number; creditAmount: number }>();
       let goneUnchecked = 0;
       for (const [key, amounts] of already) {
         if (amounts.length && options.complete !== true) { goneUnchecked += amounts.length; continue; }
         if (!amounts.length) continue;
         const unitId = key.slice(0, key.indexOf('|'));
-        const g = gone.get(unitId) ?? { count: 0, amount: 0 };
-        g.count += amounts.length;
-        g.amount += amounts.reduce((sum, a) => sum + a, 0) / 100;
+        const g = gone.get(unitId) ?? { count: 0, amount: 0, credits: 0, creditAmount: 0 };
+        for (const a of amounts) {
+          if (a < 0) { g.credits++; g.creditAmount += -a / 100; } else { g.count++; g.amount += a / 100; }
+        }
         gone.set(unitId, g);
       }
       for (const [unitId, g] of gone) {
-        const unitNumber = unitNumberById.get(unitId);
-        changed.push(`${unitNumber ? `Unit "${unitNumber}"` : 'An archived unit'}: ${g.count} item${g.count === 1 ? '' : 's'} imported earlier (${usd(g.amount)}) ${g.count === 1 ? 'is' : 'are'} no longer in this file (paid or removed in your previous system). Compare the unit's current balance with your previous system (Import Variances report) before changing it.`);
+        const unit = unitNumberById.get(unitId);
+        const who = unit ? `Unit "${unit}"` : 'An archived unit';
+        const compare = "Compare the unit's current balance with your previous system (Import Variances report) before changing it.";
+        if (g.count) {
+          changed.push(`${who}: ${g.count} item${g.count === 1 ? '' : 's'} imported earlier (${usd(g.amount)}) ${g.count === 1 ? 'is' : 'are'} no longer in this file (paid or removed in your previous system). ${compare}`);
+        }
+        if (g.credits) {
+          changed.push(`${who}: ${g.credits} credit${g.credits === 1 ? '' : 's'} imported earlier (${usd(g.creditAmount)}) ${g.credits === 1 ? 'is' : 'are'} no longer in this file (used up or removed in your previous system). ${compare}`);
+        }
       }
       if (goneUnchecked) {
         changed.push(`${goneUnchecked} item${goneUnchecked === 1 ? '' : 's'} imported earlier ${goneUnchecked === 1 ? 'is' : 'are'} not in this file, but the file had rows that could not be read or has no Total line it ties to, so ${goneUnchecked === 1 ? 'it was' : 'they were'} not checked.`);
