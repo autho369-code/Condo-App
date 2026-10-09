@@ -1459,7 +1459,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-gray-500">Sign-in:</span>
                 {addedLoginError ? (
-                  <span className="text-xs text-red-600">Could not load: {addedLoginError.message}</span>
+                  <StatusChip tone="danger">Could not load: {addedLoginError.message}</StatusChip>
                 ) : owner.auth_user_id ? (
                   <span className="text-gray-700">Own sign-in</span>
                 ) : addedLogin ? (

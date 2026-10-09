@@ -75,7 +75,7 @@ export async function saveInsurancePolicy(input: {
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: occ } = await db
+  const { data: occ, error: occError } = await db
     .from('occupancies')
     .select('association_id')
     .eq('owner_id', record)
@@ -85,6 +85,7 @@ export async function saveInsurancePolicy(input: {
     .limit(1)
     .maybeSingle();
 
+  if (occError) return { error: `Could not check your unit: ${occError.message}` };
   if (!occ?.association_id) return { error: 'This association has no current unit of yours to insure.' };
 
   const { data: policy, error } = await db.from('insurance_policies').insert({

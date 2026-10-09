@@ -86,4 +86,9 @@ Back to [[Home]]. Don't redo these.
   only while `auth_user_id` is set), so it does not unbind; board access stays
   on `board_members` (already per association). Shipped in two PRs: database
   + invitations first (current pages keep reading the first record), then
-  the portal pages and the staff owner pickers.
+  the portal pages and the staff owner pickers (part 2). Rules from part 2:
+  a write by a login with several records never falls back silently to the
+  first record; it uses the record holding the unit/association, or asks
+  which association (`?record=` switcher / Association select). Staff side:
+  an owner picked with no association must be in an association the caller
+  manages; with one, the owner must be that association's record.

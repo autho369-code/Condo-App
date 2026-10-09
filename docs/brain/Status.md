@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #266 merged; owner login part 2 in progress).
+Back to [[Home]]. Updated 2026-10-09 (after #266 merged; owner login part 2 in PR).
 
 ## Where things stand
 - #266 merged (ffca485): owner login across associations, part 1 (database +
@@ -20,10 +20,21 @@ Back to [[Home]]. Updated 2026-10-09 (after #266 merged; owner login part 2 in p
   pilot).
 
 ## Open PR
+- Owner login part 2 (in PR, branch claude/serene-wozniak-hvgpxf): owner
+  portal reads every record of the login; each write names its record (pay,
+  autopay, amenities, architectural, service requests by the unit's record;
+  surveys by the survey's association; insurance + contact details with a
+  per-record switcher; messages via new submit_owner_message 4-arg overload,
+  migration 20261009060000). Staff: owner pickers follow the association (OwnerSelect),
+  checkLinkedRecords refuses an owner of another association (or, with no
+  association, one the caller doesn't manage); owner page shows "Sign-in:".
+  Insurance save reports a failed unit lookup. Emergency page names every
+  association. Do not merge until 20261009060000 is live (Claude applies it
+  after Codex is clean, before Mirsad merges, and reads it back).
 - #263 merged (dfa8f42): vendors belong to one association (management
   company is the one exception). Migration 20261009020000 applied by Claude
   and read back (2 columns + check + indexes, 14+4+3+4 triggers, all
-  policies, functions; the one vendor is in Randolph Station). No open PR.
+  policies, functions; the one vendor is in Randolph Station).
 - #258 merged (4f5f0d4): AppFolio open-balance re-imports never repost an
   item: same unit + GL + charge date with a changed amount is reported;
   earlier items missing from a complete file (has a Total line it ties to)
@@ -44,7 +55,7 @@ Back to [[Home]]. Updated 2026-10-09 (after #266 merged; owner login part 2 in p
   import_locks table + RLS + 3 policies + grants + can_hold_import_lock
   (PL/pgSQL) verified; claim_import_lock run by Mirsad (above).
 - #259 merged (bac812b); #260 merged: work-order status "Assigned by
-  AppFolio" is shown and stored as "Assigned". No open PR.
+  AppFolio" is shown and stored as "Assigned".
 - #261 merged (deb3ad3): homeowners belong to one association. Migration
   20261009010000 applied by Claude and verified (owners.association_id NOT
   NULL, FK ON DELETE RESTRICT, 6 triggers enabled, restrictive
@@ -65,19 +76,18 @@ Back to [[Home]]. Updated 2026-10-09 (after #266 merged; owner login part 2 in p
   vendor_portal_logins RLS on, select-only; trigger functions not executable
   by authenticated; current_vendor_id() has no email fallback; turn-off
   trigger enabled. As the live vendor (rolled back): 1 record, 23 vendor
-  tables 49 ms warm (62 ms before). No open PR.
+  tables 49 ms warm (62 ms before).
 - #264 merged: bills CSV upload matches the vendor inside the row's
   association (migration 20261009030000 run by Mirsad, read back: body
   matches the file apart from 3 blank lines the editor dropped; grants
-  authenticated + service_role). No open PR.
+  authenticated + service_role).
 - Randolph Station created by Mirsad (2026-10-09) for the first real import;
   it is the only association. Granville Courts, 7241 N. Ridge and the Pine
   Tree sample were deleted by Mirsad in the SQL editor (one DO block: user
   triggers paused, journal entries/bills/tenants/blocking rows removed,
   triggers re-enabled; verified 0 disabled triggers, 0 orphan journal
   lines). The 14 old demo owners are gone (0 owners now).
-- Next gaps: (1) multi-property owner portal: part 1 merged (#266), part 2
-  in progress (portal pages, owner pickers; see Next gaps -1);
+- Next gaps: (1) owner first-record leftovers (Next gaps -1);
   (2) chart of accounts entered/changed by the
   company admin only; (3) a real end-to-end import of Randolph Station;
   (4) credit balances from the Aged Receivable file (listed, not posted).
@@ -181,24 +191,21 @@ Back to [[Home]]. Updated 2026-10-09 (after #266 merged; owner login part 2 in p
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
--1. In progress: owner login part 2 (part 1 = #266, merged): portal pages read every record of
-   the login (`me.owner_ids`, union with association labels), each write
-   targets its exact record (pay, autopay, insurance, architectural, service
-   requests, amenities, surveys answered as the survey's association record,
-   submit_owner_message per association), the staff owner pickers list only
-   the chosen association's owners, and the staff owner page shows records
-   added to a login (portal access/reset treat them as having an account).
-   (The board-to-owner demotion on accepting an owner invitation is fixed in
-   part 1 by trg_profiles_keep_board_role; accept_invitation is unchanged.)
+-1. Owner login leftovers after part 2 (still read or act for the login's
+   first record only): home and account pages (contact details),
+   `owner_open_emergencies`, `form_submissions_owner_insert` /
+   `form_templates_owner_read` (re-check against migration 20261009050000),
+   and the suspended-company check. Part 2 itself is in Open PR.
 0. AppFolio importer follow-ups: credit balances (owner prepayments), and
    run the real import for one association end to end after merge. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
    step would be per-request identity caching (riskier, measure first).
 1. `checkLinkedRecords` with no association (calendar events without one):
-   a vendor/owner only has to be visible, so a platform operator could attach
+   a vendor only has to be visible, so a platform operator could attach
    another company's. Compare against the record's company (DB trigger
-   already covers calendar vendors). Low.
+   already covers calendar vendors). Low. (The owner half is fixed in owner
+   login part 2: the owner's association must be one the caller manages.)
 2. Run a third overseer + security-reviewer audit for new gaps.
 3. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
    forms.

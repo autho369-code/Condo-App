@@ -115,7 +115,8 @@ export default async function NewCalendarEventPage({
 
               <div>
                 <Label htmlFor="owner_id">Owner / resident</Label>
-                <OwnerSelect id="owner_id" name="owner_id" defaultValue="" owners={owners ?? []} placeholder="Not applicable" />
+                <OwnerSelect id="owner_id" name="owner_id" defaultValue="" owners={owners ?? []} placeholder="Not applicable"
+                  associationNames={Object.fromEntries((associations ?? []).map((a: any) => [a.id, a.name]))} />
               </div>
 
               <label className="flex items-center gap-2 text-sm text-gray-700">

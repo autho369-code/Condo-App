@@ -64,6 +64,12 @@ export async function checkLinkedRecords(
     if (!data) return 'The selected owner is unavailable or outside your access.';
     // An owner has one record per association: it must be the chosen association's.
     if (associationId && data.association_id !== associationId) return 'The selected owner is not in this association.';
+    // With no association chosen, the owner's own association must be one the
+    // caller manages (owners are readable company-wide; platform operators
+    // see every company's).
+    if (!associationId && !(await managesAssociation(db, data.association_id))) {
+      return 'The selected owner is in an association outside your access.';
+    }
   }
   return null;
 }

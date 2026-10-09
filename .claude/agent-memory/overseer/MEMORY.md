@@ -101,3 +101,14 @@
 - Status said "Claude applies once Codex is clean" — PR Rules say apply the
   additive migration as soon as the SQL is settled and put "do not merge
   until the migration is live" in the PR body. Check the wording.
+- Recurring 4th time (owner login part 2, 2026-10-09): "Next gaps: (1)"
+  bullet inside Status → Open PR still names the in-PR gap; Next gaps -1 still
+  "In PR: ..." instead of the leftover as top gap; older merged entries still
+  say "No open PR." while one is open. Also 3rd time: security-reviewer memory
+  still records the checkLinkedRecords no-association owner hole the same
+  diff fixed. And 2nd: new components/ui/* (RecordSwitcher) + OwnerSelect not
+  in docs/DESIGN_SYSTEM.md. And again: "apply after Codex is clean" wording.
+- Multi-record login PRs: diff the migration-reviewer's "still first-record
+  only" follow-up list against Status Next gaps; part 2 vault listed only
+  home/account, dropped owner_open_emergencies, form_submissions_owner_insert,
+  form_templates_owner_read, suspended-company check.

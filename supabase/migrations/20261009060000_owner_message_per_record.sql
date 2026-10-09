@@ -129,6 +129,7 @@ begin
 end;
 $function$;
 
+alter function public.submit_owner_message(text, text, uuid, uuid) owner to postgres;
 revoke all on function public.submit_owner_message(text, text, uuid, uuid) from public, anon;
 grant execute on function public.submit_owner_message(text, text, uuid, uuid) to authenticated, service_role;
 

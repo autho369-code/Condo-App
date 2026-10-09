@@ -50,6 +50,14 @@ or `StatusChip` (`components/operations/status-chip.tsx`). Never hand-pick statu
   picker. Offers only one association's vendors (fixed `associationId`, or
   the form's `association_id` field) plus the management company. Put the
   association field before the vendor field.
+- `OwnerSelect` — `components/owners/owner-select.tsx` — staff owner picker.
+  One person has one owner record per association: it follows the form's
+  `association_id` field and offers only that association's owners (before
+  one is chosen, pass `associationNames` so each option names its
+  association). Put the association field before the owner field.
+- `RecordSwitcher` — `components/ui/record-switcher.tsx` — owner portal
+  pages that work on one record at a time (insurance, contact details):
+  pills linking `?record=<id>`, shown only when the login has 2+ records.
 - Forms live inside `Surface`; one column on mobile, `sm:grid-cols-2` where
   fields pair naturally; primary action bottom-left, `Button` md size.
 

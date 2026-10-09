@@ -91,7 +91,9 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
           {records.length > 1 ? (
             <label className="block"><span className="text-sm font-medium text-gray-700">Association</span><select name="record_id" required defaultValue={records[0].id} className="mt-1 block min-h-10 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">{records.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}</select></label>
           ) : (
-            <input type="hidden" name="record_id" value={me.owner_id ?? ''} />
+            // Never a silent first-record fallback for a login with several records
+            // (their list failed to load): the action then asks for the association.
+            <input type="hidden" name="record_id" value={me.owner_ids.length === 1 ? me.owner_id ?? '' : ''} />
           )}
           <label className="block"><span className="text-sm font-medium text-gray-700">Subject</span><input name="subject" required minLength={2} maxLength={200} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
           <label className="block"><span className="text-sm font-medium text-gray-700">Message</span><textarea name="body" required minLength={2} maxLength={10000} rows={4} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
