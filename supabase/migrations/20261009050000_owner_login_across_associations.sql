@@ -1195,7 +1195,11 @@ begin
     update public.owners o
        set portal_activated = true
      where o.id = v_owner
+       and o.portfolio_id = new.portfolio_id
        and o.association_id = v_assoc
+       -- The record still carries the invited email (a stale invitation for an
+       -- old address must not switch an old account back on).
+       and lower(btrim(o.email)) = lower(btrim(new.email))
        and not o.portal_activated
        and o.archived_at is null
        and (o.auth_user_id = new.used_by
@@ -1209,7 +1213,10 @@ begin
   if not exists (
     select 1 from public.owners o
      where o.id = v_owner
+       and o.portfolio_id = new.portfolio_id
+       and o.association_id = v_assoc
        and o.archived_at is null
+       and lower(btrim(o.email)) = lower(btrim(new.email))
        and (o.auth_user_id = new.used_by
             or exists (select 1 from public.owner_portal_logins l
                         where l.owner_id = o.id and l.auth_user_id = new.used_by and l.revoked_at is null))) then

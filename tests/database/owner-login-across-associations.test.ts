@@ -75,6 +75,8 @@ describe('owner login across associations: database', () => {
     expect(link).toContain('and o.association_id = v_assoc');
     expect(link).toContain('where u.id = new.used_by and lower(btrim(u.email)) = lower(btrim(new.email))');
     expect(link).toContain('and (o.auth_user_id = new.used_by');
+    // The success check and the re-activation both require the record's current email and company.
+    expect(link.match(/and lower\(btrim\(o\.email\)\) = lower\(btrim\(new\.email\)\)/g)?.length).toBeGreaterThanOrEqual(4);
     // Nothing linked = the acceptance rolls back (the invitation stays usable).
     expect(link).toContain("raise exception 'The invited owner record could not be linked to this account. Ask the management office for a new invitation.'");
     expect(link).toContain("raise exception 'This owner invitation cannot be used by this account. Ask the management office for a new invitation.'");
