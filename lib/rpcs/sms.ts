@@ -53,7 +53,7 @@ export async function sendSms(formData: FormData) {
 
   const { data: entity } = recipientType === 'owner'
     ? await db.from('owners').select('full_name, phone, phone_numbers').eq('id', recipientId).maybeSingle()
-    : await db.from('vendors').select('name, phone_numbers').eq('id', recipientId).maybeSingle();
+    : await db.from('vendors').select('name, phone_numbers, association_id').eq('id', recipientId).maybeSingle();
   if (!entity) { failTo('Select an accessible owner or vendor.'); return; }
   const entityPhones = [entity.phone, ...phoneNumberList(entity.phone_numbers)]
     .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
@@ -61,9 +61,10 @@ export async function sendSms(formData: FormData) {
   if (!entityPhones.includes(phoneNumber)) { failTo('The SMS number must match the selected recipient record.'); return; }
   const entityName = recipientType === 'owner' ? entity.full_name : entity.name;
 
-  // The conversation belongs to the owner's association (managers scoped to
-  // associations only see conversations for theirs). Vendors are company-wide.
-  let associationId: string | null = null;
+  // The conversation belongs to the owner's or vendor's association (managers
+  // scoped to associations only see conversations for theirs). Only the
+  // management company, which serves every association, is company-wide.
+  let associationId: string | null = recipientType === 'vendor' ? entity.association_id ?? null : null;
   if (recipientType === 'owner') {
     const { data: occ, error: occError } = await db
       .from('occupancies')
@@ -159,6 +160,7 @@ export async function sendSms(formData: FormData) {
     status: 'queued',
     recipient_group: recipientType,
     recipient_phone: phoneNumber,
+    association_id: associationId,
     body,
     sent_at: null,
     created_by: me.auth_user_id,

@@ -898,12 +898,13 @@ export async function createVendor(formData: FormData) {
   if (fin.bank_routing_number && !/^\d{9}$/.test(fin.bank_routing_number)) { failTo('Bank routing number must be 9 digits.'); return; }
   if (fin.bank_account_number && !/^\d{4,17}$/.test(fin.bank_account_number)) { failTo('Bank account number must be 4–17 digits.'); return; }
 
-  const { data: v, error } = await (supabase as any).from('vendors').insert(payload).select('id').single();
+  const { data: v, error } = await (supabase as any).from('vendors').insert(payload).select('id, portfolio_id').single();
   if (error || !v) { failTo(error?.message ?? 'Failed to create vendor'); return; }
 
   if (hasFin) {
     const { error: finError } = await (supabase as any).from('vendor_financial_details').insert({
-      vendor_id: v.id, portfolio_id: me.portfolio?.id, ...fin, updated_by: me.auth_user_id,
+      // The vendor's company (taken from its association), not the signer's.
+      vendor_id: v.id, portfolio_id: v.portfolio_id, ...fin, updated_by: me.auth_user_id,
     });
     if (finError) redirect(`/vendors/${v.id}/edit?error=${encodeURIComponent('Vendor created, but the tax and bank details could not be saved: ' + finError.message)}`);
   }
