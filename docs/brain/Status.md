@@ -19,13 +19,10 @@ Back to [[Home]]. Updated 2026-10-08 (after #258).
   export is left to the Import Variances report (Mirsad's call, see
   [[Decisions]]); "Download all messages" saves the full result. No
   migration.
-- **Waiting on Mirsad: run `claim_import_lock`** (the SQL is at the end of
-  `supabase/migrations/20261008080000_import_locks.sql`, from
-  `create or replace function public.claim_import_lock` to the end). Every
-  AppFolio import fails with "Could not start the import" until it exists.
-  The MCP refused it because its body has a DELETE (clears a stale lock
-  older than 15 min of the caller's own scope), which the rules send to
-  Mirsad.
+- Migration 20261008080000 complete: Mirsad ran `claim_import_lock` in the
+  SQL editor (2026-10-09); verified PL/pgSQL, SECURITY INVOKER, search_path
+  set, no anon execute, 3 policies + RLS on import_locks. AppFolio imports
+  can run.
 - #257 merged (6d10b58, squash of c78db2d): AppFolio importer on one page
   (`/owners/import/appfolio`), every parser checked on Mirsad's real exports
   (not kept in the repo): units, homeowners + ownership % + dues (dues on the
@@ -33,10 +30,10 @@ Back to [[Home]]. Updated 2026-10-08 (after #258).
   open balances, work orders. Migration 20261008070000 applied and verified
   (Import Variances per unit + date). 20261008080000 applied in parts:
   import_locks table + RLS + 3 policies + grants + can_hold_import_lock
-  (PL/pgSQL) verified; claim_import_lock still to run (above).
-- Next gaps: credit balances from the Aged Receivable file (listed, not
-  posted); a real end-to-end import of one association after
-  claim_import_lock is in.
+  (PL/pgSQL) verified; claim_import_lock run by Mirsad (above).
+- Next gaps: a real end-to-end import of one association (Mirsad, in the
+  app, in page order); credit balances from the Aged Receivable file
+  (listed, not posted).
 - #256 merged (7b37b23); migration 20261008060000 applied and verified (7
   SETOF uuid identity helpers are PL/pgSQL, SECURITY DEFINER, search_path
   kept). Live timings for 30 tables per role, original -> now: board
