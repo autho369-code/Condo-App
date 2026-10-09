@@ -22,6 +22,9 @@
 --    transfer_unit_ownership, linkOccupancy, owner create, CSV import, the
 --    previous-system import and direct table writes. A unit or building with
 --    homeowner/resident links cannot move to another association.
+-- 3b. A manager limited to some associations (association_managers) sees and
+--    edits only their homeowners (restrictive mgr_assoc_scope on owners and
+--    owner_private, as on units, occupancies and tenants).
 -- 4. Portal sign-in: owners(auth_user_id) stays unique (one sign-in, one
 --    record). auto_link_portal_user() and relink_all_portal_users() now link
 --    the oldest matching record instead of failing on a second one.
@@ -147,9 +150,12 @@ begin
     raise exception 'A homeowner must belong to an association.' using errcode = '23502';
   end if;
 
+  -- Locked, so a concurrent move of the association to another company waits
+  -- for this row (and then carries it along), or this waits for the move.
   select a.portfolio_id into v_portfolio_id
   from public.associations a
-  where a.id = new.association_id;
+  where a.id = new.association_id
+  for share;
 
   if not found then
     raise exception 'Association not found for this homeowner.' using errcode = '23503';
@@ -158,7 +164,7 @@ begin
     raise exception 'This association has no company, so it cannot have homeowners yet.' using errcode = '23502';
   end if;
 
-  if tg_op = 'UPDATE' and new.association_id is distinct from old.association_id and exists (
+  if tg_op = 'UPDATE' and new.association_id is distinct from old.association_id and (exists (
     select 1 from public.occupancies o
     where o.owner_id = new.id and o.association_id <> new.association_id
   ) or exists (
@@ -166,7 +172,7 @@ begin
       join public.units u on u.id = uo.unit_id
       join public.buildings bl on bl.id = u.building_id
      where uo.owner_id = new.id and bl.association_id <> new.association_id
-  ) then
+  )) then
     raise exception 'This homeowner has units in their current association. Add them as a new homeowner of the other association instead.'
       using errcode = '23514';
   end if;
@@ -279,8 +285,10 @@ declare
   v_old uuid;
   v_new uuid;
 begin
-  select b.association_id into v_old from public.buildings b where b.id = old.building_id;
-  select b.association_id into v_new from public.buildings b where b.id = new.building_id;
+  -- Locked, so a concurrent move of either building to another association
+  -- waits for this (and its guard then sees the unit), or this sees the move.
+  select b.association_id into v_old from public.buildings b where b.id = old.building_id for share;
+  select b.association_id into v_new from public.buildings b where b.id = new.building_id for share;
   if v_old is distinct from v_new and (
        exists (select 1 from public.occupancies o where o.unit_id = new.id)
        or exists (select 1 from public.unit_owners uo where uo.unit_id = new.id)) then
@@ -341,6 +349,22 @@ create or replace trigger trg_associations_move_owner_portfolio
   after update of portfolio_id on public.associations
   for each row when (new.portfolio_id is distinct from old.portfolio_id)
   execute function public.associations_move_owner_portfolio();
+
+-- Association-scoped managers (association_managers) see and edit only the
+-- homeowners of their associations, like units, occupancies and tenants: the
+-- same restrictive mgr_assoc_scope policy, and the same for owner_private.
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'owners' and policyname = 'mgr_assoc_scope') then
+    create policy mgr_assoc_scope on public.owners as restrictive for all to authenticated
+      using (public.can_view_association_row(association_id));
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'owner_private' and policyname = 'mgr_assoc_scope') then
+    create policy mgr_assoc_scope on public.owner_private as restrictive for all to authenticated
+      using (exists (select 1 from public.owners o
+                      where o.id = owner_private.owner_id and public.can_view_association_row(o.association_id)));
+  end if;
+end $$;
 
 -- 5) Portal sign-in -----------------------------------------------------------
 -- owners.auth_user_id stays unique: one sign-in, one homeowner record (so a

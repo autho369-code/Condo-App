@@ -93,6 +93,11 @@ describe('owners belong to exactly one association', () => {
     expect(migration).toMatch(/before update of association_id on public\.buildings/);
   });
 
+  it('limits association-scoped managers to their associations\' homeowners', () => {
+    expect(migration).toMatch(/create policy mgr_assoc_scope on public\.owners as restrictive for all to authenticated\s+using \(public\.can_view_association_row\(association_id\)\)/);
+    expect(migration).toMatch(/create policy mgr_assoc_scope on public\.owner_private as restrictive/);
+  });
+
   it('never deletes homeowners with a plain association delete', () => {
     expect(migration).toContain('references public.associations(id) on delete restrict');
   });
