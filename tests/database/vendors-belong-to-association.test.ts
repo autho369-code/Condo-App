@@ -213,6 +213,13 @@ describe('vendors belong to exactly one association', () => {
     expect(migration).toContain('create policy vendor_invite_scope_update on public.user_invitations as restrictive for update to authenticated');
   });
 
+  it('scopes vendor notes and tags to the vendor\'s association', () => {
+    expect(migration).toContain("raise exception 'You do not manage this vendor' using errcode = '42501';");
+    expect(migration).toContain("foreach t in array array['record_notes', 'tag_assignments'] loop");
+    // The owner branch of the existing row-scope trigger is kept.
+    expect(migration).toContain("raise exception 'You do not manage this owner' using errcode = '42501';");
+  });
+
   it('links an invitation for an exact vendor record to that record or none', () => {
     expect(migration).toMatch(/and \(nullif\(new\.metadata ->> 'vendor_id', ''\) is null\s+or c\.id::text = new\.metadata ->> 'vendor_id'\)/);
   });

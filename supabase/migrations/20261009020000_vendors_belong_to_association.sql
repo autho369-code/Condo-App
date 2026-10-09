@@ -31,8 +31,9 @@
 --    has such rows from a vendor of its current one.
 -- 4. Managers limited to some associations (association_managers) see only
 --    their associations' vendors (restrictive mgr_assoc_scope on vendors,
---    vendor_private, vendor_compliance, vendor_financial_details and the
---    vendors' document_requests; reviewing a vendor document checks it too).
+--    vendor_private, vendor_compliance, vendor_financial_details, the
+--    vendors' document_requests, documents, notes and tags; reviewing a
+--    vendor document checks it too).
 -- 5. Management fees: set_management_fee_schedule only accepts a vendor
 --    marked as the management company.
 -- 6. Portal sign-in: vendors.auth_user_id stays unique. With one record per
@@ -770,6 +771,57 @@ begin
                                 and ven.association_id is not null
                                 and public.can_view_association_row(ven.association_id)));
   end if;
+end $$;
+
+-- Notes and tags on a vendor follow the vendor's association, as they do for
+-- owners: association-scoped managers read only their associations' vendors'
+-- notes and tags, and change them only where they may change the vendor
+-- (not the management company). The write check lives in the existing
+-- row-scope trigger so the SECURITY DEFINER note/tag RPCs are covered too.
+create or replace function public.enforce_row_association_scope()
+returns trigger language plpgsql security definer set search_path = pg_catalog, public as $$
+declare
+  n jsonb := case when tg_op <> 'DELETE' then to_jsonb(new) end;
+  o jsonb := case when tg_op <> 'INSERT' then to_jsonb(old) end;
+  a uuid;
+  v_vendor_association uuid;
+begin
+  if auth.uid() is null or not public.manager_is_scoped() then return coalesce(new, old); end if;  -- jobs, unscoped users
+  foreach a in array array[public.row_association_id(n), public.row_association_id(o)] loop
+    if a is not null and not public.can_view_association_row(a) then
+      raise exception 'You do not manage this association' using errcode = '42501';
+    end if;
+  end loop;
+  -- Notes and tags on an owner record follow the owner's associations.
+  if coalesce(lower(n->>'entity_type'), lower(o->>'entity_type')) = 'owner'
+     and not public.can_view_owner_row(coalesce(n->>'entity_id', o->>'entity_id')::uuid) then
+    raise exception 'You do not manage this owner' using errcode = '42501';
+  end if;
+  -- Notes and tags on a vendor follow the vendor's association.
+  if coalesce(lower(n->>'entity_type'), lower(o->>'entity_type')) = 'vendor' then
+    select ven.association_id into v_vendor_association
+      from public.vendors ven where ven.id = coalesce(n->>'entity_id', o->>'entity_id')::uuid;
+    if found and (not public.can_write_vendor_row(v_vendor_association)
+                  or (v_vendor_association is not null and not public.can_view_association_row(v_vendor_association))) then
+      raise exception 'You do not manage this vendor' using errcode = '42501';
+    end if;
+  end if;
+  return coalesce(new, old);
+end $$;
+revoke all on function public.enforce_row_association_scope() from public, anon, authenticated;
+
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['record_notes', 'tag_assignments'] loop
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'mgr_vendor_assoc_scope') then
+      execute format(
+        'create policy mgr_vendor_assoc_scope on public.%I as restrictive for select to authenticated '
+        || 'using (lower(entity_type::text) is distinct from ''vendor'' or exists (select 1 from public.vendors ven '
+        || 'where ven.id = %I.entity_id and public.can_view_association_row(ven.association_id)))', t, t);
+    end if;
+  end loop;
 end $$;
 
 -- 6) Management fees go to the management company ---------------------------
