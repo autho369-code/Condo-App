@@ -135,9 +135,15 @@ describe('vendors belong to exactly one association', () => {
 
   it('limits association-scoped managers to their associations\' vendors', () => {
     expect(migration).toMatch(/create policy mgr_assoc_scope on public\.vendors as restrictive for all to authenticated\s+using \(public\.can_view_association_row\(association_id\)\)/);
-    for (const t of ['vendor_private', 'vendor_compliance', 'vendor_financial_details']) {
+    for (const t of ['vendor_private', 'vendor_compliance', 'vendor_financial_details', 'document_requests']) {
       expect(migration).toMatch(new RegExp(`create policy mgr_assoc_scope on public\\.${t} as restrictive`));
     }
+  });
+
+  it('scopes vendor document review to the vendor\'s association', () => {
+    const review = migration.slice(migration.indexOf('create or replace function public.review_vendor_document_request('));
+    expect(review).toContain('or not public.can_view_association_row((select ven.association_id from public.vendors ven where ven.id = r.vendor_id)) then');
+    expect(migration).toContain('using (vendor_id is null or exists (select 1 from public.vendors ven');
   });
 
   it('bills management fees only to the management company', () => {

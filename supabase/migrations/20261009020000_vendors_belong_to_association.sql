@@ -31,7 +31,8 @@
 --    has such rows from a vendor of its current one.
 -- 4. Managers limited to some associations (association_managers) see only
 --    their associations' vendors (restrictive mgr_assoc_scope on vendors,
---    vendor_private, vendor_compliance, vendor_financial_details).
+--    vendor_private, vendor_compliance, vendor_financial_details and the
+--    vendors' document_requests; reviewing a vendor document checks it too).
 -- 5. Management fees: set_management_fee_schedule only accepts a vendor
 --    marked as the management company.
 -- 6. Portal sign-in: vendors.auth_user_id stays unique. With one record per
@@ -591,6 +592,63 @@ begin
                       where ven.id = vendor_financial_details.vendor_id and public.can_view_association_row(ven.association_id)));
   end if;
 end $$;
+
+-- Document requests sent to a vendor follow the vendor's association (owner
+-- requests carry no vendor and are left as they are).
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'document_requests' and policyname = 'mgr_assoc_scope') then
+    create policy mgr_assoc_scope on public.document_requests as restrictive for all to authenticated
+      using (vendor_id is null or exists (select 1 from public.vendors ven
+                      where ven.id = document_requests.vendor_id and public.can_view_association_row(ven.association_id)));
+  end if;
+end $$;
+
+-- Reviewing a vendor's document needs access to the vendor's association too.
+create or replace function public.review_vendor_document_request(
+  p_request_id uuid, p_approve boolean, p_note text, p_expires_on date)
+returns void
+language plpgsql volatile security definer set search_path = pg_catalog, public as $$
+declare r record; v_col text; v_path text;
+begin
+  select * into r from public.document_requests where id = p_request_id and vendor_id is not null for update;
+  if not found or not public.can_access_portfolio(r.portfolio_id)
+     or not public.can_view_association_row((select ven.association_id from public.vendors ven where ven.id = r.vendor_id)) then
+    raise exception 'Request not found' using errcode = 'P0002';
+  end if;
+  if r.status::text <> 'submitted' then
+    raise exception 'Only submitted documents can be reviewed' using errcode = '55000';
+  end if;
+  if not p_approve and length(btrim(coalesce(p_note, ''))) < 3 then
+    raise exception 'Tell the vendor what is wrong so they can fix it' using errcode = '22023';
+  end if;
+  v_col := public.vendor_expiration_column(r.doc_type);
+  if p_approve and v_col is not null and p_expires_on is null then
+    raise exception 'Enter the expiration date from the document' using errcode = '22023';
+  end if;
+
+  update public.document_requests
+     set status = case when p_approve then 'approved' else 'rejected' end::public.document_request_status,
+         reviewed_at = now(), reviewed_by = auth.uid(), review_note = nullif(btrim(p_note), ''), updated_at = now()
+   where id = r.id;
+
+  if p_approve and v_col is not null then
+    execute format('update public.vendors set %I = $1, updated_at = now() where id = $2', v_col) using p_expires_on, r.vendor_id;
+    v_path := r.attachment_urls ->> (jsonb_array_length(r.attachment_urls) - 1);
+    if v_path is not null then
+      update public.documents set expires_at = p_expires_on::timestamptz
+       where entity_type = 'vendor' and entity_id = r.vendor_id and file_url = v_path;
+    end if;
+  end if;
+
+  insert into public.audit_logs (portfolio_id, entity_type, entity_id, action, actor_id, actor_email, changes)
+  values (r.portfolio_id, 'vendor', r.vendor_id, case when p_approve then 'vendor_document_approved' else 'vendor_document_rejected' end,
+          auth.uid(), (select email from auth.users where id = auth.uid()),
+          jsonb_build_object('request_id', r.id, 'doc_type', r.doc_type, 'expires_on', p_expires_on, 'note', p_note));
+end $$;
+
+revoke all on function public.review_vendor_document_request(uuid, boolean, text, date) from public, anon;
+grant execute on function public.review_vendor_document_request(uuid, boolean, text, date) to authenticated, service_role;
 
 -- A manager limited to some associations may see the company-level
 -- management company (it serves their associations) but not change or remove
