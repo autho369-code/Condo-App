@@ -31,6 +31,10 @@ Back to [[Home]]. Updated 2026-10-09 (after #268 merged; importer credits in PR)
   account an imported charge of the "Other" category posts to / Cr A/R; the
   unit's balance goes negative (prepayment), recorded as a negative
   imported_balances row so a re-import skips it and Import Variances ties.
+  Migration 20261009080000 applied by Claude and read back (definer helper
+  import_credit_income_account with finance + association checks, since
+  charge_gl_accounts is service_role only; the RPC is security invoker;
+  anon has no execute on either).
   Mirsad uploaded the Randolph Station homeowner directory (2026-10-09):
   parses clean (17 current homeowners, 17 units, ownership 100%, dues
   $10,439.96/month); it needs the Unit Directory imported first (0 units
