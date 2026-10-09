@@ -136,3 +136,12 @@
   imported_balances (repeat-import dedupe + Import Variances), and the
   "Credits are not imported" text in receivables-section.tsx:142 updated.
   The end-to-end import is Mirsad's to run (his files, his data).
+- Recurring 2nd time (importer credits pre-PR, 2026-10-09): the just-merged
+  PR (#268) was put under Status → Open PR as "#268 merged" instead of
+  "Where things stand"; merged #267 sat in both sections. Open PR must hold
+  only the open PR. Also: Product Rules line 6 still said "Additive
+  migrations: Claude applies after merge" (contradicts PR Rules: apply as
+  soon as the SQL is settled) - the source of the repeated wrong wording.
+- Import credits: the "no longer in this file (paid or removed ...)" message
+  in receivables-actions.ts also fires for an imported credit that was used
+  up; check wording when a sign-flipped row type joins an existing loop.

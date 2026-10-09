@@ -3,6 +3,21 @@
 Back to [[Home]]. Updated 2026-10-09 (after #268 merged; importer credits in PR).
 
 ## Where things stand
+- #268 merged (65414f0): owner login leftovers. The
+  account page has the per-association switcher (that record's details and
+  every current unit); home lists each association's emergency contact;
+  migration 20261009070000 lets added records read their association's
+  shared files (policy altered in place) and fixes can_access_association_mvp
+  (unused today). Checked live, no change needed: owner_open_emergencies,
+  form_templates_owner_read / form_submissions_owner_insert (already
+  current_owner_ids since 20261009050000), the suspended-company check (the
+  profile check covers every record: all are in the profile's company),
+  can_access_meeting / calculate_meeting_quorum / is_portal_resident (use
+  current_owner_id() only as "is an owner"). Migration 20261009070000
+  applied by Claude and read back: policy SELECT authenticated via
+  current_resident_association_ids(); can_access_association_mvp owner
+  postgres, anon no execute; 0 live policies still match owners by
+  auth_user_id.
 - #267 merged (f06b9fb): owner login across associations, part 2. Owner
   portal reads every record of the login; each write names its record;
   staff owner pickers follow the association. Migration 20261009060000
@@ -39,25 +54,6 @@ Back to [[Home]]. Updated 2026-10-09 (after #268 merged; importer credits in PR)
   parses clean (17 current homeowners, 17 units, ownership 100%, dues
   $10,439.96/month); it needs the Unit Directory imported first (0 units
   live). The import itself is Mirsad's to run on the import page.
-- #268 merged (65414f0): owner login leftovers. The
-  account page has the per-association switcher (that record's details and
-  every current unit); home lists each association's emergency contact;
-  migration 20261009070000 lets added records read their association's
-  shared files (policy altered in place) and fixes can_access_association_mvp
-  (unused today). Checked live, no change needed: owner_open_emergencies,
-  form_templates_owner_read / form_submissions_owner_insert (already
-  current_owner_ids since 20261009050000), the suspended-company check (the
-  profile check covers every record: all are in the profile's company),
-  can_access_meeting / calculate_meeting_quorum / is_portal_resident (use
-  current_owner_id() only as "is an owner"). Migration 20261009070000
-  applied by Claude and read back: policy SELECT authenticated via
-  current_resident_association_ids(); can_access_association_mvp owner
-  postgres, anon no execute; 0 live policies still match owners by
-  auth_user_id.
-- #267 merged (f06b9fb): owner login part 2 — portal reads every record,
-  writes name their record, staff pickers follow the association. Migration
-  20261009060000 applied by Claude before merge and read back (both
-  submit_owner_message signatures, owner postgres, anon has no execute).
 - #263 merged (dfa8f42): vendors belong to one association (management
   company is the one exception). Migration 20261009020000 applied by Claude
   and read back (2 columns + check + indexes, 14+4+3+4 triggers, all

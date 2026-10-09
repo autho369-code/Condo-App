@@ -3,8 +3,10 @@
 Back to [[Home]].
 
 - Supabase project `termxngysvotnfbzbgrv` only — never touch staging or
-  stellar-ops without asking. Additive migrations: Claude applies after merge
-  (Supabase MCP `apply_migration`). **SQL with DELETE/DROP → Mirsad runs it in
+  stellar-ops without asking. Additive migrations: Claude applies them
+  (Supabase MCP `apply_migration`) as soon as the SQL is settled and before
+  Mirsad can merge, reads them back, and the PR body says "do not merge until
+  the migration is live" until it is (see [[PR Rules]]). **SQL with DELETE/DROP → Mirsad runs it in
   the SQL editor.** (Use `create or replace trigger`, not drop.)
 - **White label everywhere:** clients see their own company name and domain
   ("EACH CLIENT MUST HAVE ITS OWN DOMAIN"). Only "Powered by Portier369" /
