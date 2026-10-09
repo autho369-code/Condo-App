@@ -31,6 +31,11 @@ Back to [[Home]]. Updated 2026-10-08 (after #258).
   (Import Variances per unit + date). 20261008080000 applied in parts:
   import_locks table + RLS + 3 policies + grants + can_hold_import_lock
   (PL/pgSQL) verified; claim_import_lock run by Mirsad (above).
+- **Sample association for import testing** (created 2026-10-09 by Claude at
+  Mirsad's request, company aaaaaaaa-…): "Pine Tree Court Condominium
+  Association (Sample)", id 582e1b03-c04a-4c54-bcd6-745d8c84d23f, 1 building,
+  12 units (101–304), 2 auto bank accounts. Remove when Mirsad says (the
+  DELETE is his to run).
 - Next gaps: a real end-to-end import of one association (Mirsad, in the
   app, in page order); credit balances from the Aged Receivable file
   (listed, not posted).
