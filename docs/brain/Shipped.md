@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-09
+- #261 (merged deb3ad3; migrations 20261009005000 run by Mirsad, 20261009010000
+  applied): a homeowner record belongs to one association (column, triggers,
+  association-scoped managers see only their homeowners, change homeowner in
+  two steps, imports match inside the association); SQL-editor-only
+  delete_association_completely() and delete_unlinked_owners().
 - #260 (merged; no migration): imported work-order status drops the old
   system's name ("Assigned by AppFolio" -> "Assigned").
 - #259 (merged bac812b; no migration): importer renamed "Import from previous

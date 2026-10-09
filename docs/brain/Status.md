@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #260; homeowners-per-association PR open).
+Back to [[Home]]. Updated 2026-10-09 (after #261).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -33,31 +33,26 @@ Back to [[Home]]. Updated 2026-10-09 (after #260; homeowners-per-association PR 
   (PL/pgSQL) verified; claim_import_lock run by Mirsad (above).
 - #259 merged (bac812b); #260 merged: work-order status "Assigned by
   AppFolio" is shown and stored as "Assigned". No open PR.
-- Open PR: homeowners belong to one association. Migration 20261009010000:
-  owners.association_id NOT NULL (ON DELETE RESTRICT), portfolio_id derived
-  from it (and follows an association that moves company), triggers on
-  occupancies (owner and unit must share the link's association) and
-  unit_owners; refuses to run while any owner has no association, units in
-  two, or links that cross associations. auth_user_id stays unique; the
-  auto-link links the oldest matching record. App: every owner insert sets
-  association_id; imports and the sale buyer list match only inside the
-  association; "change homeowner" is two steps (unit, then buyer) and checks
-  can_manage_association before creating anything; the owner page links only
-  units of its association; forgot-password lookup takes one record.
-  Migration 20261009005000: SQL-editor-only purge functions
-  (delete_association_completely follows every link deepest-first and
-  refuses anything shared with another association; delete_unlinked_owners,
-  dry run by default). **Order (before merge, because the merged code needs
-  the column):** Claude applies 005000 (creates functions only) -> Mirsad
-  runs delete_unlinked_owners for the 14 orphans -> Claude applies 010000 ->
-  Mirsad merges right away (current main inserts owners without
-  association_id, so the gap must be short).
+- #261 merged (deb3ad3): homeowners belong to one association. Migration
+  20261009010000 applied by Claude and verified (owners.association_id NOT
+  NULL, FK ON DELETE RESTRICT, 6 triggers enabled, restrictive
+  mgr_assoc_scope on owners + owner_private, trigger functions not callable
+  by authenticated, auto-link takes the oldest record). 20261009005000
+  (purge functions) pasted by Mirsad in the SQL editor (apply_migration times
+  out on any SQL with delete code), then delete_unlinked_owners removed the
+  14 old demo owners. Lesson: #261 was merged before its migrations ran, so
+  production briefly ran code that needed owners.association_id; post "Clear
+  to merge" only once the migrations are live.
+- Open PR #262: the last purge fix that missed the #261 merge, as forward-fix
+  migration 20261009011000 (SET NULL links of
+  another association stop the call; attached (type, id) rows never match by
+  id alone). Already live in production (Mirsad pasted that version).
 - Randolph Station created by Mirsad (2026-10-09) for the first real import;
   it is the only association. Granville Courts, 7241 N. Ridge and the Pine
   Tree sample were deleted by Mirsad in the SQL editor (one DO block: user
   triggers paused, journal entries/bills/tenants/blocking rows removed,
   triggers re-enabled; verified 0 disabled triggers, 0 orphan journal
-  lines). 14 old demo owners remain at company level (unlinked).
+  lines). The 14 old demo owners are gone (0 owners now).
 - Next gaps: (1) vendors per association (Mirsad's rule); (2) multi-property
   owner portal (one sign-in, all of a person's records) and owner pickers
   that still list the whole company; (3) chart of accounts entered/changed by

@@ -17,3 +17,9 @@ Back to [[Home]].
   production** (read the constraint/function definition back). Write
   non-ASCII characters in SQL as `chr(n)` — they can be lost when applied
   through the MCP.
+- **When merged code needs a new column or function, get the migration live
+  before the PR can be merged.** Mirsad can merge any time once CI is green
+  (#261 was merged mid-review, before its migrations ran). So: apply the
+  additive migration (and hand Mirsad any DELETE-containing SQL to paste)
+  as soon as the SQL is settled, and say in the PR body "do not merge until
+  the migration is live" until it is.
