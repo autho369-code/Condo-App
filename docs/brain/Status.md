@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #263 merged; no open PR).
+Back to [[Home]]. Updated 2026-10-09 (after #264 merged; no open PR).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -51,11 +51,10 @@ Back to [[Home]]. Updated 2026-10-09 (after #263 merged; no open PR).
   a SET NULL link of another association stops the call; purge_type_matches:
   no id-only matching). Definitions already live (Mirsad pasted them); no
   open PR.
-- In PR: bills CSV upload (`import_bills`) matches the vendor inside the
-  row's association plus the management company (migration
-  20261009030000; its body clears a temp table with DELETE, so Mirsad runs
-  it in the SQL editor, then Claude reads it back; merge only after it is
-  live).
+- #264 merged: bills CSV upload matches the vendor inside the row's
+  association (migration 20261009030000 run by Mirsad, read back: body
+  matches the file apart from 3 blank lines the editor dropped; grants
+  authenticated + service_role). No open PR.
 - Randolph Station created by Mirsad (2026-10-09) for the first real import;
   it is the only association. Granville Courts, 7241 N. Ridge and the Pine
   Tree sample were deleted by Mirsad in the SQL editor (one DO block: user
@@ -167,8 +166,8 @@ Back to [[Home]]. Updated 2026-10-09 (after #263 merged; no open PR).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
--1. In PR: `import_bills` association scoping (see Open PR). Then: one
-   vendor login across a vendor's associations; multi-property owner portal.
+-1. One vendor login across a vendor's associations (Mirsad: build now);
+   then the multi-property owner portal.
 0. AppFolio importer follow-ups: credit balances (owner prepayments), and
    run the real import for one association end to end after merge. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
