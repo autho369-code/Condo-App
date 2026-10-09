@@ -103,6 +103,11 @@ function AssociationCard({
   const { units, totals } = group;
   const chargeCount = group.items.filter((i) => i.amount > 0).length;
   const creditItems = group.items.filter((i) => i.amount < 0);
+  // A file can hold only credits for an association: those import too.
+  const importLabel = [
+    chargeCount ? `${plural(chargeCount, 'charge')} (${usd(totals.charges)})` : '',
+    creditItems.length ? `${plural(creditItems.length, 'credit')} (${usd(-totals.credits)})` : '',
+  ].filter(Boolean).join(' and ');
   const unmatchedCount = knownUnits ? units.filter((u) => !knownUnits.has(unitKey(u.unit_number))).length : 0;
   const done = result !== null && result.alreadyImported === undefined;
 
@@ -211,10 +216,10 @@ function AssociationCard({
         </div>
         <Button
           type="button"
-          disabled={!associationId || !asOf || busy || done || chargeCount === 0}
+          disabled={!associationId || !asOf || busy || done || (chargeCount === 0 && creditItems.length === 0)}
           onClick={() => run(false)}
         >
-          {busy ? 'Importing…' : done ? 'Imported' : `Import ${plural(chargeCount, 'charge')} (${usd(totals.charges)})`}
+          {busy ? 'Importing…' : done ? 'Imported' : `Import ${importLabel || 'nothing'}`}
         </Button>
       </div>
       {knownUnits && unmatchedCount > 0 && (

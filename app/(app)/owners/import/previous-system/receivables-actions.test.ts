@@ -70,6 +70,15 @@ describe('open-balance import: credits', () => {
     expect(state.rpcs.filter((c) => c.fn === 'import_opening_balance').map((c) => c.args.p_amount)).toEqual([250]);
   });
 
+  it('imports a file that holds only credits', async () => {
+    const r = await importAppfolioReceivables(ASSOC, '2026-09-30', [items[1]], { complete: true });
+    expect(r.imported).toBe(0);
+    expect(r.creditsImported).toBe(1);
+    expect(state.rpcs.map((c) => c.fn)).toEqual(['import_opening_credit']);
+    const section = readFileSync(resolve(process.cwd(), 'app/(app)/owners/import/previous-system/receivables-section.tsx'), 'utf8');
+    expect(section).toContain('(chargeCount === 0 && creditItems.length === 0)');
+  });
+
   it('skips a credit already imported on a re-import', async () => {
     state.imported = [
       { unit_id: UNIT_A, imported_balance: 250, memo: 'Prior system: Assessment (charged 2026-09-01)' },
