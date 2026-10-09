@@ -79,7 +79,7 @@ export async function sendBulkComms(formData: FormData) {
       const email = extractEmail(vendor);
       const phone = extractPhone(vendor);
       if (!email && !phone) continue;
-      const key = vendor.name || wo.vendor_id;
+      const key = wo.vendor_id;
       if (!recipients.has(key)) {
         recipients.set(key, {
           vendorId: wo.vendor_id,
@@ -107,7 +107,7 @@ export async function sendBulkComms(formData: FormData) {
       const email = extractEmail(vendor);
       const phone = extractPhone(vendor);
       if (!email && !phone) continue;
-      const key = vendor.name || task.vendor_id;
+      const key = task.vendor_id;
       if (!recipients.has(key)) {
         recipients.set(key, {
           vendorId: task.vendor_id,
@@ -133,8 +133,8 @@ export async function sendBulkComms(formData: FormData) {
       const email = extractEmail(v);
       const phone = extractPhone(v);
       if (!email && !phone) continue;
-      if (!recipients.has(v.name)) {
-        recipients.set(v.name, {
+      if (!recipients.has(v.id)) {
+        recipients.set(v.id, {
           vendorId: v.id,
           vendorName: v.name,
           email,

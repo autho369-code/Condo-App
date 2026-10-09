@@ -1,6 +1,7 @@
 import { MessageSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { BulkCommsForm } from './_bulk-comms-form';
 import { newSubmissionToken } from '@/lib/forms/submission';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -36,13 +37,14 @@ export default async function MaintenanceCommunicationsPage({
     .limit(200);
 
   // Fetch all vendors (for manual selection)
-  const { data: vendors } = await db
+  // Paged: with one record per association a company can have many vendors.
+  const { rows: vendors } = await fetchAllRows<any>(() => db
     .from('vendors')
-    .select('id, name, emails, phone_numbers, trade')
+    .select('id, name, emails, phone_numbers, trade, is_management_company, associations(name)')
     .is('archived_at', null)
     .eq('portfolio_id', me.portfolio?.id)
     .order('name')
-    .limit(200);
+    .order('id'));
 
   // Fetch past maintenance communications (all recent messages)
   const { data: messages } = await db

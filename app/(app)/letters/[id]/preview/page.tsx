@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { escapeHtmlText, sanitizeRichTextHtml } from '@/lib/security/rich-text';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { vendorAssociationLabel } from '@/lib/vendors/options';
 
 export default function PreviewLetterPage() {
   const router = useRouter();
@@ -64,10 +66,13 @@ export default function PreviewLetterPage() {
           .from('owners')
           .select('id, full_name, email, mailing_address, address_street, address_city, address_state, address_zip, phone, unit_owners(is_primary, end_date, units(unit_number, buildings(association_id)))')
           .order('full_name'),
-        supabase
+        // Paged: with one record per association a company can have many vendors.
+        fetchAllRows<any>(() => supabase
           .from('vendors')
-          .select('id, name, emails, phone_numbers, address_street, address_city, address_state, address_zip')
-          .order('name'),
+          .select('id, name, emails, phone_numbers, address_street, address_city, address_state, address_zip, association_id, is_management_company, associations(name)')
+          .is('archived_at', null)
+          .order('name')
+          .order('id')).then((r) => ({ data: r.rows })),
         supabase
           .from('board_members')
           .select('association_id, full_name, role, active')
@@ -95,7 +100,10 @@ export default function PreviewLetterPage() {
     const owner = owners.find((o: any) => o.id === selectedOwnerId);
     const activeOwnerships = owner?.unit_owners?.filter((row: any) => !row.end_date) ?? [];
     const primaryOwnership = activeOwnerships.find((row: any) => row.is_primary) ?? activeOwnerships[0];
-    const effectiveAssocId = selectedAssocId || primaryOwnership?.units?.buildings?.association_id || '';
+    // A vendor letter takes the selected vendor's association (the management
+    // company serves every association, so it has none of its own).
+    const letterVendor = entityType === 'vendor' ? vendors.find((v: any) => v.id === selectedVendorId) : null;
+    const effectiveAssocId = selectedAssocId || primaryOwnership?.units?.buildings?.association_id || letterVendor?.association_id || '';
 
     // Association values
     const assoc = associations.find((a: any) => a.id === effectiveAssocId);
@@ -137,7 +145,7 @@ export default function PreviewLetterPage() {
     }
 
     return vals;
-  }, [associations, boardMembers, owners, vendors, selectedAssocId, selectedOwnerId, selectedVendorId]);
+  }, [associations, boardMembers, owners, vendors, entityType, selectedAssocId, selectedOwnerId, selectedVendorId]);
 
   // Merge the body
   const mergedBodyUnsafe = (template?.body || '').replace(/\{\{(\w+)\}\}/g, (_: string, key: string) => {
@@ -327,7 +335,7 @@ export default function PreviewLetterPage() {
               >
                 <option value="">Select vendor...</option>
                 {vendors.map((v: any) => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
+                  <option key={v.id} value={v.id}>{v.name} · {vendorAssociationLabel(v)}</option>
                 ))}
               </select>
             )}
