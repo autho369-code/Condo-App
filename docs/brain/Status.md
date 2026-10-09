@@ -10,7 +10,7 @@ Back to [[Home]]. Updated 2026-10-09 (after #269 merged; no open PR; next: Mirsa
   2100 SECURITY DEPOSITS, 2300 Prepaid Assessment), the 242 starter-only
   accounts hidden (inactive, not deleted), 144 parent links as in the
   previous chart, charge categories DUES->4101, LATEFEE->4460,
-  PARKING->4102, bank accounts Operating->1150 and Reserve->1170. Now 367
+  PARKING->4102, OTHER->4101 (opening balances and credits post there), bank accounts Operating->1150 and Reserve->1170. Now 367
   active accounts = the previous chart one for one; nothing was posted
   (0 journal lines). The chart CSV import adds nothing (all numbers exist).
 - #268 merged (65414f0): owner login leftovers. The
