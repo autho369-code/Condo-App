@@ -662,6 +662,8 @@ export async function createOwner(formData: FormData) {
       fullName,
       portfolioId,
       invitedBy: me.auth_user_id,
+      ownerId: owner.id,
+      associationId,
     });
     if (invitation.error) {
       redirect(`/owners/${owner.id}?error=${encodeURIComponent(`Owner created, but portal invitation failed: ${invitation.error}`)}`);

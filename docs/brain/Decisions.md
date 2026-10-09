@@ -80,3 +80,10 @@ Back to [[Home]]. Don't redo these.
   the invitation trigger, a PL/pgSQL `current_<x>_ids()` SETOF helper, and
   `ALTER POLICY` every `= current_<x>_id()` to `IN (SELECT current_<x>_ids())`.
   The portal shows the union; every write targets one exact record.
+  **Owners (2026-10-09):** same pattern (`owner_portal_logins`,
+  `current_owner_ids()`, invitations carry `metadata.owner_id`). Differences
+  from vendors: turning an owner's portal off is a pause (staff re-enable it
+  only while `auth_user_id` is set), so it does not unbind; board access stays
+  on `board_members` (already per association). Shipped in two PRs: database
+  + invitations first (current pages keep reading the first record), then
+  the portal pages and the staff owner pickers.

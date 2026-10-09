@@ -28,6 +28,8 @@ export interface MeResult {
   is_resident: boolean;
   is_tenant: boolean;
   owner_id: string | null;
+  /** Every owner record of this login (one per association it was invited to); owner_id is the first. */
+  owner_ids: string[];
   tenant_id: string | null;
   vendor_id: string | null;
   /** Every vendor record of this login (one per association it was invited to); vendor_id is the first. */
@@ -70,6 +72,7 @@ function localPreviewMe(): MeResult {
     is_resident: false,
     is_tenant: false,
     owner_id: null,
+    owner_ids: [],
     tenant_id: null,
     vendor_id: null,
     vendor_ids: [],
@@ -161,6 +164,7 @@ export async function getMe(options: {
   }
   const me = data as MeResult;
   if (me && !Array.isArray(me.vendor_ids)) me.vendor_ids = me.vendor_id ? [me.vendor_id] : [];
+  if (me && !Array.isArray(me.owner_ids)) me.owner_ids = me.owner_id ? [me.owner_id] : [];
   if (me?.auth_user_id && !isActiveProfile(me.profile)) {
     await supabase.auth.signOut();
     redirect('/login?error=account_disabled');
@@ -358,7 +362,7 @@ export async function requireFinanceStaff(): Promise<MeResult> {
 
 export async function requireOwner(): Promise<MeResult> {
   const me = await requireAuth();
-  if (!me.owner_id) redirect('/login?mode=owner');
+  if (!me.owner_id || !me.owner_ids?.length) redirect('/login?mode=owner');
 
   // Owner access is tenant-local. Do not use an Auth ban here: one identity can
   // also hold board/vendor/staff access that must remain intact. Fail closed if

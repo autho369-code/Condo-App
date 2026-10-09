@@ -39,12 +39,12 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
     // Portal activation is an *invitation*, not a document request: create a real
     // user_invitations row (hoa_role 'owner') so the owner gets an email with a
     // /invite link, sets a password, and can log into the owner portal. The
-    // queue_invitation_email trigger sends the email; auto_link_portal_user links
-    // the new auth user to the owners row by email on signup.
+    // queue_invitation_email trigger sends the email; accepting it links exactly
+    // this owner record to the sign-in (link_owner_on_invitation_accept).
     if (template === 'portal_activation') {
       const { data: owner } = await (supabase as any)
         .from('owners')
-        .select('id, full_name, email')
+        .select('id, full_name, email, association_id')
         .eq('id', ownerId)
         .maybeSingle();
       if (!owner?.email) {
@@ -59,12 +59,18 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
         // Only owner invitations: a pending staff/board invite to the same
         // address must not be revoked by an owner portal activation.
         .eq('hoa_role', 'owner')
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        // Only this record's links (and older ones naming no record): the same
+        // person's invitations for their other associations stay live.
+        .or(`metadata->>owner_id.eq.${owner.id},metadata->>owner_id.is.null`);
       const { error: inviteErr } = await svc.from('user_invitations').insert({
         portfolio_id: me.portfolio?.id,
         email: owner.email.toLowerCase(),
         full_name: owner.full_name,
         hoa_role: 'owner',
+        association_id: owner.association_id ?? null,
+        // Accepting links exactly this owner record.
+        metadata: { owner_id: owner.id },
         invited_by: me.auth_user_id,
         message: message || `Activate your owner portal for ${me.portfolio?.company_name ?? 'your community'}.`,
         expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),

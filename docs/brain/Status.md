@@ -1,8 +1,17 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #265 merged; no open PR).
+Back to [[Home]]. Updated 2026-10-09 (owner-login PR open, part 1 of 2; migration 20261009050000 not yet applied).
 
 ## Where things stand
+- In PR: owner login across associations, part 1 (migration
+  20261009050000): owner_portal_logins, current_owner_ids() (no email
+  fallback), 41 owner policies rewritten with ALTER POLICY, 17 owner functions
+  over every record, owner invitations name their record (metadata.owner_id)
+  and link it on accept; fixes auth email change (the email-change trigger
+  called a trigger function directly and always failed). Dry run as owner and
+  board (rolled back): 41 policies, 0 left; 51 tables owner 109 -> 111 ms,
+  board 71 -> 60 ms warm. Claude applies once Codex is clean, then Mirsad
+  merges.
 - Design-system migration done (all 219 pages); board + company-admin use the
   shared Sidebar + light body.
 - `docs/TODO.md` build queue done except resale/estoppel (declined — see
@@ -173,8 +182,12 @@ Back to [[Home]]. Updated 2026-10-09 (after #265 merged; no open PR).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
--1. Next: the multi-property owner portal (one sign-in, all of a person's
-   owner records), using the vendor-login pattern from #265 (see [[Decisions]]).
+-1. In PR: owner login across associations, part 1 (database + invitations;
+   migration 20261009050000). Part 2 next: portal pages read every record of
+   the login (`me.owner_ids`, union with association labels), each write
+   targets its exact record (pay, autopay, insurance, architectural, service
+   requests, amenities, submit_owner_message), and the staff owner pickers
+   list only the chosen association's owners.
 0. AppFolio importer follow-ups: credit balances (owner prepayments), and
    run the real import for one association end to end after merge. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.

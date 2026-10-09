@@ -7,6 +7,9 @@ export async function queueOwnerPortalInvitation(db: any, input: {
   fullName: string;
   portfolioId: string;
   invitedBy: string | null;
+  /** The exact owner record (one per association) the sign-in links to on accept. */
+  ownerId: string;
+  associationId: string | null;
 }): Promise<{ error: string | null; invitationId?: string }> {
   const expiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
   const { data: invitation, error: inviteError } = await db
@@ -15,13 +18,16 @@ export async function queueOwnerPortalInvitation(db: any, input: {
       email: input.email.trim().toLowerCase(),
       full_name: input.fullName,
       portfolio_id: input.portfolioId,
+      association_id: input.associationId,
       hoa_role: 'owner',
       invited_by: input.invitedBy,
       expires_at: expiresAt,
       message: 'Activate your owner portal account.',
       // We queue the email ourselves below; stop queue_invitation_email
       // from sending a duplicate.
-      metadata: { email_delivery: 'application' },
+      // owner_id: accepting links exactly this record (first record of the
+      // sign-in, or added to it), never another record with the same email.
+      metadata: { email_delivery: 'application', owner_id: input.ownerId },
     })
     .select('id, token')
     .single();
