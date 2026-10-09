@@ -583,8 +583,39 @@ export async function createOwner(formData: FormData) {
   // Portal identities are created only after verified-email invitation.
   const activatePortal = formData.get('activate_portal') === 'on';
 
+  // A homeowner record belongs to exactly one association: the unit's. The
+  // unit is resolved through the caller's RLS-scoped session (never trust the
+  // submitted association_id), and the association it gives is the record's.
+  const unitId = str(formData, 'unit_id');
+  if (!unitId) { failTo('Choose the unit this homeowner owns: a homeowner belongs to one association.'); return; }
+  const { data: unit, error: unitErr } = await (supabase as any)
+    .from('units')
+    .select('id, buildings!inner(association_id, associations!inner(id, portfolio_id))')
+    .eq('id', unitId)
+    .is('archived_at', null)
+    .maybeSingle();
+  const associationId: string | undefined = unit?.buildings?.association_id;
+  const portfolioId: string | undefined = unit?.buildings?.associations?.portfolio_id;
+  if (unitErr || !unit || !associationId || !portfolioId) {
+    failTo(unitErr ? `Could not check the unit: ${unitErr.message}` : 'That unit was not found or is outside your access.');
+    return;
+  }
+  const submittedAssociationId = str(formData, 'association_id');
+  if (submittedAssociationId && submittedAssociationId !== associationId) {
+    failTo('That unit is not in the selected association.');
+    return;
+  }
+  if (!me.is_platform_operator) {
+    if (portfolioId !== me.portfolio?.id) { failTo('That unit is outside your company.'); return; }
+    // can_manage_association also honors association-scoped managers.
+    const { data: canManage, error: manageErr } = await (supabase as any)
+      .rpc('can_manage_association', { p_association_id: associationId });
+    if (manageErr || canManage !== true) { failTo('You are not authorized to manage this unit\'s association.'); return; }
+  }
+
   const payload = {
-    portfolio_id: me.portfolio?.id,
+    association_id: associationId,
+    portfolio_id: portfolioId,
     first_name: firstName,
     last_name:  lastName,
     full_name:  fullName,
@@ -604,30 +635,32 @@ export async function createOwner(formData: FormData) {
   const { data: owner, error } = await (supabase as any).from('owners').insert(payload).select('id').single();
   if (error || !owner) { failTo(error?.message ?? 'Failed to create owner'); return; }
 
-  // Create occupancy link if unit is specified
-  const unitId = str(formData, 'unit_id');
-  const associationId = str(formData, 'association_id');
-  if (unitId && associationId) {
-    await (supabase as any).from('occupancies').insert({
+  // Owner occupancy on the unit (unit_owners follows via the occupancies trigger).
+  {
+    const { error: occErr } = await (supabase as any).from('occupancies').insert({
       owner_id: owner.id,
       unit_id: unitId,
       association_id: associationId,
       occupancy_type: 'owner',
       status: 'current',
       move_in_date: str(formData, 'move_in_date') ?? todayInZone(),
-      dues_amount: str(formData, 'dues_amount') ? Number(str(formData, 'dues_amount')) : null,
+      // dues_amount is NOT NULL (default 0).
+      dues_amount: str(formData, 'dues_amount') ? Number(str(formData, 'dues_amount')) : 0,
       dues_frequency: 'monthly',
       share_pct: str(formData, 'ownership_pct') ? Number(str(formData, 'ownership_pct')) : 100,
       is_primary: true,
     });
+    if (occErr) {
+      redirect(`/owners/${owner.id}?error=${encodeURIComponent(`Owner created, but the unit was not linked: ${occErr.message}`)}`);
+    }
   }
 
   let portalInvitationQueued = false;
-  if (activatePortal && me.portfolio?.id) {
+  if (activatePortal) {
     const invitation = await queueOwnerPortalInvitation(createServiceClient() as any, {
       email,
       fullName,
-      portfolioId: me.portfolio.id,
+      portfolioId,
       invitedBy: me.auth_user_id,
     });
     if (invitation.error) {
@@ -710,6 +743,19 @@ export async function linkOccupancy(ownerId: string, formData: FormData) {
     .maybeSingle();
   if (unitErr || !unit) { failTo('Unit not found'); return; }
   const associationId = (unit.buildings as any).association_id;
+
+  // A homeowner record belongs to exactly one association: only units of the
+  // owner's own association can be linked (the database enforces it too).
+  const { data: ownerRow, error: ownerErr } = await (supabase as any)
+    .from('owners')
+    .select('id, association_id')
+    .eq('id', ownerId)
+    .maybeSingle();
+  if (ownerErr || !ownerRow) { failTo(ownerErr ? `Could not check the homeowner: ${ownerErr.message}` : 'Homeowner not found or outside your access.'); return; }
+  if (ownerRow.association_id !== associationId) {
+    failTo('That unit is in another association. This homeowner belongs to one association; add them as a new homeowner of the other association instead.');
+    return;
+  }
 
   const payload = {
     owner_id:        ownerId,

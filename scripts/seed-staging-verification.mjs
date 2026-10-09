@@ -107,9 +107,9 @@ async function main() {
     { id: ids.unitA2, building_id: ids.buildingA2, unit_number: 'M-301', name: 'CODEX_TEST M-301', ownership_pct: 100 },
   ])
   await upsert('owners', [
-    { id: ids.ownerA, portfolio_id: ids.portfolioA, full_name: 'CODEX_TEST Avery Alpha', first_name: 'Avery', last_name: 'Alpha', email: 'codex_test.owner.a@portier369.invalid', portal_activated: true },
-    { id: ids.ownerB, portfolio_id: ids.portfolioB, full_name: 'CODEX_TEST Bailey Beta', first_name: 'Bailey', last_name: 'Beta', email: 'codex_test.owner.b@portier369.invalid', portal_activated: true },
-    { id: ids.ownerA2, portfolio_id: ids.portfolioA, full_name: 'CODEX_TEST Morgan Marina', first_name: 'Morgan', last_name: 'Marina', email: 'codex_test.owner.mariner@portier369.invalid', portal_activated: false },
+    { id: ids.ownerA, association_id: ids.associationA, portfolio_id: ids.portfolioA, full_name: 'CODEX_TEST Avery Alpha', first_name: 'Avery', last_name: 'Alpha', email: 'codex_test.owner.a@portier369.invalid', portal_activated: true },
+    { id: ids.ownerB, association_id: ids.associationB, portfolio_id: ids.portfolioB, full_name: 'CODEX_TEST Bailey Beta', first_name: 'Bailey', last_name: 'Beta', email: 'codex_test.owner.b@portier369.invalid', portal_activated: true },
+    { id: ids.ownerA2, association_id: ids.associationA2, portfolio_id: ids.portfolioA, full_name: 'CODEX_TEST Morgan Marina', first_name: 'Morgan', last_name: 'Marina', email: 'codex_test.owner.mariner@portier369.invalid', portal_activated: false },
   ])
   await upsert('unit_owners', [
     { id: account(1, 91), unit_id: ids.unitA, owner_id: ids.ownerA, is_primary: true, share_pct: 100 },

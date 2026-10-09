@@ -35,3 +35,13 @@ Back to [[Home]].
   manager, owner, board or vendor sees — page text, buttons, URLs, errors,
   and text an import stores (charge descriptions, notes) — says "AppFolio".
   Say "previous system". Marketing comparison pages are the only exception.
+- **Every association's records are its own** (Mirsad, 2026-10-09): a record
+  belongs to one association and never mixes with or is reused by another.
+  Homeowners: one record per association (a person in two associations = two
+  records; one record can own many units in any of that association's
+  buildings). Deleting an association deletes all of its records.
+  Imports, pickers and lookups match only inside the association.
+  - **Vendors: per association** (same company in two associations = two
+    vendor records). Not built yet: next after homeowners.
+  - **Chart of accounts: one per company**, entered and changed by the
+    company admin; balances stay per association.

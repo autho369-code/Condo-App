@@ -12,8 +12,11 @@
 // per owner per unit:
 //   - an owner already linked to that unit (same name or email) is skipped,
 //     so running the import again only adds what is missing;
-//   - an owner whose email the company already has is reused and linked to
-//     this unit (AppFolio lists a multi-unit owner once per unit);
+//   - an owner whose email this association already has is reused and linked
+//     to this unit (AppFolio lists a multi-unit owner once per unit). A
+//     homeowner record belongs to exactly one association, so owners of other
+//     associations are never reused: the same person there is a separate
+//     record, and every new record gets this association's association_id;
 //   - an owner without an email is still imported (preferred contact: mail);
 //   - dues are scheduled once per unit, and only when the unit has no current
 //     owner with dues yet;
@@ -111,8 +114,8 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
   if (!portfolioId) return fail('That association is not linked to a company, so homeowners cannot be imported into it.');
 
   try {
-    // Locked per company, not per association: owners are looked up and created
-    // company-wide, so two associations' imports must not interleave either.
+    // Locked per company (kept as it was), although owners are now looked up and
+    // created per association only.
     return await withImportLock(db, portfolioId, 'appfolio_homeowners', async () => {
       const units = await fetchAll((from, to) => db
         .from('units')
@@ -143,21 +146,25 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
         .range(from, to));
       if (occupancies.error) return fail(`Could not load the current homeowners: ${occupancies.error}`);
 
-      // The company's owners (for reuse by email and the already-linked check by name).
+      // This association's owners (for reuse by email and the already-linked check by
+      // name). A homeowner record belongs to one association: owners of the company's
+      // other associations are never reused or linked here.
       const owners = await fetchAll((from, to) => db
         .from('owners')
         .select('id, full_name, email, emails, phone, phone_numbers')
-        .eq('portfolio_id', portfolioId)
+        .eq('association_id', associationId)
         .is('archived_at', null)
         .order('id')
         .range(from, to));
-      if (owners.error) return fail(`Could not load the company's homeowners: ${owners.error}`);
+      if (owners.error) return fail(`Could not load the association's homeowners: ${owners.error}`);
       const ownerById = new Map<string, { name: string; emails: Set<string>; phones: Set<string> }>();
       const ownerIdsByEmail = new Map<string, string[]>();
       const ownerIdsByPhone = new Map<string, string[]>();
-      // Primary emails already held by an active owner. Portal sign-up links a login to the
-      // owners whose primary email matches, and a login can belong to only one owner, so a
-      // new owner never gets a primary email another owner already has.
+      // Primary emails already held by an active owner of this association. Portal sign-up
+      // links a login to every owner record whose primary email matches; within one
+      // association that must be one person, so a new owner never gets a primary email
+      // another owner of this association already has. The same email in another
+      // association is that person's own record there and does not count.
       const usedPrimary = new Set<string>();
       for (const o of owners.rows) {
         const primary = clean(o.email).toLowerCase();
@@ -274,8 +281,8 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
           continue;
         }
 
-        // Reuse an owner the company has only when both the email and the name match: a shared
-        // family or placeholder email must not link another association's owner to this unit.
+        // Reuse an owner of this association only when both the email and the name match: a
+        // shared family or placeholder email must not link a different person to this unit.
         // Without an email, name + phone (the same rule new owners in this file are grouped by).
         const candidates = emails.length
           ? emails.flatMap((e) => ownerIdsByEmail.get(e) ?? [])
@@ -325,6 +332,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
               line,
               linked: 0,
               record: {
+                association_id: associationId,
                 portfolio_id: portfolioId,
                 first_name: name.first_name,
                 last_name: name.last_name,
@@ -439,7 +447,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       const created = [...newOwners.values()].filter((o) => o.linked > 0).length;
       const notes: string[] = [];
       if (created) notes.push(`${created} new homeowner record${created === 1 ? '' : 's'} created.`);
-      if (reused) notes.push(`${reused} link${reused === 1 ? '' : 's'} went to homeowners the company already had (same name and email).`);
+      if (reused) notes.push(`${reused} link${reused === 1 ? '' : 's'} went to homeowners this association already had (same name and email).`);
       if (sharedOnly) notes.push(`${sharedOnly} homeowner${sharedOnly === 1 ? '' : 's'} only had an email another homeowner already uses; it is kept on their record, but their preferred contact is mail and they need their own email to sign in to the portal.`);
       if (noEmail) notes.push(`${noEmail} homeowner${noEmail === 1 ? ' has' : 's have'} no email in the file; their preferred contact is set to mail.`);
       if (duesScheduled) notes.push(`${duesScheduled} unit${duesScheduled === 1 ? '' : 's'} had no dues schedule and now have one.`);

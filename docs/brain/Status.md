@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-08 (after #258).
+Back to [[Home]]. Updated 2026-10-09 (after #260; homeowners-per-association PR open).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -31,21 +31,38 @@ Back to [[Home]]. Updated 2026-10-08 (after #258).
   (Import Variances per unit + date). 20261008080000 applied in parts:
   import_locks table + RLS + 3 policies + grants + can_hold_import_lock
   (PL/pgSQL) verified; claim_import_lock run by Mirsad (above).
-- #259 merged (bac812b). Open PR: work-order status "Assigned by AppFolio"
-  is shown and stored as "Assigned" (Codex P2 on #259).
-- **All associations archived 2026-10-09 at Mirsad's request** ("remove all
-  associations from the records"): Granville Courts, 7241 N. Ridge Avenue,
-  Pine Tree Court (Sample) have archived_at set (reversible; nothing
-  deleted). The import page's long list was the browser preview of his
-  29-association file, not saved data; the page now shows one at a time.
-- **Sample association for import testing** (created 2026-10-09 by Claude at
-  Mirsad's request, company aaaaaaaa-…): "Pine Tree Court Condominium
-  Association (Sample)", id 582e1b03-c04a-4c54-bcd6-745d8c84d23f, 1 building,
-  12 units (101–304), 2 auto bank accounts. Remove when Mirsad says (the
-  DELETE is his to run).
-- Next gaps: a real end-to-end import of one association (Mirsad, in the
-  app, in page order); credit balances from the Aged Receivable file
-  (listed, not posted).
+- #259 merged (bac812b); #260 merged: work-order status "Assigned by
+  AppFolio" is shown and stored as "Assigned". No open PR.
+- Open PR: homeowners belong to one association. Migration 20261009010000:
+  owners.association_id NOT NULL (ON DELETE RESTRICT), portfolio_id derived
+  from it (and follows an association that moves company), triggers on
+  occupancies (owner and unit must share the link's association) and
+  unit_owners; refuses to run while any owner has no association, units in
+  two, or links that cross associations. auth_user_id stays unique; the
+  auto-link links the oldest matching record. App: every owner insert sets
+  association_id; imports and the sale buyer list match only inside the
+  association; "change homeowner" is two steps (unit, then buyer) and checks
+  can_manage_association before creating anything; the owner page links only
+  units of its association; forgot-password lookup takes one record.
+  Migration 20261009005000: SQL-editor-only purge functions
+  (delete_association_completely follows every link deepest-first and
+  refuses anything shared with another association; delete_unlinked_owners,
+  dry run by default). **Order (before merge, because the merged code needs
+  the column):** Claude applies 005000 (creates functions only) -> Mirsad
+  runs delete_unlinked_owners for the 14 orphans -> Claude applies 010000 ->
+  Mirsad merges right away (current main inserts owners without
+  association_id, so the gap must be short).
+- Randolph Station created by Mirsad (2026-10-09) for the first real import;
+  it is the only association. Granville Courts, 7241 N. Ridge and the Pine
+  Tree sample were deleted by Mirsad in the SQL editor (one DO block: user
+  triggers paused, journal entries/bills/tenants/blocking rows removed,
+  triggers re-enabled; verified 0 disabled triggers, 0 orphan journal
+  lines). 14 old demo owners remain at company level (unlinked).
+- Next gaps: (1) vendors per association (Mirsad's rule); (2) multi-property
+  owner portal (one sign-in, all of a person's records) and owner pickers
+  that still list the whole company; (3) chart of accounts entered/changed by
+  the company admin only; (4) a real end-to-end import of Randolph Station;
+  (5) credit balances from the Aged Receivable file (listed, not posted).
 - #256 merged (7b37b23); migration 20261008060000 applied and verified (7
   SETOF uuid identity helpers are PL/pgSQL, SECURITY DEFINER, search_path
   kept). Live timings for 30 tables per role, original -> now: board

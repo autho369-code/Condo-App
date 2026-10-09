@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-09
+- #260 (merged; no migration): imported work-order status drops the old
+  system's name ("Assigned by AppFolio" -> "Assigned").
 - #259 (merged bac812b; no migration): importer renamed "Import from previous
   system" (/owners/import/previous-system, old URL redirects), sidebar entry,
   no competitor name in product text or stored records (old markers still

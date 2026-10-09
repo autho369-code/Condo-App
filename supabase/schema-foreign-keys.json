@@ -360,6 +360,7 @@
 "owner_statements.unit_id":"units",
 "owner_vehicles.owner_id":"owners",
 "owner_vehicles.portfolio_id":"portfolios",
+"owners.association_id":"associations",
 "owners.portfolio_id":"portfolios",
 "parking_assignments.owner_id":"owners",
 "parking_assignments.parking_space_id":"parking_spaces",
