@@ -24,6 +24,7 @@ export interface VendorSnapshot {
     recentlyCompleted: Array<{ title: string | null; completed: string | null }>;
   };
   bills: Array<{ billNumber: string | null; amount: number; status: string | null; dueDate: string | null; paidAt: string | null; property: string | null }>;
+  /** expires null = the date is not recorded for that association. */
   compliance: Array<{ item: string; expires: string | null; expired: boolean }>;
   upcomingAppointments: Array<{ title: string | null; when: string | null; property: string | null }>;
 }
@@ -92,8 +93,9 @@ export async function buildVendorSnapshot(): Promise<VendorSnapshot> {
       ['State license', record.state_license_expiration],
       ['Contract', record.contract_expiration],
     ]
-      .filter(([, d]) => !!d)
-      .map(([item, d]) => ({ item: `${item}${where}`, expires: d as string, expired: (d as string) < todayDate }));
+      // A missing date stays in (expires: null = not recorded), so the
+      // assistant can name the gap.
+      .map(([item, d]) => ({ item: `${item}${where}`, expires: (d as string | null) ?? null, expired: !!d && (d as string) < todayDate }));
   });
 
   return {

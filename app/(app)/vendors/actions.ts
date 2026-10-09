@@ -83,7 +83,9 @@ export async function inviteVendorToPortal(formData: FormData) {
 // record is unbound from the login (auth_user_id cleared here, an added link
 // revoked by the database), so a new contact can accept the next invitation.
 export async function turnOffVendorPortal(formData: FormData) {
-  await requireStaff()
+  // Same guard as the vendor page that shows the button (company admins too);
+  // RLS on the update decides which vendor records the caller may change.
+  await requireWorkspaceStaff()
   const vendorId = String(formData.get('vendor_id') ?? '')
   const back = `/vendors/${vendorId}`
   if (!/^[0-9a-f-]{36}$/i.test(vendorId)) redirect('/vendors?error=' + encodeURIComponent('Vendor not found.'))

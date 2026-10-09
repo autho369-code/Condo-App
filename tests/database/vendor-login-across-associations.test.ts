@@ -72,6 +72,8 @@ describe('vendor login across associations: app', () => {
     const snapshot = read('lib/ai/vendor-snapshot.ts');
     expect(snapshot).toContain(".in('id', me.vendor_ids)");
     expect(snapshot).not.toContain(".eq('id', me.vendor_id)");
+    expect(snapshot).toContain('expires: (d as string | null) ?? null');
+    expect(snapshot).not.toContain('.filter(([, d]) => !!d)');
   });
 
   it('lists work, bills and schedule across every record of the login', () => {
@@ -104,7 +106,8 @@ describe('vendor login across associations: app', () => {
 
   it('lets staff turn off one record\'s portal access', () => {
     const actions = read('app/(app)/vendors/actions.ts');
-    expect(actions).toContain('export async function turnOffVendorPortal(formData: FormData)');
+    expect(actions).toContain('export async function turnOffVendorPortal(formData: FormData) {\n  // Same guard as the vendor page');
+    expect(actions).not.toMatch(/turnOffVendorPortal\(formData: FormData\) \{\n  await requireStaff\(\)/);
     // Unbound too, so a new contact can accept the next invitation; an added
     // link is revoked by the database, never deleted.
     expect(actions).toContain(".update({ portal_activated: false, auth_user_id: null })");
