@@ -7,11 +7,14 @@ Back to [[Home]]. Updated 2026-10-09 (owner-login PR open, part 1 of 2; migratio
   20261009050000): owner_portal_logins, current_owner_ids() (no email
   fallback), 41 owner policies rewritten with ALTER POLICY, 17 owner functions
   over every record, owner invitations name their record (metadata.owner_id)
-  and link it on accept; fixes auth email change (the email-change trigger
-  called a trigger function directly and always failed). Dry run as owner and
-  board (rolled back): 41 policies, 0 left; 51 tables owner 109 -> 111 ms,
-  board 71 -> 60 ms warm. Claude applies once Codex is clean, then Mirsad
-  merges.
+  and link it on accept (same email, same association; scoped managers only
+  into their associations); owner records are never linked by email any
+  more; every owner write policy is tied to its record's association
+  (owner_record_matches: no voting twice as two records); fixes auth email
+  change (the trigger called a trigger function directly and always failed;
+  now it only unlinks). Dry run as owner and board (rolled back): 41 policies
+  rewritten, 16 write policies tied, 0 left; 51 tables warm owner 66 -> 58 ms,
+  board 70 -> 58 ms. Claude applies once Codex is clean, then Mirsad merges.
 - Design-system migration done (all 219 pages); board + company-admin use the
   shared Sidebar + light body.
 - `docs/TODO.md` build queue done except resale/estoppel (declined — see
@@ -186,8 +189,12 @@ Back to [[Home]]. Updated 2026-10-09 (owner-login PR open, part 1 of 2; migratio
    migration 20261009050000). Part 2 next: portal pages read every record of
    the login (`me.owner_ids`, union with association labels), each write
    targets its exact record (pay, autopay, insurance, architectural, service
-   requests, amenities, submit_owner_message), and the staff owner pickers
-   list only the chosen association's owners.
+   requests, amenities, surveys answered as the survey's association record,
+   submit_owner_message per association), the staff owner pickers list only
+   the chosen association's owners, and the staff owner page shows records
+   added to a login (portal access/reset treat them as having an account).
+   Also: accept_invitation demotes a board profile to owner when it accepts an
+   owner invitation (its body has a DELETE, so the fix is SQL for Mirsad).
 0. AppFolio importer follow-ups: credit balances (owner prepayments), and
    run the real import for one association end to end after merge. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.

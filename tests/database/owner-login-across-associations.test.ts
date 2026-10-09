@@ -70,28 +70,41 @@ describe('owner login across associations: database', () => {
     expect(link).toContain("nullif(new.metadata ->> 'owner_id', '') is null");
     expect(link).toContain("where o.id::text = new.metadata ->> 'owner_id'");
     expect(link).toContain('and o.auth_user_id is null');
+    expect(link).toContain('and o.association_id = new.association_id');
+    expect(link).toContain('where u.id = new.used_by and lower(btrim(u.email)) = lower(btrim(new.email))');
+    expect(link).toContain('and (o.auth_user_id = new.used_by');
     expect(link).toContain('lower(btrim(o.email)) = lower(btrim(new.email))');
     expect(link).toContain('where public.owner_portal_logins.revoked_at is not null;');
     expect(migration).toContain('revoke all on function public.link_owner_on_invitation_accept() from public, anon, authenticated;');
     expect(migration).toContain('after update of status on public.user_invitations');
   });
 
-  it('never gives a record on one login, or named by a pending invitation, to another', () => {
-    const link = fn('link_portal_user');
-    expect(link).toContain('not exists (select 1 from public.owner_portal_logins l where l.owner_id = candidate.id and l.revoked_at is null)');
-    expect(link).toContain("and i.metadata ->> 'owner_id' = candidate.id::text)");
+  it('never links an owner record by email: not at sign-up, not in the bulk relink, not on an email change', () => {
+    expect(fn('link_portal_user')).not.toContain('update public.owners');
     const relink = fn('relink_all_portal_users');
-    expect(relink).toContain('not exists (select 1 from public.owner_portal_logins l where l.owner_id = o.id and l.revoked_at is null)');
-    expect(relink).toContain("and i.metadata ->> 'owner_id' = o.id::text)");
-  });
-
-  it('runs the linking body as a plain function, so an email change no longer fails', () => {
+    expect(relink).toContain('n_owners := 0;');
+    expect(relink).not.toContain('update public.owners');
     expect(fn('auto_link_portal_user')).toContain('perform public.link_portal_user(new.id, new.email);');
     const onEmail = fn('relink_portal_user_on_email_change');
-    expect(onEmail).toContain('perform public.link_portal_user(new.id, new.email);');
+    // The old body called the trigger function directly (always failed).
     expect(onEmail).not.toContain('perform public.auto_link_portal_user()');
+    expect(onEmail).not.toContain('perform public.link_portal_user');
     expect(onEmail).toContain('update public.owner_portal_logins l set revoked_at = now()');
     expect(migration).toContain('revoke all on function public.link_portal_user(uuid, text) from public, anon, authenticated;');
+  });
+
+  it('ties every owner write to the association of the record it names', () => {
+    expect(fn('owner_record_matches')).toContain('(p_unit_id is null or public.unit_association_id(p_unit_id) = o.association_id)');
+    expect(migration).toContain("and p.cmd in ('INSERT', 'UPDATE', 'ALL')");
+    expect(migration).toContain("AND public.owner_record_matches(\\1, ' || v_assoc || ', ' || v_unit || '))'");
+    expect(migration).toContain("raise exception 'An owner write policy is not tied to its record''s association.';");
+    expect(migration).toContain('else public.owner_record_matches(survey_responses.submitted_by_owner_id, s.association_id, null)');
+  });
+
+  it('lets a scoped manager invite only into owner records of their own associations', () => {
+    expect(migration).toContain('create policy owner_invite_scope on public.user_invitations as restrictive for insert to authenticated');
+    expect(migration).toContain('create policy owner_invite_scope_update on public.user_invitations as restrictive for update to authenticated');
+    expect(migration).toContain('and own.association_id = user_invitations.association_id');
   });
 
   it('returns every record from me()', () => {
@@ -113,7 +126,11 @@ describe('owner login across associations: app', () => {
 
   it('keeps the person\'s invitations for other associations when re-inviting one record', () => {
     expect(read('lib/rpcs/owner-invitations.ts')).toContain('.or(`metadata->>owner_id.eq.${o.id},metadata->>owner_id.is.null`)');
-    expect(read('app/(app)/owners/forms/page.tsx')).toContain('.or(`metadata->>owner_id.eq.${owner.id},metadata->>owner_id.is.null`)');
+    const forms = read('app/(app)/owners/forms/page.tsx');
+    expect(forms).toContain('.or(`metadata->>owner_id.eq.${owner.id},metadata->>owner_id.is.null`)');
+    // The older links are revoked only once the new one exists, and a failure is reported.
+    expect(forms.indexOf(".insert({\n        portfolio_id: owner.portfolio_id,")).toBeLessThan(forms.indexOf(".update({ status: 'revoked'"));
+    expect(forms).toContain('if (revokeErr) {');
   });
 
   it('exposes every record of the login', () => {

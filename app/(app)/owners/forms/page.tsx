@@ -42,41 +42,51 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
     // queue_invitation_email trigger sends the email; accepting it links exactly
     // this owner record to the sign-in (link_owner_on_invitation_accept).
     if (template === 'portal_activation') {
-      const { data: owner } = await (supabase as any)
+      // RLS: only an owner record the staffer can see.
+      const { data: owner, error: ownerErr } = await (supabase as any)
         .from('owners')
-        .select('id, full_name, email, association_id')
+        .select('id, full_name, email, association_id, portfolio_id, archived_at')
         .eq('id', ownerId)
         .maybeSingle();
-      if (!owner?.email) {
+      if (ownerErr) redirect(`/owners/forms?error=${encodeURIComponent(ownerErr.message)}`);
+      if (!owner || owner.archived_at) {
+        redirect(`/owners/forms?error=${encodeURIComponent('Owner not found.')}`);
+      }
+      if (!owner.email) {
         redirect(`/owners/forms?error=${encodeURIComponent('This owner has no email on file. Add an email before sending a portal activation.')}`);
       }
+      const email = owner.email.trim().toLowerCase();
       const svc = createServiceClient() as any;
-      // Supersede any older pending invite for this email so only one link is live.
-      await svc.from('user_invitations')
-        .update({ status: 'revoked' })
-        .eq('email', owner.email.toLowerCase())
-        .eq('portfolio_id', me.portfolio?.id)
-        // Only owner invitations: a pending staff/board invite to the same
-        // address must not be revoked by an owner portal activation.
-        .eq('hoa_role', 'owner')
-        .eq('status', 'pending')
-        // Only this record's links (and older ones naming no record): the same
-        // person's invitations for their other associations stay live.
-        .or(`metadata->>owner_id.eq.${owner.id},metadata->>owner_id.is.null`);
-      const { error: inviteErr } = await svc.from('user_invitations').insert({
-        portfolio_id: me.portfolio?.id,
-        email: owner.email.toLowerCase(),
+      // The invitation is in the owner record's own company and association,
+      // so accepting it links exactly this record.
+      const { data: invitation, error: inviteErr } = await svc.from('user_invitations').insert({
+        portfolio_id: owner.portfolio_id,
+        email,
         full_name: owner.full_name,
         hoa_role: 'owner',
-        association_id: owner.association_id ?? null,
-        // Accepting links exactly this owner record.
+        association_id: owner.association_id,
         metadata: { owner_id: owner.id },
         invited_by: me.auth_user_id,
         message: message || `Activate your owner portal for ${me.portfolio?.company_name ?? 'your community'}.`,
         expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
-      });
-      if (inviteErr) {
-        redirect(`/owners/forms?error=${encodeURIComponent(inviteErr.message)}`);
+      }).select('id').single();
+      if (inviteErr || !invitation) {
+        redirect(`/owners/forms?error=${encodeURIComponent(inviteErr?.message ?? 'Could not create the invitation.')}`);
+      }
+      // Only once the new link exists: revoke this record's older pending
+      // links (and older owner links naming no record), so one link is live.
+      // A pending staff or board invite to the same address, or this person's
+      // invitations for their other associations, stay.
+      const { error: revokeErr } = await svc.from('user_invitations')
+        .update({ status: 'revoked', updated_at: new Date().toISOString() })
+        .eq('email', email)
+        .eq('portfolio_id', owner.portfolio_id)
+        .eq('hoa_role', 'owner')
+        .eq('status', 'pending')
+        .or(`metadata->>owner_id.eq.${owner.id},metadata->>owner_id.is.null`)
+        .neq('id', invitation.id);
+      if (revokeErr) {
+        redirect(`/owners/forms?error=${encodeURIComponent(`The new link was sent, but an older link could not be cancelled: ${revokeErr.message}`)}`);
       }
       redirect('/owners/forms?sent=1');
     }

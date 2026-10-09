@@ -24,15 +24,20 @@
 --    cover all of the login's records; functions that act for an owner take
 --    the exact record from what they act on (the unit, the violation, the
 --    meeting's association, the tenant).
--- 5. Owner invitations name their record (metadata.owner_id); accepting one
---    links that exact record (first record, or added to the login).
--- 6. Sign-up auto-link and the bulk relink skip records already on a login
---    and records with a pending invitation naming them.
--- 7. An auth email change revokes added records whose email no longer
---    matches, and re-links through link_portal_user(): the old code called
---    the trigger function auto_link_portal_user() directly, which Postgres
---    refuses ("trigger functions can only be called as triggers"), so every
---    email change failed.
+--    A row an owner writes must belong to the association of the owner
+--    record it names (owner_record_matches), so one person's records cannot
+--    be mixed (e.g. voting twice on one ballot as two records).
+-- 5. Owner invitations name their record (metadata.owner_id) and its
+--    association; accepting one links that exact record (first record, or
+--    added to the login), only for the invited email. Scoped managers can
+--    invite only into owner records of their own associations.
+-- 6. Owner records are no longer linked by email at sign-up or by the bulk
+--    relink: only through their own invitation.
+-- 7. An auth email change unlinks and revokes records whose email no longer
+--    matches and links nothing new. The old code called the trigger function
+--    auto_link_portal_user() directly, which Postgres refuses ("trigger
+--    functions can only be called as triggers"), so every email change
+--    failed.
 --
 -- Additive: nothing is dropped or deleted.
 
@@ -164,6 +169,117 @@ begin
     raise exception 'A policy still compares with current_owner_id(). Check it, then run this migration again.';
   end if;
   raise notice 'Owner policies now covering every record of a login: %', v_count;
+end $$;
+
+-- A row written for an owner record must be in that record's association (and
+-- the unit, when there is one, too). Each owner record belongs to exactly one
+-- association (20261009010000), so this ties the row to the right record.
+create or replace function public.owner_record_matches(p_owner_id uuid, p_association_id uuid, p_unit_id uuid)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+begin
+  return exists (
+    select 1 from public.owners o
+     where o.id = p_owner_id
+       and (p_association_id is null or o.association_id = p_association_id)
+       and (p_unit_id is null or public.unit_association_id(p_unit_id) = o.association_id));
+end
+$function$;
+
+revoke all on function public.owner_record_matches(uuid, uuid, uuid) from public, anon;
+grant execute on function public.owner_record_matches(uuid, uuid, uuid) to authenticated, service_role;
+
+-- Every write policy (INSERT, UPDATE, ALL) accepting any of the login's
+-- records also checks that record against the row's association and unit.
+-- Read policies keep the union. owners (the record itself), messages on an
+-- architectural request (tied through the request) and survey responses
+-- (below) are handled separately.
+do $$
+declare
+  r record;
+  v_new text;
+  v_assoc text;
+  v_unit text;
+  v_count int := 0;
+  v_token constant text := '([A-Za-z_][A-Za-z_0-9.]*) IN \( SELECT (public\.)?current_owner_ids\(\)( AS current_owner_ids)?\)';
+begin
+  for r in
+    select p.schemaname, p.tablename, p.policyname, coalesce(p.with_check, p.qual) as chk
+      from pg_policies p
+     where p.schemaname = 'public'
+       and p.cmd in ('INSERT', 'UPDATE', 'ALL')
+       and coalesce(p.with_check, p.qual, '') ~ 'current_owner_ids\(\)'
+       and coalesce(p.with_check, p.qual, '') !~ 'owner_record_matches'
+       and p.tablename not in ('owners', 'architectural_request_messages', 'survey_responses', 'owner_portal_logins')
+  loop
+    select case when exists (select 1 from information_schema.columns c where c.table_schema = 'public'
+                              and c.table_name = r.tablename and c.column_name = 'association_id')
+                then format('%I.association_id', r.tablename) else 'NULL::uuid' end,
+           case when exists (select 1 from information_schema.columns c where c.table_schema = 'public'
+                              and c.table_name = r.tablename and c.column_name = 'unit_id')
+                then format('%I.unit_id', r.tablename) else 'NULL::uuid' end
+      into v_assoc, v_unit;
+    v_new := regexp_replace(r.chk, v_token,
+      '(\1 IN ( SELECT public.current_owner_ids()) AND public.owner_record_matches(\1, ' || v_assoc || ', ' || v_unit || '))', 'g');
+    execute format('alter policy %I on %I.%I with check (%s)', r.policyname, r.schemaname, r.tablename, v_new);
+    v_count := v_count + 1;
+  end loop;
+  raise notice 'Owner write policies tied to the record''s association: %', v_count;
+end $$;
+
+-- A survey answer is given by the record in the survey's association; a
+-- company-wide survey is answered once per login (by its first record).
+alter policy survey_responses_resident_insert on public.survey_responses
+  with check (
+    public.is_portal_resident()
+    and submitted_by_owner_id in (select public.current_owner_ids())
+    and work_order_id is null
+    and exists (
+      select 1 from public.surveys s
+       where s.id = survey_responses.survey_id
+         and s.active
+         and s.archived_at is null
+         and case when s.association_id is null
+                  then survey_responses.submitted_by_owner_id = public.current_owner_id()
+                  else public.owner_record_matches(survey_responses.submitted_by_owner_id, s.association_id, null)
+             end));
+
+-- Owner form templates and submissions: any record of the login, not only
+-- the one linked through owners.auth_user_id.
+alter policy form_templates_owner_read on public.form_templates
+  using (
+    active and archived_at is null and audience = 'homeowner'
+    and exists (select 1 from public.owners o
+                 where o.id in (select public.current_owner_ids())
+                   and o.portfolio_id = form_templates.portfolio_id));
+
+alter policy form_submissions_owner_insert on public.form_submissions
+  with check (
+    created_by = (select auth.uid())
+    and kind = any (array['portal_service_request'::text, 'portal_concern_report'::text])
+    and exists (select 1 from public.current_owner_ids()));
+
+-- Nothing compares with current_owner_id() any more except "is not null"
+-- checks and the company-wide survey rule above.
+do $$
+begin
+  if exists (select 1 from pg_policies
+              where regexp_replace(coalesce(qual, '') || ' ' || coalesce(with_check, ''),
+                                   '(public\.)?current_owner_id\(\) IS NOT NULL|submitted_by_owner_id = (public\.)?current_owner_id\(\)', '', 'g')
+                    ~ 'current_owner_id\(\)') then
+    raise exception 'A policy still uses current_owner_id() beyond an IS NOT NULL check. Check it, then run this migration again.';
+  end if;
+  if exists (select 1 from pg_policies p
+              where p.schemaname = 'public' and p.cmd in ('INSERT', 'UPDATE', 'ALL')
+                and coalesce(p.with_check, p.qual, '') ~ 'current_owner_ids\(\)'
+                and coalesce(p.with_check, p.qual, '') !~ 'owner_record_matches'
+                and p.tablename not in ('owners', 'architectural_request_messages', 'owner_portal_logins', 'form_submissions')) then
+    raise exception 'An owner write policy is not tied to its record''s association.';
+  end if;
 end $$;
 
 -- 4) Helpers and functions over every record of the login ---------------------
@@ -992,9 +1108,9 @@ $function$;
 -- An owner invitation naming one record (metadata.owner_id) links exactly that
 -- record when it is accepted: as the login's first record (owners.auth_user_id)
 -- when the login has none, otherwise added to the login (owner_portal_logins).
--- The record must be in the invitation's company, carry the invited email and
--- not be on another login. Invitations without a record keep the old
--- behaviour (sign-up auto-link of the first record).
+-- The record must be in the invitation's company and association, carry the
+-- invited email (which must also be the accepting login's email) and not be
+-- on another login. Invitations without a record link nothing.
 create or replace function public.link_owner_on_invitation_accept()
 returns trigger
 language plpgsql
@@ -1005,7 +1121,12 @@ begin
   if new.hoa_role::text not in ('owner', 'board')
      or new.status::text <> 'accepted' or old.status::text is not distinct from 'accepted'
      or new.used_by is null
-     or nullif(new.metadata ->> 'owner_id', '') is null then
+     or nullif(new.metadata ->> 'owner_id', '') is null
+     or new.association_id is null
+     -- Only the person the invitation was sent to (accept_invitation checks
+     -- this too; a direct status change by an admin must not bypass it).
+     or not exists (select 1 from auth.users u
+                     where u.id = new.used_by and lower(btrim(u.email)) = lower(btrim(new.email))) then
     return new;
   end if;
 
@@ -1014,6 +1135,7 @@ begin
        set auth_user_id = new.used_by, portal_activated = true
      where o.id::text = new.metadata ->> 'owner_id'
        and o.portfolio_id = new.portfolio_id
+       and o.association_id = new.association_id
        and o.archived_at is null
        and o.auth_user_id is null
        and not exists (select 1 from public.owner_portal_logins l where l.owner_id = o.id and l.revoked_at is null)
@@ -1024,6 +1146,7 @@ begin
       from public.owners o
      where o.id::text = new.metadata ->> 'owner_id'
        and o.portfolio_id = new.portfolio_id
+       and o.association_id = new.association_id
        and o.archived_at is null
        and o.auth_user_id is null
        and lower(btrim(o.email)) = lower(btrim(new.email))
@@ -1032,13 +1155,17 @@ begin
           invitation_id = excluded.invitation_id, linked_at = now(), revoked_at = null
       where public.owner_portal_logins.revoked_at is not null;
 
+    -- Activate it for this login (also the login's own first record that
+    -- staff had turned off and invited again).
     update public.owners o
        set portal_activated = true
      where o.id::text = new.metadata ->> 'owner_id'
+       and o.association_id = new.association_id
        and not o.portal_activated
        and o.archived_at is null
-       and exists (select 1 from public.owner_portal_logins l
-                    where l.owner_id = o.id and l.auth_user_id = new.used_by and l.revoked_at is null);
+       and (o.auth_user_id = new.used_by
+            or exists (select 1 from public.owner_portal_logins l
+                        where l.owner_id = o.id and l.auth_user_id = new.used_by and l.revoked_at is null));
   end if;
   return new;
 end
@@ -1056,12 +1183,42 @@ begin
   end if;
 end $$;
 
+-- A manager limited to some associations invites only into owner records of
+-- those associations (as vendor_invite_scope does for vendors).
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'user_invitations'
+                  and policyname = 'owner_invite_scope') then
+    create policy owner_invite_scope on public.user_invitations as restrictive for insert to authenticated
+      with check (
+        hoa_role::text is distinct from 'owner'
+        or not public.manager_is_scoped()
+        or public.is_company_admin()
+        or exists (select 1 from public.owners own
+                    where own.id::text = user_invitations.metadata ->> 'owner_id'
+                      and own.association_id = user_invitations.association_id
+                      and public.can_view_association_row(own.association_id)));
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'user_invitations'
+                  and policyname = 'owner_invite_scope_update') then
+    create policy owner_invite_scope_update on public.user_invitations as restrictive for update to authenticated
+      using (true)
+      with check (
+        hoa_role::text is distinct from 'owner'
+        or not public.manager_is_scoped()
+        or public.is_company_admin()
+        or exists (select 1 from public.owners own
+                    where own.id::text = user_invitations.metadata ->> 'owner_id'
+                      and own.association_id = user_invitations.association_id
+                      and public.can_view_association_row(own.association_id)));
+  end if;
+end $$;
+
 -- 6) Sign-up auto-link and bulk relink ----------------------------------------
 
--- The linking body as a plain function, so both the sign-up trigger and the
--- email-change trigger can run it (a trigger function cannot be called
--- directly). Owner and vendor records already on a login, or named by a
--- pending invitation, are left to that invitation.
+-- The sign-up linking body as a plain function (a trigger function cannot be
+-- called directly). Owner records are linked only by their invitations;
+-- vendor, board and tenant linking is unchanged.
 create or replace function public.link_portal_user(p_user_id uuid, p_email text)
 returns void
 language plpgsql
@@ -1079,34 +1236,8 @@ begin
     return;
   end if;
 
-  -- One homeowner record per sign-in (owners.auth_user_id is unique): the
-  -- oldest unlinked match. Further records are added only by their own
-  -- invitations (link_owner_on_invitation_accept).
-  update public.owners o
-     set auth_user_id = p_user_id, portal_activated = true
-   where o.id = (
-     select candidate.id
-       from public.owners candidate
-      where candidate.portfolio_id = v_portfolio_id
-        and candidate.auth_user_id is null
-        and candidate.archived_at is null
-        and lower(candidate.email) = lower(p_email)
-        -- Never a record already added to another login.
-        and not exists (select 1 from public.owner_portal_logins l where l.owner_id = candidate.id and l.revoked_at is null)
-        -- Nor a record a pending invitation names (it links on accept).
-        and not exists (
-          select 1 from public.user_invitations i
-           where i.portfolio_id = v_portfolio_id and i.hoa_role::text in ('owner', 'board') and i.status::text = 'pending'
-             and (i.expires_at is null or i.expires_at > now())
-             and i.metadata ->> 'owner_id' = candidate.id::text)
-      order by candidate.created_at, candidate.id
-      limit 1
-   )
-     and not exists (select 1 from public.owners linked where linked.auth_user_id = p_user_id)
-     and exists (
-       select 1 from public.profiles p
-       where p.id = p_user_id and p.hoa_role in ('owner', 'board') and p.disabled_at is null
-     );
+  -- Owner records are not linked here: only their own invitation links them
+  -- (link_owner_on_invitation_accept), never a matching email.
 
   -- One vendor record per sign-in (vendors.auth_user_id is unique). With one
   -- record per association, the same email can be on several records: link
@@ -1215,31 +1346,8 @@ declare
   n_vendors integer;
   n_tenants integer;
 begin
-  -- At most one homeowner record per sign-in: the oldest unlinked match, and
-  -- only for sign-ins not linked to a homeowner record yet. Records already on
-  -- a login, or named by a pending invitation, are left alone.
-  with pick as (
-    select distinct on (u.id) u.id as user_id, o.id as owner_id
-      from auth.users u
-      join public.profiles p on p.id = u.id and p.disabled_at is null and p.hoa_role in ('owner', 'board')
-      join public.owners o on o.portfolio_id = p.portfolio_id and lower(o.email) = lower(u.email)
-     where o.auth_user_id is null
-       and o.archived_at is null
-       and not exists (select 1 from public.owner_portal_logins l where l.owner_id = o.id and l.revoked_at is null)
-       and not exists (
-         select 1 from public.user_invitations i
-          where i.portfolio_id = p.portfolio_id and i.hoa_role::text in ('owner', 'board') and i.status::text = 'pending'
-            and (i.expires_at is null or i.expires_at > now())
-            and i.metadata ->> 'owner_id' = o.id::text)
-       and not exists (select 1 from public.owners linked where linked.auth_user_id = u.id)
-     order by u.id, o.created_at, o.id
-  ), upd as (
-    update public.owners o
-       set auth_user_id = pick.user_id
-      from pick
-     where o.id = pick.owner_id
-    returning 1
-  ) select count(*) into n_owners from upd;
+  -- Owner records are linked only by their own invitations, never by email.
+  n_owners := 0;
 
   with upd as (
     update public.board_members bm
@@ -1357,7 +1465,7 @@ begin
                               end)) = lower(btrim(new.email)));
     update public.tenants set auth_user_id = null, portal_activated = false, updated_at = now()
       where auth_user_id = new.id and lower(email) <> lower(new.email);
-    perform public.link_portal_user(new.id, new.email);
+    -- Nothing new is linked by the changed email.
   end if;
   return new;
 end;
