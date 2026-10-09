@@ -75,6 +75,8 @@ describe('vendors belong to exactly one association', () => {
     }
     expect(migration).toContain("'public.inspections'::regclass, 'inspector_vendor_id'::name");
     expect(migration).toContain("'This vendor belongs to another association. Add it as a vendor of this association.'");
+    // Company-level rows (no association) need a vendor of their own company.
+    expect(migration).toContain('-- A company-level row (no association): the vendor must be of its company.');
     expect(migration).toMatch(/for share;\s+-- A missing vendor is left to the foreign key\./);
   });
 
@@ -196,6 +198,13 @@ describe('vendors belong to exactly one association', () => {
     expect(vendorImport).toContain(".eq('association_id', associationId)");
     expect(read('app/(app)/owners/import/previous-system/work-order-actions.ts'))
       .toContain('.or(`association_id.eq.${association.id},and(is_management_company.eq.true,portfolio_id.eq.${portfolioId})`)');
+  });
+
+  it('keeps the management company invite to company-wide staff and treats duplicate vendor names as ambiguous', () => {
+    const invite = read('app/(app)/vendors/actions.ts');
+    expect(invite).toContain("if (scoped) fail('Only company-wide staff can invite the management company.')");
+    const billForm = read('app/(app)/bills/new/new-bill-form.tsx');
+    expect(billForm).toContain('if (exact.length > 1) return \'\';');
   });
 
   it('checks the association on vendor create', () => {

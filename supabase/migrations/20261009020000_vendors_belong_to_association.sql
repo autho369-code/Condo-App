@@ -335,7 +335,7 @@ create or replace trigger trg_associations_move_vendor_portfolio
 
 -- 4) Linked rows use a vendor of their own association ----------------------
 -- TG_ARGV[0] names the vendor column. A row without an association
--- (company-level) is left to the existing same-company checks.
+-- (company-level) needs a vendor of its own company.
 
 create or replace function public.vendor_link_same_association()
 returns trigger
@@ -352,7 +352,7 @@ declare
   v_association_portfolio uuid;
   v_management boolean;
 begin
-  if v_vendor_id is null or v_association_id is null then
+  if v_vendor_id is null then
     return new;
   end if;
 
@@ -366,6 +366,14 @@ begin
 
   -- A missing vendor is left to the foreign key.
   if not found then
+    return new;
+  end if;
+
+  -- A company-level row (no association): the vendor must be of its company.
+  if v_association_id is null then
+    if v_vendor_portfolio is distinct from coalesce(nullif(v_row->>'portfolio_id', '')::uuid, v_vendor_portfolio) then
+      raise exception 'This vendor belongs to another company.' using errcode = '23514';
+    end if;
     return new;
   end if;
 
@@ -558,6 +566,15 @@ begin
       r.tbl, r.col) into v_bad;
     if v_bad then
       raise exception '% has rows whose vendor belongs to another association. Correct them, then run this migration again.', r.tbl using errcode = '23514';
+    end if;
+    -- Company-level rows: the vendor must be of the row's company.
+    execute format(
+      'select exists (select 1 from %s x join public.vendors ven on ven.id = x.%I '
+      || 'where x.association_id is null and ven.portfolio_id is distinct from '
+      || 'coalesce(nullif(to_jsonb(x)->>''portfolio_id'', '''')::uuid, ven.portfolio_id))',
+      r.tbl, r.col) into v_bad;
+    if v_bad then
+      raise exception '% has rows whose vendor belongs to another company. Correct them, then run this migration again.', r.tbl using errcode = '23514';
     end if;
   end loop;
   for r in select * from public.vendor_parent_link_tables() loop

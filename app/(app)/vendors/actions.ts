@@ -26,10 +26,17 @@ export async function inviteVendorToPortal(formData: FormData) {
   const db = supabase as any
   const { data: vendor } = await db
     .from('vendors')
-    .select('id, name, emails, portfolio_id, association_id, portfolios(company_name)')
+    .select('id, name, emails, portfolio_id, association_id, is_management_company, portfolios(company_name)')
     .eq('id', vendorId)
     .maybeSingle()
   if (!vendor) fail('Vendor not found.')
+  // The management company serves every association: like changing it, inviting
+  // it is for company-wide staff, not a manager limited to some associations.
+  if (vendor.is_management_company && !me.is_company_admin && !me.is_platform_operator) {
+    const { data: scoped, error: scopedErr } = await db.rpc('manager_is_scoped')
+    if (scopedErr) fail('Could not check your access. Try again.')
+    if (scoped) fail('Only company-wide staff can invite the management company.')
+  }
 
   const emails: string[] = Array.isArray(vendor.emails) ? vendor.emails : []
   const email = emails.find((e) => typeof e === 'string' && e.includes('@'))

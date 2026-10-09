@@ -49,8 +49,11 @@ function matchVendorId(name: string | null | undefined, vendors: any[]): string 
   if (!name) return '';
   const n = normalize(name);
   if (!n) return '';
-  const exact = vendors.find((v: any) => normalize(v.name ?? '') === n);
-  if (exact) return exact.id;
+  // The same company can be a vendor of several associations (one record
+  // each): a name that matches more than one record is ambiguous.
+  const exact = vendors.filter((v: any) => normalize(v.name ?? '') === n);
+  if (exact.length === 1) return exact[0].id;
+  if (exact.length > 1) return '';
   const partial = vendors.filter((v: any) => {
     const vn = normalize(v.name ?? '');
     return vn.length > 2 && (vn.includes(n) || n.includes(vn));
