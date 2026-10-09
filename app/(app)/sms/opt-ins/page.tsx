@@ -12,6 +12,7 @@ import { toggleOptIn } from '@/lib/rpcs/sms';
 import { canonicalPhone } from '@/lib/sms/twilio';
 import { phoneNumberList } from '@/lib/sms/phone-entries';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { vendorAssociationLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,7 +51,7 @@ export default async function SmsOptInsPage({
       .order('id')),
     fetchAllRows<any>(() => db
       .from('vendors')
-      .select('id, name, phone_numbers')
+      .select('id, name, phone_numbers, is_management_company, associations(name)')
       .is('archived_at', null)
       .eq('portfolio_id', me.portfolio?.id)
       .order('name')
@@ -113,7 +114,8 @@ export default async function SmsOptInsPage({
 
   const vendorPhones: any[] = [];
   (vendors ?? []).forEach((v: any) => {
-    vendorPhones.push(...extractPhones(v).map(p => ({ ...p, entityType: 'vendor' })));
+    // Each association has its own vendor record: name the association.
+    vendorPhones.push(...extractPhones(v).map(p => ({ ...p, name: `${p.name} · ${vendorAssociationLabel(v)}`, entityType: 'vendor' })));
   });
 
   const allPhones = [...ownerPhones, ...vendorPhones];

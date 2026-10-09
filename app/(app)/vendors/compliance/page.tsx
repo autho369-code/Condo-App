@@ -51,8 +51,10 @@ export default async function VendorCompliancePage({
   const [{ data: vendors }, { data: requests }] = await Promise.all([
     fetchAllRows<any>(() => db.from('vendors').select('id, name, trade, general_liability_expiration, workers_comp_expiration, auto_insurance_expiration, state_license_expiration, has_taxpayer_id, is_management_company, associations(name)')
       .is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
-    db.from('document_requests').select('id, vendor_id, doc_type, status, requested_at, submitted_at, due_date, review_note, attachment_urls, notes, vendors(name, is_management_company, associations(name))')
-      .not('vendor_id', 'is', null).order('requested_at', { ascending: false }).limit(500),
+    // Every open request (paged), so none awaiting review or a reply drops off.
+    fetchAllRows<any>(() => db.from('document_requests').select('id, vendor_id, doc_type, status, requested_at, submitted_at, due_date, review_note, attachment_urls, notes, vendors(name, is_management_company, associations(name))')
+      .not('vendor_id', 'is', null).in('status', ['submitted', 'requested', 'in_progress', 'rejected'])
+      .order('requested_at', { ascending: false }).order('id')).then((r) => ({ data: r.rows })),
   ]);
 
   const all = (requests ?? []) as any[];

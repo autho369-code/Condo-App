@@ -998,6 +998,106 @@ $function$;
 revoke all on function public.report_data_vendor_directory(uuid, jsonb) from public, anon, authenticated;
 grant execute on function public.report_data_vendor_directory(uuid, jsonb) to service_role;
 
+-- Reports that total per vendor name each vendor record's association (or the
+-- management company): the same contractor in two associations is two rows.
+create or replace function public.report_data_ap_transaction_summary(
+  p_portfolio_id uuid,
+  p_params jsonb default '{}'::jsonb
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+#variable_conflict use_column
+begin
+  -- PL/pgSQL wrapper as in 20261008060000 (plans kept per session).
+  return (select s.x from (
+  select coalesce(jsonb_agg(to_jsonb(r.*)), '[]'::jsonb) from (
+    with prm as (select * from public.rpt_prm(p_params))
+    select v.name as vendor, case when v.is_management_company then 'Management company' else va.name end as vendor_association,
+           count(*) as bills, sum(b.amount) as total_billed,
+           sum(b.amount - b.credit_applied) filter (where b.status::text = 'paid') as total_paid,
+           sum(b.amount - b.credit_applied) filter (where b.status::text in ('draft','pending_approval','approved')) as total_unpaid
+      from public.payable_bills b cross join prm
+      left join public.vendors v on v.id = b.vendor_id
+      left join public.associations va on va.id = v.association_id
+      where b.portfolio_id = p_portfolio_id and b.archived_at is null and b.status::text <> 'void'
+        and (prm.aid is null or b.association_id = prm.aid) and b.bill_date between prm.df and prm.dt
+      group by v.id, va.id order by total_billed desc
+  ) r
+  ) s(x) limit 1);
+end
+$function$;
+
+revoke all on function public.report_data_ap_transaction_summary(uuid, jsonb) from public, anon, authenticated;
+grant execute on function public.report_data_ap_transaction_summary(uuid, jsonb) to service_role;
+
+create or replace function public.report_data_vendor_payment_register(
+  p_portfolio_id uuid,
+  p_params jsonb default '{}'::jsonb
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+#variable_conflict use_column
+begin
+  -- PL/pgSQL wrapper as in 20261008060000 (plans kept per session).
+  return (select s.x from (
+  select coalesce(jsonb_agg(to_jsonb(r.*)), '[]'::jsonb) from (
+    with prm as (select * from public.rpt_prm(p_params))
+    select v.name as vendor, case when v.is_management_company then 'Management company' else va.name end as vendor_association,
+           count(*) as checks, sum(pc.amount) as total_paid, min(pc.payment_date) as first_payment, max(pc.payment_date) as last_payment
+      from public.payable_checks pc cross join prm
+      left join public.vendors v on v.id = pc.vendor_id
+      left join public.associations va on va.id = v.association_id
+      where pc.portfolio_id = p_portfolio_id and pc.voided_at is null and (prm.aid is null or pc.association_id = prm.aid)
+        and pc.payment_date between prm.df and prm.dt
+      group by v.id, va.id order by total_paid desc
+  ) r
+  ) s(x) limit 1);
+end
+$function$;
+
+revoke all on function public.report_data_vendor_payment_register(uuid, jsonb) from public, anon, authenticated;
+grant execute on function public.report_data_vendor_payment_register(uuid, jsonb) to service_role;
+
+create or replace function public.report_data_vendor_performance(
+  p_portfolio_id uuid,
+  p_params jsonb default '{}'::jsonb
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+#variable_conflict use_column
+begin
+  -- PL/pgSQL wrapper as in 20261008060000 (plans kept per session).
+  return (select s.x from (
+  select coalesce(jsonb_agg(to_jsonb(r.*)), '[]'::jsonb) from (
+    with prm as (select * from public.rpt_prm(p_params))
+    select v.name as vendor, case when v.is_management_company then 'Management company' else va.name end as vendor_association, v.trade::text as trade, count(w.id) as work_orders,
+           count(w.id) filter (where w.status::text in ('done','completed','billed','closed')) as completed,
+           round(avg(w.completed_date - w.created_at::date) filter (where w.completed_date is not null), 1) as avg_days_to_complete
+      from public.vendors v cross join prm
+      left join public.associations va on va.id = v.association_id
+      left join public.work_orders w on w.vendor_id = v.id and w.archived_at is null and (prm.aid is null or w.association_id = prm.aid)
+      where v.portfolio_id = p_portfolio_id and v.archived_at is null
+      group by v.id, va.id having count(w.id) > 0 order by work_orders desc
+  ) r
+  ) s(x) limit 1);
+end
+$function$;
+
+revoke all on function public.report_data_vendor_performance(uuid, jsonb) from public, anon, authenticated;
+grant execute on function public.report_data_vendor_performance(uuid, jsonb) to service_role;
+
 -- 6) Management fees go to the management company ---------------------------
 
 create or replace function public.set_management_fee_schedule(p_enabled boolean, p_day integer, p_vendor_id uuid, p_gl_account_id uuid)

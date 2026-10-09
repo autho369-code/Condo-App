@@ -32,12 +32,13 @@ export default async function VendorW9Page({
       .is('archived_at', null)
       .order('name')
       .order('id')).then((r) => ({ data: r.rows })),
-    (supabase as any)
+    // Every vendor request (paged), so each vendor's latest W-9 request is found.
+    fetchAllRows<any>(() => (supabase as any)
       .from('document_requests')
       .select('id, vendor_id, name, doc_type, status, requested_at, due_date')
       .not('vendor_id', 'is', null)
       .order('requested_at', { ascending: false })
-      .limit(500),
+      .order('id')).then((r) => ({ data: r.rows })),
   ]);
 
   const latestByVendor = new Map<string, any>();

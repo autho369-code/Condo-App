@@ -18,6 +18,7 @@ import {
 import { addDaysToDate, todayInZone } from '@/lib/time/zoned'
 import { Alert } from '@/components/ui/shell'
 import { collectLoadErrors } from '@/lib/company-admin/load-errors'
+import { vendorAssociationLabel } from '@/lib/vendors/options'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,7 +59,8 @@ export default async function AICommandCenterPage() {
     fetchAllRows(() => db.from('work_orders').select('id, association_id, scheduled_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES).order('id')).then((r) => ({ data: r.rows, error: r.error })),
     // Only the last 60 days feed the trend; paged past 1,000 rows.
     fetchAllRows(() => db.from('violations').select('id, association_id, created_at, status, archived_at').gte('created_at', d60).order('id')).then((r) => ({ data: r.rows, error: r.error })),
-    db.from('vendors').select('id, name, contract_expiration, general_liability_expiration, state_license_expiration').eq('portfolio_id', portfolioId).is('archived_at', null),
+    // Paged: with one record per association a company can pass 1,000 vendors.
+    fetchAllRows(() => db.from('vendors').select('id, name, contract_expiration, general_liability_expiration, state_license_expiration, is_management_company, associations(name)').eq('portfolio_id', portfolioId).is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error })),
     receivableAgingBuckets(db),
     fetchAllRows(() => db.from('payable_bills').select('id, amount, created_at').eq('portfolio_id', portfolioId).is('archived_at', null).gte('created_at', d60).order('id')).then((r) => ({ data: r.rows, error: r.error })),
     db.from('insurance_policies').select('id, expiration_date, owners(full_name)').is('archived_at', null).in('status', ['active', 'expiring_soon']).lte('expiration_date', in60).gte('expiration_date', today),
@@ -124,7 +126,7 @@ export default async function AICommandCenterPage() {
     if (v.contract_expiration && v.contract_expiration >= today && v.contract_expiration <= in60) {
       insights.push({
         severity: 'warning', icon: FileWarning,
-        title: `Contract with ${v.name} expires ${date(v.contract_expiration)}`,
+        title: `Contract with ${v.name} (${vendorAssociationLabel(v)}) expires ${date(v.contract_expiration)}`,
         detail: 'Renegotiate or rebid before expiration to avoid service gaps.',
         href: '/company-admin/vendors',
       })
@@ -132,7 +134,7 @@ export default async function AICommandCenterPage() {
     if (v.general_liability_expiration && v.general_liability_expiration < today) {
       insights.push({
         severity: 'critical', icon: ShieldAlert,
-        title: `${v.name} has an EXPIRED certificate of insurance`,
+        title: `${v.name} (${vendorAssociationLabel(v)}) has an EXPIRED certificate of insurance`,
         detail: 'Do not dispatch this vendor until a current COI is on file — liability exposure.',
         href: '/company-admin/compliance',
       })
@@ -140,7 +142,7 @@ export default async function AICommandCenterPage() {
     if (v.state_license_expiration && v.state_license_expiration < today) {
       insights.push({
         severity: 'critical', icon: ShieldAlert,
-        title: `${v.name}'s state license has expired`,
+        title: `${v.name} (${vendorAssociationLabel(v)})'s state license has expired`,
         detail: 'Verify license renewal before assigning new work.',
         href: '/company-admin/compliance',
       })
