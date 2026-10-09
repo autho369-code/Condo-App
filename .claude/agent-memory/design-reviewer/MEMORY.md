@@ -44,3 +44,7 @@
 - `truncate` inside a TD needs `max-w-*` on the inner div; `max-w` on the td is ignored by auto table layout (work-order-section.tsx:108).
 - Badge has `capitalize`: free-text count badges ("with email", "AppFolio basis: cash") come out Title Case. Nit only.
 - Import-result "Download all N messages" (receivables-section.tsx:240, 2026-10): secondary Button md (h-10) inside Alert matches the "Import anyway" precedent (:224). Naming AppFolio as the import source on owners/import/appfolio is expected copy, not a white-label leak; only flag Portier369/platform names.
+
+## Two-step GET pickers (owners/change, 2026-10-09)
+- New step forms copy the old card's hand-rolled `rounded-2xl ... shadow-[0_1px_2px...]` + raw `<select className={inputCls}>`; fix is `Surface` + `Select`/`Field required` (Surface's shadow has a 2nd layer, so the copy also drifts). Text-link Cancel/"Choose another unit" are ~20px tall: `inline-flex min-h-10 items-center`.
+- Step 1 that shows a "not found" warning for a stale `?unit=` also gets the action's `?error=` for the same cause: check for doubled Alerts and for the warning firing when the list itself failed to load.
