@@ -193,8 +193,8 @@ Back to [[Home]]. Updated 2026-10-09 (owner-login PR open, part 1 of 2; migratio
    submit_owner_message per association), the staff owner pickers list only
    the chosen association's owners, and the staff owner page shows records
    added to a login (portal access/reset treat them as having an account).
-   Also: accept_invitation demotes a board profile to owner when it accepts an
-   owner invitation (its body has a DELETE, so the fix is SQL for Mirsad).
+   (The board-to-owner demotion on accepting an owner invitation is fixed in
+   part 1 by trg_profiles_keep_board_role; accept_invitation is unchanged.)
 0. AppFolio importer follow-ups: credit balances (owner prepayments), and
    run the real import for one association end to end after merge. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.

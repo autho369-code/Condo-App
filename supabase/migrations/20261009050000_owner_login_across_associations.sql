@@ -1270,6 +1270,43 @@ begin
   end if;
 end $$;
 
+-- A board member who accepts an owner invitation keeps board access:
+-- accept_invitation sets the profile role to the invitation's ('owner'), and
+-- the board portal needs 'board'. A change from board to owner is kept at
+-- board while the person holds an active board seat in that company (the same
+-- rule link_portal_user uses to promote an owner to board).
+create or replace function public.profiles_keep_board_role()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+begin
+  if exists (
+    select 1 from public.board_members bm
+      join public.associations a on a.id = bm.association_id
+     where bm.auth_user_id = new.id
+       and bm.active
+       and a.portfolio_id = new.portfolio_id) then
+    new.hoa_role := 'board';
+  end if;
+  return new;
+end
+$function$;
+
+revoke all on function public.profiles_keep_board_role() from public, anon, authenticated;
+
+do $$
+begin
+  if not exists (select 1 from pg_trigger where tgname = 'trg_profiles_keep_board_role'
+                  and tgrelid = 'public.profiles'::regclass) then
+    create trigger trg_profiles_keep_board_role
+      before update of hoa_role on public.profiles
+      for each row when (old.hoa_role::text = 'board' and new.hoa_role::text = 'owner')
+      execute function public.profiles_keep_board_role();
+  end if;
+end $$;
+
 -- 6) Sign-up auto-link and bulk relink ----------------------------------------
 
 -- The sign-up linking body as a plain function (a trigger function cannot be

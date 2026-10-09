@@ -108,6 +108,12 @@ describe('owner login across associations: database', () => {
     expect(migration).toContain('else public.owner_record_matches(survey_responses.submitted_by_owner_id, s.association_id, null)');
   });
 
+  it('keeps a board member on board when they accept an owner invitation', () => {
+    expect(fn('profiles_keep_board_role')).toContain("new.hoa_role := 'board';");
+    expect(migration).toContain("for each row when (old.hoa_role::text = 'board' and new.hoa_role::text = 'owner')");
+    expect(migration).toContain('revoke all on function public.profiles_keep_board_role() from public, anon, authenticated;');
+  });
+
   it('lets a scoped manager invite only into owner records of their own associations', () => {
     expect(migration).toContain('create policy owner_invite_scope on public.user_invitations as restrictive for insert to authenticated');
     expect(migration).toContain('create policy owner_invite_scope_update on public.user_invitations as restrictive for update to authenticated');
