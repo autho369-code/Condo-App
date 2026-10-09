@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #268 merged; importer credits in PR).
+Back to [[Home]]. Updated 2026-10-09 (after #269 merged; no open PR; next: Mirsad runs the Randolph Station import).
 
 ## Where things stand
 - #268 merged (65414f0): owner login leftovers. The
@@ -40,7 +40,7 @@ Back to [[Home]]. Updated 2026-10-09 (after #268 merged; importer credits in PR)
   pilot).
 
 ## Open PR
-- Importer credits (in PR, branch claude/serene-wozniak-hvgpxf): a credit
+- #269 merged: importer credits. A credit
   (prepayment) line in the open-balance file is posted as a homeowner credit
   via new import_opening_credit (migration 20261009080000): Dr the income
   account an imported charge of the "Other" category posts to / Cr A/R; the
