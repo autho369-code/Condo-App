@@ -231,6 +231,12 @@ begin
     if v_portfolio_id is null then
       raise exception 'This association has no company, so it cannot have vendors yet.' using errcode = '23502';
     end if;
+    -- A vendor's tax and bank records, documents, invitations and company-level
+    -- rows belong to its company: it never moves to another company.
+    if tg_op = 'UPDATE' and old.portfolio_id is not null and v_portfolio_id is distinct from old.portfolio_id then
+      raise exception 'A vendor cannot move to an association of another company. Add it as a new vendor there.'
+        using errcode = '23514';
+    end if;
     new.portfolio_id := v_portfolio_id;
   end if;
 
@@ -292,8 +298,11 @@ begin
   if new.default_gl_account_id is null then
     return new;
   end if;
+  -- Locked, so a concurrent move of the account (trg_gl_account_vendor_default_scope)
+  -- waits for this row and then sees the new default, or this sees the move.
   select g.association_id, g.portfolio_id into v_gl_association, v_gl_portfolio
-    from public.gl_accounts g where g.id = new.default_gl_account_id;
+    from public.gl_accounts g where g.id = new.default_gl_account_id
+     for share;
   if not found then
     return new;  -- a missing account is left to the foreign key
   end if;

@@ -106,6 +106,8 @@ describe('vendors belong to exactly one association', () => {
     expect(migration).toContain('revoke all on function public.vendors_default_gl_in_association() from public, anon, authenticated;');
     expect(migration).toContain('if v_gl_portfolio is distinct from v_vendor_portfolio');
     expect(migration).toContain("raise exception 'The management company cannot move to another company.'");
+    expect(migration).toContain("'A vendor cannot move to an association of another company. Add it as a new vendor there.'");
+    expect(migration).toMatch(/from public\.gl_accounts g where g\.id = new\.default_gl_account_id\s+for share;/);
     expect(migration).toContain('before update of association_id, portfolio_id on public.gl_accounts');
     expect(migration).toContain('revoke all on function public.gl_account_vendor_default_scope() from public, anon, authenticated;');
     expect(read('app/(app)/vendors/compliance/page.tsx')).toContain('vendors(name, is_management_company, associations(name))');
