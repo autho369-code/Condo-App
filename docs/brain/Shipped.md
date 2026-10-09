@@ -4,6 +4,13 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-09
+- #263 (merged dfa8f42; migration 20261009020000 applied by Claude and read
+  back): a vendor record belongs to one association; the management company
+  is the one company-level vendor. 14 same-association triggers + parent-row
+  triggers, restrictive association scope on vendors and their private,
+  compliance, financial, document, note and tag rows; every vendor picker,
+  list, report, email and SMS names/scopes the association; management-company
+  upload emails readable only by company-wide staff.
 - #262 (merged 8f33d0c; migration 20261009011000 already live): delete tool
   stops on another association's SET NULL links; attached (type, id) records
   match only by type + id.
