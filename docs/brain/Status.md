@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #264 merged; no open PR).
+Back to [[Home]]. Updated 2026-10-09 (vendor-login PR open; migration 20261009040000 not yet applied).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -54,7 +54,9 @@ Back to [[Home]]. Updated 2026-10-09 (after #264 merged; no open PR).
 - In PR: one vendor login across a vendor's associations (migration
   20261009040000: vendor_portal_logins, current_vendor_ids(), 28 vendor
   policies rewritten with ALTER POLICY; staff invite per record; staff can
-  turn off one record's portal access). Main stays compatible with the
+  turn off one record's portal access). Dry run as the vendor role (rolled
+  back): 28 policies rewritten, 23 vendor tables 62 ms -> 44 ms warm, the
+  live vendor still resolves to its one record. Main stays compatible with the
   migration, so Claude applies it once Codex is clean, reads it back, then
   Mirsad merges.
 - #264 merged: bills CSV upload matches the vendor inside the row's
@@ -67,11 +69,11 @@ Back to [[Home]]. Updated 2026-10-09 (after #264 merged; no open PR).
   triggers paused, journal entries/bills/tenants/blocking rows removed,
   triggers re-enabled; verified 0 disabled triggers, 0 orphan journal
   lines). The 14 old demo owners are gone (0 owners now).
-- Next gaps: (1) one vendor login across associations (Mirsad: build now);
-  (2) multi-property owner portal (one sign-in, all of a person's records) and owner pickers
-  that still list the whole company; (3) chart of accounts entered/changed by
-  the company admin only; (4) a real end-to-end import of Randolph Station;
-  (5) credit balances from the Aged Receivable file (listed, not posted).
+- Next gaps: (1) multi-property owner portal (one sign-in, all of a person's
+  records, same pattern as the vendor login) and owner pickers that still
+  list the whole company; (2) chart of accounts entered/changed by the
+  company admin only; (3) a real end-to-end import of Randolph Station;
+  (4) credit balances from the Aged Receivable file (listed, not posted).
 - #256 merged (7b37b23); migration 20261008060000 applied and verified (7
   SETOF uuid identity helpers are PL/pgSQL, SECURITY DEFINER, search_path
   kept). Live timings for 30 tables per role, original -> now: board
