@@ -85,6 +85,9 @@ describe('vendors belong to exactly one association', () => {
     // The move refuses rows on the old company's management company and carries tax/bank records along.
     expect(migration).toContain('It cannot move to another company.');
     expect(migration).toContain('update public.vendor_financial_details f set portfolio_id = new.portfolio_id');
+    expect(migration).toContain('update public.document_requests d set portfolio_id = new.portfolio_id');
+    // The management-company checks lock the association against a concurrent company move.
+    expect(migration.match(/where a\.id = v_association_id\s+for share;/g)).toHaveLength(2);
     for (const fn of ['vendors_set_portfolio_from_association', 'vendor_link_same_association', 'associations_move_vendor_portfolio']) {
       expect(migration).toContain(`revoke all on function public.${fn}() from public, anon, authenticated;`);
       const body = migration.slice(migration.indexOf(`function public.${fn}()`));

@@ -265,8 +265,9 @@ create unique index if not exists vendors_one_management_company
   on public.vendors(portfolio_id) where is_management_company and archived_at is null;
 
 -- An association that moves to another company takes its vendors (and their
--- tax and bank records) with it. The old company's management company cannot
--- follow, so the move is refused while the association's rows use it.
+-- tax and bank records and document requests) with it. The old company's
+-- management company cannot follow, so the move is refused while the
+-- association's rows use it.
 create or replace function public.associations_move_vendor_portfolio()
 returns trigger
 language plpgsql
@@ -305,6 +306,11 @@ begin
     from public.vendors ven
    where ven.id = f.vendor_id and ven.association_id = new.id
      and f.portfolio_id is distinct from new.portfolio_id;
+  -- Document requests sent to those vendors follow them too.
+  update public.document_requests d set portfolio_id = new.portfolio_id
+    from public.vendors ven
+   where ven.id = d.vendor_id and ven.association_id = new.id
+     and d.portfolio_id is distinct from new.portfolio_id;
   return new;
 end;
 $function$;
@@ -332,6 +338,7 @@ declare
   v_association_id uuid := nullif(v_row->>'association_id', '')::uuid;
   v_vendor_association uuid;
   v_vendor_portfolio uuid;
+  v_association_portfolio uuid;
   v_management boolean;
 begin
   if v_vendor_id is null or v_association_id is null then
@@ -352,8 +359,13 @@ begin
   end if;
 
   if v_management then
-    if not exists (select 1 from public.associations a
-                    where a.id = v_association_id and a.portfolio_id = v_vendor_portfolio) then
+    -- Locked, so a concurrent move of the association to another company
+    -- waits for this row (and its management-company check then sees it).
+    select a.portfolio_id into v_association_portfolio
+      from public.associations a
+     where a.id = v_association_id
+       for share;
+    if v_association_portfolio is distinct from v_vendor_portfolio then
       raise exception 'This vendor belongs to another company.' using errcode = '23514';
     end if;
     return new;
@@ -401,6 +413,7 @@ declare
   v_association_id uuid;
   v_vendor_association uuid;
   v_vendor_portfolio uuid;
+  v_association_portfolio uuid;
   v_management boolean;
 begin
   if v_vendor_id is null or v_parent_id is null then
@@ -434,8 +447,13 @@ begin
   end if;
 
   if v_management then
-    if not exists (select 1 from public.associations a
-                    where a.id = v_association_id and a.portfolio_id = v_vendor_portfolio) then
+    -- Locked, so a concurrent move of the association to another company
+    -- waits for this row (and its management-company check then sees it).
+    select a.portfolio_id into v_association_portfolio
+      from public.associations a
+     where a.id = v_association_id
+       for share;
+    if v_association_portfolio is distinct from v_vendor_portfolio then
       raise exception 'This vendor belongs to another company.' using errcode = '23514';
     end if;
     return new;
