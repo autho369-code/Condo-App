@@ -210,6 +210,11 @@ begin
     if new.association_id is not null then
       raise exception 'The management company belongs to the company, not to one association.' using errcode = '23514';
     end if;
+    -- Its bills, work orders, documents and default account belong to its
+    -- company: it never moves to another one.
+    if tg_op = 'UPDATE' and new.portfolio_id is distinct from old.portfolio_id then
+      raise exception 'The management company cannot move to another company.' using errcode = '23514';
+    end if;
   else
     if new.association_id is null then
       raise exception 'A vendor must belong to an association.' using errcode = '23502';
@@ -310,6 +315,34 @@ revoke all on function public.vendors_default_gl_in_association() from public, a
 create or replace trigger trg_vendors_default_gl_in_association
   before insert or update of default_gl_account_id, association_id on public.vendors
   for each row execute function public.vendors_default_gl_in_association();
+
+-- The reverse side: a GL account used as a vendor's default cannot move to
+-- another association or company while that vendor would no longer match.
+create or replace function public.gl_account_vendor_default_scope()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+begin
+  if exists (select 1 from public.vendors v
+              where v.default_gl_account_id = new.id
+                and (v.portfolio_id is distinct from new.portfolio_id
+                     or (new.association_id is not null and new.association_id is distinct from v.association_id))) then
+    raise exception 'This account is a vendor''s default account. Change that vendor''s default first.'
+      using errcode = '23514';
+  end if;
+  return new;
+end;
+$function$;
+
+revoke all on function public.gl_account_vendor_default_scope() from public, anon, authenticated;
+
+create or replace trigger trg_gl_account_vendor_default_scope
+  before update of association_id, portfolio_id on public.gl_accounts
+  for each row
+  when (new.association_id is distinct from old.association_id or new.portfolio_id is distinct from old.portfolio_id)
+  execute function public.gl_account_vendor_default_scope();
 
 do $$
 begin
