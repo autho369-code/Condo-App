@@ -17,6 +17,7 @@ import {
   type AppfolioWorkOrderGroup,
 } from '@/lib/imports/appfolio-work-orders';
 import type { WorkOrderImportSummary } from './work-order-actions';
+import { GroupPicker } from './group-picker';
 
 type Association = { id: string; name: string };
 
@@ -236,9 +237,11 @@ export function WorkOrderImportSection({ associations, importWorkOrders }: Props
       </Surface>
 
       {error && <Alert tone="danger">{error}</Alert>}
-      {groups?.map((g) => (
-        <GroupCard key={`${g.name}|${g.address ?? ''}`} group={g} associations={associations} importWorkOrders={importWorkOrders} />
-      ))}
+      {groups && (
+        <GroupPicker groups={groups} render={(g) => (
+          <GroupCard key={`${g.name}|${g.address ?? ''}`} group={g} associations={associations} importWorkOrders={importWorkOrders} />
+        )} />
+      )}
     </div>
   );
 }

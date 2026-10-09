@@ -17,6 +17,7 @@ import {
 } from '@/lib/imports/appfolio-homeowners';
 import type { ImportSummary } from '../actions';
 import type { HomeownerImportRow } from './homeowner-actions';
+import { GroupPicker } from './group-picker';
 
 type Association = { id: string; name: string };
 
@@ -208,9 +209,11 @@ export function HomeownerImportSection({ associations, importHomeowners }: Props
       </Surface>
 
       {error && <Alert tone="danger">{error}</Alert>}
-      {groups?.map((g) => (
-        <GroupCard key={`${g.name}|${g.address ?? ''}`} group={g} associations={associations} importHomeowners={importHomeowners} />
-      ))}
+      {groups && (
+        <GroupPicker groups={groups} render={(g) => (
+          <GroupCard key={`${g.name}|${g.address ?? ''}`} group={g} associations={associations} importHomeowners={importHomeowners} />
+        )} />
+      )}
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
   type AppfolioReceivablesParse,
 } from '@/lib/imports/appfolio-receivables';
 import type { ReceivableImportItem, ReceivablesImportSummary } from './receivables-actions';
+import { GroupPicker } from './group-picker';
 
 type Association = {
   id: string;
@@ -336,7 +337,7 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
         </Surface>
       )}
 
-      {groups.map((g) => (
+      <GroupPicker groups={groups} render={(g) => (
         <AssociationCard
           key={`${fileKey}-${g.name}|${g.address ?? ""}`}
           group={g}
@@ -345,7 +346,7 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
           importReceivables={importReceivables}
           complete={!parsed?.problems?.length && parsed?.fileTotal != null && Boolean(tiesOut)}
         />
-      ))}
+      )} />
     </div>
   );
 }
