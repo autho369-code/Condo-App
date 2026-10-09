@@ -13,6 +13,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { resendVendorRequest, reviewVendorDocument } from '@/lib/rpcs/vendor-document-requests';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { date } from '@/lib/utils';
 import { vendorDocExpires, vendorDocLabel } from '@/lib/vendors/document-requests';
 import { tradeLabel, vendorAssociationLabel as vendorAssociation } from '@/lib/vendors/options';
@@ -48,8 +49,8 @@ export default async function VendorCompliancePage({
   const db = (await createClient()) as any;
 
   const [{ data: vendors }, { data: requests }] = await Promise.all([
-    db.from('vendors').select('id, name, trade, general_liability_expiration, workers_comp_expiration, auto_insurance_expiration, state_license_expiration, has_taxpayer_id, is_management_company, associations(name)')
-      .is('archived_at', null).order('name'),
+    fetchAllRows<any>(() => db.from('vendors').select('id, name, trade, general_liability_expiration, workers_comp_expiration, auto_insurance_expiration, state_license_expiration, has_taxpayer_id, is_management_company, associations(name)')
+      .is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
     db.from('document_requests').select('id, vendor_id, doc_type, status, requested_at, submitted_at, due_date, review_note, attachment_urls, notes, vendors(name, is_management_company, associations(name))')
       .not('vendor_id', 'is', null).order('requested_at', { ascending: false }).limit(500),
   ]);
