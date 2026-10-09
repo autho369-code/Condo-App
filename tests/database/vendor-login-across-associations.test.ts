@@ -57,6 +57,12 @@ describe('vendor login across associations: database', () => {
     expect(migration).toContain('create or replace function public.relink_all_portal_users()');
   });
 
+  it('revokes added records whose email no longer matches when the login email changes', () => {
+    const fn = migration.slice(migration.indexOf('create or replace function public.relink_portal_user_on_email_change()'));
+    expect(fn).toContain('update public.vendor_portal_logins l set revoked_at = now()');
+    expect(fn).toContain('where l.auth_user_id = new.id');
+  });
+
   it('lets staff of the record\'s own company read its added logins', () => {
     expect(migration).toContain('and public.can_access_portfolio(ven.portfolio_id)');
   });

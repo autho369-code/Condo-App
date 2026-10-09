@@ -730,3 +730,48 @@ begin
       execute function public.revoke_vendor_portal_login();
   end if;
 end $$;
+
+-- 8) An email change also revokes added records -------------------------------
+
+-- relink_portal_user_on_email_change (on auth.users) unbinds the first record
+-- when the login's new email is not on it. Records added through invitations
+-- are revoked the same way, so a login whose email moves to another vendor's
+-- address keeps none of the former vendor's associations. Otherwise the live
+-- definition unchanged.
+create or replace function public.relink_portal_user_on_email_change()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+begin
+  if new.email is distinct from old.email then
+    update public.owners set auth_user_id = null
+      where auth_user_id = new.id and lower(email) <> lower(new.email);
+    update public.board_members set auth_user_id = null
+      where auth_user_id = new.id and lower(email) <> lower(new.email);
+    update public.vendors v set auth_user_id = null
+      where v.auth_user_id = new.id
+        and not exists (
+          select 1 from jsonb_array_elements_text(v.emails) as e(email)
+          where lower(e.email) = lower(new.email)
+        );
+    update public.vendor_portal_logins l set revoked_at = now()
+      where l.auth_user_id = new.id
+        and l.revoked_at is null
+        and not exists (
+          select 1 from public.vendors v, jsonb_array_elements(case when jsonb_typeof(v.emails) = 'array' then v.emails else '[]'::jsonb end) as e(val)
+           where v.id = l.vendor_id
+             and lower(btrim(case jsonb_typeof(e.val)
+                                when 'string' then e.val #>> '{}'
+                                when 'object' then e.val ->> 'email'
+                              end)) = lower(btrim(new.email)));
+    update public.tenants set auth_user_id = null, portal_activated = false, updated_at = now()
+      where auth_user_id = new.id and lower(email) <> lower(new.email);
+    perform public.auto_link_portal_user() from (select new.*) s;
+  end if;
+  return new;
+end;
+$function$;
+
+revoke all on function public.relink_portal_user_on_email_change() from public, anon, authenticated;
