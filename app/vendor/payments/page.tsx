@@ -17,12 +17,12 @@ export default async function VendorPaymentsPage({ searchParams }: { searchParam
   const [billResult, workOrderResult] = await Promise.all([
     db.from('payable_bills')
       .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, associations(name)')
-      .eq('vendor_id', me.vendor_id).is('archived_at', null).order('bill_date', { ascending: false }).limit(100),
+      .in('vendor_id', me.vendor_ids).is('archived_at', null).order('bill_date', { ascending: false }).limit(100),
     // submit_vendor_invoice only accepts finished jobs; offering open ones
     // just produced a "Mark the job done" error after the upload.
     db.from('work_orders')
       .select('id, number, title, associations(name)')
-      .eq('vendor_id', me.vendor_id).is('archived_at', null)
+      .in('vendor_id', me.vendor_ids).is('archived_at', null)
       .in('status', [...VENDOR_INVOICEABLE_STATUSES])
       .order('created_at', { ascending: false }).limit(100),
   ]);

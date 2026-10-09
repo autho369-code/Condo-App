@@ -12,9 +12,10 @@ const compliance = readFileSync(resolve(root, 'app/vendor/compliance/page.tsx'),
 describe('vendor submissions', () => {
   it('keeps upload capabilities scoped to the authenticated vendor', () => {
     expect(actions).toContain('const me = await requireVendor()');
-    expect(actions).toContain('`vendors/${me.vendor_id}/${category}/');
-    expect(actions).toContain("isScopedStoragePath(input.path, 'vendors', me.vendor_id)");
-    expect(actions).toContain("isScopedStoragePath(input.attachment.path, 'vendors', me.vendor_id)");
+    // One exact vendor record of the login (one per association).
+    expect(actions).toContain('`vendors/${vendorRecord}/${category}/');
+    expect(actions).toContain("isScopedStoragePath(input.path, 'vendors', vendorRecord)");
+    expect(actions).toContain("isScopedStoragePath(input.attachment.path, 'vendors', vendorRecord)");
     expect(actions).toContain('.storage.from(BUCKET).info(');
   });
 
@@ -37,7 +38,7 @@ describe('vendor submissions', () => {
     expect(payments).toContain('<InvoiceSubmissionForm workOrders={workOrders} />');
     expect(payments).toContain('Invoice submitted for management approval.');
     expect(compliance).toContain('<ComplianceDocumentForm');
-    expect(compliance).toContain(".eq('entity_type', 'vendor').eq('entity_id', me.vendor_id)");
+    expect(compliance).toContain(".eq('entity_type', 'vendor').eq('entity_id', recordId)");
     expect(compliance).toContain('Requests from management');
   });
 });

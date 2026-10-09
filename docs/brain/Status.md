@@ -51,6 +51,12 @@ Back to [[Home]]. Updated 2026-10-09 (after #264 merged; no open PR).
   a SET NULL link of another association stops the call; purge_type_matches:
   no id-only matching). Definitions already live (Mirsad pasted them); no
   open PR.
+- In PR: one vendor login across a vendor's associations (migration
+  20261009040000: vendor_portal_logins, current_vendor_ids(), 28 vendor
+  policies rewritten with ALTER POLICY; staff invite per record; staff can
+  turn off one record's portal access). Main stays compatible with the
+  migration, so Claude applies it once Codex is clean, reads it back, then
+  Mirsad merges.
 - #264 merged: bills CSV upload matches the vendor inside the row's
   association (migration 20261009030000 run by Mirsad, read back: body
   matches the file apart from 3 blank lines the editor dropped; grants
@@ -166,8 +172,8 @@ Back to [[Home]]. Updated 2026-10-09 (after #264 merged; no open PR).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
--1. One vendor login across a vendor's associations (Mirsad: build now);
-   then the multi-property owner portal.
+-1. In PR: one vendor login across associations. Next: the multi-property
+   owner portal, using the same pattern (see [[Decisions]]).
 0. AppFolio importer follow-ups: credit balances (owner prepayments), and
    run the real import for one association end to end after merge. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.

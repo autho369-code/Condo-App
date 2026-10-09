@@ -26,7 +26,8 @@ export function InvoiceSubmissionForm({ workOrders }: { workOrders: WorkOrderOpt
     try {
       const file = fileRef.current?.files?.[0];
       if (!file) throw new Error('Attach the invoice document.');
-      const signed = await createVendorUpload(file.name, file.size, 'invoice');
+      // Stored under the work order's own vendor record (one per association).
+      const signed = await createVendorUpload(file.name, file.size, 'invoice', String(values.get('work_order_id') ?? ''));
       if (signed.error || !signed.path || !signed.token) throw new Error(signed.error ?? 'Could not authorize the upload.');
       const { error: uploadError } = await createClient().storage.from(BUCKET)
         .uploadToSignedUrl(signed.path, signed.token, file, { contentType: file.type || undefined });

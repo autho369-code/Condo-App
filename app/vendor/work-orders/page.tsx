@@ -28,7 +28,7 @@ export default async function VendorWorkOrders({
   const { data, error } = await (supabase as any)
     .from('work_orders')
     .select('id, number, title, status, priority, scheduled_date, completed_date, created_at, associations(name), units(unit_number)')
-    .eq('vendor_id', me.vendor_id)
+    .in('vendor_id', me.vendor_ids)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
     .limit(200);

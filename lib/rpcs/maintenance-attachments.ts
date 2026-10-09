@@ -86,7 +86,7 @@ async function resolveParent(kind: MaintenanceParentKind, id: string): Promise<{
   if (!wo) return { error: 'Work order not found' };
   let role: Parent['role'];
   if (isStaff && await staffCanManage(db, wo.portfolio_id ?? wo.associations?.portfolio_id ?? null, wo.association_id)) role = 'staff';
-  else if (me.vendor_id && wo.vendor_id === me.vendor_id) {
+  else if (wo.vendor_id && (me.vendor_ids ?? []).includes(wo.vendor_id)) {
     if (VENDOR_CLOSED.has(wo.status)) return { error: 'This work order is closed' };
     role = 'vendor';
   }

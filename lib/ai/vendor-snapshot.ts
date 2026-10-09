@@ -43,19 +43,19 @@ export async function buildVendorSnapshot(): Promise<VendorSnapshot> {
     db.from('vendors').select('name, trade, workers_comp_expiration, general_liability_expiration, auto_insurance_expiration, epa_certification_expiration, state_license_expiration, contract_expiration').eq('id', me.vendor_id).maybeSingle(),
     db.from('work_orders')
       .select('number, title, status, priority, scheduled_date, completed_date, associations(name), units(unit_number)')
-      .eq('vendor_id', me.vendor_id)
+      .in('vendor_id', me.vendor_ids)
       .is('archived_at', null)
       .order('created_at', { ascending: false })
       .limit(50),
     db.from('payable_bills')
       .select('bill_number, amount, credit_applied, status, due_date, paid_at, associations(name)')
-      .eq('vendor_id', me.vendor_id)
+      .in('vendor_id', me.vendor_ids)
       .is('archived_at', null)
       .order('bill_date', { ascending: false })
       .limit(20),
     db.from('calendar_events')
       .select('title, start_datetime, associations(name)')
-      .eq('vendor_id', me.vendor_id)
+      .in('vendor_id', me.vendor_ids)
       .is('archived_at', null)
       .gte('start_datetime', new Date().toISOString())
       .order('start_datetime')

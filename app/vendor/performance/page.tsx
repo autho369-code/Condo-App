@@ -22,7 +22,8 @@ export default async function VendorPerformancePage() {
   if (!vendor) throw new Error('Your vendor record was not found.');
   if (!vendor.portfolio_id) throw new Error('Vendor workspace is missing its management-company scope.');
 
-  const rows = await loadPortfolioVendorPerformanceRows(db, vendor.portfolio_id, [vendor.id]);
+  // Every vendor record of this login (one per association it serves).
+  const rows = await loadPortfolioVendorPerformanceRows(db, vendor.portfolio_id, me.vendor_ids.length ? me.vendor_ids : [vendor.id]);
   // Scores and comments only — my_vendor_ratings never returns who rated.
   const { data: ratingData, error: ratingError } = await db.rpc('my_vendor_ratings', { p_limit: 100 });
   if (ratingError) throw new Error(`Could not load ratings: ${ratingError.message}`);

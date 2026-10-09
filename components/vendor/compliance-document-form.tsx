@@ -9,7 +9,17 @@ import { createClient } from '@/lib/supabase/client';
 const BUCKET = 'association-documents';
 const inputClass = 'mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15';
 
-export function ComplianceDocumentForm({ requests }: { requests: Array<{ id: string; name: string; doc_type: string }> }) {
+export function ComplianceDocumentForm({
+  requests,
+  vendorId,
+  returnQuery = '',
+}: {
+  requests: Array<{ id: string; name: string; doc_type: string }>;
+  /** The vendor record (association) the document is for. */
+  vendorId: string;
+  /** Keeps the selected association after saving (e.g. "record=...&"). */
+  returnQuery?: string;
+}) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -24,7 +34,7 @@ export function ComplianceDocumentForm({ requests }: { requests: Array<{ id: str
     try {
       const file = fileRef.current?.files?.[0];
       if (!file) throw new Error('Select a document to upload.');
-      const signed = await createVendorUpload(file.name, file.size, 'compliance');
+      const signed = await createVendorUpload(file.name, file.size, 'compliance', vendorId);
       if (signed.error || !signed.path || !signed.token) throw new Error(signed.error ?? 'Could not authorize the upload.');
       const { error: uploadError } = await createClient().storage.from(BUCKET)
         .uploadToSignedUrl(signed.path, signed.token, file, { contentType: file.type || undefined });
@@ -35,10 +45,11 @@ export function ComplianceDocumentForm({ requests }: { requests: Array<{ id: str
         documentType: String(values.get('document_type') ?? ''),
         expiresAt: String(values.get('expires_at') ?? '') || null,
         requestId: String(values.get('request_id') ?? '') || null,
+        vendorId,
       });
       if (saved.error) throw new Error(saved.error);
       form.reset();
-      router.push('/vendor/compliance?saved_document=1');
+      router.push(`/vendor/compliance?${returnQuery}saved_document=1`);
       router.refresh();
     } catch (cause: any) {
       setError(cause?.message ?? 'Could not upload the document.');
