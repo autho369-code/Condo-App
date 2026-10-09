@@ -21,3 +21,8 @@ Back to [[Home]]. Follow these without being told.
   what he already sent (his real AppFolio exports, 2026-10-08) and build;
   don't keep his personal data in the repo (tests use made-up rows shaped
   like the real file). "stop overcomplicating" (2026-10-08).
+- **Test data: ask first** (2026-10-09). If a test needs an association or
+  any other record, say so and let Mirsad pick or create it. Never add
+  associations, units or other records to the live database on your own,
+  and never treat an import page's preview of his file as something he
+  wants saved.

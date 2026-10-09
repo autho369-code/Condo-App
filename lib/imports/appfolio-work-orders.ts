@@ -186,7 +186,7 @@ export function parseAppfolioWorkOrders(input: string): { groups?: AppfolioWorkO
   if (!report) return { error };
   const missing = WORK_ORDER_HEADERS.filter((h) => !report.headers.includes(h));
   if (missing.length) {
-    return { error: `This doesn't look like AppFolio's Work Order report (missing ${missing.join(', ')}).` };
+    return { error: `This doesn't look like a Work Order report (missing ${missing.join(', ')}).` };
   }
 
   const out = new Map<string, AppfolioWorkOrderGroup>();

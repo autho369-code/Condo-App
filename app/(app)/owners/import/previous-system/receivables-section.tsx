@@ -17,6 +17,7 @@ import {
   type AppfolioReceivablesParse,
 } from '@/lib/imports/appfolio-receivables';
 import type { ReceivableImportItem, ReceivablesImportSummary } from './receivables-actions';
+import { GroupPicker } from './group-picker';
 
 type Association = {
   id: string;
@@ -222,7 +223,7 @@ function AssociationCard({
 
       {failure && <Alert tone="danger">{failure}</Alert>}
       {result?.alreadyImported !== undefined && (
-        <Alert tone="warning" title="This association already has AppFolio opening balances.">
+        <Alert tone="warning" title="This association already has imported opening balances.">
           <p>{result.errors?.[0]}</p>
           <Button type="button" variant="secondary" className="mt-3" disabled={busy} onClick={() => run(true)}>
             Import anyway
@@ -275,7 +276,7 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
       if (p.error || !p.associations) { setParseError(p.error ?? 'Could not read the file.'); return; }
       setParsed(p);
     } catch {
-      setParseError('Could not read the file. Export it from AppFolio again as CSV and retry.');
+      setParseError('Could not read the file. Export it from your previous system again as CSV and retry.');
     }
   }
 
@@ -287,8 +288,8 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
     <div className="space-y-5">
       <Surface className="space-y-4">
         <SectionTitle
-          title="Opening balances — AppFolio Aged Receivable Detail"
-          description="Run the Aged Receivable Detail report in AppFolio as of your cut-over date, for one association or the whole company, grouped by property, unit and payer, and export it as CSV. Each open charge becomes an opening-balance charge on its unit, dated with the report's as-of date; the original charge date is kept in its description."
+          title="Opening balances — Aged Receivable Detail"
+          description="In your previous system, run the Aged Receivable Detail report as of your cut-over date, for one association or the whole company, grouped by property, unit and payer, and export it as CSV. Each open charge becomes an opening-balance charge on its unit, dated with the report's as-of date; the original charge date is kept in its description."
           className="mb-0"
         />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -336,7 +337,7 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
         </Surface>
       )}
 
-      {groups.map((g) => (
+      <GroupPicker groups={groups} render={(g) => (
         <AssociationCard
           key={`${fileKey}-${g.name}|${g.address ?? ""}`}
           group={g}
@@ -345,7 +346,7 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
           importReceivables={importReceivables}
           complete={!parsed?.problems?.length && parsed?.fileTotal != null && Boolean(tiesOut)}
         />
-      ))}
+      )} />
     </div>
   );
 }

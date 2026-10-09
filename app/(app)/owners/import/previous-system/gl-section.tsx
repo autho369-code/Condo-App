@@ -112,8 +112,8 @@ export function GlImportSection({ importChartOfAccounts }: GlImportSectionProps)
       <Surface className="space-y-5">
         <SectionTitle
           className="mb-0"
-          title="Chart of accounts — AppFolio GL Accounts"
-          description="In AppFolio open Accounting → GL Accounts and export the list as CSV. Accounts are added to your company-wide chart of accounts. Account numbers you already have are skipped and never changed."
+          title="Chart of accounts — GL Accounts"
+          description="In your previous system, open Accounting → GL Accounts and export the list as CSV. Accounts are added to your company-wide chart of accounts. Account numbers you already have are skipped and never changed."
         />
         <Field label="Chart of accounts CSV" htmlFor="appfolio-coa-file" required>
           <Input id="appfolio-coa-file" type="file" accept=".csv,text/csv" required onChange={onFile} className="h-auto py-2" />
@@ -152,7 +152,7 @@ export function GlImportSection({ importChartOfAccounts }: GlImportSectionProps)
                   <TD>{a.name}</TD>
                   <TD className="whitespace-nowrap">
                     <span className="capitalize">{typeLabel(a.account_type)}</span>
-                    {a.appfolio_type && <span className="block text-xs text-gray-400">AppFolio: {a.appfolio_type}</span>}
+                    {a.appfolio_type && <span className="block text-xs text-gray-400">In the file: {a.appfolio_type}</span>}
                   </TD>
                   <TD className="tabular-nums">{a.parent_number ?? '—'}</TD>
                   <TD>
@@ -173,7 +173,7 @@ export function GlImportSection({ importChartOfAccounts }: GlImportSectionProps)
             </Button>
           )}
           <p className="text-xs text-gray-500">
-            Not imported: AppFolio offset accounts, 1099 exclusions, late fee settings and tax authorities (GL accounts here do not store them).
+            Not imported: offset accounts, 1099 exclusions, late fee settings and tax authorities (GL accounts here do not store them).
           </p>
           <div>
             <Button type="button" disabled={busy || result !== null} onClick={run}>
@@ -197,7 +197,7 @@ function statusBadge(l: TieOutLine) {
   if (l.status === 'match') return <Badge tone="complete">Matches</Badge>;
   if (l.status === 'different') return <Badge tone="danger">Different</Badge>;
   if (l.status === 'not_in_portier') return <Badge tone="pending">Not in your ledger</Badge>;
-  return <Badge tone="pending">Not in AppFolio</Badge>;
+  return <Badge tone="pending">Not in the file</Badge>;
 }
 
 export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: TrialBalanceTieOutSectionProps) {
@@ -313,7 +313,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
         <SectionTitle
           className="mb-0"
           title="Trial balance tie-out"
-          description="In AppFolio run Reports → Trial Balance and export it as CSV. This compares each account's ending balance with your posted ledger. It only reads — nothing is saved."
+          description="In your previous system, run Reports → Trial Balance and export it as CSV. This compares each account's ending balance with your posted ledger. It only reads — nothing is saved."
         />
         <Field label="Trial balance CSV" htmlFor="appfolio-tb-file" required>
           <Input id="appfolio-tb-file" type="file" accept=".csv,text/csv" required onChange={onFile} className="h-auto py-2" />
@@ -323,7 +323,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
         {rows && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {groups.length > 1 && (
-              <Field label="AppFolio property in the file" htmlFor="appfolio-tb-group" className="sm:col-span-2">
+              <Field label="Property in the file" htmlFor="appfolio-tb-group" className="sm:col-span-2">
                 <Select id="appfolio-tb-group" value={group} onChange={(e) => onGroup(e.target.value)}>
                   {groups.map((g) => <option key={g} value={g}>{g || '(no property)'}</option>)}
                 </Select>
@@ -341,7 +341,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
             </Field>
             <Field label="Income and expense accounts" htmlFor="appfolio-tb-income" className="sm:col-span-2">
               <Select id="appfolio-tb-income" value={incomeBasis} onChange={(e) => { setIncomeBasis(e.target.value as 'fiscal_year' | 'all_time'); setResult(null); }}>
-                <option value="fiscal_year">Fiscal year to date (AppFolio closes prior years to retained earnings)</option>
+                <option value="fiscal_year">Fiscal year to date (prior years closed to retained earnings in the file)</option>
                 <option value="all_time">All time</option>
               </Select>
             </Field>
@@ -353,7 +353,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
             <Button type="button" disabled={!associationId || !asOf || busy || selected.length === 0} onClick={run}>
               {busy ? 'Comparing…' : `Compare ${selected.length} account${selected.length === 1 ? '' : 's'}`}
             </Button>
-            {basis && <Badge tone="info" className="normal-case">AppFolio basis: {basis}</Badge>}
+            {basis && <Badge tone="info" className="normal-case">Basis in the file: {basis}</Badge>}
           </div>
         )}
       </Surface>
@@ -397,17 +397,17 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
               <Badge tone="complete" className="normal-case">{t.matched} match</Badge>
               <Badge tone={t.different ? 'danger' : 'inactive'} className="normal-case">{t.different} different</Badge>
               <Badge tone={t.notInPortier ? 'pending' : 'inactive'} className="normal-case">{t.notInPortier} not in your ledger</Badge>
-              <Badge tone={t.notInAppfolio ? 'pending' : 'inactive'} className="normal-case">{t.notInAppfolio} not in AppFolio</Badge>
+              <Badge tone={t.notInAppfolio ? 'pending' : 'inactive'} className="normal-case">{t.notInAppfolio} not in the file</Badge>
             </div>
           </div>
 
           {t.different + t.notInPortier + t.notInAppfolio === 0 && (result.priorYears?.difference ?? 0) === 0 && (
-            <Alert tone="success" title="Every account ties out.">Your ledger matches AppFolio&apos;s ending balances.</Alert>
+            <Alert tone="success" title="Every account ties out.">Your ledger matches the file&apos;s ending balances.</Alert>
           )}
           {result.incomeFrom && !result.priorYears && result.priorYearsNet !== undefined && result.priorYearsNet !== 0 && (
             <Alert tone="info">
-              Your ledger has {money(result.priorYearsNet)} of income and expense posted before {result.incomeFrom}. AppFolio
-              carries that in retained earnings, so an equity account may differ by that amount.
+              Your ledger has {money(result.priorYearsNet)} of income and expense posted before {result.incomeFrom}. Your previous
+              system carries that in retained earnings, so an equity account may differ by that amount.
             </Alert>
           )}
 
@@ -420,7 +420,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
             <THead>
               <TR>
                 <TH>Account</TH>
-                <TH className="text-right">AppFolio</TH>
+                <TH className="text-right">Previous system</TH>
                 <TH className="text-right">Your ledger</TH>
                 <TH className="text-right">Difference</TH>
                 <TH>Status</TH>
@@ -451,7 +451,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
                   <TD>
                     Prior years&apos; retained earnings
                     <span className="block text-xs text-gray-400">
-                      {result.incomeFrom ? `Income and expense before ${result.incomeFrom}` : 'Calculated by AppFolio'}
+                      {result.incomeFrom ? `Income and expense before ${result.incomeFrom}` : 'Calculated by your previous system'}
                     </span>
                   </TD>
                   <TD className="whitespace-nowrap text-right tabular-nums">{money(result.priorYears.appfolio)}</TD>

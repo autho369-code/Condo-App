@@ -143,7 +143,7 @@ export function parseAppfolioChartOfAccounts(text: string): {
   if (!report) return { error };
   const missing = CHART_OF_ACCOUNTS_HEADERS.filter((h) => !report.headers.includes(h));
   if (missing.length) {
-    return { error: `This doesn't look like AppFolio's Chart of Accounts export (missing ${missing.join(', ')}).` };
+    return { error: `This doesn't look like a Chart of Accounts export (missing ${missing.join(', ')}).` };
   }
   const accounts: AppfolioGlAccount[] = [];
   const errors: string[] = [];
@@ -281,7 +281,7 @@ export function parseAppfolioTrialBalance(text: string): {
   // Basis) before the column header; read those and start at the header.
   const headerAt = lines.findIndex((l) => /(^|,)\s*"?GL Account"?\s*(,|$)/i.test(l));
   if (headerAt < 0) {
-    return { error: `This doesn't look like AppFolio's Trial Balance export (missing ${TRIAL_BALANCE_HEADERS.join(', ')}).` };
+    return { error: `This doesn't look like a Trial Balance export (missing ${TRIAL_BALANCE_HEADERS.join(', ')}).` };
   }
   const preamble = lines.slice(0, headerAt).join('\n');
   let asOf: string | undefined;
@@ -296,7 +296,7 @@ export function parseAppfolioTrialBalance(text: string): {
   if (!report) return { error };
   const missing = TRIAL_BALANCE_HEADERS.filter((h) => !report.headers.includes(h));
   if (missing.length) {
-    return { error: `This doesn't look like AppFolio's Trial Balance export (missing ${missing.join(', ')}).` };
+    return { error: `This doesn't look like a Trial Balance export (missing ${missing.join(', ')}).` };
   }
   const offset = headerAt; // report rows count from the header line
   const rows: AppfolioTrialBalanceRow[] = [];

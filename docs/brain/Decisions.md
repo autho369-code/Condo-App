@@ -5,6 +5,11 @@ Back to [[Home]]. Don't redo these.
 - **`'stripe'` stays in the `payment_processor` enum.** It is live: the Stripe
   Connect webhook saves payment methods with it and `select_payment_processor()`
   falls back to it. The old TODO item to drop it was withdrawn (2026-10-07).
+- **AppFolio open-balance import is a go-live tool, not a reconciler**
+  (Mirsad, 2026-10-08, #258): re-imports never repost and report changed or
+  missing items of associations in the file; an association whose items are
+  all paid (absent from the export) is left to the Import Variances report.
+  Don't build a reconciliation pass unless he asks.
 - **Resale / estoppel certificate:** declined by Mirsad; build only if he asks.
 - **Old `/platform/*` URLs** redirect permanently to `/platform-operator`
   (`next.config.mjs`), 2026-10-07.

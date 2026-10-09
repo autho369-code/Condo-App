@@ -187,12 +187,12 @@ export function parseAppfolioAgedReceivables(text: string): AppfolioReceivablesP
   const has = (h: string) => report.headers.includes(h);
   const missing = AGED_RECEIVABLE_HEADERS.filter((h) => !has(h));
   if (missing.length) {
-    return { error: `This doesn't look like AppFolio's Aged Receivable Detail export (missing ${missing.join(', ')}).` };
+    return { error: `This doesn't look like an Aged Receivable Detail export (missing ${missing.join(', ')}).` };
   }
   const hasUnitColumn = has('Unit Name') || has('Unit & Payer Name');
   const hasUnitHeadings = report.groups.some((g) => g.heading);
   if (!hasUnitColumn && !hasUnitHeadings) {
-    return { error: 'The export has no units. In AppFolio group the report by "Unit & Payer Name" or add the "Unit Name" column, then export again.' };
+    return { error: 'The export has no units. In your previous system, group the report by "Unit & Payer Name" or add the "Unit Name" column, then export again.' };
   }
 
   type Bucket = { name: string; address: string | null; items: AppfolioReceivableItem[] };

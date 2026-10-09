@@ -41,8 +41,8 @@ export default async function AppfolioImportPage() {
 
   return (
     <DataWorkspace
-      title="Import from AppFolio"
-      description="Bring associations over from AppFolio's own report exports, top to bottom: units, homeowners, chart of accounts, vendors, open balances and work orders, then tie out the trial balance. Nothing is saved until you review the preview and choose Import."
+      title="Import from your previous system"
+      description="Bring associations over from your previous system's report exports, top to bottom: units, homeowners, chart of accounts, vendors, open balances and work orders, then tie out the trial balance. Nothing is saved until you review the preview and choose Import."
       actions={<Link href="/owners/import"><Button variant="secondary">Other imports</Button></Link>}
     >
       <div className="max-w-5xl space-y-8">

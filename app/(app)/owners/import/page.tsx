@@ -24,7 +24,7 @@ export default async function ImportDataPage() {
       description="Onboard an association in bulk from CSV: import owners, units, and dues, then carry over opening balances — instead of entering each record by hand."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/owners/import/appfolio"><Button>Import from AppFolio</Button></Link>
+          <Link href="/owners/import/previous-system"><Button>Import from previous system</Button></Link>
           <Link href="/owners"><Button variant="secondary">Back to owners</Button></Link>
         </div>
       }

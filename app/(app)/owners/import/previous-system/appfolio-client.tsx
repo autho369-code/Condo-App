@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Label, Select } from '@/components/ui/input';
 import { parseAppfolioUnitDirectory, type AppfolioUnit } from '@/lib/imports/appfolio';
 import type { AppfolioUnitRow, ImportSummary } from '../actions';
+import { GroupPicker } from './group-picker';
 
 type Association = { id: string; name: string };
 type Group = { name: string; address: string | null; units: AppfolioUnit[] };
@@ -138,7 +139,7 @@ export function AppfolioImportClient({ associations, importUnits }: Props) {
       setHasOwnership(Boolean(parsed.hasOwnership));
       setGroups(parsed.groups);
     } catch {
-      setError('Could not read the file. Export it from AppFolio again as CSV and retry.');
+      setError('Could not read the file. Export it from your previous system again as CSV and retry.');
     }
   }
 
@@ -147,8 +148,8 @@ export function AppfolioImportClient({ associations, importUnits }: Props) {
       <Surface className="space-y-3">
         <SectionTitle
           className="mb-0"
-          title="Units — AppFolio Unit Directory"
-          description="In AppFolio open Reports → Unit Directory (add the unit address columns under Customize if units have their own addresses), then Actions → Export as CSV."
+          title="Units — Unit Directory"
+          description="In your previous system, open Reports → Unit Directory (add the unit address columns under Customize if units have their own addresses), then Actions → Export as CSV."
         />
         <div>
           <Label htmlFor="appfolio-unit-directory">Unit Directory CSV</Label>
@@ -161,12 +162,14 @@ export function AppfolioImportClient({ associations, importUnits }: Props) {
       {groups && !hasOwnership && (
         <Alert tone="info" title="This export has no ownership percentage column.">
           Units are created at 0% ownership. The homeowner import below fills each unit&apos;s ownership percentage
-          from AppFolio&apos;s Homeowner Directory.
+          from the Homeowner Directory export.
         </Alert>
       )}
-      {groups?.map((g) => (
-        <GroupCard key={`${g.name}|${g.address ?? ''}`} group={g} associations={associations} importUnits={importUnits} />
-      ))}
+      {groups && (
+        <GroupPicker groups={groups} render={(g) => (
+          <GroupCard key={`${g.name}|${g.address ?? ''}`} group={g} associations={associations} importUnits={importUnits} />
+        )} />
+      )}
     </div>
   );
 }
