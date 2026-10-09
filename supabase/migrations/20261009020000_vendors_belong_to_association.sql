@@ -716,6 +716,24 @@ begin
   end loop;
 end $$;
 
+-- Document-request emails to the management company carry a passwordless
+-- upload link and are company-level queue rows (no association). Only
+-- company-wide staff read them: an association-scoped manager could otherwise
+-- copy the link and submit the management company's document.
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'email_queue'
+                  and policyname = 'vendor_doc_request_email_company_wide') then
+    create policy vendor_doc_request_email_company_wide on public.email_queue as restrictive for select to authenticated
+      using (association_id is not null
+             or idempotency_key is null
+             or idempotency_key not like 'vendor-doc-request:%'
+             or public.is_platform_operator()
+             or public.is_company_admin()
+             or not public.manager_is_scoped());
+  end if;
+end $$;
+
 -- 5) Association-scoped managers see only their associations' vendors -------
 
 do $$

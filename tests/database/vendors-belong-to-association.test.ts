@@ -262,6 +262,12 @@ describe('vendors belong to exactly one association', () => {
       .toContain('all.filter((g) => !g.association_id || g.association_id === associationId)');
   });
 
+  it('keeps the management company\'s document-request emails from association-scoped managers', () => {
+    expect(migration).toContain('create policy vendor_doc_request_email_company_wide on public.email_queue as restrictive for select to authenticated');
+    expect(migration).toContain("or idempotency_key not like 'vendor-doc-request:%'");
+    expect(migration).toContain('or not public.manager_is_scoped());');
+  });
+
   it('links an invitation for an exact vendor record to that record or none', () => {
     // Neither the sign-up link nor the bulk relink pre-empts a pending vendor invitation.
     expect(migration.match(/i\.hoa_role::text = 'vendor' and i\.status::text = 'pending'/g)).toHaveLength(2);
