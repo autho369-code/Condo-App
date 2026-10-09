@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #261).
+Back to [[Home]]. Updated 2026-10-09 (after #262).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -43,10 +43,10 @@ Back to [[Home]]. Updated 2026-10-09 (after #261).
   14 old demo owners. Lesson: #261 was merged before its migrations ran, so
   production briefly ran code that needed owners.association_id; post "Clear
   to merge" only once the migrations are live.
-- Open PR #262: the last purge fix that missed the #261 merge, as forward-fix
-  migration 20261009011000 (SET NULL links of
-  another association stop the call; attached (type, id) rows never match by
-  id alone). Already live in production (Mirsad pasted that version).
+- #262 merged (8f33d0c): forward-fix migration 20261009011000 (purge_rows:
+  a SET NULL link of another association stops the call; purge_type_matches:
+  no id-only matching). Definitions already live (Mirsad pasted them); no
+  open PR.
 - Randolph Station created by Mirsad (2026-10-09) for the first real import;
   it is the only association. Granville Courts, 7241 N. Ridge and the Pine
   Tree sample were deleted by Mirsad in the SQL editor (one DO block: user
