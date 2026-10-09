@@ -73,6 +73,9 @@ describe('owner login across associations: database', () => {
     expect(link).toContain('and o.association_id = new.association_id');
     expect(link).toContain('where u.id = new.used_by and lower(btrim(u.email)) = lower(btrim(new.email))');
     expect(link).toContain('and (o.auth_user_id = new.used_by');
+    // Nothing linked = the acceptance rolls back (the invitation stays usable).
+    expect(link).toContain("raise exception 'The invited owner record could not be linked to this account. Ask the management office for a new invitation.'");
+    expect(link).toContain("raise exception 'This owner invitation cannot be used by this account. Ask the management office for a new invitation.'");
     expect(link).toContain('lower(btrim(o.email)) = lower(btrim(new.email))');
     expect(link).toContain('where public.owner_portal_logins.revoked_at is not null;');
     expect(migration).toContain('revoke all on function public.link_owner_on_invitation_accept() from public, anon, authenticated;');

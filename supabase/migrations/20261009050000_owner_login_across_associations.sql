@@ -1121,13 +1121,16 @@ begin
   if new.hoa_role::text not in ('owner', 'board')
      or new.status::text <> 'accepted' or old.status::text is not distinct from 'accepted'
      or new.used_by is null
-     or nullif(new.metadata ->> 'owner_id', '') is null
-     or new.association_id is null
-     -- Only the person the invitation was sent to (accept_invitation checks
-     -- this too; a direct status change by an admin must not bypass it).
+     or nullif(new.metadata ->> 'owner_id', '') is null then
+    return new;
+  end if;
+  -- Only the person the invitation was sent to (accept_invitation checks this
+  -- too; a direct status change by an admin must not bypass it).
+  if new.association_id is null
      or not exists (select 1 from auth.users u
                      where u.id = new.used_by and lower(btrim(u.email)) = lower(btrim(new.email))) then
-    return new;
+    raise exception 'This owner invitation cannot be used by this account. Ask the management office for a new invitation.'
+      using errcode = '42501';
   end if;
 
   if not exists (select 1 from public.owners x where x.auth_user_id = new.used_by) then
@@ -1166,6 +1169,20 @@ begin
        and (o.auth_user_id = new.used_by
             or exists (select 1 from public.owner_portal_logins l
                         where l.owner_id = o.id and l.auth_user_id = new.used_by and l.revoked_at is null));
+  end if;
+
+  -- Fail loudly: if the exact record could not be linked (archived, its email
+  -- changed, or it is on another login), the whole acceptance rolls back, so
+  -- the invitation stays usable and the profile is not changed.
+  if not exists (
+    select 1 from public.owners o
+     where o.id::text = new.metadata ->> 'owner_id'
+       and o.archived_at is null
+       and (o.auth_user_id = new.used_by
+            or exists (select 1 from public.owner_portal_logins l
+                        where l.owner_id = o.id and l.auth_user_id = new.used_by and l.revoked_at is null))) then
+    raise exception 'The invited owner record could not be linked to this account. Ask the management office for a new invitation.'
+      using errcode = 'P0001';
   end if;
   return new;
 end
