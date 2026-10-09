@@ -23,13 +23,17 @@ export default async function MyHomePage() {
   // Every owner record of the login (one per association).
   const ownerIds = me.owner_ids
 
-  const [{ data: occupancies }, { data: owner }] = await Promise.all([
+  const [{ data: occupancies }, { data: ownerRows }] = await Promise.all([
     db.from('occupancies')
       .select('id, unit_id, occupancy_type, status, move_in_date, dues_amount, dues_frequency, units(id, unit_number, sqft, bedrooms, bathrooms, storage_number, parking_spaces, home_warranty_company, home_warranty_expires), associations(name)')
       .in('owner_id', ownerIds)
       .eq('status', 'current'),
-    db.from('owners').select('emergency_contact_name, emergency_contact_phone').eq('id', me.owner_id).maybeSingle(),
+    // Each association keeps its own contact details (one owner record each).
+    db.from('owners').select('id, emergency_contact_name, emergency_contact_phone, associations(name)').in('id', ownerIds),
   ])
+  const contacts = ((ownerRows ?? []) as any[])
+    .map((r) => ({ id: r.id as string, name: r.emergency_contact_name as string | null, phone: r.emergency_contact_phone as string | null, association: (r.associations?.name as string | undefined) ?? null }))
+    .sort((a, b) => (a.id === me.owner_id ? -1 : b.id === me.owner_id ? 1 : (a.association ?? '').localeCompare(b.association ?? '')))
 
   const occs = occupancies ?? []
   const unitIds = occs.map((o: any) => o.unit_id).filter(Boolean)
@@ -134,13 +138,26 @@ export default async function MyHomePage() {
 
       <div className={card}>
         <h2 className="mb-4 text-sm font-semibold text-gray-950">Emergency Contact on File</h2>
-        {owner?.emergency_contact_name ? (
-          <p className="text-sm text-gray-900">
-            {owner.emergency_contact_name}
-            {owner.emergency_contact_phone ? <span className="text-gray-500"> · {owner.emergency_contact_phone}</span> : null}
-          </p>
-        ) : (
+        {contacts.length === 0 ? (
           <p className="text-sm text-gray-400">No emergency contact on file — update it under Profile.</p>
+        ) : (
+          <div className="space-y-3">
+            {contacts.map((c) => (
+              <div key={c.id}>
+                {contacts.length > 1 && c.association && (
+                  <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{c.association}</div>
+                )}
+                {c.name ? (
+                  <p className="text-sm text-gray-900">
+                    {c.name}
+                    {c.phone ? <span className="text-gray-500"> · {c.phone}</span> : null}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-400">No emergency contact on file — update it under Profile.</p>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

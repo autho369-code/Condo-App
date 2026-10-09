@@ -83,3 +83,30 @@ describe('owner login part 2: staff side', () => {
     expect(page).toContain(".eq('owner_id', id).is('revoked_at', null).maybeSingle(),");
   });
 });
+
+describe('owner login leftovers', () => {
+  const sql = read('supabase/migrations/20261009070000_owner_records_shared_files.sql');
+
+  it('lets every record of the login read its association\'s shared files', () => {
+    expect(sql).toContain('alter policy "owners can read shared association attachments" on public.association_attachments');
+    expect(sql).toContain('where occ.owner_id in (select public.current_owner_ids())');
+    expect(sql).toContain('and oc.owner_id in (select public.current_owner_ids())');
+    expect(sql).not.toMatch(/auth_user_id = auth\.uid\(\)\s*\n\s*and oc\.status/);
+    expect(sql).toContain('revoke all on function public.can_access_association_mvp(uuid) from public, anon;');
+    expect(sql).not.toMatch(/drop (policy|function|table)/i);
+    expect(sql).not.toMatch(/delete from/i);
+    // eslint-disable-next-line no-control-regex
+    expect(sql).not.toMatch(/[^\x00-\x7f]/);
+  });
+
+  it('shows each association\'s account and emergency contact', () => {
+    const account = read('app/portal/account/page.tsx');
+    expect(account).toContain('const recordId = pickOwnerRecord(me, sp.record)');
+    expect(account).toContain(".eq('owner_id', recordId).eq('status', 'current')");
+    expect(account).toContain('<RecordSwitcher');
+    expect(account).not.toContain("select('*')");
+    const home = read('app/portal/home/page.tsx');
+    expect(home).toContain("select('id, emergency_contact_name, emergency_contact_phone, associations(name)').in('id', ownerIds)");
+    expect(home).not.toContain(".eq('id', me.owner_id)");
+  });
+});

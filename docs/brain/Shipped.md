@@ -4,6 +4,14 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-09
+- #267 (merged f06b9fb; migration 20261009060000 applied by Claude before
+  merge and read back): owner login across associations, part 2. Owner
+  portal reads every record of the login; each write names its record (the
+  unit's record for pay/autopay/amenities/architectural/service requests,
+  the survey's association, a ?record= switcher for insurance and contact
+  details, a per-association submit_owner_message overload). Staff owner
+  pickers follow the association (OwnerSelect) and the server refuses an
+  owner of another association; the staff owner page shows "Sign-in:".
 - #266 (merged ffca485; migration 20261009050000 applied by Claude before
   merge and read back): owner login across associations, part 1. A login
   reaches its first owner record plus every record whose own invitation it
