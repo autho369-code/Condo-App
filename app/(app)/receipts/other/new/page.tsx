@@ -3,6 +3,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PendingSubmit } from '@/components/ui/pending-submit';
+import { VendorSelect } from '@/components/vendors/vendor-select';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { requireFinanceStaff } from '@/lib/auth/me';
@@ -23,7 +24,7 @@ export default async function NewOtherReceiptPage({ searchParams }: { searchPara
   const [{ data: associations }, { data: banks }, { data: vendors }, { data: glAccounts }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('bank_accounts').select('id, name, association_id, gl_account_id, associations!bank_accounts_association_id_fkey(name)').is('archived_at', null).order('name'),
-    db.from('vendors').select('id, name').eq('portfolio_id', portfolioId).is('archived_at', null).order('name').limit(1000),
+    db.from('vendors').select('id, name, association_id, is_management_company').eq('portfolio_id', portfolioId).is('archived_at', null).order('name').limit(1000),
     db.from('gl_accounts').select('id, number, name, account_type, association_id, associations!gl_accounts_association_id_fkey(name)').eq('portfolio_id', portfolioId).eq('active', true)
       .not('account_type', 'in', '(cash,accounts_receivable)').order('number'),
   ]);
@@ -69,10 +70,7 @@ export default async function NewOtherReceiptPage({ searchParams }: { searchPara
                   </Select>
                 </Field>
                 <Field label="Vendor (for vendor receipts)">
-                  <Select name="vendor_id" defaultValue="">
-                    <option value="">—</option>
-                    {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
-                  </Select>
+                  <VendorSelect name="vendor_id" defaultValue="" vendors={vendors ?? []} placeholder="—" />
                 </Field>
                 <Field label="Payer name" hint="Required for other payers; defaults to the vendor's name.">
                   <Input name="payer_name" maxLength={200} placeholder="e.g. State Farm, Coinmach Laundry" />

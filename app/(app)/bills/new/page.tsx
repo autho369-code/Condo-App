@@ -22,7 +22,7 @@ export default async function NewBillPage({
   // All the dropdown sources are filtered by RLS to the user's portfolio
   const [{ data: vendors }, { data: associations }, { data: gls }, { data: banks }] = await Promise.all([
     fetchAllRows<any>(() => (supabase as any).from('vendors')
-      .select('id, name, trade, payment_type')
+      .select('id, name, trade, payment_type, association_id, is_management_company')
       .is('archived_at', null)
       .order('name').order('id')).then((r) => ({ data: r.rows })),
     fetchAllRows<any>(() => (supabase as any).from('associations')

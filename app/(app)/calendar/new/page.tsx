@@ -5,6 +5,8 @@ import { EVENT_TYPES, DEFAULT_REMINDERS, REMINDER_ACTIONS, eventTypeLabel, remin
 import { createCalendarEvent } from '@/lib/rpcs/calendar';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { VendorSelect } from '@/components/vendors/vendor-select';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +24,8 @@ export default async function NewCalendarEventPage({
 
   const [{ data: associations }, { data: vendors }, { data: owners }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('vendors').select('id, name, emails, phone_numbers').is('archived_at', null).order('name').limit(200),
+    // Every vendor (one request stops at 1,000 rows); the picker narrows to the chosen association.
+    fetchAllRows<any>(() => db.from('vendors').select('id, name, emails, phone_numbers, association_id, is_management_company').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
     db.from('owners').select('id, full_name, email, phone').is('archived_at', null).order('full_name').limit(200),
   ]);
 
@@ -106,12 +109,7 @@ export default async function NewCalendarEventPage({
 
               <div>
                 <Label htmlFor="vendor_id">Vendor</Label>
-                <select id="vendor_id" name="vendor_id" defaultValue="" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-                  <option value="">Not applicable</option>
-                  {(vendors ?? []).map((vendor: any) => (
-                    <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
-                  ))}
-                </select>
+                <VendorSelect id="vendor_id" name="vendor_id" defaultValue="" vendors={vendors ?? []} placeholder="Not applicable" />
               </div>
 
               <div>

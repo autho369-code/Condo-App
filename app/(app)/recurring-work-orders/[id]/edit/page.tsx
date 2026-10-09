@@ -5,6 +5,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
+import { VendorSelect } from '@/components/vendors/vendor-select';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { checkWorkOrderLinks } from '@/lib/maintenance/work-order-links';
@@ -34,7 +35,7 @@ export default async function EditRecurringWorkOrderPage({
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     // Every unit (one request stops at 1,000 rows).
     fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id, associations(name))').is('archived_at', null).order('unit_number').order('id')).then((r) => ({ data: r.rows })),
-    db.from('vendors').select('id, name').is('archived_at', null).order('name'),
+    db.from('vendors').select('id, name, association_id, is_management_company').is('archived_at', null).order('name'),
   ]);
 
   if (!row) notFound();
@@ -112,7 +113,7 @@ export default async function EditRecurringWorkOrderPage({
           </div>
           <div>
             <Label htmlFor="vendor_id">Vendor</Label>
-            <select id="vendor_id" name="vendor_id" defaultValue={row.vendor_id ?? ''} className={inputCls}><option value="">Unassigned</option>{(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}</select>
+            <VendorSelect id="vendor_id" name="vendor_id" defaultValue={row.vendor_id ?? ''} vendors={vendors ?? []} placeholder="Unassigned" />
           </div>
           <div>
             <Label htmlFor="frequency">Frequency</Label>

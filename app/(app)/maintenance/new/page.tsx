@@ -6,6 +6,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Section } from '@/components/workspace/shell';
+import { VendorSelect } from '@/components/vendors/vendor-select';
 import { syncMaintenanceCalendarEvent } from '@/lib/maintenance/calendar';
 import { checkLinkedRecords } from '@/lib/security/association-scope';
 
@@ -87,7 +88,7 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
 
   const [{ data: associations }, { data: vendors }, { data: staff }, { data: template }] = await Promise.all([
     db.from('associations').select('id,name').is('archived_at', null).order('name'),
-    db.from('vendors').select('id,name,trade').is('archived_at', null).order('name'),
+    db.from('vendors').select('id,name,trade,association_id,is_management_company').is('archived_at', null).order('name'),
     db.from('profiles').select('id,full_name,email').eq('hoa_role','manager').order('full_name'),
     sp.template ? db.from('maintenance_templates').select('*').eq('id', sp.template).single() : Promise.resolve({ data: null }),
   ]);
@@ -172,10 +173,7 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="vendor_id">Vendor</Label>
-              <select id="vendor_id" name="vendor_id" defaultValue="" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-                <option value="">No vendor assigned</option>
-                {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name} ({v.trade})</option>)}
-              </select>
+              <VendorSelect id="vendor_id" name="vendor_id" defaultValue="" vendors={(vendors ?? []).map((v: any) => ({ ...v, name: `${v.name} (${v.trade})` }))} placeholder="No vendor assigned" />
             </div>
 
             <div>

@@ -16,6 +16,7 @@ import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/time/display-zone';
 import { associationZone, MAINTENANCE_CATEGORY_EVENT_TYPE, syncMaintenanceCalendarEvent } from '@/lib/maintenance/calendar';
 import { mergePrivateFields, mergePrivateFieldsOne, savePrivateFields } from '@/lib/private-fields';
 import { PendingSubmit } from '@/components/ui/pending-submit';
+import { VendorSelect } from '@/components/vendors/vendor-select';
 import { checkLinkedRecords } from '@/lib/security/association-scope';
 
 export const dynamic = 'force-dynamic';
@@ -236,7 +237,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
     db.from('maintenance_tasks').select('*, associations!inner(name, timezone), vendors(name), profiles(full_name)').is('archived_at',null).order('next_due_date',{ascending:true,nullsFirst:false}),
     db.from('associations').select('id,name').is('archived_at',null).order('name'),
     db.from('maintenance_template_groups').select('*, templates:maintenance_templates(*)').order('sort_order'),
-    db.from('vendors').select('id,name,trade,emails').is('archived_at',null).order('name'),
+    db.from('vendors').select('id,name,trade,emails,association_id,is_management_company').is('archived_at',null).order('name'),
     // Only active staff can be assigned a task.
     db.from('profiles').select('id,full_name,email').eq('hoa_role','manager').is('disabled_at', null).order('full_name'),
   ]);
@@ -325,7 +326,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                     <div><Label htmlFor="frequency">Frequency</Label><Select id="frequency" name="frequency" defaultValue={editTask?.frequency || 'annual'}>{FREQS.map(f => <option key={f} value={f}>{FREQ[f]}</option>)}</Select></div>
                     <div><Label htmlFor="custom_days">Custom days</Label><Input id="custom_days" name="custom_days" type="number" defaultValue={editTask?.custom_interval_days} placeholder="For custom freq" /></div>
                     <div><Label htmlFor="priority">Priority</Label><Select id="priority" name="priority" defaultValue={editTask?.priority || 'normal'}><option>low</option><option>normal</option><option>high</option><option>critical</option></Select></div>
-                    <div><Label htmlFor="vendor_id">Vendor</Label><Select id="vendor_id" name="vendor_id" defaultValue={editTask?.vendor_id || ''}><option value="">None</option>{(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name} ({v.trade})</option>)}</Select></div>
+                    <div><Label htmlFor="vendor_id">Vendor</Label><VendorSelect id="vendor_id" name="vendor_id" defaultValue={editTask?.vendor_id || ''} vendors={(vendors ?? []).map((v: any) => ({ ...v, name: `${v.name} (${v.trade})` }))} placeholder="None" /></div>
                     <div><Label htmlFor="staff_id">Manager</Label><Select id="staff_id" name="staff_id" defaultValue={editTask?.assigned_staff_id || ''}><option value="">None</option>{(staff ?? []).map((s: any) => <option key={s.id} value={s.id}>{s.full_name || s.email}</option>)}</Select></div>
                     <div><Label htmlFor="start_date">{editTask ? 'Start *' : 'Start'}</Label><Input id="start_date" name="start_date" type="date" required={!!editTask} defaultValue={editTask?.start_date || ''} placeholder="Today" />{!editTask && <p className="mt-1 text-xs text-gray-500">Blank starts today in the association&rsquo;s time zone.</p>}</div>
                     <div><Label htmlFor="end_date">End</Label><Input id="end_date" name="end_date" type="date" defaultValue={editTask?.end_date} /></div>

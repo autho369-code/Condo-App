@@ -51,7 +51,7 @@ export function VendorSelect({
     if (!form) return;
     const read = () => {
       const field = form.elements.namedItem(associationField);
-      const v = field && 'value' in field ? String((field as HTMLInputElement).value ?? '') : '';
+      const v = field && 'value' in field ? String((field as unknown as HTMLInputElement).value ?? '') : '';
       setFormAssociation(v || null);
       setReady(true);
     };

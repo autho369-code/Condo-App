@@ -4,6 +4,7 @@ import { Field, Input, Select } from '@/components/ui/input';
 import { Surface, SectionTitle } from '@/components/ui/shell';
 import { saveRecurringBill } from '@/lib/rpcs/recurring';
 import { todayInZone } from '@/lib/time/zoned';
+import { VendorSelect, type VendorOption } from '@/components/vendors/vendor-select';
 
 export type RecurringBillValues = {
   id?: string;
@@ -32,7 +33,7 @@ export function RecurringBillForm({
   banks,
 }: {
   values: RecurringBillValues;
-  vendors: Option[];
+  vendors: VendorOption[];
   associations: Option[];
   gls: Option[];
   banks: Option[];
@@ -48,10 +49,7 @@ export function RecurringBillForm({
             <Input id="name" name="name" required maxLength={120} defaultValue={values.name ?? ''} placeholder="Monthly janitorial service" />
           </Field>
           <Field label="Vendor" htmlFor="vendor_id" required>
-            <Select id="vendor_id" name="vendor_id" required defaultValue={values.vendor_id ?? ''}>
-              <option value="">Choose a vendor</option>
-              {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-            </Select>
+            <VendorSelect id="vendor_id" name="vendor_id" required defaultValue={values.vendor_id ?? ''} vendors={vendors} placeholder="Choose a vendor" />
           </Field>
           <Field label="Association" htmlFor="association_id" required>
             <Select id="association_id" name="association_id" required defaultValue={values.association_id ?? ''}>
@@ -122,7 +120,7 @@ export function RecurringBillForm({
 /** Dropdown sources for the recurring bill form (RLS-scoped). */
 export async function loadRecurringBillOptions(db: any) {
   const [{ data: vendors }, { data: associations }, { data: gls }, { data: banks }] = await Promise.all([
-    db.from('vendors').select('id, name').is('archived_at', null).order('name'),
+    db.from('vendors').select('id, name, association_id, is_management_company').is('archived_at', null).order('name'),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('gl_accounts').select('id, number, name').eq('active', true)
       .in('account_type', ['expense', 'cost_of_goods_sold', 'other_expense']).order('number'),
