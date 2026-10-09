@@ -3,6 +3,12 @@
 Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
+## 2026-10-09
+- #259 (merged bac812b; no migration): importer renamed "Import from previous
+  system" (/owners/import/previous-system, old URL redirects), sidebar entry,
+  no competitor name in product text or stored records (old markers still
+  recognised for dedupe), one association of a file shown at a time.
+
 ## 2026-10-08
 - #258 (merged 4f5f0d4; no migration): AppFolio open balances — a changed
   amount is reported, not reposted; items gone from a complete file are

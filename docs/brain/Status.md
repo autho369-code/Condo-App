@@ -31,10 +31,8 @@ Back to [[Home]]. Updated 2026-10-08 (after #258).
   (Import Variances per unit + date). 20261008080000 applied in parts:
   import_locks table + RLS + 3 policies + grants + can_hold_import_lock
   (PL/pgSQL) verified; claim_import_lock run by Mirsad (above).
-- Open PR: importer renamed "Import from previous system" at
-  `/owners/import/previous-system` (old URL redirects), sidebar entry under
-  Associations, no "AppFolio" in any product text or stored record (charge
-  memo prefix "Prior system:", work-order key "Prior system WO #n").
+- #259 merged (bac812b). Open PR: work-order status "Assigned by AppFolio"
+  is shown and stored as "Assigned" (Codex P2 on #259).
 - **All associations archived 2026-10-09 at Mirsad's request** ("remove all
   associations from the records"): Granville Courts, 7241 N. Ridge Avenue,
   Pine Tree Court (Sample) have archived_at set (reversible; nothing

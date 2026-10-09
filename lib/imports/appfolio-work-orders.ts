@@ -94,6 +94,13 @@ const PRIORITY_MAP: Record<string, WorkOrderPriority> = {
 const key = (v: string) => v.trim().toLowerCase().replace(/\s+/g, ' ');
 
 /**
+ * A status as shown and stored here: the old system's own name is dropped
+ * ("Assigned by AppFolio" -> "Assigned"), so it never appears in the product.
+ */
+export const neutralStatus = (status: string) =>
+  status.replace(/\s*\bby\s+appfolio\b/gi, '').replace(/\bappfolio\b/gi, 'previous system').trim();
+
+/**
  * AppFolio status -> Portier status. "Estimate Requested" / "Estimated" mean a
  * vendor was asked for a price, so they count as assigned when the work order
  * names a vendor. Unknown or blank -> "new" with `known: false`.
@@ -215,7 +222,7 @@ export function parseAppfolioWorkOrders(input: string): { groups?: AppfolioWorkO
       const status = mapAppfolioStatus(appfolioStatus, vendor !== null);
       const priority = mapAppfolioPriority(appfolioPriority);
       if (!status.known) {
-        group.warnings.push(`Line ${r.row} (WO ${number}): status "${appfolioStatus || 'blank'}" has no match here; it will be imported as New.`);
+        group.warnings.push(`Line ${r.row} (WO ${number}): status "${neutralStatus(appfolioStatus) || 'blank'}" has no match here; it will be imported as New.`);
       }
       if (!priority.known) {
         group.warnings.push(`Line ${r.row} (WO ${number}): priority "${appfolioPriority}" has no match here; it will be imported as Normal.`);
@@ -227,7 +234,7 @@ export function parseAppfolioWorkOrders(input: string): { groups?: AppfolioWorkO
         unit: text(r['Unit']),
         vendor,
         status: status.status,
-        appfolio_status: appfolioStatus,
+        appfolio_status: neutralStatus(appfolioStatus),
         priority: priority.priority,
         appfolio_priority: appfolioPriority,
         type: text(r['Work Order Type']),
