@@ -92,3 +92,8 @@ Back to [[Home]]. Don't redo these.
   which association (`?record=` switcher / Association select). Staff side:
   an owner picked with no association must be in an association the caller
   manages; with one, the owner must be that association's record.
+  **Sold units (Mirsad, 2026-10-09):** what matters is the unit, not the
+  owner. When a unit is sold, the old owner is removed and the new owner is
+  moved in once they provide the closing documents. So an owner record with
+  no current unit is not a state to design for: former owners get no
+  association access (no widening of `associations` reads for them).
