@@ -73,6 +73,40 @@ end $function$;
 -- cleared. So a row many links deep (a reconciliation item on an adjustment on
 -- a bank account) never blocks the delete. A self-link is cleared on rows
 -- outside the set. Callers pause triggers first (purge_pause_triggers).
+--
+-- When the caller names the association being deleted (setting
+-- purge.association_id, and purge.portfolio_id for its company), every row
+-- reached must belong to it: a row whose association_id or portfolio_id names
+-- another one (e.g. another association's budget line on this association's GL
+-- account) stops the call and nothing is deleted.
+create or replace function public.purge_assert_own(p_table regclass, p_col name, p_ids uuid[])
+returns void
+language plpgsql
+set search_path to 'pg_catalog', 'public', 'pg_temp'
+as $function$
+declare
+  v_assoc uuid := nullif(current_setting('purge.association_id', true), '')::uuid;
+  v_portfolio uuid := nullif(current_setting('purge.portfolio_id', true), '')::uuid;
+  v_other boolean;
+begin
+  if v_assoc is not null and exists (select 1 from pg_attribute pa where pa.attrelid = p_table
+                                       and pa.attname = 'association_id' and not pa.attisdropped) then
+    execute format('select exists (select 1 from %s where %I = any($1) and association_id is not null and association_id <> $2)',
+                   p_table, p_col) into v_other using p_ids, v_assoc;
+    if v_other then
+      raise exception 'Rows in % that belong to another association depend on what would be deleted; nothing was deleted. Move or remove them first.', p_table;
+    end if;
+  end if;
+  if v_portfolio is not null and exists (select 1 from pg_attribute pa where pa.attrelid = p_table
+                                           and pa.attname = 'portfolio_id' and not pa.attisdropped) then
+    execute format('select exists (select 1 from %s where %I = any($1) and portfolio_id is not null and portfolio_id <> $2)',
+                   p_table, p_col) into v_other using p_ids, v_portfolio;
+    if v_other then
+      raise exception 'Rows in % that belong to another company depend on what would be deleted; nothing was deleted.', p_table;
+    end if;
+  end if;
+end $function$;
+
 create or replace function public.purge_rows(p_table regclass, p_ids uuid[], p_depth integer default 0)
 returns void
 language plpgsql
@@ -93,8 +127,9 @@ begin
     raise exception 'Deleting this would also delete % rows that belong elsewhere; nothing was deleted. Remove that link first.', p_table;
   end if;
   if to_regclass('pg_temp.purge_deleted') is null then
-    create temp table purge_deleted (id uuid primary key) on commit drop;
+    create temp table purge_deleted (id uuid not null, tbl regclass not null, primary key (id, tbl)) on commit drop;
   end if;
+  perform public.purge_assert_own(p_table, 'id', p_ids);
 
   for r in
     select c.conrelid::regclass as tbl, a.attname as col, c.confdeltype as on_delete,
@@ -129,18 +164,39 @@ begin
         into v_child_ids using p_ids;
       perform public.purge_rows(r.tbl, v_child_ids, p_depth + 1);
     else
+      perform public.purge_assert_own(r.tbl, r.col, p_ids);
       execute format('delete from %s where %I = any($1)', r.tbl, r.col) using p_ids;
     end if;
   end loop;
 
   execute format('with d as (delete from %s where id = any($1) returning id) '
-              || 'insert into purge_deleted select id from d on conflict do nothing', p_table) using p_ids;
+              || 'insert into purge_deleted select id, $2 from d on conflict do nothing', p_table) using p_ids, p_table;
 end $function$;
+
+-- Does the type text of a (type, id) reference fit table p_tbl? A type that
+-- names a table ('unit' -> units, 'work_order' -> work_orders, 'bill' ->
+-- payable_bills, 'property' -> properties) must name p_tbl. A type that names
+-- no table at all (e.g. 'homeowner') is matched by the id alone.
+create or replace function public.purge_type_matches(p_type text, p_tbl regclass)
+returns boolean
+language sql
+stable
+set search_path to 'pg_catalog', 'public', 'pg_temp'
+as $function$
+  with t as (select lower(coalesce(p_type, '')) as v),
+  cands as (
+    select c.oid from pg_class c join pg_namespace n on n.oid = c.relnamespace, t
+     where n.nspname = 'public' and c.relkind = 'r' and t.v <> ''
+       and (c.relname = t.v or c.relname = t.v || 's' or c.relname = regexp_replace(t.v, 'y$', 'ies')
+            or c.relname like '%\_' || t.v || 's')
+  )
+  select not exists (select 1 from cands) or exists (select 1 from cands where oid = p_tbl);
+$function$;
 
 -- Notes, documents, tags, audit rows and the like point at a record by
 -- (<x>_type, <x>_id) with no foreign key, so purge_rows cannot find them.
--- Delete every such row whose <x>_id is a row purge_rows deleted (ids are
--- UUIDs, so the type need not be matched), with whatever depends on it, and
+-- Delete every such row whose <x>_id is a row purge_rows deleted and whose
+-- <x>_type fits the table it was deleted from, with whatever depends on it, and
 -- repeat for rows attached to those. A matched row that belongs to another
 -- association (its association_id, or for a ledger entry any of its lines) stops
 -- the call: nothing is deleted. p_association_id null = belongs to none.
@@ -157,7 +213,7 @@ declare
   v_other boolean;
 begin
   if to_regclass('pg_temp.purge_deleted') is null then
-    create temp table purge_deleted (id uuid primary key) on commit drop;
+    create temp table purge_deleted (id uuid not null, tbl regclass not null, primary key (id, tbl)) on commit drop;
   end if;
   analyze purge_deleted;
   loop
@@ -167,7 +223,7 @@ begin
       raise exception 'Attached records go too deep to delete safely; nothing was deleted.';
     end if;
     for r in
-      select c.oid::regclass as tbl, idc.attname as col,
+      select c.oid::regclass as tbl, idc.attname as col, tyc.attname as tcol,
              exists (select 1 from pg_attribute pa where pa.attrelid = c.oid and pa.attname = 'id'
                       and not pa.attisdropped and pa.atttypid = 'uuid'::regtype) as has_id
         from pg_class c
@@ -179,10 +235,11 @@ begin
        where n.nspname = 'public' and c.relkind = 'r'
     loop
       if r.has_id then
-        execute format('select coalesce(array_agg(t.id), ''{}'') from %s t '
-                    || 'where t.%I in (select id from purge_deleted) and t.id not in (select id from purge_deleted)',
-                       r.tbl, r.col)
-          into v_ids;
+        execute format('select coalesce(array_agg(distinct t.id), ''{}'') from %s t join purge_deleted d on d.id = t.%I '
+                    || 'where public.purge_type_matches(t.%I::text, d.tbl) '
+                    || 'and not exists (select 1 from purge_deleted x where x.id = t.id and x.tbl = $1)',
+                       r.tbl, r.col, r.tcol)
+          into v_ids using r.tbl;
         if cardinality(v_ids) > 0 then
           if exists (select 1 from pg_attribute pa where pa.attrelid = r.tbl and pa.attname = 'association_id'
                       and not pa.attisdropped) then
@@ -202,7 +259,8 @@ begin
           perform public.purge_rows(r.tbl, v_ids, 1);
         end if;
       else
-        execute format('delete from %s where %I in (select id from purge_deleted)', r.tbl, r.col);
+        execute format('delete from %s t using purge_deleted d where d.id = t.%I and public.purge_type_matches(t.%I::text, d.tbl)',
+                       r.tbl, r.col, r.tcol);
       end if;
     end loop;
     exit when not v_found;
@@ -236,6 +294,9 @@ begin
 
   -- Pause first: the locks it takes stop new rows arriving while the ids are collected.
   v_paused := public.purge_pause_triggers();
+  -- Everything purged from here on must belong to this association / company.
+  perform set_config('purge.association_id', p_association_id::text, true);
+  perform set_config('purge.portfolio_id', coalesce((select portfolio_id::text from public.associations where id = p_association_id), ''), true);
 
   select coalesce(array_agg(id), '{}') into v_buildings from public.buildings where association_id = p_association_id;
   select coalesce(array_agg(id), '{}') into v_units from public.units where building_id = any(v_buildings);
@@ -382,6 +443,8 @@ begin
   end if;
 
   v_paused := public.purge_pause_triggers();
+  perform set_config('purge.association_id', '', true);
+  perform set_config('purge.portfolio_id', p_portfolio_id::text, true);
   perform public.purge_rows('public.owners'::regclass, v_owners);
   perform public.purge_polymorphic(null);
   perform public.purge_resume_triggers(v_paused);
@@ -391,6 +454,8 @@ end $function$;
 revoke all on function public.purge_pause_triggers() from public, anon, authenticated, service_role;
 revoke all on function public.purge_resume_triggers(jsonb) from public, anon, authenticated, service_role;
 revoke all on function public.purge_rows(regclass, uuid[], integer) from public, anon, authenticated, service_role;
+revoke all on function public.purge_assert_own(regclass, name, uuid[]) from public, anon, authenticated, service_role;
+revoke all on function public.purge_type_matches(text, regclass) from public, anon, authenticated, service_role;
 revoke all on function public.purge_polymorphic(uuid) from public, anon, authenticated, service_role;
 revoke all on function public.delete_association_completely(uuid) from public, anon, authenticated, service_role;
 revoke all on function public.delete_unlinked_owners(uuid, boolean) from public, anon, authenticated, service_role;
