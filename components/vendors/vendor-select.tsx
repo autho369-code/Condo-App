@@ -9,12 +9,15 @@
 // another association.
 import * as React from 'react';
 import { Select } from '@/components/ui/input';
+import { createClient } from '@/lib/supabase/client';
 
 export type VendorOption = {
   id: string;
   name: string;
   association_id: string | null;
   is_management_company?: boolean | null;
+  /** The vendor's company: only that company's management company is offered. */
+  portfolio_id?: string | null;
 };
 
 type Props = Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'children' | 'value' | 'onChange'> & {
@@ -68,24 +71,53 @@ export function VendorSelect({
   }, [fixed, associationField]);
 
   const association = fixed ? associationId ?? null : formAssociation;
+
+  // A platform operator can see several companies' management companies: only
+  // the one of the selected association's company may be offered. Its company
+  // is read from one of its own vendors, else looked up (RLS applies).
+  const managementCompanies = React.useMemo(
+    () => new Set(vendors.filter((v) => v.is_management_company).map((v) => v.portfolio_id ?? null)),
+    [vendors],
+  );
+  const severalCompanies = managementCompanies.size > 1;
+  const knownPortfolio = association
+    ? vendors.find((v) => v.association_id === association && v.portfolio_id)?.portfolio_id ?? null
+    : null;
+  const [lookedUp, setLookedUp] = React.useState<{ association: string; portfolio: string | null } | null>(null);
+  React.useEffect(() => {
+    if (!severalCompanies || !association || knownPortfolio || lookedUp?.association === association) return;
+    let cancelled = false;
+    createClient().from('associations').select('portfolio_id').eq('id', association).maybeSingle()
+      .then(({ data, error }) => {
+        if (!cancelled) setLookedUp({ association, portfolio: error ? null : (data as any)?.portfolio_id ?? null });
+      });
+    return () => { cancelled = true; };
+  }, [severalCompanies, association, knownPortfolio, lookedUp]);
+  const associationPortfolio = knownPortfolio ?? (lookedUp?.association === association ? lookedUp.portfolio : null);
+  // Until the company is known, a saved vendor stays selected (never cleared by a pending lookup).
+  const settled = ready && (!severalCompanies || !association || !!knownPortfolio || lookedUp?.association === association);
+
   const options = React.useMemo(() => {
     const own = association ? vendors.filter((v) => v.association_id === association) : [];
-    const management = includeManagementCompany ? vendors.filter((v) => v.is_management_company) : [];
+    const management = !includeManagementCompany ? []
+      : vendors.filter((v) => v.is_management_company
+          // Unknown company (lookup pending or failed) offers none rather than a wrong one.
+          && (!severalCompanies || (!!associationPortfolio && v.portfolio_id === associationPortfolio)));
     return { own, management };
-  }, [vendors, association, includeManagementCompany]);
+  }, [vendors, association, includeManagementCompany, severalCompanies, associationPortfolio]);
 
   // A vendor of another association is never kept selected.
   React.useEffect(() => {
-    if (!ready || !value) return;
+    if (!settled || !value) return;
     const ok = options.own.some((v) => v.id === value) || options.management.some((v) => v.id === value);
     if (!ok) setValue('');
-  }, [options, value, ready]);
+  }, [options, value, settled]);
 
   return (
     <Select ref={ref} value={value} onChange={(e) => setValue(e.target.value)} {...rest}>
       <option value="">{association ? placeholder : 'Choose the association first'}</option>
       {/* Until the form's association is read, keep the saved vendor selectable so a save never clears it. */}
-      {!ready && value && !options.own.some((v) => v.id === value) && !options.management.some((v) => v.id === value)
+      {!settled && value && !options.own.some((v) => v.id === value) && !options.management.some((v) => v.id === value)
         && vendors.filter((v) => v.id === value).map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
       {options.own.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
       {options.management.length > 0 && (

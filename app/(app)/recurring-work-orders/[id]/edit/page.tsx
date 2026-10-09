@@ -35,7 +35,7 @@ export default async function EditRecurringWorkOrderPage({
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     // Every unit (one request stops at 1,000 rows).
     fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id, associations(name))').is('archived_at', null).order('unit_number').order('id')).then((r) => ({ data: r.rows })),
-    fetchAllRows<any>(() => db.from('vendors').select('id, name, association_id, is_management_company').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
+    fetchAllRows<any>(() => db.from('vendors').select('id, name, association_id, is_management_company, portfolio_id').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
   ]);
 
   if (!row) notFound();

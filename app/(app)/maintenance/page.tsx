@@ -238,7 +238,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
     db.from('maintenance_tasks').select('*, associations!inner(name, timezone), vendors(name), profiles(full_name)').is('archived_at',null).order('next_due_date',{ascending:true,nullsFirst:false}),
     db.from('associations').select('id,name').is('archived_at',null).order('name'),
     db.from('maintenance_template_groups').select('*, templates:maintenance_templates(*)').order('sort_order'),
-    fetchAllRows<any>(() => db.from('vendors').select('id,name,trade,emails,association_id,is_management_company').is('archived_at',null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
+    fetchAllRows<any>(() => db.from('vendors').select('id,name,trade,emails,association_id,is_management_company,portfolio_id').is('archived_at',null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     // Only active staff can be assigned a task.
     db.from('profiles').select('id,full_name,email').eq('hoa_role','manager').is('disabled_at', null).order('full_name'),
   ]);

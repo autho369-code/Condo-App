@@ -25,7 +25,7 @@ export default async function NewCalendarEventPage({
   const [{ data: associations }, { data: vendors }, { data: owners }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     // Every vendor (one request stops at 1,000 rows); the picker narrows to the chosen association.
-    fetchAllRows<any>(() => db.from('vendors').select('id, name, emails, phone_numbers, association_id, is_management_company').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows<any>(() => db.from('vendors').select('id, name, emails, phone_numbers, association_id, is_management_company, portfolio_id').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
     db.from('owners').select('id, full_name, email, phone').is('archived_at', null).order('full_name').limit(200),
   ]);
 

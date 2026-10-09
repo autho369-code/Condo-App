@@ -91,7 +91,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     (supabase as any).from('work_order_updates').select('id, note, new_status, created_at, created_by').eq('work_order_id', id).order('created_at', { ascending: false }),
     (supabase as any).from('work_order_labor_entries').select('id, tech_name, date_worked, hours, hourly_rate, labor_cost, description').eq('work_order_id', id).order('date_worked', { ascending: false }),
     (supabase as any).from('work_order_estimates').select('id, amount, notes, submitted_at, approved_at, rejected_at, vendors(name)').eq('work_order_id', id).order('submitted_at', { ascending: false }),
-    fetchAllRows<any>(() => (supabase as any).from('vendors').select('id, name, trade, association_id, is_management_company').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
+    fetchAllRows<any>(() => (supabase as any).from('vendors').select('id, name, trade, association_id, is_management_company, portfolio_id').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     (supabase as any).from('work_order_messages').select('id, author_name, author_role, body, created_at').eq('work_order_id', id).order('created_at', { ascending: true }),
     (supabase as any).from('work_order_ratings').select('rated_by, rater_role, score, quality, timeliness, communication, would_hire_again, comment, created_at').eq('work_order_id', id).order('created_at', { ascending: false }),
     supabase.auth.getUser(),

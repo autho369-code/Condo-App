@@ -89,7 +89,7 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
 
   const [{ data: associations }, { data: vendors }, { data: staff }, { data: template }] = await Promise.all([
     db.from('associations').select('id,name').is('archived_at', null).order('name'),
-    fetchAllRows<any>(() => db.from('vendors').select('id,name,trade,association_id,is_management_company').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
+    fetchAllRows<any>(() => db.from('vendors').select('id,name,trade,association_id,is_management_company,portfolio_id').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     db.from('profiles').select('id,full_name,email').eq('hoa_role','manager').order('full_name'),
     sp.template ? db.from('maintenance_templates').select('*').eq('id', sp.template).single() : Promise.resolve({ data: null }),
   ]);

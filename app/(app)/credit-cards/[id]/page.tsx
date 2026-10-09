@@ -54,7 +54,7 @@ export default async function CreditCardPage({
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
     card.association_id ? { data: [] } : db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('gl_accounts').select('id, number, name, account_type, association_id').eq('active', true).order('number'),
-    fetchAllRows<any>(() => db.from('vendors').select('id, name, association_id, is_management_company').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
+    fetchAllRows<any>(() => db.from('vendors').select('id, name, association_id, is_management_company, portfolio_id').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     db.from('gl_accounts').select('id, number, name, association_id').eq('active', true).in('account_type', ['liability', 'accounts_payable']).order('number'),
   ]);
   const glOptions = ((gls ?? []) as any[]).filter((g) =>

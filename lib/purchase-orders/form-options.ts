@@ -12,7 +12,7 @@ export async function loadPurchaseOrderFormOptions(supabase: any, portfolioId: s
     { data: settings },
   ] = await Promise.all([
     supabase.from('associations').select('id, name').eq('portfolio_id', portfolioId).is('archived_at', null).order('name'),
-    fetchAllRows<any>(() => supabase.from('vendors').select('id, name, association_id, is_management_company').eq('portfolio_id', portfolioId).is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
+    fetchAllRows<any>(() => supabase.from('vendors').select('id, name, association_id, is_management_company, portfolio_id').eq('portfolio_id', portfolioId).is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     supabase.from('gl_accounts').select('id, number, name, association_id').eq('portfolio_id', portfolioId).eq('active', true).order('number'),
     supabase.from('work_orders')
       .select('id, number, title, association_id, status')
