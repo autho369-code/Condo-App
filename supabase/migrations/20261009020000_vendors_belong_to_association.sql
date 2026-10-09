@@ -330,16 +330,27 @@ set search_path to 'pg_catalog', 'public'
 as $function$
 declare
   v_wo_association uuid;
+  v_wo_portfolio uuid;
   v_vendor_association uuid;
+  v_vendor_portfolio uuid;
   v_management boolean;
 begin
   if new.vendor_id is null then
     return new;
   end if;
-  select w.association_id into v_wo_association from public.work_orders w where w.id = new.work_order_id;
-  select ven.association_id, ven.is_management_company into v_vendor_association, v_management
+  select w.association_id, w.portfolio_id into v_wo_association, v_wo_portfolio
+    from public.work_orders w where w.id = new.work_order_id;
+  select ven.association_id, ven.portfolio_id, ven.is_management_company
+    into v_vendor_association, v_vendor_portfolio, v_management
     from public.vendors ven where ven.id = new.vendor_id for share;
-  if not found or v_management then
+  if not found then
+    return new;
+  end if;
+  if v_management then
+    -- The management company serves every association, of its own company only.
+    if v_vendor_portfolio is distinct from v_wo_portfolio then
+      raise exception 'This vendor belongs to another company.' using errcode = '23514';
+    end if;
     return new;
   end if;
   if v_vendor_association is distinct from v_wo_association then
@@ -379,6 +390,45 @@ begin
       using (exists (select 1 from public.vendors ven
                       where ven.id = vendor_financial_details.vendor_id and public.can_view_association_row(ven.association_id)));
   end if;
+end $$;
+
+-- A manager limited to some associations may see the company-level
+-- management company (it serves their associations) but not change or remove
+-- it, or its private, compliance or financial records: that is for
+-- company-wide staff, as with marking it. Vendor portal users are not
+-- scoped managers, so the vendor's own self-service edits still pass.
+create or replace function public.can_write_vendor_row(p_association_id uuid)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+begin
+  return p_association_id is not null or not public.manager_is_scoped() or public.is_company_admin();
+end $function$;
+
+revoke all on function public.can_write_vendor_row(uuid) from public, anon;
+grant execute on function public.can_write_vendor_row(uuid) to authenticated;
+
+do $$
+declare
+  t text;
+  v_expr text;
+begin
+  foreach t in array array['vendors', 'vendor_private', 'vendor_compliance', 'vendor_financial_details'] loop
+    v_expr := case when t = 'vendors' then 'public.can_write_vendor_row(association_id)'
+                   else format('exists (select 1 from public.vendors ven where ven.id = %I.vendor_id and public.can_write_vendor_row(ven.association_id))', t) end;
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'mgr_company_vendor_insert') then
+      execute format('create policy mgr_company_vendor_insert on public.%I as restrictive for insert to authenticated with check (%s)', t, v_expr);
+    end if;
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'mgr_company_vendor_update') then
+      execute format('create policy mgr_company_vendor_update on public.%I as restrictive for update to authenticated using (%s) with check (%s)', t, v_expr, v_expr);
+    end if;
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'mgr_company_vendor_delete') then
+      execute format('create policy mgr_company_vendor_delete on public.%I as restrictive for delete to authenticated using (%s)', t, v_expr);
+    end if;
+  end loop;
 end $$;
 
 -- 6) Management fees go to the management company ---------------------------

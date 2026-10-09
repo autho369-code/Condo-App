@@ -96,7 +96,16 @@ describe('vendors belong to exactly one association', () => {
     expect(migration).toContain('create unique index if not exists vendors_one_management_company');
   });
 
+  it('lets association-scoped managers see but not change the management company', () => {
+    expect(migration).toContain('return p_association_id is not null or not public.manager_is_scoped() or public.is_company_admin();');
+    expect(migration).toContain("array['vendors', 'vendor_private', 'vendor_compliance', 'vendor_financial_details']");
+    for (const p of ['mgr_company_vendor_insert', 'mgr_company_vendor_update', 'mgr_company_vendor_delete']) {
+      expect(migration).toContain(`create policy ${p} on public.%I as restrictive`);
+    }
+  });
+
   it('keeps estimate vendors in the work order\'s association', () => {
+    expect(migration).toContain('if v_vendor_portfolio is distinct from v_wo_portfolio then');
     expect(migration).toContain('before insert or update of vendor_id, work_order_id on public.work_order_estimates');
     expect(migration).toContain('revoke all on function public.work_order_estimate_vendor_same_association() from public, anon, authenticated;');
     const estimate = read('lib/rpcs/work-orders.ts');
