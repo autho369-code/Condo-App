@@ -106,6 +106,8 @@ describe('owner login leftovers', () => {
     expect(account).toContain(".eq('owner_id', recordId).eq('status', 'current')");
     expect(account).toContain('<RecordSwitcher');
     expect(account).not.toContain("select('*')");
+    // Every current unit of the record, never a capped list.
+    expect(account).not.toMatch(/\.limit\(\d+\)/);
     const home = read('app/portal/home/page.tsx');
     expect(home).toContain("select('id, emergency_contact_name, emergency_contact_phone, associations(name)').in('id', ownerIds)");
     expect(home).not.toContain(".eq('id', me.owner_id)");

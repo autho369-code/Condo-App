@@ -21,7 +21,7 @@ export default async function OwnerAccountPage({ searchParams }: { searchParams:
     db.from('occupancies')
       .select('id, dues_amount, dues_paid_through, share_pct, occupancy_type, units(unit_number)')
       .eq('owner_id', recordId).eq('status', 'current')
-      .order('is_primary', { ascending: false }).order('created_at', { ascending: true }).order('id', { ascending: true }).limit(10),
+      .order('is_primary', { ascending: false }).order('created_at', { ascending: true }).order('id', { ascending: true }),
   ])
   const o = owner ?? {}
   const units = (occs ?? []) as any[]
