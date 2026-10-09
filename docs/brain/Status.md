@@ -51,22 +51,11 @@ Back to [[Home]]. Updated 2026-10-09 (after #263 merged; no open PR).
   a SET NULL link of another association stops the call; purge_type_matches:
   no id-only matching). Definitions already live (Mirsad pasted them); no
   open PR.
-- Open PR: vendors belong to one association (management company the one
-  company-level exception). Migration 20261009020000 (not applied yet; a
-  rolled-back dry run in production succeeded): vendors.association_id +
-  is_management_company, backfill (the one vendor goes to Randolph Station),
-  same-association trigger on 14 vendor/association tables + estimates,
-  restrictive mgr_assoc_scope on vendors/private/compliance/financial,
-  management-company marking only by company-wide finance or a company
-  admin, management fees only to the management company, invites link the
-  exact vendor record. App: vendor create asks for the association, vendor
-  import into one chosen association, every vendor picker (VendorSelect)
-  shows only that association's vendors. **Order:** Claude applies 020000
-  once Codex is clean (current main's vendor create sends no association),
-  then Mirsad merges right away. Next PR: one vendor login across
-  associations. Follow-up: bills CSV upload matches vendor names company-wide
-  (the trigger refuses a wrong-association vendor; changing import_bills
-  needs Mirsad's SQL editor because its body has a DELETE).
+- In PR: bills CSV upload (`import_bills`) matches the vendor inside the
+  row's association plus the management company (migration
+  20261009030000; its body clears a temp table with DELETE, so Mirsad runs
+  it in the SQL editor, then Claude reads it back; merge only after it is
+  live).
 - Randolph Station created by Mirsad (2026-10-09) for the first real import;
   it is the only association. Granville Courts, 7241 N. Ridge and the Pine
   Tree sample were deleted by Mirsad in the SQL editor (one DO block: user
@@ -77,10 +66,7 @@ Back to [[Home]]. Updated 2026-10-09 (after #263 merged; no open PR).
   (2) multi-property owner portal (one sign-in, all of a person's records) and owner pickers
   that still list the whole company; (3) chart of accounts entered/changed by
   the company admin only; (4) a real end-to-end import of Randolph Station;
-  (5) credit balances from the Aged Receivable file (listed, not posted);
-  (6) bills CSV upload (`import_bills`) matches vendor names company-wide —
-  scope it to the row's association (its body has a DELETE, so Mirsad pastes
-  it in the SQL editor).
+  (5) credit balances from the Aged Receivable file (listed, not posted).
 - #256 merged (7b37b23); migration 20261008060000 applied and verified (7
   SETOF uuid identity helpers are PL/pgSQL, SECURITY DEFINER, search_path
   kept). Live timings for 30 tables per role, original -> now: board
@@ -181,10 +167,7 @@ Back to [[Home]]. Updated 2026-10-09 (after #263 merged; no open PR).
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
--1. `import_bills` (bills CSV upload): resolve the row's association first,
-   then match the vendor inside it plus the management company (today a
-   same-named vendor in two associations is rejected as ambiguous). Its body
-   has a DELETE, so the replacement goes to Mirsad's SQL editor. Then: one
+-1. In PR: `import_bills` association scoping (see Open PR). Then: one
    vendor login across a vendor's associations; multi-property owner portal.
 0. AppFolio importer follow-ups: credit balances (owner prepayments), and
    run the real import for one association end to end after merge. Then: Stripe live for one
