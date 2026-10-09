@@ -137,8 +137,9 @@ async function seed() {
       ownerIds.push(ownerId);
       const first = pick(firstNames);
       const last = pick(lastNames);
+      // A homeowner record belongs to exactly one association.
       await db.from('owners').insert({
-        id: ownerId, first_name: first, last_name: last,
+        id: ownerId, association_id: assoc.id, first_name: first, last_name: last,
         full_name: `${first} ${last}`,
         email: `${first.toLowerCase()}.${last.toLowerCase()}${between(1,99)}@email.com`,
         phone: `312-${String(between(100,999))}-${String(between(1000,9999))}`,

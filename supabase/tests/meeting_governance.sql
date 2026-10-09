@@ -69,8 +69,8 @@ values ('a7250000-0000-0000-0000-000000000001', 'a7200000-0000-0000-0000-0000000
 insert into public.units (id, building_id, unit_number, ownership_pct)
 values ('a7260000-0000-0000-0000-000000000001', 'a7250000-0000-0000-0000-000000000001', '101', 1);
 
-insert into public.owners (id, portfolio_id, full_name, email, auth_user_id, portal_activated)
-values ('a7270000-0000-0000-0000-000000000001', 'a7000000-0000-0000-0000-000000000001', 'Current Owner', 'governance-owner@example.test', 'a7100000-0000-0000-0000-000000000004', true);
+insert into public.owners (id, association_id, portfolio_id, full_name, email, auth_user_id, portal_activated)
+values ('a7270000-0000-0000-0000-000000000001', 'a7200000-0000-0000-0000-000000000001', 'a7000000-0000-0000-0000-000000000001', 'Current Owner', 'governance-owner@example.test', 'a7100000-0000-0000-0000-000000000004', true);
 
 insert into public.occupancies (id, owner_id, unit_id, association_id, occupancy_type, status)
 values ('a7280000-0000-0000-0000-000000000001', 'a7270000-0000-0000-0000-000000000001', 'a7260000-0000-0000-0000-000000000001', 'a7200000-0000-0000-0000-000000000001', 'owner', 'current');

@@ -64,7 +64,9 @@ async function requestPasswordReset(formData: FormData) {
         }
       }
       if (!toName) {
-        const { data: owner } = await svc.from('owners').select('full_name, portfolio_id').eq('auth_user_id', userId).maybeSingle();
+        // One person can hold a homeowner record in several associations
+        // (one record per association), all linked to the same sign-in.
+        const { data: owner } = await svc.from('owners').select('full_name, portfolio_id').eq('auth_user_id', userId).order('created_at').order('id').limit(1).maybeSingle();
         if (owner) {
           toName = owner.full_name ?? null
           portfolioId = portfolioId ?? owner.portfolio_id ?? null

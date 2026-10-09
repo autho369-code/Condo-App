@@ -76,8 +76,8 @@ insert into public.units (id, building_id, unit_number, ownership_pct) values
   ('dddddddd-dddd-dddd-dddd-ddddddddddd1', 'cccccccc-cccc-cccc-cccc-ccccccccccc1', '101', 1),
   ('dddddddd-dddd-dddd-dddd-ddddddddddd2', 'cccccccc-cccc-cccc-cccc-ccccccccccc2', '202', 1);
 
-insert into public.owners (id, portfolio_id, full_name, email, portal_activated) values
-  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'Olivia Owner', 'resident@example.test', true);
+insert into public.owners (id, association_id, portfolio_id, full_name, email, portal_activated) values
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'Olivia Owner', 'resident@example.test', true);
 
 insert into public.vendors (id, portfolio_id, name, emails, auth_user_id, portal_activated) values
   ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'Resident Email Vendor', '["resident@example.test"]'::jsonb, '10000000-0000-0000-0000-000000000001', true);

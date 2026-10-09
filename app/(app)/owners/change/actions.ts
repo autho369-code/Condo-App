@@ -45,8 +45,13 @@ export async function changeHomeowner(formData: FormData) {
   let createdOwner = false;
   if (existingOwnerId) {
     if (!UUID_RE.test(existingOwnerId)) fail('Choose a valid owner.');
-    const { data: owner } = await db.from('owners').select('id, portfolio_id').eq('id', existingOwnerId).is('archived_at', null).maybeSingle();
+    const { data: owner } = await db.from('owners').select('id, association_id, portfolio_id').eq('id', existingOwnerId).is('archived_at', null).maybeSingle();
     if (!owner || owner.portfolio_id !== portfolioId) fail('That owner is not in this unit\'s portfolio.');
+    // A homeowner record belongs to exactly one association: a buyer from
+    // another association is added as a new homeowner of this one.
+    if (owner.association_id !== associationId) {
+      fail('That homeowner belongs to another association. Add the buyer as a new homeowner of this association.');
+    }
     newOwnerId = owner.id;
   } else {
     const firstName = s(formData, 'first_name');
@@ -55,6 +60,7 @@ export async function changeHomeowner(formData: FormData) {
     if (!firstName || !lastName) fail('Choose an existing owner, or enter the new owner\'s first and last name.');
     if (!email) fail('Enter the new owner\'s email.');
     const { data: owner, error } = await db.from('owners').insert({
+      association_id: associationId,
       portfolio_id: portfolioId,
       first_name: firstName,
       last_name: lastName,

@@ -78,7 +78,7 @@ export async function importOwners(
 
   // The association id comes from the client: it must be one this staffer can see.
   const { data: association, error: assocErr } = await db
-    .from('associations').select('id').eq('id', associationId).is('archived_at', null).maybeSingle();
+    .from('associations').select('id, portfolio_id').eq('id', associationId).is('archived_at', null).maybeSingle();
   if (assocErr || !association) {
     return { imported: 0, skipped: rows.length, errors: [assocErr ? `Could not check the association: ${assocErr.message}` : 'That association was not found or is outside your access.'] };
   }
@@ -115,7 +115,9 @@ export async function importOwners(
       continue;
     }
 
-    // Never create a second owner record for an email this company already has.
+    // Never create a second owner record for an email this association already
+    // has. A homeowner record belongs to one association, so the same person
+    // owning in another association of the company is a separate record.
     const emailKey = email.toLowerCase();
     if (seenEmails.has(emailKey)) {
       skipped++;
@@ -125,7 +127,7 @@ export async function importOwners(
     const { data: existingOwner, error: dupErr } = await db
       .from('owners')
       .select('id')
-      .eq('portfolio_id', me.portfolio?.id)
+      .eq('association_id', associationId)
       .ilike('email', escapeLike(email))
       .is('archived_at', null)
       .limit(1)
@@ -137,7 +139,7 @@ export async function importOwners(
     }
     if (existingOwner) {
       skipped++;
-      errors.push(`Row ${line} (${unitNumber} / ${email}): duplicate — a homeowner with this email already exists. Link the unit from that owner's page.`);
+      errors.push(`Row ${line} (${unitNumber} / ${email}): duplicate — a homeowner of this association with this email already exists. Link the unit from that owner's page.`);
       continue;
     }
 
@@ -174,7 +176,10 @@ export async function importOwners(
       const { data: owner, error: ownerErr } = await db
         .from('owners')
         .insert({
-          portfolio_id: me.portfolio?.id,
+          // The record belongs to this association; the database derives
+          // portfolio_id from it as well.
+          association_id: associationId,
+          portfolio_id: association.portfolio_id,
           first_name: firstName,
           last_name: lastName,
           full_name: fullName,

@@ -33,6 +33,14 @@ Back to [[Home]]. Updated 2026-10-08 (after #258).
   (PL/pgSQL) verified; claim_import_lock run by Mirsad (above).
 - #259 merged (bac812b); #260 merged: work-order status "Assigned by
   AppFolio" is shown and stored as "Assigned". No open PR.
+- In progress (branch, PR next): homeowners belong to one association
+  (migration 20261009010000: owners.association_id NOT NULL, same-association
+  trigger on occupancies, non-unique auth_user_id index) + admin purge
+  functions (20261009005000: delete_association_completely,
+  delete_unlinked_owners — Mirsad runs them). Apply order after merge:
+  005000, then Mirsad runs delete_unlinked_owners for the 14 orphans, then
+  010000. Phase 2: multi-property owner portal, company-wide owner pickers,
+  per-association vendors, chart of accounts company-admin only.
 - Randolph Station created by Mirsad (2026-10-09) for the first real import;
   it is the only association. Granville Courts, 7241 N. Ridge and the Pine
   Tree sample were deleted by Mirsad in the SQL editor (one DO block: user

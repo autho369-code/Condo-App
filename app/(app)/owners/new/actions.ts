@@ -73,7 +73,10 @@ export async function createOwnerWithDetails(formData: FormData) {
 
   // 1) Owner record. Portal access stays inactive until the owner follows the
   // verified-email invitation and chooses their own password.
+  // A homeowner record belongs to exactly one association (the unit's);
+  // portfolio_id is also derived from it by a database trigger.
   const { data: owner, error: ownerErr } = await db.from('owners').insert({
+    association_id: assignment.associationId,
     portfolio_id: assignment.portfolioId,
     first_name: firstName,
     last_name: lastName,
