@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (vendor-login PR open; migration 20261009040000 not yet applied).
+Back to [[Home]]. Updated 2026-10-09 (after #265 merged; no open PR).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -51,15 +51,13 @@ Back to [[Home]]. Updated 2026-10-09 (vendor-login PR open; migration 2026100904
   a SET NULL link of another association stops the call; purge_type_matches:
   no id-only matching). Definitions already live (Mirsad pasted them); no
   open PR.
-- In PR #265: one vendor login across a vendor's associations (migration
-  20261009040000: vendor_portal_logins, current_vendor_ids(), 28 vendor
-  policies rewritten with ALTER POLICY; staff invite per record; staff can
-  turn off one record's portal access, which unbinds it: auth_user_id
-  cleared, an added link revoked via revoked_at, never deleted). Dry run as the vendor role (rolled
-  back): 28 policies rewritten, 23 vendor tables 62 ms -> 44 ms warm, the
-  live vendor still resolves to its one record. Main stays compatible with the
-  migration, so Claude applies it once Codex is clean, reads it back, then
-  Mirsad merges.
+- #265 merged (2834717): one vendor login across a vendor's associations.
+  Migration 20261009040000 applied by Claude before merge and read back: 28
+  vendor policies use current_vendor_ids() (0 single-record left);
+  vendor_portal_logins RLS on, select-only; trigger functions not executable
+  by authenticated; current_vendor_id() has no email fallback; turn-off
+  trigger enabled. As the live vendor (rolled back): 1 record, 23 vendor
+  tables 49 ms warm (62 ms before). No open PR.
 - #264 merged: bills CSV upload matches the vendor inside the row's
   association (migration 20261009030000 run by Mirsad, read back: body
   matches the file apart from 3 blank lines the editor dropped; grants
@@ -175,8 +173,8 @@ Back to [[Home]]. Updated 2026-10-09 (vendor-login PR open; migration 2026100904
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
--1. In PR #265: one vendor login across associations. Next: the multi-property
-   owner portal, using the same pattern (see [[Decisions]]).
+-1. Next: the multi-property owner portal (one sign-in, all of a person's
+   owner records), using the vendor-login pattern from #265 (see [[Decisions]]).
 0. AppFolio importer follow-ups: credit balances (owner prepayments), and
    run the real import for one association end to end after merge. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
