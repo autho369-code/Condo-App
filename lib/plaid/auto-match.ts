@@ -83,13 +83,19 @@ export async function autoMatchTransaction(
     }
   }
 
-  // Step 2: Try historical match (same transaction name matched before)
-  const { data: historical } = await supabase
+  // Step 2: Try historical match (same transaction name matched before), on
+  // bank accounts of the same association (or company-level accounts), so one
+  // association's coding is never reused for another's.
+  let historicalQuery = supabase
     .from('bank_transactions')
-    .select('gl_account_id')
+    .select('gl_account_id, bank_accounts!inner(association_id)')
     .eq('portfolio_id', portfolioId)
     .eq('name', transactionName)
-    .not('gl_account_id', 'is', null)
+    .not('gl_account_id', 'is', null);
+  historicalQuery = associationId
+    ? historicalQuery.eq('bank_accounts.association_id', associationId)
+    : historicalQuery.is('bank_accounts.association_id', null);
+  const { data: historical } = await historicalQuery
     .order('created_at', { ascending: false })
     .limit(1);
 

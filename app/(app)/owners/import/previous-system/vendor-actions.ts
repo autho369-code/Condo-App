@@ -146,7 +146,10 @@ export async function importAppfolioVendors(associationId: string, vendors: Appf
           const key = String(g.number);
           byNumber.set(key, [...(byNumber.get(key) ?? []), g]);
         }
-        for (const [number, list] of byNumber) {
+        for (const [number, all] of byNumber) {
+          // The vendors belong to this association: only company-wide accounts and
+          // this association's own accounts qualify as their default.
+          const list = all.filter((g) => !g.association_id || g.association_id === associationId);
           const companyWide = list.filter((g) => !g.association_id);
           const pick = companyWide.length === 1 ? companyWide[0] : list.length === 1 ? list[0] : null;
           glByNumber.set(number, pick?.id ?? null);
