@@ -49,9 +49,9 @@ Cleanup needing Mirsad's approval:
       falls back to it. Dropping it would break online payments. Do not do this.
 
 Sample-data housekeeping (not code):
-- [ ] 5 sample bank accounts show "not reconciled in over 60 days" on the
-      month-end close page — reconcile them or ignore until real data replaces
-      the Granville sample.
+- [x] 5 sample bank accounts show "not reconciled in over 60 days" on the
+      month-end close page — gone with the Granville sample (deleted by Mirsad
+      2026-10-09).
 
 ## 🗂 Future work (recorded 2026-10-04)
 Everything left after the AppFolio left-navigation parity pass (#138–#182).
@@ -119,8 +119,9 @@ Mostly on Mirsad / external; not code.
       and the company Billing page. Today it says "contact us."
 - [ ] **Run a pilot** — onboard one real management company; run a full month of
       real dues, work orders, and a board cycle. Use `docs/ONBOARDING_CHECKLIST.md`.
-- [ ] **Replace seed data** — swap the Granville sample for the first client's real
-      data (import path is built + verified: `/owners/import`).
+- [x] **Replace seed data** — the Granville sample was replaced with Randolph
+      Station, Mirsad's first real association (2026-10-09). Granville Courts,
+      7241 N. Ridge and Pine Tree were deleted. Import path: `/owners/import`.
 - [x] **Write the operational manual for company admins and managers** (requested
       by Mirsad 2026-07-06; DELIVERED 2026-07-06: `docs/manuals/` —
       Manager Runbook + Company Admin Guide, .docx + .pdf).
