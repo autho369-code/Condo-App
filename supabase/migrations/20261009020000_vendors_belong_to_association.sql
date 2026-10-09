@@ -1193,6 +1193,13 @@ begin
          where lower(e.email) = lower(u.email)
        )
        and not exists (select 1 from public.vendors linked where linked.auth_user_id = u.id)
+       -- A pending vendor invitation links its exact record when accepted
+       -- (link_vendor_on_invitation_accept), as in auto_link_portal_user.
+       and not exists (
+         select 1 from public.user_invitations i
+         where i.portfolio_id = p.portfolio_id and i.hoa_role::text = 'vendor' and i.status::text = 'pending'
+           and lower(btrim(i.email)) = lower(btrim(u.email))
+       )
      order by u.id, v.created_at, v.id
   ), upd as (
     update public.vendors v
