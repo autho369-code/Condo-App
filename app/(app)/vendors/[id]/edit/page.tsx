@@ -52,17 +52,20 @@ export default async function EditVendorPage({
   if (!portfolioId) notFound();
   const db = (await createClient()) as any;
 
-  const [{ data: v }, { data: glAccounts }] = await Promise.all([
+  const [{ data: v }, { data: allGlAccounts }] = await Promise.all([
     db.from('vendors').select('*, associations(name)').eq('id', id).eq('portfolio_id', portfolioId).is('archived_at', null).maybeSingle(),
     db
       .from('gl_accounts')
-      .select('id, number, name')
+      .select('id, number, name, association_id')
       .eq('portfolio_id', portfolioId)
       .eq('active', true)
       .in('account_type', ['expense', 'cost_of_goods_sold', 'other_expense'])
       .order('number'),
   ]);
   if (!v) notFound();
+  // Default account: company-wide or one of the vendor's association (the
+  // management company belongs to no association: company-wide only).
+  const glAccounts = (allGlAccounts ?? []).filter((g: any) => !g.association_id || g.association_id === v.association_id);
   // Internal notes live in staff-only vendor_private (the vendor reads its own row).
   await mergePrivateFieldsOne(db, 'vendor_private', 'vendor_id', ['notes'], v);
 

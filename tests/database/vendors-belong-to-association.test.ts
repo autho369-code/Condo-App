@@ -228,6 +228,8 @@ describe('vendors belong to exactly one association', () => {
     expect(match).toContain('exact && exact.length === 1 ? exact[0] : null');
     expect(read('app/api/plaid/transactions/sync/route.ts')).toContain('bankAssociationId');
     expect(match).toContain("historicalQuery.eq('bank_accounts.association_id', associationId)");
+    expect(read('app/(app)/vendors/actions.ts')).toContain('gl.association_id && gl.association_id !== before.association_id');
+    expect(read('app/(app)/vendors/[id]/edit/page.tsx')).toContain('!g.association_id || g.association_id === v.association_id');
     expect(read('app/(app)/owners/import/previous-system/vendor-actions.ts'))
       .toContain('all.filter((g) => !g.association_id || g.association_id === associationId)');
   });

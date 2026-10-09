@@ -129,8 +129,13 @@ export async function updateVendorRecord(formData: FormData) {
 
     const glId = text(formData, 'default_gl_account_id')
     if (glId) {
-      const { data: gl } = await supabase.from('gl_accounts').select('id').eq('id', glId).eq('portfolio_id', portfolioId).maybeSingle()
+      const { data: gl } = await supabase.from('gl_accounts').select('id, association_id').eq('id', glId).eq('portfolio_id', portfolioId).maybeSingle()
       if (!gl) throw new Error('Default GL account not found.')
+      // A vendor belongs to one association (the management company to none):
+      // its default account is company-wide or one of that association's own.
+      if (gl.association_id && gl.association_id !== before.association_id) {
+        throw new Error("Choose a company-wide account or one of this vendor's association.")
+      }
     }
 
     const tin = text(formData, 'taxpayer_id')
