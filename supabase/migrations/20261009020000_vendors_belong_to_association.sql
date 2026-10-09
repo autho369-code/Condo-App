@@ -281,13 +281,23 @@ set search_path to 'pg_catalog', 'public'
 as $function$
 declare
   v_gl_association uuid;
+  v_gl_portfolio uuid;
+  v_vendor_portfolio uuid;
 begin
   if new.default_gl_account_id is null then
     return new;
   end if;
-  select g.association_id into v_gl_association
+  select g.association_id, g.portfolio_id into v_gl_association, v_gl_portfolio
     from public.gl_accounts g where g.id = new.default_gl_account_id;
-  if v_gl_association is not null and v_gl_association is distinct from new.association_id then
+  if not found then
+    return new;  -- a missing account is left to the foreign key
+  end if;
+  -- The vendor's company comes from its association (this trigger can run
+  -- before trg_vendors_set_portfolio_from_association derives it).
+  v_vendor_portfolio := coalesce((select a.portfolio_id from public.associations a where a.id = new.association_id),
+                                 new.portfolio_id);
+  if v_gl_portfolio is distinct from v_vendor_portfolio
+     or (v_gl_association is not null and v_gl_association is distinct from new.association_id) then
     raise exception 'A vendor''s default account must be company-wide or one of its association''s accounts.'
       using errcode = '23514';
   end if;
@@ -304,7 +314,8 @@ create or replace trigger trg_vendors_default_gl_in_association
 do $$
 begin
   if exists (select 1 from public.vendors v join public.gl_accounts g on g.id = v.default_gl_account_id
-              where g.association_id is not null and g.association_id is distinct from v.association_id) then
+              where g.portfolio_id is distinct from v.portfolio_id
+                 or (g.association_id is not null and g.association_id is distinct from v.association_id)) then
     raise exception 'Some vendors have another association''s account as their default. Correct them, then run this migration again.'
       using errcode = '23514';
   end if;
