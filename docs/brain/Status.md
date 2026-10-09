@@ -24,13 +24,17 @@ Back to [[Home]]. Updated 2026-10-08 (after #258).
   set, no anon execute, 3 policies + RLS on import_locks. AppFolio imports
   can run.
 - #257 merged (6d10b58, squash of c78db2d): AppFolio importer on one page
-  (`/owners/import/appfolio`), every parser checked on Mirsad's real exports
+  (`/owners/import/previous-system`), every parser checked on Mirsad's real exports
   (not kept in the repo): units, homeowners + ownership % + dues (dues on the
   primary occupancy), chart of accounts + trial balance tie-out, vendors,
   open balances, work orders. Migration 20261008070000 applied and verified
   (Import Variances per unit + date). 20261008080000 applied in parts:
   import_locks table + RLS + 3 policies + grants + can_hold_import_lock
   (PL/pgSQL) verified; claim_import_lock run by Mirsad (above).
+- Open PR: importer renamed "Import from previous system" at
+  `/owners/import/previous-system` (old URL redirects), sidebar entry under
+  Associations, no "AppFolio" in any product text or stored record (charge
+  memo prefix "Prior system:", work-order key "Prior system WO #n").
 - **Sample association for import testing** (created 2026-10-09 by Claude at
   Mirsad's request, company aaaaaaaa-…): "Pine Tree Court Condominium
   Association (Sample)", id 582e1b03-c04a-4c54-bcd6-745d8c84d23f, 1 building,

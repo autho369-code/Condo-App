@@ -317,8 +317,8 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
             if (primary) usedPrimary.add(primary);
             else if (emails.length) sharedOnly++;
             const notes = [
-              name.raw !== name.display ? `AppFolio name: ${name.raw}` : null,
-              name.notes.length ? `AppFolio note: ${name.notes.join(', ')}` : null,
+              name.raw !== name.display ? `Name in previous system: ${name.raw}` : null,
+              name.notes.length ? `Note from previous system: ${name.notes.join(', ')}` : null,
             ].filter(Boolean).join('\n');
             owner = {
               key: ownerKey,
@@ -441,7 +441,7 @@ export async function importAppfolioHomeowners(associationId: string, rows: Home
       if (created) notes.push(`${created} new homeowner record${created === 1 ? '' : 's'} created.`);
       if (reused) notes.push(`${reused} link${reused === 1 ? '' : 's'} went to homeowners the company already had (same name and email).`);
       if (sharedOnly) notes.push(`${sharedOnly} homeowner${sharedOnly === 1 ? '' : 's'} only had an email another homeowner already uses; it is kept on their record, but their preferred contact is mail and they need their own email to sign in to the portal.`);
-      if (noEmail) notes.push(`${noEmail} homeowner${noEmail === 1 ? ' has' : 's have'} no email in AppFolio; their preferred contact is set to mail.`);
+      if (noEmail) notes.push(`${noEmail} homeowner${noEmail === 1 ? ' has' : 's have'} no email in the file; their preferred contact is set to mail.`);
       if (duesScheduled) notes.push(`${duesScheduled} unit${duesScheduled === 1 ? '' : 's'} had no dues schedule and now have one.`);
       if (pctFilled) notes.push(`${pctFilled} unit${pctFilled === 1 ? '' : 's'} had no ownership % and now have the one from the export.`);
       errors.unshift(...notes);

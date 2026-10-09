@@ -14,7 +14,7 @@
 // Portier369's own, assigned by trg_work_order_assign_number from a
 // per-company counter, so an AppFolio number there could collide with a
 // future Portier369 one). The AppFolio number goes at the start of the
-// description ("AppFolio WO #1234-1"), and a work order whose number is
+// description ("Prior system WO #1234-1"), and a work order whose number is
 // already in the association is skipped, so re-importing the same file is
 // safe. The duplicate check and the inserts run under the association's
 // import lock (lib/imports/import-lock), so two runs at once cannot both pass
@@ -40,8 +40,8 @@ export type WorkOrderImportSummary = { imported: number; skipped: number; errors
 
 const MAX_WORK_ORDERS = 5000;
 const BATCH = 200;
-const MARKER = 'AppFolio WO #';
-const MARKER_RE = /^AppFolio WO #(\S+)/;
+const MARKER = 'Prior system WO #';
+const MARKER_RE = /^Prior system WO #(\S+)/;
 const FINISHED: WorkOrderStatus[] = ['done', 'completed', 'billed', 'closed'];
 
 function clean(v: unknown, max = 500): string {
@@ -67,22 +67,22 @@ const unitKey = (v: unknown) => nameKey(v).replace(/^(unit|apt|apartment|suite|s
 
 function titleFor(w: AppfolioWorkOrder, number: string): string {
   const firstLine = clean(w.job_description, 2000).split(/\r?\n/)[0].trim();
-  const base = clean(w.issue, 200) || firstLine || `AppFolio work order ${number}`;
+  const base = clean(w.issue, 200) || firstLine || `Previous system work order ${number}`;
   const t = base.length > 200 ? `${base.slice(0, 199).trimEnd()}…` : base;
-  return t.length >= 2 ? t : `AppFolio work order ${number}`.slice(0, 200);
+  return t.length >= 2 ? t : `Previous system work order ${number}`.slice(0, 200);
 }
 
 /** Staff-only notes: what AppFolio had that work_orders has no column for. */
 function internalNotesFor(w: AppfolioWorkOrder, unmatchedVendor: string | null, unmatchedUnit: string | null): string {
-  const lines = ['Imported from AppFolio.'];
+  const lines = ['Imported from previous system.'];
   const add = (label: string, v: string | null) => { if (v) lines.push(`${label}: ${v}`); };
-  add('AppFolio status', orNull(w.appfolio_status, 60));
-  add('AppFolio priority', orNull(w.appfolio_priority, 60));
+  add('Status in previous system', orNull(w.appfolio_status, 60));
+  add('Priority in previous system', orNull(w.appfolio_priority, 60));
   add('Type', orNull(w.type, 60));
-  add('Vendor in AppFolio (no matching vendor here)', unmatchedVendor);
-  add('Unit in AppFolio (no matching unit here)', unmatchedUnit);
+  add('Vendor in previous system (no matching vendor here)', unmatchedVendor);
+  add('Unit in previous system (no matching unit here)', unmatchedUnit);
   add('Primary resident', orNull(w.primary_resident, 200));
-  add('Created in AppFolio', isoDate(w.created_on));
+  add('Created in previous system', isoDate(w.created_on));
   add('Estimate requested', isoDate(w.estimate_requested_on));
   add('Estimated', isoDate(w.estimated_on));
   const est = money(w.estimate_amount);
@@ -169,7 +169,7 @@ async function insertWorkOrders(
 ): Promise<WorkOrderImportSummary> {
   // Archived ones count too: a work order someone removed is not brought back.
   const existingRes = await fetchAllRows<any>(() => db.from('work_orders').select('id, description')
-    .eq('association_id', associationId).ilike('description', 'AppFolio WO #%').order('id'));
+    .eq('association_id', associationId).ilike('description', `${MARKER}%`).order('id'));
   if (existingRes.error) return { imported: 0, skipped: workOrders.length, errors: [`Could not load the association's work orders: ${existingRes.error}`] };
   // An incomplete list of earlier imports would let duplicates through: refuse instead.
   if (existingRes.truncated) {

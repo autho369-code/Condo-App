@@ -222,7 +222,7 @@ function withLeadColumn(text: string): { csv?: string; error?: string } {
   const find = headerFinder(lines[headerIndex]);
   const missing = REQUIRED.filter((h) => !find(h));
   if (missing.length) {
-    return { error: `This doesn't look like AppFolio's Vendor Directory export (missing ${missing.join(', ')}).` };
+    return { error: `This doesn't look like a Vendor Directory export (missing ${missing.join(', ')}).` };
   }
   const nameIdx = lines[headerIndex].indexOf(find('Name') ?? '');
   const companyIdx = lines[headerIndex].indexOf(find('Company Name', 'Company') ?? '');

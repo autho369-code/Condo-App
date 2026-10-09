@@ -179,7 +179,7 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
         const tags = str(v?.tags, 500);
         const notes = [
           contact && `Contact: ${contact}`,
-          tags && `AppFolio tags: ${tags}`,
+          tags && `Tags from previous system: ${tags}`,
           sharedEmails.length ? `Also uses ${sharedEmails.join(', ')} (shared with another vendor)` : null,
         ].filter(Boolean).join('\n') || null;
 

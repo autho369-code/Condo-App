@@ -41,7 +41,7 @@ export type ReceivableImportItem = Pick<AppfolioReceivableItem, 'row' | 'unit_nu
 
 const MAX_ITEMS = 5000;
 /** Prefix of every description this import writes; imported_balances.memo keeps it. */
-const MEMO_PREFIX = 'AppFolio:';
+const MEMO_PREFIX = 'Prior system:';
 const CONCURRENCY = 6;
 
 const clean = (v: unknown): string => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v).trim());
@@ -159,7 +159,7 @@ export async function importAppfolioReceivables(
           .like('memo', `${MEMO_PREFIX}%`)
           .order('created_at', { ascending: true })
           .range(from, from + 999);
-        if (existingErr) return fail(`Could not check for an earlier AppFolio import: ${existingErr.message}`);
+        if (existingErr) return fail(`Could not check for an earlier import: ${existingErr.message}`);
         for (const r of rows ?? []) {
           const key = itemKey(r.unit_id, r.memo);
           already.set(key, [...(already.get(key) ?? []), cents(Number(r.imported_balance))]);
@@ -173,7 +173,7 @@ export async function importAppfolioReceivables(
           skipped: items.length,
           totalImported: 0,
           alreadyImported: existingCount,
-          errors: [`This association already has ${existingCount} AppFolio opening balance${existingCount === 1 ? '' : 's'}. Nothing was imported. Import anyway to add only the items not posted before.`],
+          errors: [`This association already has ${existingCount} imported opening balance${existingCount === 1 ? '' : 's'}. Nothing was imported. Import anyway to add only the items not posted before.`],
         };
       }
 
@@ -240,7 +240,7 @@ export async function importAppfolioReceivables(
         if (amounts && amounts.length) {
           const before = amounts.shift()! / 100;
           skipped++;
-          changed.push(`Line ${c.line} (${c.unitNumber}): ${c.description.slice(MEMO_PREFIX.length).trim()} was imported earlier as ${usd(before)} and is ${usd(c.amount)} in this file. Not posted again; compare the unit's current balance with AppFolio (Import Variances report) before changing it.`);
+          changed.push(`Line ${c.line} (${c.unitNumber}): ${c.description.slice(MEMO_PREFIX.length).trim()} was imported earlier as ${usd(before)} and is ${usd(c.amount)} in this file. Not posted again; compare the unit's current balance with your previous system (Import Variances report) before changing it.`);
         } else work.push(c);
       }
 
@@ -261,7 +261,7 @@ export async function importAppfolioReceivables(
       }
       for (const [unitId, g] of gone) {
         const unitNumber = unitNumberById.get(unitId);
-        changed.push(`${unitNumber ? `Unit "${unitNumber}"` : 'An archived unit'}: ${g.count} item${g.count === 1 ? '' : 's'} imported earlier (${usd(g.amount)}) ${g.count === 1 ? 'is' : 'are'} no longer in this file (paid or removed in AppFolio). Compare the unit's current balance with AppFolio (Import Variances report) before changing it.`);
+        changed.push(`${unitNumber ? `Unit "${unitNumber}"` : 'An archived unit'}: ${g.count} item${g.count === 1 ? '' : 's'} imported earlier (${usd(g.amount)}) ${g.count === 1 ? 'is' : 'are'} no longer in this file (paid or removed in your previous system). Compare the unit's current balance with your previous system (Import Variances report) before changing it.`);
       }
       if (goneUnchecked) {
         changed.push(`${goneUnchecked} item${goneUnchecked === 1 ? '' : 's'} imported earlier ${goneUnchecked === 1 ? 'is' : 'are'} not in this file, but the file had rows that could not be read or has no Total line it ties to, so ${goneUnchecked === 1 ? 'it was' : 'they were'} not checked.`);

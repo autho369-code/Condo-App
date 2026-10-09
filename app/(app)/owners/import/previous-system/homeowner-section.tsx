@@ -119,7 +119,7 @@ function GroupCard({ group, associations, importHomeowners }: { group: AppfolioH
                 <TD className="font-medium text-gray-900">{h.unit_number}</TD>
                 <TD>
                   <div className="text-gray-900">{h.name.display}</div>
-                  {h.name.raw !== h.name.display && <div className="text-xs text-gray-500">AppFolio: {h.name.raw}</div>}
+                  {h.name.raw !== h.name.display && <div className="text-xs text-gray-500">In the file: {h.name.raw}</div>}
                   <div className="mt-1 flex flex-wrap gap-1">
                     {h.name.is_company && <Badge tone="info" className="normal-case">Company or trust</Badge>}
                     {h.name.notes.map((n) => <Badge key={n} tone="inactive" className="normal-case">{n}</Badge>)}
@@ -188,7 +188,7 @@ export function HomeownerImportSection({ associations, importHomeowners }: Props
       if (parsed.error || !parsed.groups) { setError(parsed.error ?? 'Could not read the file.'); return; }
       setGroups(parsed.groups);
     } catch {
-      setError('Could not read the file. Export it from AppFolio again as CSV and retry.');
+      setError('Could not read the file. Export it from your previous system again as CSV and retry.');
     }
   }
 
@@ -197,8 +197,8 @@ export function HomeownerImportSection({ associations, importHomeowners }: Props
       <Surface className="space-y-3">
         <SectionTitle
           className="mb-0"
-          title="Homeowners — AppFolio Homeowner Directory"
-          description="In AppFolio open Reports → Homeowner Directory, then Actions → Export as CSV. Import units first: homeowners are linked to existing units by unit number. Importing again skips homeowners already on a unit."
+          title="Homeowners — Homeowner Directory"
+          description="In your previous system, open Reports → Homeowner Directory, then Actions → Export as CSV. Import units first: homeowners are linked to existing units by unit number. Importing again skips homeowners already on a unit."
         />
         <div>
           <Label htmlFor={fileId}>Homeowner Directory CSV</Label>

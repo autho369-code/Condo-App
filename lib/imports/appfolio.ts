@@ -141,7 +141,7 @@ export function parseAppfolioUnitDirectory(text: string): {
   if (!report) return { error };
   const missing = UNIT_DIRECTORY_HEADERS.filter((h) => !report.headers.includes(h));
   if (missing.length) {
-    return { error: `This doesn't look like AppFolio's Unit Directory export (missing ${missing.join(', ')}).` };
+    return { error: `This doesn't look like a Unit Directory export (missing ${missing.join(', ')}).` };
   }
   const pctHeader = ownershipHeader(report.headers);
   const toUnit = (r: Record<string, string> & { row: string }): AppfolioUnit => ({

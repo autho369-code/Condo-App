@@ -31,3 +31,7 @@ Back to [[Home]].
   row), which made pages time out (fixed in 20261008050000). A new or
   replaced helper must be `language plpgsql`; measure RLS changes as each
   role inside a rolled-back transaction before shipping.
+- **No competitor names in the product** (Mirsad, 2026-10-09): nothing a
+  manager, owner, board or vendor sees — page text, buttons, URLs, errors,
+  and text an import stores (charge descriptions, notes) — says "AppFolio".
+  Say "previous system". Marketing comparison pages are the only exception.

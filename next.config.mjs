@@ -49,6 +49,8 @@ const nextConfig = {
       // Keeps old bookmarks and deep links working.
       { source: '/platform', destination: '/platform-operator', permanent: true },
       { source: '/platform/:path*', destination: '/platform-operator', permanent: true },
+      // Previous-system importer moved off a competitor-named URL (2026-10-09).
+      { source: '/owners/import/appfolio', destination: '/owners/import/previous-system', permanent: true },
     ];
   },
   async rewrites() {

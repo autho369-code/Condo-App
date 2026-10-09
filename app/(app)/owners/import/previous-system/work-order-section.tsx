@@ -150,7 +150,7 @@ function GroupCard({ group, associations, importWorkOrders }: { group: AppfolioW
               </TD>
               <TD className="whitespace-nowrap">
                 <Badge status={w.status} />
-                {w.appfolio_status && <div className="mt-0.5 text-xs text-gray-500">AppFolio: {w.appfolio_status}</div>}
+                {w.appfolio_status && <div className="mt-0.5 text-xs text-gray-500">In the file: {w.appfolio_status}</div>}
               </TD>
               <TD className="whitespace-nowrap capitalize">{w.priority}</TD>
               <TD className="whitespace-nowrap">{w.unit ?? '—'}</TD>
@@ -208,7 +208,7 @@ export function WorkOrderImportSection({ associations, importWorkOrders }: Props
       if (parsed.error || !parsed.groups) { setError(parsed.error ?? 'Could not read the file.'); return; }
       setGroups(parsed.groups);
     } catch {
-      setError('Could not read the file. Export it from AppFolio again as CSV and retry.');
+      setError('Could not read the file. Export it from your previous system again as CSV and retry.');
     }
   }
 
@@ -216,12 +216,12 @@ export function WorkOrderImportSection({ associations, importWorkOrders }: Props
     <div className="space-y-5">
       <Surface className="space-y-3">
         <SectionTitle
-          title="Work orders — AppFolio Work Order report"
+          title="Work orders — Work Order report"
           description={
             <>
-              In AppFolio open Reports → Work Order, set the date range to cover all history, group rows by Property,
+              In your previous system, open Reports → Work Order, set the date range to cover all history, group rows by Property,
               then Actions → Export as CSV. Import units and vendors first so work orders can be matched to them.
-              Each work order keeps its AppFolio number at the start of its description; importing the same file
+              Each work order keeps its previous-system number at the start of its description; importing the same file
               again skips the ones already imported. Imported work orders send no emails. If your company has a
               webhook subscribed to new work orders, each imported work order is announced to it.
             </>

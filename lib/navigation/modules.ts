@@ -22,6 +22,7 @@ export const appModules: AppModule[] = [
       { label: 'New association', href: '/associations/new' },
       { label: 'Property groups', href: '/associations/groups' },
       { label: 'Import homeowners & units', href: '/owners/import' },
+      { label: 'Import from previous system', href: '/owners/import/previous-system' },
       { label: 'Units', href: '/units' },
       { label: 'Parking', href: '/parking' },
       { label: 'Amenities', href: '/amenities' },

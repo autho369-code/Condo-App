@@ -160,7 +160,7 @@ export function parseAppfolioHomeownerDirectory(text: string): { groups?: Appfol
   if (!report) return { error };
   const missing = HOMEOWNER_DIRECTORY_HEADERS.filter((h) => !report.headers.includes(h));
   if (missing.length) {
-    return { error: `This doesn't look like AppFolio's Homeowner Directory export (missing ${missing.join(', ')}).` };
+    return { error: `This doesn't look like a Homeowner Directory export (missing ${missing.join(', ')}).` };
   }
 
   const out = new Map<string, AppfolioHomeownerGroup>();
