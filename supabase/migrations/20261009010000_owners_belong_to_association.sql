@@ -20,7 +20,8 @@
 --    a unit of another association, and an occupancy's association must be
 --    its unit's. This covers every writer centrally: change_unit_homeowner,
 --    transfer_unit_ownership, linkOccupancy, owner create, CSV import, the
---    previous-system import and direct table writes.
+--    previous-system import and direct table writes. A unit or building with
+--    homeowner/resident links cannot move to another association.
 -- 4. Portal sign-in: owners(auth_user_id) stays unique (one sign-in, one
 --    record). auto_link_portal_user() and relink_all_portal_users() now link
 --    the oldest matching record instead of failing on a second one.
@@ -260,6 +261,61 @@ revoke all on function public.unit_owners_same_association() from public, anon, 
 create or replace trigger trg_unit_owners_same_association
   before insert or update of owner_id, unit_id on public.unit_owners
   for each row execute function public.unit_owners_same_association();
+
+-- A unit or building may not move to another association while it has
+-- homeowner or tenant links: they would keep pointing at the old association's
+-- homeowners. Move the people out first (or delete and re-add the unit).
+create or replace function public.units_move_keeps_association()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+declare
+  v_old uuid;
+  v_new uuid;
+begin
+  select b.association_id into v_old from public.buildings b where b.id = old.building_id;
+  select b.association_id into v_new from public.buildings b where b.id = new.building_id;
+  if v_old is distinct from v_new and (
+       exists (select 1 from public.occupancies o where o.unit_id = new.id)
+       or exists (select 1 from public.unit_owners uo where uo.unit_id = new.id)) then
+    raise exception 'This unit has homeowners or residents, so it cannot move to another association.'
+      using errcode = '23514';
+  end if;
+  return new;
+end;
+$function$;
+
+revoke all on function public.units_move_keeps_association() from public, anon, authenticated;
+
+create or replace trigger trg_units_move_keeps_association
+  before update of building_id on public.units
+  for each row when (new.building_id is distinct from old.building_id)
+  execute function public.units_move_keeps_association();
+
+create or replace function public.buildings_move_keeps_association()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+begin
+  if exists (select 1 from public.units u join public.occupancies o on o.unit_id = u.id where u.building_id = new.id)
+     or exists (select 1 from public.units u join public.unit_owners uo on uo.unit_id = u.id where u.building_id = new.id) then
+    raise exception 'This building has units with homeowners or residents, so it cannot move to another association.'
+      using errcode = '23514';
+  end if;
+  return new;
+end;
+$function$;
+
+revoke all on function public.buildings_move_keeps_association() from public, anon, authenticated;
+
+create or replace trigger trg_buildings_move_keeps_association
+  before update of association_id on public.buildings
+  for each row when (new.association_id is distinct from old.association_id)
+  execute function public.buildings_move_keeps_association();
 
 -- An association that moves to another company takes its homeowners with it.
 create or replace function public.associations_move_owner_portfolio()

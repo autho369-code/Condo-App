@@ -71,7 +71,7 @@ describe('owners belong to exactly one association', () => {
     expect(migration).toMatch(/before insert or update of owner_id, association_id, unit_id on public\.occupancies/);
     expect(migration).toContain("'This homeowner belongs to another association. Add them as a new homeowner of this association.'");
     expect(migration).toContain("errcode = '23514'");
-    for (const fn of ['owners_set_portfolio_from_association', 'occupancies_owner_same_association', 'unit_owners_same_association', 'associations_move_owner_portfolio']) {
+    for (const fn of ['owners_set_portfolio_from_association', 'occupancies_owner_same_association', 'unit_owners_same_association', 'associations_move_owner_portfolio', 'units_move_keeps_association', 'buildings_move_keeps_association']) {
       expect(migration).toContain(`revoke all on function public.${fn}() from public, anon, authenticated;`);
       const body = migration.slice(migration.indexOf(`function public.${fn}()`));
       expect(body.slice(0, 400)).toContain('language plpgsql');
@@ -86,6 +86,11 @@ describe('owners belong to exactly one association', () => {
     expect(migration).toContain('create or replace function public.relink_all_portal_users()');
     expect(migration).toMatch(/order by candidate\.created_at, candidate\.id\s+limit 1/);
     expect(migration).not.toMatch(/^\s*drop\s/im);
+  });
+
+  it('refuses moving a linked unit or building to another association', () => {
+    expect(migration).toMatch(/before update of building_id on public\.units/);
+    expect(migration).toMatch(/before update of association_id on public\.buildings/);
   });
 
   it('never deletes homeowners with a plain association delete', () => {
