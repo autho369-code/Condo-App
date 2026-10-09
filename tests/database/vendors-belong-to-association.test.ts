@@ -89,6 +89,7 @@ describe('vendors belong to exactly one association', () => {
     expect(migration).toContain('update public.vendor_financial_details f set portfolio_id = new.portfolio_id');
     expect(migration).toContain('update public.document_requests d set portfolio_id = new.portfolio_id');
     expect(migration).toContain('This association has vendors signed in to the vendor portal. It cannot move to another company.');
+    expect(migration).toContain("Company-level records use this association''s vendors. It cannot move to another company.");
     expect(migration).toContain('perform 1 from public.associations a where a.id = new.association_id for share;');
     // The management-company checks lock the association against a concurrent company move.
     expect(migration.match(/where a\.id = v_association_id\s+for share;/g)).toHaveLength(2);
@@ -148,6 +149,7 @@ describe('vendors belong to exactly one association', () => {
     const review = migration.slice(migration.indexOf('create or replace function public.review_vendor_document_request('));
     expect(review).toContain('or not public.can_view_association_row((select ven.association_id from public.vendors ven where ven.id = r.vendor_id)) then');
     expect(migration).toContain('using (vendor_id is null or exists (select 1 from public.vendors ven');
+    expect(migration).toContain('create policy mgr_vendor_assoc_scope on public.documents as restrictive for all to authenticated');
   });
 
   it('bills management fees only to the management company', () => {

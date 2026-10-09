@@ -301,6 +301,29 @@ begin
     end if;
   end loop;
 
+  -- Company-level rows (no association) using this association's vendors
+  -- stay with the old company, so they would point at a vendor of another one.
+  for r in select * from public.vendor_link_tables() loop
+    execute format(
+      'select exists (select 1 from %s x join public.vendors ven on ven.id = x.%I '
+      || 'where x.association_id is null and ven.association_id = $1)',
+      r.tbl, r.col) into v_bad using new.id;
+    if v_bad then
+      raise exception 'Company-level records use this association''s vendors. It cannot move to another company.'
+        using errcode = '23514';
+    end if;
+  end loop;
+  for r in select * from public.vendor_parent_link_tables() loop
+    execute format(
+      'select exists (select 1 from %s x join %s p on p.id = x.%I join public.vendors ven on ven.id = x.%I '
+      || 'where p.association_id is null and ven.association_id = $1)',
+      r.tbl, r.parent, r.parent_col, r.col) into v_bad using new.id;
+    if v_bad then
+      raise exception 'Company-level records use this association''s vendors. It cannot move to another company.'
+        using errcode = '23514';
+    end if;
+  end loop;
+
   -- A vendor signed in to the portal belongs to its company through its
   -- profile too (current_vendor_id() needs both to match); moving that sign-in
   -- is a separate decision, so refuse instead of cutting its access.
@@ -631,6 +654,19 @@ begin
     create policy mgr_assoc_scope on public.document_requests as restrictive for all to authenticated
       using (vendor_id is null or exists (select 1 from public.vendors ven
                       where ven.id = document_requests.vendor_id and public.can_view_association_row(ven.association_id)));
+  end if;
+end $$;
+
+-- Files attached to a vendor follow the vendor's association too (the
+-- documents policy from 20261002230112 only scopes association files).
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'documents' and policyname = 'mgr_vendor_assoc_scope') then
+    create policy mgr_vendor_assoc_scope on public.documents as restrictive for all to authenticated
+      using (entity_type is distinct from 'vendor' or exists (select 1 from public.vendors ven
+                      where ven.id = documents.entity_id and public.can_view_association_row(ven.association_id)))
+      with check (entity_type is distinct from 'vendor' or exists (select 1 from public.vendors ven
+                      where ven.id = documents.entity_id and public.can_view_association_row(ven.association_id)));
   end if;
 end $$;
 
