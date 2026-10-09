@@ -1307,6 +1307,90 @@ begin
   end if;
 end $$;
 
+-- The invite_homeowner RPC (baseline; staff of the company) names the exact
+-- record and its association too, and always invites the record's own email
+-- (another address could never accept it). Not callable signed out.
+create or replace function public.invite_homeowner(p_portfolio_id uuid, p_owner_id uuid, p_email text default null::text,
+                                                   p_message text default null::text)
+returns jsonb
+language plpgsql
+set search_path to 'pg_catalog', 'public'
+as $function$
+declare
+  v_owner public.owners;
+  new_invitation public.user_invitations;
+begin
+  if not public.can_access_portfolio(p_portfolio_id) then
+    raise exception 'invite_homeowner: must be staff of portfolio';
+  end if;
+
+  select * into v_owner from public.owners
+   where id = p_owner_id and portfolio_id = p_portfolio_id and archived_at is null;
+  if not found then
+    raise exception 'invite_homeowner: owner % not found in this company', p_owner_id;
+  end if;
+  if nullif(btrim(v_owner.email), '') is null then
+    raise exception 'invite_homeowner: no email on owner %', p_owner_id;
+  end if;
+  if p_email is not null and lower(btrim(p_email)) <> lower(btrim(v_owner.email)) then
+    raise exception 'invite_homeowner: the invitation goes to the owner''s email on file';
+  end if;
+
+  insert into public.user_invitations (
+    portfolio_id, association_id, email, hoa_role, invited_by, message, expires_at, metadata
+  ) values (
+    p_portfolio_id, v_owner.association_id, lower(btrim(v_owner.email)), 'owner', auth.uid(),
+    coalesce(p_message, 'You have been invited to the homeowner portal.'),
+    now() + interval '30 days',
+    jsonb_build_object('owner_id', v_owner.id)
+  ) returning * into new_invitation;
+
+  return jsonb_build_object(
+    'invitation_id', new_invitation.id,
+    'token', new_invitation.token,
+    'email', new_invitation.email,
+    'expires_at', new_invitation.expires_at
+  );
+end;
+$function$;
+
+revoke all on function public.invite_homeowner(uuid, uuid, text, text) from public, anon;
+grant execute on function public.invite_homeowner(uuid, uuid, text, text) to authenticated, service_role;
+
+-- A record whose email staff change no longer belongs to the login that was
+-- added to it through an invitation for the old address: the link is revoked
+-- (the new contact accepts a new invitation).
+create or replace function public.revoke_owner_links_on_email_change()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+begin
+  update public.owner_portal_logins l
+     set revoked_at = now()
+   where l.owner_id = new.id
+     and l.revoked_at is null
+     and not exists (select 1 from auth.users u
+                      where u.id = l.auth_user_id
+                        and lower(btrim(u.email)) = lower(btrim(new.email)));
+  return new;
+end
+$function$;
+
+revoke all on function public.revoke_owner_links_on_email_change() from public, anon, authenticated;
+
+do $$
+begin
+  if not exists (select 1 from pg_trigger where tgname = 'trg_owners_revoke_links_on_email'
+                  and tgrelid = 'public.owners'::regclass) then
+    create trigger trg_owners_revoke_links_on_email
+      after update of email on public.owners
+      for each row when (lower(btrim(coalesce(old.email, ''))) is distinct from lower(btrim(coalesce(new.email, ''))))
+      execute function public.revoke_owner_links_on_email_change();
+  end if;
+end $$;
+
 -- 6) Sign-up auto-link and bulk relink ----------------------------------------
 
 -- The sign-up linking body as a plain function (a trigger function cannot be

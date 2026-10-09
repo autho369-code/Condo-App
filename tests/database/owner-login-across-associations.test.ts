@@ -108,6 +108,24 @@ describe('owner login across associations: database', () => {
     expect(migration).toContain('else public.owner_record_matches(survey_responses.submitted_by_owner_id, s.association_id, null)');
   });
 
+  it('revokes an added link when staff change the record\'s email', () => {
+    expect(fn('revoke_owner_links_on_email_change')).toContain('and lower(btrim(u.email)) = lower(btrim(new.email)));');
+    expect(migration).toContain('after update of email on public.owners');
+  });
+
+  it('makes invite_homeowner name its record and association, signed-in staff only', () => {
+    const rpc = fn('invite_homeowner');
+    expect(rpc).toContain("jsonb_build_object('owner_id', v_owner.id)");
+    expect(rpc).toContain('p_portfolio_id, v_owner.association_id, lower(btrim(v_owner.email))');
+    expect(migration).toContain('revoke all on function public.invite_homeowner(uuid, uuid, text, text) from public, anon;');
+  });
+
+  it('keeps the scope when a platform operator regenerates an invitation', () => {
+    const regen = read('app/platform-operator/companies/actions.ts');
+    expect(regen).toContain('association_id: old.association_id,');
+    expect(regen).toContain('unit_id: old.unit_id,');
+  });
+
   it('keeps a board member on board when they accept an owner invitation', () => {
     expect(fn('profiles_keep_board_role')).toContain("new.hoa_role := 'board';");
     expect(migration).toContain("for each row when (old.hoa_role::text = 'board' and new.hoa_role::text = 'owner')");

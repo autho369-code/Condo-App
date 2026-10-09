@@ -309,7 +309,7 @@ export async function regenerateInvitation(formData: FormData) {
   const svc = createServiceClient() as any;
   const { data: old } = await svc
     .from('user_invitations')
-    .select('email, full_name, hoa_role, role_id, portfolio_id, message, metadata, status')
+    .select('email, full_name, hoa_role, role_id, mvp_role, portfolio_id, association_id, association_ids, unit_id, message, metadata, status')
     .eq('id', invitationId)
     .maybeSingle();
   if (!old) fail(returnTo, 'Invitation not found.');
@@ -327,7 +327,13 @@ export async function regenerateInvitation(formData: FormData) {
       full_name: old.full_name,
       hoa_role: old.hoa_role,
       role_id: old.role_id,
+      mvp_role: old.mvp_role,
       portfolio_id: old.portfolio_id,
+      // The scope the old link carried: an owner invitation links its record
+      // only within its association; a resident one needs its unit.
+      association_id: old.association_id,
+      association_ids: old.association_ids,
+      unit_id: old.unit_id,
       message: old.message,
       invited_by: me.auth_user_id,
       expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
