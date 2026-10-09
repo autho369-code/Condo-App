@@ -644,6 +644,11 @@ begin
      or not public.can_view_association_row((select ven.association_id from public.vendors ven where ven.id = r.vendor_id)) then
     raise exception 'Request not found' using errcode = 'P0002';
   end if;
+  -- Reviewing changes the vendor (expiration dates): the management company
+  -- is for company-wide staff, as with any other change to it.
+  if not public.can_write_vendor_row((select ven.association_id from public.vendors ven where ven.id = r.vendor_id)) then
+    raise exception 'Only company-wide staff can review the management company''s documents' using errcode = '42501';
+  end if;
   if r.status::text <> 'submitted' then
     raise exception 'Only submitted documents can be reviewed' using errcode = '55000';
   end if;
@@ -715,6 +720,56 @@ begin
       execute format('create policy mgr_company_vendor_delete on public.%I as restrictive for delete to authenticated using (%s)', t, v_expr);
     end if;
   end loop;
+end $$;
+
+-- The management company's document requests and files: association-scoped
+-- managers may see them (it serves their associations) but not change them.
+do $$
+declare
+  t text;
+  v_expr text;
+begin
+  foreach t in array array['document_requests', 'documents'] loop
+    v_expr := case when t = 'document_requests'
+      then 'vendor_id is null or exists (select 1 from public.vendors ven where ven.id = document_requests.vendor_id and public.can_write_vendor_row(ven.association_id))'
+      else 'entity_type is distinct from ''vendor'' or exists (select 1 from public.vendors ven where ven.id = documents.entity_id and public.can_write_vendor_row(ven.association_id))' end;
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'mgr_company_vendor_insert') then
+      execute format('create policy mgr_company_vendor_insert on public.%I as restrictive for insert to authenticated with check (%s)', t, v_expr);
+    end if;
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'mgr_company_vendor_update') then
+      execute format('create policy mgr_company_vendor_update on public.%I as restrictive for update to authenticated using (%s) with check (%s)', t, v_expr, v_expr);
+    end if;
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'mgr_company_vendor_delete') then
+      execute format('create policy mgr_company_vendor_delete on public.%I as restrictive for delete to authenticated using (%s)', t, v_expr);
+    end if;
+  end loop;
+end $$;
+
+-- Vendor portal invitations written directly (not through the app's invite
+-- action): an association-scoped manager may only invite a vendor record of
+-- one of their associations, named in metadata.vendor_id, so acceptance can
+-- never link the management company or another association's vendor.
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'user_invitations' and policyname = 'vendor_invite_scope') then
+    create policy vendor_invite_scope on public.user_invitations as restrictive for insert to authenticated
+      with check (hoa_role::text is distinct from 'vendor'
+                  or not public.manager_is_scoped() or public.is_company_admin()
+                  or exists (select 1 from public.vendors ven
+                              where ven.id::text = user_invitations.metadata ->> 'vendor_id'
+                                and ven.association_id is not null
+                                and public.can_view_association_row(ven.association_id)));
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'user_invitations' and policyname = 'vendor_invite_scope_update') then
+    create policy vendor_invite_scope_update on public.user_invitations as restrictive for update to authenticated
+      using (true)
+      with check (hoa_role::text is distinct from 'vendor'
+                  or not public.manager_is_scoped() or public.is_company_admin()
+                  or exists (select 1 from public.vendors ven
+                              where ven.id::text = user_invitations.metadata ->> 'vendor_id'
+                                and ven.association_id is not null
+                                and public.can_view_association_row(ven.association_id)));
+  end if;
 end $$;
 
 -- 6) Management fees go to the management company ---------------------------

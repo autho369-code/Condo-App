@@ -206,6 +206,13 @@ describe('vendors belong to exactly one association', () => {
     expect(billForm).toContain('if (exact.length > 1) return \'\';');
   });
 
+  it('keeps changes to the management company\'s documents and invitations to company-wide staff', () => {
+    expect(migration).toContain("raise exception 'Only company-wide staff can review the management company''s documents'");
+    expect(migration).toContain("foreach t in array array['document_requests', 'documents'] loop");
+    expect(migration).toContain('create policy vendor_invite_scope on public.user_invitations as restrictive for insert to authenticated');
+    expect(migration).toContain('create policy vendor_invite_scope_update on public.user_invitations as restrictive for update to authenticated');
+  });
+
   it('links an invitation for an exact vendor record to that record or none', () => {
     expect(migration).toMatch(/and \(nullif\(new\.metadata ->> 'vendor_id', ''\) is null\s+or c\.id::text = new\.metadata ->> 'vendor_id'\)/);
   });
