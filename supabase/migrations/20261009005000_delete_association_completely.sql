@@ -5,7 +5,10 @@
 --
 -- Removes the association, its buildings and units, its homeowners (records
 -- linked only to this association), tenants, bills, ledger entries, bank
--- accounts and every row that points at any of them. Returns a summary.
+-- accounts and every row that points at any of them, including notes,
+-- documents, tags and audit rows attached by (type, id). Returns a summary.
+-- If anything of another association or company points at what goes, it stops
+-- and deletes nothing.
 --
 -- It refuses (and deletes nothing) when a ledger entry also has lines in
 -- another association, e.g. a bank transfer between two associations: those
@@ -84,6 +87,14 @@ begin
   if p_depth > 30 then
     raise exception 'Links under % go too deep to delete safely; nothing was deleted.', p_table;
   end if;
+  -- Reaching an association through links means another association's (or a
+  -- company's) data points at what is being deleted: stop, never delete it.
+  if p_depth > 0 and p_table in ('public.associations'::regclass, 'public.portfolios'::regclass) then
+    raise exception 'Deleting this would also delete % rows that belong elsewhere; nothing was deleted. Remove that link first.', p_table;
+  end if;
+  if to_regclass('pg_temp.purge_deleted') is null then
+    create temp table purge_deleted (id uuid primary key) on commit drop;
+  end if;
 
   for r in
     select c.conrelid::regclass as tbl, a.attname as col, c.confdeltype as on_delete,
@@ -119,7 +130,80 @@ begin
     end if;
   end loop;
 
-  execute format('delete from %s where id = any($1)', p_table) using p_ids;
+  execute format('with d as (delete from %s where id = any($1) returning id) '
+              || 'insert into purge_deleted select id from d on conflict do nothing', p_table) using p_ids;
+end $function$;
+
+-- Notes, documents, tags, audit rows and the like point at a record by
+-- (<x>_type, <x>_id) with no foreign key, so purge_rows cannot find them.
+-- Delete every such row whose <x>_id is a row purge_rows deleted (ids are
+-- UUIDs, so the type need not be matched), with whatever depends on it, and
+-- repeat for rows attached to those. A matched row that belongs to another
+-- association (its association_id, or for a ledger entry any of its lines) stops
+-- the call: nothing is deleted. p_association_id null = belongs to none.
+create or replace function public.purge_polymorphic(p_association_id uuid)
+returns void
+language plpgsql
+set search_path to 'pg_catalog', 'public', 'pg_temp'
+as $function$
+declare
+  r record;
+  v_ids uuid[];
+  v_found boolean;
+  v_round integer := 0;
+  v_other boolean;
+begin
+  if to_regclass('pg_temp.purge_deleted') is null then
+    create temp table purge_deleted (id uuid primary key) on commit drop;
+  end if;
+  analyze purge_deleted;
+  loop
+    v_found := false;
+    v_round := v_round + 1;
+    if v_round > 10 then
+      raise exception 'Attached records go too deep to delete safely; nothing was deleted.';
+    end if;
+    for r in
+      select c.oid::regclass as tbl, idc.attname as col,
+             exists (select 1 from pg_attribute pa where pa.attrelid = c.oid and pa.attname = 'id'
+                      and not pa.attisdropped and pa.atttypid = 'uuid'::regtype) as has_id
+        from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+        join pg_attribute idc on idc.attrelid = c.oid and not idc.attisdropped and idc.atttypid = 'uuid'::regtype
+                             and idc.attname like '%\_id'
+        join pg_attribute tyc on tyc.attrelid = c.oid and not tyc.attisdropped
+                             and tyc.attname = left(idc.attname, length(idc.attname) - 3) || '_type'
+       where n.nspname = 'public' and c.relkind = 'r'
+    loop
+      if r.has_id then
+        execute format('select coalesce(array_agg(t.id), ''{}'') from %s t '
+                    || 'where t.%I in (select id from purge_deleted) and t.id not in (select id from purge_deleted)',
+                       r.tbl, r.col)
+          into v_ids;
+        if cardinality(v_ids) > 0 then
+          if exists (select 1 from pg_attribute pa where pa.attrelid = r.tbl and pa.attname = 'association_id'
+                      and not pa.attisdropped) then
+            execute format('select exists (select 1 from %s where id = any($1) and association_id is not null '
+                        || 'and association_id is distinct from $2)', r.tbl)
+              into v_other using v_ids, p_association_id;
+            if v_other then
+              raise exception 'Records in % attached here belong to another association; nothing was deleted.', r.tbl;
+            end if;
+          end if;
+          if r.tbl = 'public.journal_entries'::regclass and exists (
+               select 1 from public.journal_lines l
+                where l.entry_id = any(v_ids) and l.association_id is distinct from p_association_id) then
+            raise exception 'Ledger entries made from these records have lines outside this association; nothing was deleted. Reverse or move them first.';
+          end if;
+          v_found := true;
+          perform public.purge_rows(r.tbl, v_ids, 1);
+        end if;
+      else
+        execute format('delete from %s where %I in (select id from purge_deleted)', r.tbl, r.col);
+      end if;
+    end loop;
+    exit when not v_found;
+  end loop;
 end $function$;
 
 create or replace function public.delete_association_completely(p_association_id uuid)
@@ -140,6 +224,7 @@ declare
   v_has_owner_assoc boolean;
   v_count bigint;
   v_summary jsonb;
+  v_col name;
 begin
   select name into v_name from public.associations where id = p_association_id for update;
   if not found then
@@ -213,10 +298,18 @@ begin
     raise exception 'A homeowner of this association also has units in another association, so nothing was deleted. Split that homeowner into one record per association first.';
   end if;
 
-  -- The association's own links to its bank accounts go first (they would otherwise block).
-  update public.associations
-     set operating_bank_account_id = null, reserve_bank_account_id = null, stripe_settlement_bank_account_id = null
-   where id = p_association_id;
+  -- The association's own optional links (bank accounts, interest-income GL
+  -- account, templates...) are cleared first: they point at its own rows, and
+  -- left in place they lead the purge back to the association itself.
+  for v_col in
+    select a.attname
+      from pg_constraint c
+      join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+     where c.contype = 'f' and c.conrelid = 'public.associations'::regclass
+       and cardinality(c.conkey) = 1 and not a.attnotnull
+  loop
+    execute format('update public.associations set %I = null where id = $1', v_col) using p_association_id;
+  end loop;
 
   v_summary := jsonb_build_object('deleted', v_name, 'buildings', cardinality(v_buildings),
     'units', cardinality(v_units), 'homeowners', cardinality(v_owners), 'bills', cardinality(v_bills),
@@ -231,6 +324,7 @@ begin
   perform public.purge_rows('public.payable_bills'::regclass, v_bills);
   perform public.purge_rows('public.owners'::regclass, v_owners);
   perform public.purge_rows('public.associations'::regclass, array[p_association_id]);
+  perform public.purge_polymorphic(p_association_id);
 
   if exists (select 1 from public.associations where id = p_association_id) then
     raise exception 'The association was not deleted; nothing was changed.';
@@ -281,6 +375,7 @@ begin
 
   v_paused := public.purge_pause_triggers();
   perform public.purge_rows('public.owners'::regclass, v_owners);
+  perform public.purge_polymorphic(null);
   perform public.purge_resume_triggers(v_paused);
   return jsonb_build_object('deleted', cardinality(v_owners), 'names', v_names);
 end $function$;
@@ -288,5 +383,6 @@ end $function$;
 revoke all on function public.purge_pause_triggers() from public, anon, authenticated, service_role;
 revoke all on function public.purge_resume_triggers(jsonb) from public, anon, authenticated, service_role;
 revoke all on function public.purge_rows(regclass, uuid[], integer) from public, anon, authenticated, service_role;
+revoke all on function public.purge_polymorphic(uuid) from public, anon, authenticated, service_role;
 revoke all on function public.delete_association_completely(uuid) from public, anon, authenticated, service_role;
 revoke all on function public.delete_unlinked_owners(uuid, boolean) from public, anon, authenticated, service_role;
