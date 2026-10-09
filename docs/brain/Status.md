@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #262; vendors-per-association PR open).
+Back to [[Home]]. Updated 2026-10-09 (after #263 merged; no open PR).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -12,6 +12,10 @@ Back to [[Home]]. Updated 2026-10-09 (after #262; vendors-per-association PR ope
   pilot).
 
 ## Open PR
+- #263 merged (dfa8f42): vendors belong to one association (management
+  company is the one exception). Migration 20261009020000 applied by Claude
+  and read back (2 columns + check + indexes, 14+4+3+4 triggers, all
+  policies, functions; the one vendor is in Randolph Station). No open PR.
 - #258 merged (4f5f0d4): AppFolio open-balance re-imports never repost an
   item: same unit + GL + charge date with a changed amount is reported;
   earlier items missing from a complete file (has a Total line it ties to)
@@ -177,6 +181,11 @@ Back to [[Home]]. Updated 2026-10-09 (after #262; vendors-per-association PR ope
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+-1. `import_bills` (bills CSV upload): resolve the row's association first,
+   then match the vendor inside it plus the management company (today a
+   same-named vendor in two associations is rejected as ambiguous). Its body
+   has a DELETE, so the replacement goes to Mirsad's SQL editor. Then: one
+   vendor login across a vendor's associations; multi-property owner portal.
 0. AppFolio importer follow-ups: credit balances (owner prepayments), and
    run the real import for one association end to end after merge. Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
