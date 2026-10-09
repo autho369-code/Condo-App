@@ -227,6 +227,8 @@ export async function createOwnerWithDetails(formData: FormData) {
       fullName,
       portfolioId: assignment.portfolioId,
       invitedBy: me.auth_user_id,
+      ownerId,
+      associationId: assignment.associationId,
     });
     if (invitation.error) warnings.push(`portal invitation: ${invitation.error}`);
     else portalInvitationQueued = true;

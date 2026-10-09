@@ -54,7 +54,7 @@ export async function sendOwnerPortalInvitations(formData: FormData) {
   const owners: any[] = [];
   for (let i = 0; i < ids.length; i += BATCH) {
     const { data, error } = await db.from('owners')
-      .select('id, full_name, email, portfolio_id, portal_activated, auth_user_id, archived_at')
+      .select('id, full_name, email, portfolio_id, association_id, portal_activated, auth_user_id, archived_at')
       .in('id', ids.slice(i, i + BATCH));
     if (error) {
       if (claim.status === 'claimed') await releaseSubmission(db, claim.token);
@@ -81,8 +81,10 @@ export async function sendOwnerPortalInvitations(formData: FormData) {
       fullName: o.full_name ?? email,
       portfolioId,
       invitedBy: me.auth_user_id,
+      ownerId: o.id,
+      associationId: o.association_id ?? null,
     });
-    if (result.error || !result.invitationId) {
+    if (result.error || !result.invitationId || !result.createdAt) {
       failures.push(`${o.full_name ?? email}: ${result.error ?? 'Could not create the invitation'}`);
       continue;
     }
@@ -93,6 +95,12 @@ export async function sendOwnerPortalInvitations(formData: FormData) {
       .eq('hoa_role', 'owner')
       .eq('status', 'pending')
       .eq('email', email)
+      // Only this record's older links (and older ones naming no record): the
+      // same person's invitations for their other associations stay live.
+      .or(`metadata->>owner_id.eq.${o.id},metadata->>owner_id.is.null`)
+      // Only links created before this one: overlapping sends never cancel
+      // each other's new link.
+      .lt('created_at', result.createdAt)
       .neq('id', result.invitationId);
     if (revokeError) failures.push(`${o.full_name ?? email}: new link sent, but an older link could not be cancelled (${revokeError.message})`);
   }

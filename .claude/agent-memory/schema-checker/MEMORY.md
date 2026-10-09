@@ -50,3 +50,6 @@
 ## vendors.association_id / is_management_company (20261009020000)
 - CHECK `vendors_association_or_management_company`: association vendor needs association_id; management company has none. Trigger `trg_vendors_set_portfolio_from_association` derives portfolio_id, so inserts may omit it (seed-real/seed-comprehensive do). `tests/database/vendors-belong-to-association.test.ts` scans insert payloads.
 - `vendors(...)`/`associations(name)` embeds are unambiguous: only one direct FK, and tables with both vendor_id and association_id FKs (work_orders, payable_bills, ...) have `id` PKs, so PostgREST does not treat them as many-to-many junctions. (2026-10-09, clean.)
+
+## owner_portal_logins (20261009050000)
+- Mirrors vendor_portal_logins: cols auth_user_id, invitation_id, linked_at, owner_id (PK), portfolio_id, revoked_at; auth_user_id FK -> auth.users is NOT in schema-foreign-keys.json (snapshot lists public FKs only, by design). Owner invites carry `association_id` + `metadata.owner_id`; revoke filters use `.or('metadata->>owner_id.eq.X,metadata->>owner_id.is.null')` (metadata is jsonb, valid). (2026-10-09, clean.)
