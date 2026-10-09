@@ -114,7 +114,10 @@ begin
       continue;
     end if;
 
-    if r.on_delete in ('n', 'd') then
+    -- A "set null" link is cleared, except a row's own association_id when the
+    -- association itself goes: messages, SMS threads, tenants... tagged with it
+    -- are its records and go with it.
+    if r.on_delete in ('n', 'd') and not (p_table = 'public.associations'::regclass and r.col = 'association_id') then
       execute format('update %s set %I = null where %I = any($1)', r.tbl, r.col, r.col) using p_ids;
       continue;
     end if;
@@ -285,6 +288,11 @@ begin
                join public.units u on u.id = ch.unit_id
               where cc.association_id = p_association_id and not (u.id = any(v_units))) then
     raise exception 'Another association''s charges use one of this association''s charge categories, so nothing was deleted.';
+  end if;
+  if exists (select 1 from public.payable_bill_line_items li
+               join public.payable_bills pb on pb.id = li.bill_id
+              where (li.association_id = p_association_id) <> (pb.association_id is not distinct from p_association_id)) then
+    raise exception 'A bill is split between this association and another (or none), so nothing was deleted. Move or void it first.';
   end if;
   if exists (select 1 from public.bank_transfers bt
               where (bt.from_bank_account_id = any(v_banks)) <> (bt.to_bank_account_id = any(v_banks))) then

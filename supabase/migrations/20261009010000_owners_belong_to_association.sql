@@ -197,9 +197,12 @@ begin
   -- The association a link records must be the unit's own (it is what the
   -- access rules read), whoever writes it.
   if new.unit_id is not null then
+    -- Locking the unit and its building makes a concurrent move of either
+    -- wait for this link (and its move guard then sees it), or this wait for the move.
     select b.association_id into v_unit_association_id
       from public.units u join public.buildings b on b.id = u.building_id
-     where u.id = new.unit_id;
+     where u.id = new.unit_id
+       for share of u, b;
     if found and new.association_id is distinct from v_unit_association_id then
       raise exception 'This unit belongs to another association.' using errcode = '23514';
     end if;
@@ -244,7 +247,8 @@ declare
 begin
   select b.association_id into v_unit_association_id
     from public.units u join public.buildings b on b.id = u.building_id
-   where u.id = new.unit_id;
+   where u.id = new.unit_id
+     for share of u, b;
   select ow.association_id into v_owner_association_id
     from public.owners ow where ow.id = new.owner_id for share;
   if v_unit_association_id is not null and v_owner_association_id is not null
