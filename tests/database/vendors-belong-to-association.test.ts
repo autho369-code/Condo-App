@@ -249,7 +249,10 @@ describe('vendors belong to exactly one association', () => {
     expect(match).toContain("? `association_id.eq.${associationId},is_management_company.eq.true`");
     expect(match).toContain('exact && exact.length === 1 ? exact[0] : null');
     expect(read('app/api/plaid/transactions/sync/route.ts')).toContain('bankAssociationId');
-    expect(match).toContain("historicalQuery.eq('bank_accounts.association_id', associationId)");
+    expect(match).toContain(".eq('bank_accounts.association_id', associationId)");
+    // A historical match reuses only an account still in scope (company, association).
+    expect(match).toContain("gl_accounts!inner(portfolio_id, association_id)");
+    expect(match).toContain(".or(`association_id.is.null,association_id.eq.${associationId}`, { referencedTable: 'gl_accounts' })");
     expect(match).toContain("? `association_id.is.null,association_id.eq.${associationId}` : 'association_id.is.null'");
     expect(migration).toContain("'This record has entries from a vendor of its current company. It cannot move to another company.'");
     expect(migration).toContain("'create or replace trigger trg_vendor_parent_association_moved before update of association_id, portfolio_id on %s '");

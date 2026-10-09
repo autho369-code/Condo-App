@@ -62,14 +62,17 @@ export async function submitVendorUpload(formData: FormData) {
     const to = requester?.user?.email;
     if (to) {
       const { data: company } = await svc.from('portfolios').select(COMPANY_ADDRESS_COLUMNS).eq('id', session.portfolio_id).maybeSingle();
-      // Logged under the vendor's association (null only for the management company).
-      const { data: vendorRow } = await svc.from('vendors').select('association_id').eq('id', session.vendor_id).maybeSingle();
-      await queueEmails(svc, [{
+      // Logged under the vendor's association (null only for the management
+      // company). If the vendor cannot be read, skip the notice rather than log
+      // it company-wide: the upload itself is saved and shows on the
+      // compliance page.
+      const { data: vendorRow, error: vendorError } = await svc.from('vendors').select('association_id, is_management_company').eq('id', session.vendor_id).maybeSingle();
+      if (!vendorError && vendorRow && (vendorRow.association_id || vendorRow.is_management_company)) await queueEmails(svc, [{
         to,
         subject: `${session.vendor_name} sent their ${vendorDocLabel(session.doc_type)}`,
         text: `${session.vendor_name} uploaded the ${vendorDocLabel(session.doc_type)} you requested${expiresOn ? ` (expires ${expiresOn})` : ''}.\n\nReview it: ${companyUrl(company, '/vendors/compliance')}`,
         portfolioId: session.portfolio_id,
-        associationId: vendorRow?.association_id ?? null,
+        associationId: vendorRow.association_id ?? null,
         idempotencyKey: `vendor-doc-submitted:${session.request_id}:${path}`,
       }]);
     }
