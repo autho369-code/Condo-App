@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
-import { Input, Label } from '@/components/ui/input';
+import { Input, Label, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
@@ -84,7 +84,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   if (!owner) notFound();
   // "Link to a unit" offers only units of the owner's own association: a
   // homeowner record belongs to exactly one association.
-  const { data: units } = await db.from('units')
+  const { data: units, error: unitsError } = await db.from('units')
     .select('id, unit_number, buildings!inner(name, association_id, associations(name))')
     .eq('buildings.association_id', owner.association_id)
     .is('archived_at', null)
@@ -764,11 +764,14 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
           <details className="border-t border-gray-100 px-5 py-4" {...((occs ?? []).length === 0 ? { open: true } : {})}>
             <summary className="cursor-pointer select-none text-sm font-medium text-gray-600 transition-colors hover:text-gray-950 hover:underline">+ Link to a unit</summary>
+            {unitsError && <Alert tone="danger" title="Could not load the association's units" className="mt-4">{unitsError.message}</Alert>}
+            {!unitsError && (units ?? []).length === 0 && (
+              <p className="mt-4 text-sm text-gray-500">This homeowner&apos;s association has no units yet.</p>
+            )}
             <form action={linkOccupancy.bind(null, id) as any} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
               <div className="md:col-span-3">
                 <Label htmlFor="unit_id">Unit <span className="text-red-500">*</span></Label>
-                <select id="unit_id" name="unit_id" required
-                  className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                <Select id="unit_id" name="unit_id" required>
                   <option value="">Choose a unit…</option>
                   {(units ?? []).map((u: any) => (
                     <option key={u.id} value={u.id}>
@@ -776,15 +779,14 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                       {u.buildings?.name ? ` (${u.buildings.name})` : ''}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="occupancy_type">Type</Label>
-                <select id="occupancy_type" name="occupancy_type" defaultValue="owner"
-                  className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                <Select id="occupancy_type" name="occupancy_type" defaultValue="owner">
                   <option value="owner">Owner</option>
                   <option value="tenant">Tenant</option>
-                </select>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="move_in_date">Move-in date</Label>

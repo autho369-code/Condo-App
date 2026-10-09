@@ -2,8 +2,8 @@ import Link from 'next/link';
 
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/input';
-import { Alert } from '@/components/ui/shell';
+import { Field, Input, Label, Select } from '@/components/ui/input';
+import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
@@ -11,8 +11,6 @@ import { todayInZone } from '@/lib/time/zoned';
 import { changeHomeowner } from './actions';
 
 export const dynamic = 'force-dynamic';
-
-const inputCls = 'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
 
 export default async function ChangeHomeownerPage({ searchParams }: { searchParams: Promise<{ unit?: string; error?: string }> }) {
   await requireStaff();
@@ -50,6 +48,7 @@ export default async function ChangeHomeownerPage({ searchParams }: { searchPara
   const unitLabel = (u: any) => `${u.buildings?.associations?.name ?? '—'} · Unit ${u.unit_number}${currentOwners.get(u.id)?.length ? ` — current: ${currentOwners.get(u.id)!.join(', ')}` : ' — no current owner'}`;
   const ownerName = (o: any) => (o.last_name && o.first_name ? `${o.last_name}, ${o.first_name}` : o.full_name ?? 'Unnamed owner');
   const loadError = unitsRes.error ?? ownersRes.error ?? occupanciesRes.error;
+  const cancelLink = <Link href="/owners" className="inline-flex min-h-10 items-center text-sm text-gray-600 hover:text-gray-900">Cancel</Link>;
 
   return (
     <DataWorkspace
@@ -58,27 +57,32 @@ export default async function ChangeHomeownerPage({ searchParams }: { searchPara
       actions={<Link href="/owners"><Button variant="secondary">Back to homeowners</Button></Link>}
     >
       {!selectedUnit ? (
-        <form method="get" action="/owners/change" className="max-w-3xl space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <Surface className="max-w-3xl">
+        <form method="get" action="/owners/change" className="space-y-6">
           {sp.error && <Alert tone="danger" title="Could not change the homeowner">{sp.error}</Alert>}
-          {sp.unit && <Alert tone="warning" title="Unit not found">That unit was not found in your workspace. Choose it again.</Alert>}
-          {loadError && <Alert tone="danger" title="Could not load every unit or owner">{loadError}</Alert>}
-          <div>
-            <Label htmlFor="unit">Unit <span className="text-red-500">*</span></Label>
-            <select id="unit" name="unit" required defaultValue="" className={inputCls}>
+          {sp.unit && !sp.error && !unitsRes.error && (
+            <Alert tone="warning" title="Unit not found">That unit was not found in your workspace. Choose it again.</Alert>
+          )}
+          {(unitsRes.error ?? occupanciesRes.error) && (
+            <Alert tone="danger" title="Could not load every unit">{unitsRes.error ?? occupanciesRes.error}</Alert>
+          )}
+          <Field label="Unit" htmlFor="unit" required hint="Next you choose the buyer from this unit's association, or add them as a new homeowner.">
+            <Select id="unit" name="unit" required defaultValue="">
               <option value="">Select unit</option>
               {units.map((u: any) => (
                 <option key={u.id} value={u.id}>{unitLabel(u)}</option>
               ))}
-            </select>
-            <p className="mt-2 text-xs text-gray-500">Next you choose the buyer from this unit&apos;s association, or add them as a new homeowner.</p>
-          </div>
-          <div className="flex items-center justify-between border-t border-gray-100 pt-5">
-            <Link href="/owners" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
-            <Button type="submit" size="lg">Continue</Button>
+            </Select>
+          </Field>
+          <div className="flex items-center gap-4 border-t border-gray-100 pt-5">
+            <Button type="submit">Continue</Button>
+            {cancelLink}
           </div>
         </form>
+        </Surface>
       ) : (
-      <form action={changeHomeowner} className="max-w-3xl space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <Surface className="max-w-3xl">
+      <form action={changeHomeowner} className="space-y-6">
         {sp.error && <Alert tone="danger" title="Could not change the homeowner">{sp.error}</Alert>}
         {loadError && <Alert tone="danger" title="Could not load every unit or owner">{loadError}</Alert>}
 
@@ -88,26 +92,26 @@ export default async function ChangeHomeownerPage({ searchParams }: { searchPara
             <Label>Unit</Label>
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-900">
               <span>{unitLabel(selectedUnit)}</span>
-              <Link href="/owners/change" className="text-sm text-gray-600 hover:text-gray-900">Choose another unit</Link>
+              <Link href="/owners/change" className="inline-flex min-h-10 items-center text-sm text-gray-600 hover:text-gray-900">Choose another unit</Link>
             </div>
           </div>
           <div>
-            <Label htmlFor="transfer_date">Transfer date <span className="text-red-500">*</span></Label>
-            <Input id="transfer_date" name="transfer_date" type="date" required defaultValue={todayInZone()} />
+            <Field label="Transfer date" htmlFor="transfer_date" required>
+              <Input id="transfer_date" name="transfer_date" type="date" required defaultValue={todayInZone()} />
+            </Field>
           </div>
         </div>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">New owner</div>
-          <div>
-            <Label htmlFor="existing_owner_id">Existing homeowner of {selectedUnit.buildings?.associations?.name ?? 'this association'}</Label>
-            <select id="existing_owner_id" name="existing_owner_id" defaultValue="" className={inputCls}>
+          <SectionTitle title="New owner" />
+          <Field label={`Existing homeowner of ${selectedUnit.buildings?.associations?.name ?? 'this association'}`} htmlFor="existing_owner_id">
+            <Select id="existing_owner_id" name="existing_owner_id" defaultValue="">
               <option value="">Not on file — enter below</option>
               {ownersRes.rows.map((o: any) => (
                 <option key={o.id} value={o.id}>{ownerName(o)}{o.email ? ` (${o.email})` : ''}</option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
           <p className="mt-3 text-xs text-gray-500">Or enter a new homeowner (used only when no existing record is selected). A buyer who owns in another association is added here as a new homeowner of this one:</p>
           <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
@@ -129,11 +133,12 @@ export default async function ChangeHomeownerPage({ searchParams }: { searchPara
           </div>
         </section>
 
-        <div className="flex items-center justify-between border-t border-gray-100 pt-5">
-          <Link href="/owners" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
-          <Button type="submit" size="lg">Change homeowner</Button>
+        <div className="flex items-center gap-4 border-t border-gray-100 pt-5">
+          <Button type="submit">Change homeowner</Button>
+          {cancelLink}
         </div>
       </form>
+      </Surface>
       )}
     </DataWorkspace>
   );
