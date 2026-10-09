@@ -5,6 +5,7 @@ import { Surface, SectionTitle } from '@/components/ui/shell';
 import { saveRecurringBill } from '@/lib/rpcs/recurring';
 import { todayInZone } from '@/lib/time/zoned';
 import { VendorSelect, type VendorOption } from '@/components/vendors/vendor-select';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export type RecurringBillValues = {
   id?: string;
@@ -120,7 +121,7 @@ export function RecurringBillForm({
 /** Dropdown sources for the recurring bill form (RLS-scoped). */
 export async function loadRecurringBillOptions(db: any) {
   const [{ data: vendors }, { data: associations }, { data: gls }, { data: banks }] = await Promise.all([
-    db.from('vendors').select('id, name, association_id, is_management_company').is('archived_at', null).order('name'),
+    fetchAllRows<any>(() => db.from('vendors').select('id, name, association_id, is_management_company').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('gl_accounts').select('id, number, name').eq('active', true)
       .in('account_type', ['expense', 'cost_of_goods_sold', 'other_expense']).order('number'),

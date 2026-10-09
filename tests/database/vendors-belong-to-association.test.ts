@@ -241,5 +241,6 @@ describe('vendors belong to exactly one association', () => {
     expect(create).toContain("rpc('can_manage_association', { p_association_id: associationId })");
     expect(create).toContain('association_id: associationId,');
     expect(create).toContain('is_management_company: isManagementCompany,');
+    expect(create).toContain("failTo('Open a company before adding its management company.')");
   });
 });

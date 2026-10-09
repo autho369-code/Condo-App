@@ -834,6 +834,11 @@ export async function createVendor(formData: FormData) {
     if (scoped === true && !me.is_company_admin) {
       failTo('Only company-wide staff can add the management company.'); return;
     }
+    // The management company has no association to take its company from:
+    // it belongs to the signed-in user's company.
+    if (!me.portfolio?.id) {
+      failTo('Open a company before adding its management company.'); return;
+    }
   } else {
     if (!associationId) { failTo('Choose the association this vendor works for.'); return; }
     // can_manage_association also honors association-scoped managers.

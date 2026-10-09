@@ -10,6 +10,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { recordOtherReceipt } from '@/lib/rpcs/other-receipts';
 import { createClient } from '@/lib/supabase/server';
 import { todayInZone } from '@/lib/time/zoned';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export default async function NewOtherReceiptPage({ searchParams }: { searchPara
   const [{ data: associations }, { data: banks }, { data: vendors }, { data: glAccounts }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('bank_accounts').select('id, name, association_id, gl_account_id, associations!bank_accounts_association_id_fkey(name)').is('archived_at', null).order('name'),
-    db.from('vendors').select('id, name, association_id, is_management_company').eq('portfolio_id', portfolioId).is('archived_at', null).order('name').limit(1000),
+    fetchAllRows<any>(() => db.from('vendors').select('id, name, association_id, is_management_company').eq('portfolio_id', portfolioId).is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     db.from('gl_accounts').select('id, number, name, account_type, association_id, associations!gl_accounts_association_id_fkey(name)').eq('portfolio_id', portfolioId).eq('active', true)
       .not('account_type', 'in', '(cash,accounts_receivable)').order('number'),
   ]);
