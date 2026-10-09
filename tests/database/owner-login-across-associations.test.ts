@@ -67,10 +67,12 @@ describe('owner login across associations: database', () => {
 
   it('links exactly the invited record on accept', () => {
     const link = fn('link_owner_on_invitation_accept');
-    expect(link).toContain("nullif(new.metadata ->> 'owner_id', '') is null");
-    expect(link).toContain("where o.id::text = new.metadata ->> 'owner_id'");
+    expect(link).toContain("v_owner := (new.metadata ->> 'owner_id')::uuid;");
+    expect(link).toContain('where o.id = v_owner');
+    // An older owner invitation naming no record: exactly one unlinked record of that email, or it fails.
+    expect(link).toContain("raise exception 'This owner invitation does not identify one owner record. Ask the management office for a new invitation.'");
     expect(link).toContain('and o.auth_user_id is null');
-    expect(link).toContain('and o.association_id = new.association_id');
+    expect(link).toContain('and o.association_id = v_assoc');
     expect(link).toContain('where u.id = new.used_by and lower(btrim(u.email)) = lower(btrim(new.email))');
     expect(link).toContain('and (o.auth_user_id = new.used_by');
     // Nothing linked = the acceptance rolls back (the invitation stays usable).

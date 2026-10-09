@@ -1110,23 +1110,55 @@ $function$;
 -- when the login has none, otherwise added to the login (owner_portal_logins).
 -- The record must be in the invitation's company and association, carry the
 -- invited email (which must also be the accepting login's email) and not be
--- on another login. Invitations without a record link nothing.
+-- on another login. An owner invitation naming no record (made before this
+-- change) links the one unlinked owner record of that email in its company;
+-- if there is not exactly one, acceptance fails. Anything that cannot be
+-- linked rolls the acceptance back.
 create or replace function public.link_owner_on_invitation_accept()
 returns trigger
 language plpgsql
 security definer
 set search_path to 'pg_catalog', 'public'
 as $function$
+declare
+  v_owner uuid;
+  v_assoc uuid;
+  v_matches int;
 begin
   if new.hoa_role::text not in ('owner', 'board')
      or new.status::text <> 'accepted' or old.status::text is not distinct from 'accepted'
-     or new.used_by is null
-     or nullif(new.metadata ->> 'owner_id', '') is null then
+     or new.used_by is null then
     return new;
   end if;
+
+  if nullif(new.metadata ->> 'owner_id', '') is not null then
+    v_owner := (new.metadata ->> 'owner_id')::uuid;
+    v_assoc := new.association_id;
+  elsif new.hoa_role::text = 'owner' then
+    -- An owner invitation created before invitations named their record (or
+    -- by an older app version): the one unlinked owner record of that email
+    -- in the invitation's company (and association, when it has one).
+    select count(*), min(o.id::text)::uuid into v_matches, v_owner
+      from public.owners o
+     where o.portfolio_id = new.portfolio_id
+       and (new.association_id is null or o.association_id = new.association_id)
+       and o.archived_at is null
+       and o.auth_user_id is null
+       and not exists (select 1 from public.owner_portal_logins l where l.owner_id = o.id and l.revoked_at is null)
+       and lower(btrim(o.email)) = lower(btrim(new.email));
+    if v_matches <> 1 then
+      raise exception 'This owner invitation does not identify one owner record. Ask the management office for a new invitation.'
+        using errcode = 'P0001';
+    end if;
+    select o.association_id into v_assoc from public.owners o where o.id = v_owner;
+  else
+    -- A board invitation naming no owner record links no owner record.
+    return new;
+  end if;
+
   -- Only the person the invitation was sent to (accept_invitation checks this
   -- too; a direct status change by an admin must not bypass it).
-  if new.association_id is null
+  if v_assoc is null
      or not exists (select 1 from auth.users u
                      where u.id = new.used_by and lower(btrim(u.email)) = lower(btrim(new.email))) then
     raise exception 'This owner invitation cannot be used by this account. Ask the management office for a new invitation.'
@@ -1136,9 +1168,9 @@ begin
   if not exists (select 1 from public.owners x where x.auth_user_id = new.used_by) then
     update public.owners o
        set auth_user_id = new.used_by, portal_activated = true
-     where o.id::text = new.metadata ->> 'owner_id'
+     where o.id = v_owner
        and o.portfolio_id = new.portfolio_id
-       and o.association_id = new.association_id
+       and o.association_id = v_assoc
        and o.archived_at is null
        and o.auth_user_id is null
        and not exists (select 1 from public.owner_portal_logins l where l.owner_id = o.id and l.revoked_at is null)
@@ -1147,9 +1179,9 @@ begin
     insert into public.owner_portal_logins (owner_id, auth_user_id, portfolio_id, invitation_id)
     select o.id, new.used_by, o.portfolio_id, new.id
       from public.owners o
-     where o.id::text = new.metadata ->> 'owner_id'
+     where o.id = v_owner
        and o.portfolio_id = new.portfolio_id
-       and o.association_id = new.association_id
+       and o.association_id = v_assoc
        and o.archived_at is null
        and o.auth_user_id is null
        and lower(btrim(o.email)) = lower(btrim(new.email))
@@ -1162,8 +1194,8 @@ begin
     -- staff had turned off and invited again).
     update public.owners o
        set portal_activated = true
-     where o.id::text = new.metadata ->> 'owner_id'
-       and o.association_id = new.association_id
+     where o.id = v_owner
+       and o.association_id = v_assoc
        and not o.portal_activated
        and o.archived_at is null
        and (o.auth_user_id = new.used_by
@@ -1176,7 +1208,7 @@ begin
   -- the invitation stays usable and the profile is not changed.
   if not exists (
     select 1 from public.owners o
-     where o.id::text = new.metadata ->> 'owner_id'
+     where o.id = v_owner
        and o.archived_at is null
        and (o.auth_user_id = new.used_by
             or exists (select 1 from public.owner_portal_logins l
