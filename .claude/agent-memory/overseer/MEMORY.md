@@ -112,3 +112,17 @@
   only" follow-up list against Status Next gaps; part 2 vault listed only
   home/account, dropped owner_open_emergencies, form_submissions_owner_insert,
   form_templates_owner_read, suspended-company check.
+- Gap lists copied from a reviewer's follow-up list can be stale: owner
+  leftovers (2026-10-09, after #267) listed owner_open_emergencies (already
+  on current_resident_* since 20261004170000, rewritten over
+  current_owner_ids() in 20261009050000), form_* owner policies (already
+  altered in 20261009050000; form_submissions has no owner/association
+  column) and the suspended check (current_owner_ids() is limited to the
+  profile's company, so the profile branch covers every record). Check each
+  premise against the latest migration + live pg_get_functiondef before
+  planning a migration; record "verified, no change" in Status/Decisions.
+- Recurring 3rd time (owner leftovers pre-PR, 2026-10-09): caller restated
+  the migration rule as "apply after Codex is clean". PR Rules: apply as soon
+  as the SQL is settled (reviewers clean), read back, then open the PR with
+  "do not merge until live". Also check Status "Where things stand" gets the
+  just-merged PR, not only Open PR.
