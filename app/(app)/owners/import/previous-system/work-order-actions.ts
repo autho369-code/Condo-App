@@ -41,7 +41,9 @@ export type WorkOrderImportSummary = { imported: number; skipped: number; errors
 const MAX_WORK_ORDERS = 5000;
 const BATCH = 200;
 const MARKER = 'Prior system WO #';
-const MARKER_RE = /^Prior system WO #(\S+)/;
+/** Also matches the marker used before the rename ("AppFolio WO #n"), so a re-import never duplicates. */
+const LEGACY_MARKER = 'AppFolio WO #';
+const MARKER_RE = /^(?:Prior system|AppFolio) WO #(\S+)/;
 const FINISHED: WorkOrderStatus[] = ['done', 'completed', 'billed', 'closed'];
 
 function clean(v: unknown, max = 500): string {
@@ -169,7 +171,7 @@ async function insertWorkOrders(
 ): Promise<WorkOrderImportSummary> {
   // Archived ones count too: a work order someone removed is not brought back.
   const existingRes = await fetchAllRows<any>(() => db.from('work_orders').select('id, description')
-    .eq('association_id', associationId).ilike('description', `${MARKER}%`).order('id'));
+    .eq('association_id', associationId).or(`description.ilike."${MARKER}*",description.ilike."${LEGACY_MARKER}*"`).order('id'));
   if (existingRes.error) return { imported: 0, skipped: workOrders.length, errors: [`Could not load the association's work orders: ${existingRes.error}`] };
   // An incomplete list of earlier imports would let duplicates through: refuse instead.
   if (existingRes.truncated) {

@@ -42,6 +42,13 @@ export type ReceivableImportItem = Pick<AppfolioReceivableItem, 'row' | 'unit_nu
 const MAX_ITEMS = 5000;
 /** Prefix of every description this import writes; imported_balances.memo keeps it. */
 const MEMO_PREFIX = 'Prior system:';
+/** What the import wrote before it was renamed; still recognised so a re-import never reposts. */
+const LEGACY_MEMO_PREFIX = 'AppFolio:';
+/** A stored memo in today's form (legacy prefix rewritten), so old and new postings compare equal. */
+const currentMemo = (memo: unknown) => {
+  const m = typeof memo === 'string' ? memo : '';
+  return m.startsWith(LEGACY_MEMO_PREFIX) ? MEMO_PREFIX + m.slice(LEGACY_MEMO_PREFIX.length) : m;
+};
 const CONCURRENCY = 6;
 
 const clean = (v: unknown): string => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v).trim());
@@ -156,12 +163,12 @@ export async function importAppfolioReceivables(
           .from('imported_balances')
           .select('unit_id, imported_balance, memo')
           .eq('association_id', associationId)
-          .like('memo', `${MEMO_PREFIX}%`)
+          .or(`memo.like."${MEMO_PREFIX}*",memo.like."${LEGACY_MEMO_PREFIX}*"`)
           .order('created_at', { ascending: true })
           .range(from, from + 999);
         if (existingErr) return fail(`Could not check for an earlier import: ${existingErr.message}`);
         for (const r of rows ?? []) {
-          const key = itemKey(r.unit_id, r.memo);
+          const key = itemKey(r.unit_id, currentMemo(r.memo));
           already.set(key, [...(already.get(key) ?? []), cents(Number(r.imported_balance))]);
           existingCount++;
         }
