@@ -4,6 +4,13 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-09
+- #269 (merged; migration 20261009080000 applied by Claude before the PR
+  opened and read back): the open-balance import posts credit lines
+  (prepayments) as homeowner credits via import_opening_credit (Dr the Other
+  category's income account / Cr A/R; definer helper
+  import_credit_income_account checks finance + association access). Recorded
+  as negative imported balances, so re-imports skip them; credit-only files
+  import; a credit gone from a later file reads "used up or removed".
 - #268 (merged 65414f0; migration 20261009070000 applied by Claude before
   the PR opened and read back): owner login leftovers. Account page per
   association (switcher, every current unit); home lists each association's
