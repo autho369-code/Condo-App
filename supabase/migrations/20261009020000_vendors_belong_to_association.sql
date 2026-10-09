@@ -76,7 +76,8 @@ $function$;
 
 revoke all on function public.vendor_link_tables() from public, anon, authenticated;
 
--- The associations a vendor has rows in (any linked table).
+-- The associations a vendor has rows in (any linked table, and estimates
+-- through their work order). Used by the backfill and the vendor move guard.
 create or replace function public.vendor_linked_association_ids(p_vendor_id uuid)
 returns uuid[]
 language plpgsql
@@ -95,6 +96,11 @@ begin
       into v_part using p_vendor_id;
     v_ids := v_ids || v_part;
   end loop;
+  -- Estimates carry no association: theirs is the work order's.
+  select coalesce(array_agg(distinct w.association_id), '{}') into v_part
+    from public.work_order_estimates e join public.work_orders w on w.id = e.work_order_id
+   where e.vendor_id = p_vendor_id and w.association_id is not null;
+  v_ids := v_ids || v_part;
   return coalesce((select array_agg(distinct x) from unnest(v_ids) x), '{}');
 end $function$;
 

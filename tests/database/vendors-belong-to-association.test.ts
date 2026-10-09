@@ -106,6 +106,8 @@ describe('vendors belong to exactly one association', () => {
 
   it('keeps estimate vendors in the work order\'s association', () => {
     expect(migration).toContain('if v_vendor_portfolio is distinct from v_wo_portfolio then');
+    // Existing estimates count when placing a vendor and when guarding moves.
+    expect(migration).toContain('from public.work_order_estimates e join public.work_orders w on w.id = e.work_order_id');
     expect(migration).toContain('before insert or update of vendor_id, work_order_id on public.work_order_estimates');
     expect(migration).toContain('revoke all on function public.work_order_estimate_vendor_same_association() from public, anon, authenticated;');
     const estimate = read('lib/rpcs/work-orders.ts');
