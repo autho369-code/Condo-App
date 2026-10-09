@@ -51,3 +51,9 @@ Back to [[Home]]. Don't redo these.
   platform's own files and marketing APIs 404 (`PLATFORM_ONLY_PATHS` in
   `middleware.ts`). A new platform-only file (sitemap-like, `public/*.html`,
   marketing API) must be added there; `public/*.html` also to `PUBLIC_ASSETS`.
+- **Deleting an association is a SQL-editor job for Mirsad** (2026-10-09):
+  `owners.association_id` is ON DELETE RESTRICT, so a plain delete never
+  removes homeowners silently. `delete_association_completely()` and
+  `delete_unlinked_owners()` are revoked from every app role (incl.
+  service_role); never add an app path or API to them, and Claude never runs
+  them.

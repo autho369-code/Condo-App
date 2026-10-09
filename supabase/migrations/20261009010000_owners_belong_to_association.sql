@@ -30,7 +30,7 @@
 -- with records in two. A multi-property portal (association switcher, or
 -- current_owner_ids()) is the follow-up.
 --
--- Additive: nothing is dropped except `drop trigger if exists` before each create.
+-- Additive: nothing is dropped.
 
 -- 1) Column + index ----------------------------------------------------------
 
@@ -177,8 +177,7 @@ $function$;
 
 revoke all on function public.owners_set_portfolio_from_association() from public, anon, authenticated;
 
-drop trigger if exists trg_owners_set_portfolio_from_association on public.owners;
-create trigger trg_owners_set_portfolio_from_association
+create or replace trigger trg_owners_set_portfolio_from_association
   before insert or update of association_id, portfolio_id on public.owners
   for each row execute function public.owners_set_portfolio_from_association();
 
@@ -226,8 +225,7 @@ $function$;
 
 revoke all on function public.occupancies_owner_same_association() from public, anon, authenticated;
 
-drop trigger if exists trg_occupancies_owner_same_association on public.occupancies;
-create trigger trg_occupancies_owner_same_association
+create or replace trigger trg_occupancies_owner_same_association
   before insert or update of owner_id, association_id, unit_id on public.occupancies
   for each row execute function public.occupancies_owner_same_association();
 
@@ -259,8 +257,7 @@ $function$;
 
 revoke all on function public.unit_owners_same_association() from public, anon, authenticated;
 
-drop trigger if exists trg_unit_owners_same_association on public.unit_owners;
-create trigger trg_unit_owners_same_association
+create or replace trigger trg_unit_owners_same_association
   before insert or update of owner_id, unit_id on public.unit_owners
   for each row execute function public.unit_owners_same_association();
 
@@ -280,8 +277,7 @@ $function$;
 
 revoke all on function public.associations_move_owner_portfolio() from public, anon, authenticated;
 
-drop trigger if exists trg_associations_move_owner_portfolio on public.associations;
-create trigger trg_associations_move_owner_portfolio
+create or replace trigger trg_associations_move_owner_portfolio
   after update of portfolio_id on public.associations
   for each row when (new.portfolio_id is distinct from old.portfolio_id)
   execute function public.associations_move_owner_portfolio();

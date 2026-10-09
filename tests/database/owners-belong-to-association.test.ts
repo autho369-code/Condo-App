@@ -85,9 +85,7 @@ describe('owners belong to exactly one association', () => {
     expect(migration).toContain('create or replace function public.auto_link_portal_user()');
     expect(migration).toContain('create or replace function public.relink_all_portal_users()');
     expect(migration).toMatch(/order by candidate\.created_at, candidate\.id\s+limit 1/);
-    const drops = migration.split('\n').filter((l) => /^\s*drop\s/i.test(l));
-    expect(drops.every((l) => /drop trigger if exists/i.test(l))).toBe(true);
-    expect(migration).not.toMatch(/drop table/i);
+    expect(migration).not.toMatch(/^\s*drop\s/im);
   });
 
   it('never deletes homeowners with a plain association delete', () => {
