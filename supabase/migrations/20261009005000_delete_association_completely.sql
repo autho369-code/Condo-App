@@ -153,6 +153,8 @@ begin
     -- association itself goes: messages, SMS threads, tenants... tagged with it
     -- are its records and go with it.
     if r.on_delete in ('n', 'd') and not (p_table = 'public.associations'::regclass and r.col = 'association_id') then
+      -- Another association's row losing its link is still a change to its data: stop instead.
+      perform public.purge_assert_own(r.tbl, r.col, p_ids);
       execute format('update %s set %I = null where %I = any($1)', r.tbl, r.col, r.col) using p_ids;
       continue;
     end if;
@@ -173,24 +175,25 @@ begin
               || 'insert into purge_deleted select id, $2 from d on conflict do nothing', p_table) using p_ids, p_table;
 end $function$;
 
--- Does the type text of a (type, id) reference fit table p_tbl? A type that
--- names a table ('unit' -> units, 'work_order' -> work_orders, 'bill' ->
--- payable_bills, 'property' -> properties) must name p_tbl. A type that names
--- no table at all (e.g. 'homeowner') is matched by the id alone.
+-- Does the type text of a (type, id) reference name table p_tbl? 'unit' ->
+-- units, 'work_order' -> work_orders, 'bill' -> payable_bills, 'property' ->
+-- properties, 'homeowner' -> owners. A type that names no table (an event
+-- label such as 'je_reversal') never matches: such a row is left alone rather
+-- than matched by its id alone.
 create or replace function public.purge_type_matches(p_type text, p_tbl regclass)
 returns boolean
 language sql
 stable
 set search_path to 'pg_catalog', 'public', 'pg_temp'
 as $function$
-  with t as (select lower(coalesce(p_type, '')) as v),
+  with t as (select case lower(coalesce(p_type, '')) when 'homeowner' then 'owner' else lower(coalesce(p_type, '')) end as v),
   cands as (
     select c.oid from pg_class c join pg_namespace n on n.oid = c.relnamespace, t
      where n.nspname = 'public' and c.relkind = 'r' and t.v <> ''
        and (c.relname = t.v or c.relname = t.v || 's' or c.relname = regexp_replace(t.v, 'y$', 'ies')
             or c.relname like '%\_' || t.v || 's')
   )
-  select not exists (select 1 from cands) or exists (select 1 from cands where oid = p_tbl);
+  select exists (select 1 from cands where oid = p_tbl);
 $function$;
 
 -- Notes, documents, tags, audit rows and the like point at a record by
