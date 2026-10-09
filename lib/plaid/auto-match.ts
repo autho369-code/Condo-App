@@ -121,9 +121,13 @@ export async function autoMatchTransaction(
   // Step 4: Category-based GL account match
   const rule = CATEGORY_GL_RULES[plaidCategory] || DEFAULT_RULE;
 
+  // Only this company's accounts, company-wide or of the bank account's
+  // association (company-wide only for a company-level bank account).
   const { data: glAccount } = await supabase
     .from('gl_accounts')
     .select('id, number')
+    .eq('portfolio_id', portfolioId)
+    .or(associationId ? `association_id.is.null,association_id.eq.${associationId}` : 'association_id.is.null')
     .gte('number', rule.numberMin)
     .lte('number', rule.numberMax)
     .order('number')

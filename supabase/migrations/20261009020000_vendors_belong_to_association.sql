@@ -603,8 +603,25 @@ as $function$
 declare
   r record;
   v_bad boolean;
+  v_portfolio uuid;
 begin
   if new.association_id is null then
+    -- A company-level parent: its children's vendors must be of its company.
+    v_portfolio := nullif(to_jsonb(new)->>'portfolio_id', '')::uuid;
+    if v_portfolio is null then
+      return new;
+    end if;
+    for r in select * from public.vendor_parent_link_tables() where parent = tg_relid loop
+      execute format(
+        'select exists (select 1 from %s c join public.vendors ven on ven.id = c.%I '
+        || 'where c.%I = $1 and ven.portfolio_id is distinct from $2)',
+        r.tbl, r.col, r.parent_col)
+        into v_bad using new.id, v_portfolio;
+      if v_bad then
+        raise exception 'This record has entries from a vendor of its current company. It cannot move to another company.'
+          using errcode = '23514';
+      end if;
+    end loop;
     return new;
   end if;
   -- Locked, so a concurrent move of the destination association to another
@@ -634,11 +651,21 @@ declare
   r record;
 begin
   for r in select distinct parent from public.vendor_parent_link_tables() loop
-    execute format(
-      'create or replace trigger trg_vendor_parent_association_moved before update of association_id on %s '
-      || 'for each row when (new.association_id is distinct from old.association_id) '
-      || 'execute function public.vendor_parent_association_moved()',
-      r.parent);
+    -- Also when a parent with a company column (work orders, lock boxes)
+    -- moves to another company.
+    if exists (select 1 from pg_attribute a where a.attrelid = r.parent and a.attname = 'portfolio_id' and not a.attisdropped) then
+      execute format(
+        'create or replace trigger trg_vendor_parent_association_moved before update of association_id, portfolio_id on %s '
+        || 'for each row when (new.association_id is distinct from old.association_id or new.portfolio_id is distinct from old.portfolio_id) '
+        || 'execute function public.vendor_parent_association_moved()',
+        r.parent);
+    else
+      execute format(
+        'create or replace trigger trg_vendor_parent_association_moved before update of association_id on %s '
+        || 'for each row when (new.association_id is distinct from old.association_id) '
+        || 'execute function public.vendor_parent_association_moved()',
+        r.parent);
+    end if;
   end loop;
 end $$;
 
