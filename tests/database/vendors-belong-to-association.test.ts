@@ -111,6 +111,11 @@ describe('vendors belong to exactly one association', () => {
     expect(migration).toContain('before update of association_id, portfolio_id on public.gl_accounts');
     expect(migration).toContain('revoke all on function public.gl_account_vendor_default_scope() from public, anon, authenticated;');
     expect(read('app/(app)/vendors/compliance/page.tsx')).toContain('vendors(name, is_management_company, associations(name))');
+    // Every vendor picker or list a staffer acts on names the record's association.
+    for (const f of ['app/(app)/vendors/ach/page.tsx', 'app/(app)/work-orders/page.tsx', 'app/(app)/purchase-orders/page.tsx',
+      'app/(app)/recurring-work-orders/page.tsx', 'lib/search/global.ts']) {
+      expect(read(f), f).toContain('vendorAssociationLabel');
+    }
     expect(read('app/(app)/vendors/forms/page.tsx')).toContain("v.is_management_company ? 'Management company' : v.associations?.name ?? 'No association'");
   });
 

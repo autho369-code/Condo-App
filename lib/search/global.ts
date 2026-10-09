@@ -1,6 +1,8 @@
 // Global record search for the command palette. Runs on the caller's
 // RLS-scoped client, so results are limited to what the user can already see.
 
+import { vendorAssociationLabel } from '@/lib/vendors/options';
+
 export type SearchResult = {
   id: string;
   type: 'association' | 'unit' | 'owner' | 'vendor' | 'work_order' | 'violation' | 'bill' | 'architectural_review' | 'meeting';
@@ -50,7 +52,7 @@ export async function searchEverything(db: any, rawQuery: string, options: { fin
     db.from('units').select('id, unit_number, buildings!inner(name, associations(name))').is('archived_at', null).ilike('unit_number', like).limit(PER_TYPE),
     db.from('owners').select('id, full_name, email, phone').is('archived_at', null)
       .or(`full_name.ilike.${like},email.ilike.${like},phone.ilike.${like}`).limit(PER_TYPE),
-    db.from('vendors').select('id, name').is('archived_at', null).ilike('name', like).limit(PER_TYPE),
+    db.from('vendors').select('id, name, is_management_company, associations(name)').is('archived_at', null).ilike('name', like).limit(PER_TYPE),
     (numeric
       ? db.from('work_orders').select('id, number, title, status, associations(name)').is('archived_at', null).or(`title.ilike.${like},number.eq.${q}`)
       : db.from('work_orders').select('id, number, title, status, associations(name)').is('archived_at', null).ilike('title', like)
@@ -75,7 +77,7 @@ export async function searchEverything(db: any, rawQuery: string, options: { fin
     ...associations.map((a): SearchResult => ({ id: a.id, type: 'association', title: a.name, href: `/associations/${a.id}` })),
     ...units.map((u): SearchResult => ({ id: u.id, type: 'unit', title: `Unit ${u.unit_number}`, subtitle: join(u.buildings?.associations?.name, u.buildings?.name), href: `/units/${u.id}` })),
     ...owners.map((o): SearchResult => ({ id: o.id, type: 'owner', title: o.full_name ?? o.email ?? 'Owner', subtitle: join(o.email, o.phone), href: `/owners/${o.id}` })),
-    ...vendors.map((v): SearchResult => ({ id: v.id, type: 'vendor', title: v.name, href: `/vendors/${v.id}` })),
+    ...vendors.map((v): SearchResult => ({ id: v.id, type: 'vendor', title: v.name, subtitle: vendorAssociationLabel(v), href: `/vendors/${v.id}` })),
     ...workOrders.map((w): SearchResult => ({ id: w.id, type: 'work_order', title: `${w.number ? `#${w.number} ` : ''}${w.title ?? 'Work order'}`, subtitle: join(w.associations?.name, status(w.status)), href: `/work-orders/${w.id}` })),
     ...violations.map((v): SearchResult => ({ id: v.id, type: 'violation', title: v.title, subtitle: join(v.associations?.name, status(v.status)), href: `/violations/${v.id}` })),
     ...bills.map((b): SearchResult => ({ id: b.id, type: 'bill', title: `Bill ${b.bill_number ?? b.id.slice(0, 8)}`, subtitle: join(b.vendors?.name, b.memo), href: `/bills/${b.id}` })),

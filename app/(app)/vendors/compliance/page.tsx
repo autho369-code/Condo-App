@@ -15,11 +15,7 @@ import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { vendorDocExpires, vendorDocLabel } from '@/lib/vendors/document-requests';
-import { tradeLabel } from '@/lib/vendors/options';
-
-// The same company can be a vendor of several associations (one record each):
-// every row names its association so a review lands on the right record.
-const vendorAssociation = (v: any) => (v?.is_management_company ? 'Management company' : v?.associations?.name ?? 'No association');
+import { tradeLabel, vendorAssociationLabel as vendorAssociation } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 

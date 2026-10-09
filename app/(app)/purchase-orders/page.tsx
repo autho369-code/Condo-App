@@ -7,6 +7,7 @@ import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { vendorAssociationLabel } from '@/lib/vendors/options';
 import { sanitizeSearchTerm } from '@/lib/search/global';
 import { zonedWallTimeToUtc } from '@/lib/time/zoned';
 import { displayTimeZone } from '@/lib/time/display-zone';
@@ -111,7 +112,7 @@ export default async function PurchaseOrdersPage({
     // Metrics cover every tab under the same filters.
     fetchAllRows<any>(() => filtered('id, status, approval_status, po_total, po_billed').order('id')),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    fetchAllRows<any>(() => db.from('vendors').select('id, name').is('archived_at', null).order('name').order('id')),
+    fetchAllRows<any>(() => db.from('vendors').select('id, name, is_management_company, associations(name)').is('archived_at', null).order('name').order('id')),
     db.from('gl_accounts').select('id, number, name').eq('active', true).order('number'),
   ]);
   const rows = rowsRes.rows;
@@ -185,7 +186,7 @@ export default async function PurchaseOrdersPage({
           </FilterSelect>
           <FilterSelect label="Vendor" name="vendor_id" defaultValue={vendorId}>
             <option value="">All vendors</option>
-            {vendors.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+            {vendors.map((v: any) => <option key={v.id} value={v.id}>{v.name} · {vendorAssociationLabel(v)}</option>)}
           </FilterSelect>
           <FilterSelect label="GL account" name="gl_account_id" defaultValue={glAccountId}>
             <option value="">All GL accounts</option>
