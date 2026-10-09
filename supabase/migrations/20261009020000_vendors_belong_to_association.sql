@@ -268,7 +268,8 @@ create unique index if not exists vendors_one_management_company
 -- An association that moves to another company takes its vendors (and their
 -- tax and bank records and document requests) with it. The old company's
 -- management company cannot follow, so the move is refused while the
--- association's rows use it.
+-- association's rows use it, and while its vendors are signed in to the
+-- vendor portal.
 create or replace function public.associations_move_vendor_portfolio()
 returns trigger
 language plpgsql
@@ -299,6 +300,15 @@ begin
         using errcode = '23514';
     end if;
   end loop;
+
+  -- A vendor signed in to the portal belongs to its company through its
+  -- profile too (current_vendor_id() needs both to match); moving that sign-in
+  -- is a separate decision, so refuse instead of cutting its access.
+  if exists (select 1 from public.vendors ven
+              where ven.association_id = new.id and ven.auth_user_id is not null) then
+    raise exception 'This association has vendors signed in to the vendor portal. It cannot move to another company.'
+      using errcode = '23514';
+  end if;
 
   update public.vendors set portfolio_id = new.portfolio_id
    where association_id = new.id and portfolio_id is distinct from new.portfolio_id;
@@ -498,6 +508,9 @@ begin
   if new.association_id is null then
     return new;
   end if;
+  -- Locked, so a concurrent move of the destination association to another
+  -- company waits for this row (and its management-company check sees it).
+  perform 1 from public.associations a where a.id = new.association_id for share;
   for r in select * from public.vendor_parent_link_tables() where parent = tg_relid loop
     execute format(
       'select exists (select 1 from %s c join public.vendors ven on ven.id = c.%I '

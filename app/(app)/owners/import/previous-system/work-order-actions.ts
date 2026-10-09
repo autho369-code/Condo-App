@@ -129,10 +129,13 @@ export async function importAppfolioWorkOrders(
   const [unitsRes, vendorsRes] = await Promise.all([
     fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id)')
       .eq('buildings.association_id', associationId).is('archived_at', null).order('id')),
-    // Vendors of this association only: each association has its own vendors
-    // (trg_vendor_same_association enforces it too).
+    // Vendors of this association plus the company's management company: each
+    // association has its own vendors (trg_vendor_same_association enforces it
+    // too), and the management company serves every association. Both ids come
+    // from the association row checked above.
     fetchAllRows<any>(() => db.from('vendors').select('id, name')
-      .eq('association_id', associationId).is('archived_at', null).order('id')),
+      .or(`association_id.eq.${association.id},and(is_management_company.eq.true,portfolio_id.eq.${portfolioId})`)
+      .is('archived_at', null).order('id')),
   ]);
   const loadErr = unitsRes.error ?? vendorsRes.error;
   if (loadErr) return { imported: 0, skipped: workOrders.length, errors: [`Could not load the association's units or vendors: ${loadErr}`] };

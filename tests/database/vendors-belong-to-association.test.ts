@@ -86,6 +86,8 @@ describe('vendors belong to exactly one association', () => {
     expect(migration).toContain('It cannot move to another company.');
     expect(migration).toContain('update public.vendor_financial_details f set portfolio_id = new.portfolio_id');
     expect(migration).toContain('update public.document_requests d set portfolio_id = new.portfolio_id');
+    expect(migration).toContain('This association has vendors signed in to the vendor portal. It cannot move to another company.');
+    expect(migration).toContain('perform 1 from public.associations a where a.id = new.association_id for share;');
     // The management-company checks lock the association against a concurrent company move.
     expect(migration.match(/where a\.id = v_association_id\s+for share;/g)).toHaveLength(2);
     for (const fn of ['vendors_set_portfolio_from_association', 'vendor_link_same_association', 'associations_move_vendor_portfolio']) {
@@ -192,7 +194,8 @@ describe('vendors belong to exactly one association', () => {
     expect(vendorImport).toContain('export async function importAppfolioVendors(associationId: string, vendors: AppfolioVendor[])');
     expect(vendorImport).toContain("db.rpc('can_manage_association', { p_association_id: associationId })");
     expect(vendorImport).toContain(".eq('association_id', associationId)");
-    expect(read('app/(app)/owners/import/previous-system/work-order-actions.ts')).toContain(".eq('association_id', associationId).is('archived_at', null)");
+    expect(read('app/(app)/owners/import/previous-system/work-order-actions.ts'))
+      .toContain('.or(`association_id.eq.${association.id},and(is_management_company.eq.true,portfolio_id.eq.${portfolioId})`)');
   });
 
   it('checks the association on vendor create', () => {
