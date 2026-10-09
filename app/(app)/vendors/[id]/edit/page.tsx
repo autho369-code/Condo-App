@@ -53,7 +53,7 @@ export default async function EditVendorPage({
   const db = (await createClient()) as any;
 
   const [{ data: v }, { data: glAccounts }] = await Promise.all([
-    db.from('vendors').select('*').eq('id', id).eq('portfolio_id', portfolioId).is('archived_at', null).maybeSingle(),
+    db.from('vendors').select('*, associations(name)').eq('id', id).eq('portfolio_id', portfolioId).is('archived_at', null).maybeSingle(),
     db
       .from('gl_accounts')
       .select('id, number, name')
@@ -89,6 +89,11 @@ export default async function EditVendorPage({
         <input type="hidden" name="vendor_id" value={id} />
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <Label>Association</Label>
+            <p className="text-sm text-gray-900">{v.is_management_company ? 'Management company (all associations)' : (v.associations?.name ?? '—')}</p>
+            <p className="mt-1 text-xs text-gray-500">A vendor stays with its association. For another association, add the company there as its own vendor.</p>
+          </div>
           <div className="md:col-span-2">
             <Label htmlFor="name">Vendor name <span className="text-red-500">*</span></Label>
             <Input id="name" name="name" required defaultValue={v.name} />

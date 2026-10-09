@@ -570,6 +570,7 @@
 "vendor_credits.vendor_id":"vendors",
 "vendor_financial_details.vendor_id":"vendors",
 "vendor_private.vendor_id":"vendors",
+"vendors.association_id":"associations",
 "vendors.default_gl_account_id":"gl_accounts",
 "vendors.portfolio_id":"portfolios",
 "violation_cases.association_id":"associations",

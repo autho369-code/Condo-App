@@ -57,3 +57,15 @@ Back to [[Home]]. Don't redo these.
   `delete_unlinked_owners()` are revoked from every app role (incl.
   service_role); never add an app path or API to them, and Claude never runs
   them.
+- **Vendors per association, with one management-company exception**
+  (Mirsad, 2026-10-09). `vendors.association_id` + `is_management_company`
+  (exactly one holds). Linking a vendor of another association to a work
+  order, bill, check, PO, etc. is refused in the database
+  (`trg_vendor_same_association` on every vendor/association table).
+  Management fees only accept the management-company vendor. Asked: "one
+  company-level exception" vs a copy per association — he chose the
+  exception. 1099s stay per association (each association is the payer).
+- **One vendor login across associations: build now** (Mirsad,
+  2026-10-09), as its own PR after vendors-per-association. Until then the
+  auto-link links the oldest matching record (no more failed sign-ups when
+  two records share an email).

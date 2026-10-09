@@ -820,6 +820,28 @@ export async function createVendor(formData: FormData) {
   const vendorName = str(formData, 'name');
   if (!vendorName) { failTo('Enter the vendor name.'); return; }
 
+  // A vendor record belongs to one association (the same company working for
+  // another association is a separate record). The management company is the
+  // one company-level vendor (management fees are billed to every association).
+  const isManagementCompany = formData.get('is_management_company') === 'on';
+  const associationId = isManagementCompany ? null : str(formData, 'association_id');
+  if (isManagementCompany) {
+    if (!(me.is_company_admin || me.is_platform_operator || me.is_finance_staff)) {
+      failTo('Only accounting staff or a company admin can add the management company.'); return;
+    }
+    const { data: scoped, error: scopedErr } = await (supabase as any).rpc('manager_is_scoped');
+    if (scopedErr) { failTo(scopedErr.message); return; }
+    if (scoped === true && !me.is_company_admin) {
+      failTo('Only company-wide staff can add the management company.'); return;
+    }
+  } else {
+    if (!associationId) { failTo('Choose the association this vendor works for.'); return; }
+    // can_manage_association also honors association-scoped managers.
+    const { data: canManage, error: accessErr } = await (supabase as any)
+      .rpc('can_manage_association', { p_association_id: associationId });
+    if (accessErr || canManage !== true) { failTo('You are not authorized to manage the selected association.'); return; }
+  }
+
   // Build phone_numbers array from landline/mobile fields
   const phones: Array<{type: string; number: string}> = [];
   const landline = str(formData, 'phone_landline');
@@ -833,6 +855,8 @@ export async function createVendor(formData: FormData) {
 
   const payload = {
     portfolio_id:   me.portfolio?.id,
+    association_id: associationId,
+    is_management_company: isManagementCompany,
     name:           vendorName,
     vendor_type:    str(formData, 'vendor_type') ?? 'general',
     trade:          str(formData, 'trade') ?? 'other',

@@ -170,18 +170,23 @@ async function seed() {
     { name: 'PaintCraft Inc.', trade: 'painting', payment_type: 'ach' },
     { name: 'ComEd Utilities', trade: 'utilities', payment_type: 'ach', is_utility: true },
   ];
+  // Each association has its own vendors: one record per vendor per association.
   const vendorIds: string[] = [];
+  const vendorIdsByAssoc = new Map<string, string[]>();
+  for (const assocForVendor of associations ?? []) {
   for (const v of vendorData) {
     const vid = uid();
     vendorIds.push(vid);
+    vendorIdsByAssoc.set(assocForVendor.id, [...(vendorIdsByAssoc.get(assocForVendor.id) ?? []), vid]);
     await db.from('vendors').insert({
-      id: vid, name: v.name, trade: v.trade, vendor_type: 'general',
+      id: vid, association_id: assocForVendor.id, name: v.name, trade: v.trade, vendor_type: 'general',
       payment_type: v.payment_type, payment_terms: 'Net 30',
       is_utility: v.is_utility ?? false,
       send_1099: !v.is_utility, taxpayer_id: Math.random() > 0.5 ? `XX-${between(1000000, 9999999)}` : null,
       portal_activated: Math.random() > 0.4,
       hold_payments: false,
     });
+  }
   }
   console.log(`Created ${vendorIds.length} vendors`);
 
@@ -197,7 +202,7 @@ async function seed() {
       const billDate = daysAgo(between(1, 45));
       await db.from('payable_bills').insert({
         id: uid(), association_id: assoc.id,
-        vendor_id: vendorIds[vendorData.indexOf(vendor)],
+        vendor_id: vendorIdsByAssoc.get(assoc.id)![vendorData.indexOf(vendor)],
         gl_account_id: glMap.get(parseInt(glAcct)),
         bill_date: billDate, due_date: futureDays(30),
         amount, status, memo: `${vendor.name} â€” ${pick(['Monthly service', 'Repair', 'Emergency call', 'Quarterly maintenance', 'Annual inspection'])}`,
@@ -240,7 +245,7 @@ async function seed() {
       const status = pick(['new', 'assigned', 'in_progress', 'in_progress', 'completed']);
       await db.from('work_orders').insert({
         id: uid(), association_id: assoc.id,
-        vendor_id: vendorIds[vendorData.indexOf(vendor)],
+        vendor_id: vendorIdsByAssoc.get(assoc.id)![vendorData.indexOf(vendor)],
         title: pick(woTypes),
         description: `Work order for ${assoc.name}`,
         status, priority: pick(['normal', 'normal', 'high', 'emergency']),

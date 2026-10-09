@@ -56,7 +56,7 @@ function ComplianceBadges({ vendor }: { vendor: any }) {
 export default async function VendorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; trade?: string; tag?: string; invited?: string; error?: string }>;
+  searchParams: Promise<{ q?: string; trade?: string; tag?: string; association?: string; invited?: string; error?: string }>;
 }) {
   const me = await requireStaff();
   const canManageBank = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
@@ -64,6 +64,8 @@ export default async function VendorsPage({
   const q = (sp.q ?? '').trim().toLowerCase();
   const trade = sp.trade ?? 'all';
   const tag = /^[0-9a-f-]{36}$/i.test(sp.tag ?? '') ? sp.tag! : '';
+  // Each association has its own vendors; 'company' is the management company.
+  const association = sp.association === 'company' || /^[0-9a-f-]{36}$/i.test(sp.association ?? '') ? sp.association! : '';
 
   const supabase = await createClient();
   const portfolioId = me.portfolio?.id;
@@ -71,7 +73,7 @@ export default async function VendorsPage({
   // Every vendor, paged past PostgREST's 1,000-row cap.
   const vendorsRes = await fetchAllRows<any>(() => (supabase as any)
     .from('vendors')
-    .select('id, name, emails, phone_numbers, trade, vendor_type, payment_type, payment_terms, is_utility, is_auto_pay, send_1099, has_taxpayer_id, has_bank_account, portal_activated, hold_payments, workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration, archived_at')
+    .select('id, name, association_id, is_management_company, associations(name), emails, phone_numbers, trade, vendor_type, payment_type, payment_terms, is_utility, is_auto_pay, send_1099, has_taxpayer_id, has_bank_account, portal_activated, hold_payments, workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration, archived_at')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name')
@@ -89,7 +91,12 @@ export default async function VendorsPage({
     ratingByVendor.set(r.vendor_id, t);
   }
   const trades: string[] = Array.from(new Set(allRows.map((vendor: any) => vendor.trade).filter(Boolean) as string[])).sort((a, b) => tradeLabel(a).localeCompare(tradeLabel(b)));
+  const associationOptions = Array.from(new Map(allRows.filter((vendor: any) => vendor.association_id)
+    .map((vendor: any) => [vendor.association_id, vendor.associations?.name ?? 'Association'])).entries())
+    .sort((a, b) => String(a[1]).localeCompare(String(b[1])));
   let rows = allRows;
+  if (association === 'company') rows = rows.filter((vendor: any) => vendor.is_management_company);
+  else if (association) rows = rows.filter((vendor: any) => vendor.association_id === association);
   if (trade !== 'all') rows = rows.filter((vendor: any) => vendor.trade === trade);
   if (tag) {
     const tagged = new Set(await recordIdsWithTag(supabase, 'vendor', tag));
@@ -176,6 +183,11 @@ export default async function VendorsPage({
         </div>
 
         <FilterBar action="/vendors" searchDefault={sp.q ?? ''} searchPlaceholder="Search vendor, trade, email, phone, or payment method">
+          <FilterSelect label="Association" name="association" defaultValue={association}>
+            <option value="">All associations</option>
+            {associationOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+            {allRows.some((vendor: any) => vendor.is_management_company) && <option value="company">Management company</option>}
+          </FilterSelect>
           <FilterSelect label="Trade" name="trade" defaultValue={trade}>
             <option value="all">All trades</option>
             {trades.map((item) => <option key={item} value={item}>{tradeLabel(item)}</option>)}
@@ -192,6 +204,7 @@ export default async function VendorsPage({
           <THead>
             <TR>
               <TH>Name</TH>
+              <TH>Association</TH>
               <TH>Trade</TH>
               <TH>Payment</TH>
               <TH>Tax &amp; portal</TH>
@@ -202,7 +215,7 @@ export default async function VendorsPage({
           </THead>
           <tbody>
             {rows.length === 0 ? (
-              <TR><TD colSpan={7} className="py-10 text-center text-gray-500">No vendors match this filter.</TD></TR>
+              <TR><TD colSpan={8} className="py-10 text-center text-gray-500">No vendors match this filter.</TD></TR>
             ) : (
               rows.map((vendor: any) => {
                 const scorecard = performanceByVendor.get(vendor.id)!;
@@ -219,6 +232,7 @@ export default async function VendorsPage({
                       </div>
                     )}
                   </TD>
+                  <TD>{vendor.is_management_company ? <StatusChip tone="info">Management company</StatusChip> : (vendor.associations?.name ?? '—')}</TD>
                   <TD>{tradeLabel(vendor.trade)}</TD>
                   <TD>
                     <div className="flex flex-wrap gap-1">

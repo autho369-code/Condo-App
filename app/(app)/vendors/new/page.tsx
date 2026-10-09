@@ -3,8 +3,10 @@ import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
+import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createVendor } from '@/lib/rpcs/entities';
+import { createClient } from '@/lib/supabase/server';
 import { VENDOR_PAYMENT_TYPES as PAYMENT_TYPES, VENDOR_TRADES as TRADES, VENDOR_TYPES, tradeLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +20,9 @@ export default async function NewVendorPage({
   const me = await requireStaff();
   const canEditFinancials = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
   const sp = await searchParams;
+  const supabase = await createClient();
+  const { data: associations, error: associationsError } = await (supabase as any)
+    .from('associations').select('id, name').is('archived_at', null).order('name');
 
   return (
     <DataWorkspace
@@ -31,8 +36,26 @@ export default async function NewVendorPage({
         </div>
       )}
 
+      {associationsError && (
+        <div className="mb-6 max-w-5xl"><Alert tone="danger" title="Could not load associations">{associationsError.message}</Alert></div>
+      )}
+
       <form action={createVendor as any} className="max-w-5xl space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <Label htmlFor="association_id">Association <span className="text-red-500">*</span></Label>
+            <select id="association_id" name="association_id" defaultValue="" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+              <option value="">Select association</option>
+              {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+            <p className="mt-1 text-xs text-gray-500">Each association has its own vendors. A company that works for another association is added there as its own vendor.</p>
+          </div>
+          {canEditFinancials && (
+            <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 md:col-span-2">
+              <input type="checkbox" name="is_management_company" className="mt-1" />
+              <span><span className="block text-sm font-medium text-gray-900">This is the management company</span><span className="block text-xs text-gray-500">The one vendor that belongs to the company instead of an association: management fees are billed to it from every association. Leave the association empty.</span></span>
+            </label>
+          )}
           <div className="md:col-span-2">
             <Label htmlFor="name">Vendor name <span className="text-red-500">*</span></Label>
             <Input id="name" name="name" required placeholder="e.g. Acme Plumbing Inc." />

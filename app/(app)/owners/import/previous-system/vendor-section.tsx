@@ -2,13 +2,14 @@
 
 // Reads AppFolio's Vendor Directory export in the browser
 // (lib/imports/appfolio-vendors), previews the vendors it found and imports
-// them into this company's vendor list. The server action re-validates every
+// them into the vendor list of the association chosen here (each association
+// has its own vendors; the export itself is company-wide). The server action re-validates every
 // field and skips vendors that already exist; this only previews.
 import * as React from 'react';
 import { Alert, Badge, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/input';
+import { Input, Label, Select } from '@/components/ui/input';
 import { parseAppfolioVendorDirectory, type AppfolioVendor } from '@/lib/imports/appfolio-vendors';
 import type { importAppfolioVendors, VendorImportSummary } from './vendor-actions';
 
@@ -48,7 +49,11 @@ const soonestExpiration = (v: AppfolioVendor) =>
     v.auto_insurance_expiration, v.state_license_expiration, v.contract_expiration,
   ].filter((d): d is string => !!d).sort()[0] ?? null;
 
-export function VendorImportSection({ importVendors }: { importVendors: typeof importAppfolioVendors }) {
+type Association = { id: string; name: string };
+
+export function VendorImportSection({ associations, importVendors }: { associations: Association[]; importVendors: typeof importAppfolioVendors }) {
+  const selectId = React.useId();
+  const [associationId, setAssociationId] = React.useState(() => (associations.length === 1 ? associations[0].id : ''));
   const [vendors, setVendors] = React.useState<AppfolioVendor[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [fileName, setFileName] = React.useState('');
@@ -72,7 +77,7 @@ export function VendorImportSection({ importVendors }: { importVendors: typeof i
   }
 
   async function run() {
-    if (!vendors) return;
+    if (!vendors || !associationId) return;
     setBusy(true);
     setError(null);
     setResult(null);
@@ -82,7 +87,7 @@ export function VendorImportSection({ importVendors }: { importVendors: typeof i
       const total = { imported: 0, skipped: 0 };
       const messages: string[] = [];
       for (const batch of batchesOf(vendors)) {
-        const part = await importVendors(batch);
+        const part = await importVendors(associationId, batch);
         total.imported += part.imported;
         total.skipped += part.skipped;
         for (const m of part.errors ?? []) if (!messages.includes(m)) messages.push(m);
@@ -103,7 +108,7 @@ export function VendorImportSection({ importVendors }: { importVendors: typeof i
       <Surface className="space-y-3">
         <SectionTitle
           title="Vendors — Vendor Directory"
-          description="In your previous system, open Reports → Vendor Directory, then Actions → Export as CSV. Vendors that already exist here with the same name are skipped, so importing the same file twice is safe. A renamed vendor is imported as a new one."
+          description="In your previous system, open Reports → Vendor Directory, then Actions → Export as CSV. Each association has its own vendors: choose the association these vendors work for. Vendors that already exist in that association with the same name are skipped, so importing the same file twice is safe. A renamed vendor is imported as a new one."
           className="mb-0"
         />
         <div>
@@ -157,7 +162,14 @@ export function VendorImportSection({ importVendors }: { importVendors: typeof i
           )}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <Button type="button" disabled={busy || result !== null} onClick={run}>
+            <div className="flex-1">
+              <Label htmlFor={selectId}>Import into</Label>
+              <Select id={selectId} value={associationId} onChange={(e) => setAssociationId(e.target.value)} disabled={busy || result !== null} required>
+                <option value="">Select an association</option>
+                {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </Select>
+            </div>
+            <Button type="button" disabled={!associationId || busy || result !== null} onClick={run}>
               {busy ? 'Importing…' : result ? 'Imported' : `Import ${vendors.length} vendor${vendors.length === 1 ? '' : 's'}`}
             </Button>
           </div>

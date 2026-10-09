@@ -83,7 +83,9 @@ export default async function ManagementFeesPage({
 
   const [{ data: preview, error }, { data: vendors }, { data: gls }, { data: portfolio }] = await Promise.all([
     db.rpc('management_fee_preview', { p_month: `${month}-01` }),
-    fetchAllRows<any>(() => db.from('vendors').select('id, name').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
+    // Management fees go to the management company: the one vendor that belongs to
+    // the company instead of an association.
+    fetchAllRows<any>(() => db.from('vendors').select('id, name').eq('is_management_company', true).is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
     db.from('gl_accounts').select('id, number, name').eq('active', true).is('association_id', null)
       .in('account_type', ['expense', 'other_expense']).order('number'),
     db.from('portfolios').select('management_fee_vendor_id, management_fee_gl_account_id, company_name, management_fee_auto_enabled, management_fee_auto_day, management_fee_auto_last_run').eq('id', me.portfolio?.id).maybeSingle(),
@@ -242,7 +244,7 @@ export default async function ManagementFeesPage({
                   </div>
                 </div>
                 {!(vendors ?? []).length && (
-                  <p className="mt-3 text-sm text-gray-500">Add your management company as a vendor first. <Link href="/vendors/new" className="font-medium text-gray-900 underline">New vendor</Link></p>
+                  <p className="mt-3 text-sm text-gray-500">Add your management company as a vendor first, with &ldquo;This is the management company&rdquo; checked. <Link href="/vendors/new" className="font-medium text-gray-900 underline">New vendor</Link></p>
                 )}
               </Surface>
             )}
