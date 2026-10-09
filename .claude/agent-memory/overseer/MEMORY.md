@@ -121,3 +121,8 @@
   profile's company, so the profile branch covers every record). Check each
   premise against the latest migration + live pg_get_functiondef before
   planning a migration; record "verified, no change" in Status/Decisions.
+- Recurring 3rd time (owner leftovers pre-PR, 2026-10-09): caller restated
+  the migration rule as "apply after Codex is clean". PR Rules: apply as soon
+  as the SQL is settled (reviewers clean), read back, then open the PR with
+  "do not merge until live". Also check Status "Where things stand" gets the
+  just-merged PR, not only Open PR.
