@@ -24,7 +24,11 @@
 --    maintenance_tasks, calendar_events, approval_requests, inspections)
 --    refuses a vendor of another association. This covers every writer
 --    centrally (RPCs, imports, direct writes). Company-level rows (no
---    association) keep the existing same-company checks.
+--    association) keep the existing same-company checks. Rows that reach
+--    their association through a parent (work order estimates and ratings,
+--    maintenance task history, lock box assignments) are checked against the
+--    parent's, and the parent cannot move to another association while it
+--    has such rows from a vendor of its current one.
 -- 4. Managers limited to some associations (association_managers) see only
 --    their associations' vendors (restrictive mgr_assoc_scope on vendors,
 --    vendor_private, vendor_compliance, vendor_financial_details).
@@ -76,8 +80,25 @@ $function$;
 
 revoke all on function public.vendor_link_tables() from public, anon, authenticated;
 
--- The associations a vendor has rows in (any linked table, and estimates
--- through their work order). Used by the backfill and the vendor move guard.
+-- Tables that link a vendor without an association of their own: theirs is
+-- the parent row's. (child table, vendor column, parent key column, parent).
+create or replace function public.vendor_parent_link_tables()
+returns table(tbl regclass, col name, parent_col name, parent regclass)
+language sql
+immutable
+set search_path to 'pg_catalog', 'public'
+as $function$
+  values
+    ('public.work_order_estimates'::regclass, 'vendor_id'::name, 'work_order_id'::name, 'public.work_orders'::regclass),
+    ('public.work_order_ratings'::regclass, 'vendor_id'::name, 'work_order_id'::name, 'public.work_orders'::regclass),
+    ('public.maintenance_task_history'::regclass, 'vendor_id'::name, 'task_id'::name, 'public.maintenance_tasks'::regclass),
+    ('public.lock_box_assignments'::regclass, 'vendor_id'::name, 'lock_box_id'::name, 'public.lock_boxes'::regclass)
+$function$;
+
+revoke all on function public.vendor_parent_link_tables() from public, anon, authenticated;
+
+-- The associations a vendor has rows in (any linked table, and the tables
+-- linked through a parent). Used by the backfill and the vendor move guard.
 create or replace function public.vendor_linked_association_ids(p_vendor_id uuid)
 returns uuid[]
 language plpgsql
@@ -96,11 +117,14 @@ begin
       into v_part using p_vendor_id;
     v_ids := v_ids || v_part;
   end loop;
-  -- Estimates carry no association: theirs is the work order's.
-  select coalesce(array_agg(distinct w.association_id), '{}') into v_part
-    from public.work_order_estimates e join public.work_orders w on w.id = e.work_order_id
-   where e.vendor_id = p_vendor_id and w.association_id is not null;
-  v_ids := v_ids || v_part;
+  -- Estimates, ratings, task history, lock box assignments: the parent's.
+  for r in select * from public.vendor_parent_link_tables() loop
+    execute format('select coalesce(array_agg(distinct p.association_id), ''{}'') from %s c join %s p on p.id = c.%I '
+                   || 'where c.%I = $1 and p.association_id is not null',
+                   r.tbl, r.parent, r.parent_col, r.col)
+      into v_part using p_vendor_id;
+    v_ids := v_ids || v_part;
+  end loop;
   return coalesce((select array_agg(distinct x) from unnest(v_ids) x), '{}');
 end $function$;
 
@@ -326,40 +350,57 @@ begin
   end loop;
 end $$;
 
--- Estimates carry no association of their own: the vendor must be one of the
--- work order's association (or the management company).
-create or replace function public.work_order_estimate_vendor_same_association()
+-- Rows linked through a parent (estimates, ratings, task history, lock box
+-- assignments): the vendor must be one of the parent's association (or the
+-- management company of its company). TG_ARGV: vendor column, parent key
+-- column, parent table. The parent is locked, so a concurrent move of it to
+-- another association waits for this row (and its guard below then sees
+-- it), or this sees the move.
+create or replace function public.vendor_link_parent_same_association()
 returns trigger
 language plpgsql
 security definer
 set search_path to 'pg_catalog', 'public'
 as $function$
 declare
-  v_wo_association uuid;
-  v_wo_portfolio uuid;
+  v_row jsonb := to_jsonb(new);
+  v_vendor_id uuid := nullif(v_row->>tg_argv[0], '')::uuid;
+  v_parent_id uuid := nullif(v_row->>tg_argv[1], '')::uuid;
+  v_association_id uuid;
   v_vendor_association uuid;
   v_vendor_portfolio uuid;
   v_management boolean;
 begin
-  if new.vendor_id is null then
+  if v_vendor_id is null or v_parent_id is null then
     return new;
   end if;
-  select w.association_id, w.portfolio_id into v_wo_association, v_wo_portfolio
-    from public.work_orders w where w.id = new.work_order_id;
+
+  execute format('select association_id from %s where id = $1 for share', tg_argv[2])
+    into v_association_id using v_parent_id;
+  -- A missing parent is left to the foreign key; a company-level parent to
+  -- the existing same-company checks.
+  if v_association_id is null then
+    return new;
+  end if;
+
   select ven.association_id, ven.portfolio_id, ven.is_management_company
     into v_vendor_association, v_vendor_portfolio, v_management
-    from public.vendors ven where ven.id = new.vendor_id for share;
+    from public.vendors ven
+   where ven.id = v_vendor_id
+     for share;
   if not found then
     return new;
   end if;
+
   if v_management then
-    -- The management company serves every association, of its own company only.
-    if v_vendor_portfolio is distinct from v_wo_portfolio then
+    if not exists (select 1 from public.associations a
+                    where a.id = v_association_id and a.portfolio_id = v_vendor_portfolio) then
       raise exception 'This vendor belongs to another company.' using errcode = '23514';
     end if;
     return new;
   end if;
-  if v_vendor_association is distinct from v_wo_association then
+
+  if v_vendor_association is distinct from v_association_id then
     raise exception 'This vendor belongs to another association. Add it as a vendor of this association.'
       using errcode = '23514';
   end if;
@@ -367,11 +408,66 @@ begin
 end;
 $function$;
 
-revoke all on function public.work_order_estimate_vendor_same_association() from public, anon, authenticated;
+revoke all on function public.vendor_link_parent_same_association() from public, anon, authenticated;
 
-create or replace trigger trg_work_order_estimate_vendor_same_association
-  before insert or update of vendor_id, work_order_id on public.work_order_estimates
-  for each row execute function public.work_order_estimate_vendor_same_association();
+do $$
+declare
+  r record;
+begin
+  for r in select * from public.vendor_parent_link_tables() loop
+    execute format(
+      'create or replace trigger trg_vendor_parent_same_association before insert or update of %I, %I on %s '
+      || 'for each row execute function public.vendor_link_parent_same_association(%L, %L, %L)',
+      r.col, r.parent_col, r.tbl, r.col, r.parent_col, r.parent::text);
+  end loop;
+end $$;
+
+-- A parent (work order, maintenance task, lock box) moved to another
+-- association must not keep child rows of a vendor of its old one.
+create or replace function public.vendor_parent_association_moved()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+declare
+  r record;
+  v_bad boolean;
+begin
+  if new.association_id is null then
+    return new;
+  end if;
+  for r in select * from public.vendor_parent_link_tables() where parent = tg_relid loop
+    execute format(
+      'select exists (select 1 from %s c join public.vendors ven on ven.id = c.%I '
+      || 'where c.%I = $1 and ((not ven.is_management_company and ven.association_id is distinct from $2) '
+      || 'or (ven.is_management_company and not exists (select 1 from public.associations a '
+      || 'where a.id = $2 and a.portfolio_id = ven.portfolio_id))))',
+      r.tbl, r.col, r.parent_col)
+      into v_bad using new.id, new.association_id;
+    if v_bad then
+      raise exception 'This record has estimates, ratings or other entries from a vendor of its current association. It cannot move to another association.'
+        using errcode = '23514';
+    end if;
+  end loop;
+  return new;
+end;
+$function$;
+
+revoke all on function public.vendor_parent_association_moved() from public, anon, authenticated;
+
+do $$
+declare
+  r record;
+begin
+  for r in select distinct parent from public.vendor_parent_link_tables() loop
+    execute format(
+      'create or replace trigger trg_vendor_parent_association_moved before update of association_id on %s '
+      || 'for each row when (new.association_id is distinct from old.association_id) '
+      || 'execute function public.vendor_parent_association_moved()',
+      r.parent);
+  end loop;
+end $$;
 
 -- 5) Association-scoped managers see only their associations' vendors -------
 
