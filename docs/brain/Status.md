@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (open PR: temp-table truncate fix for Journal entries -> Upload batch; next: Mirsad re-uploads the Randolph Station opening journal).
+Back to [[Home]]. Updated 2026-10-09 (open PR #270: temp-table truncate fix for Journal entries -> Upload batch, migration live; next: Mirsad re-uploads the Randolph Station opening journal).
 
 ## Open PR
-- Branch claude/serene-wozniak-hvgpxf: Journal entries -> Upload
+- #270 (branch claude/serene-wozniak-hvgpxf): Journal entries -> Upload
   batch failed with "DELETE requires a WHERE clause" (Supabase's
   pg_safeupdate refuses a bare DELETE from API sessions, even inside a
   definer RPC). import_journal_entry_batch, import_bills (Bills upload) and
@@ -12,8 +12,10 @@ Back to [[Home]]. Updated 2026-10-09 (open PR: temp-table truncate fix for Journ
   definition; owner, definer and grants unchanged). Nothing was posted by
   the failed upload. A scan of every live plpgsql function found no other
   bare DELETE. Rule: clear a temp table with truncate, never a bare delete.
-  Mirsad runs the migration in the SQL editor (it rewrites function
-  bodies to use truncate), then Claude reads it back.
+  Mirsad ran the migration in the SQL editor (2026-10-09; it rewrites
+  function bodies to use truncate); Claude read it back: all three contain
+  truncate and no bare delete, still security definer, owner postgres,
+  search_path pg_catalog/public, grants unchanged, anon cannot execute.
 
 ## Where things stand
 - Randolph Station vendors, open balances, work orders imported by Mirsad
