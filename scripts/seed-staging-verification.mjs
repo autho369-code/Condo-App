@@ -144,8 +144,8 @@ async function main() {
   }
   await upsert('gl_accounts', gl)
   await upsert('vendors', [
-    { id: ids.vendorA, portfolio_id: ids.portfolioA, name: 'CODEX_TEST Alpha Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true, address_street: '410 Fixture Avenue', address_city: 'Seattle', address_state: 'WA', address_zip: '98101' },
-    { id: ids.vendorB, portfolio_id: ids.portfolioB, name: 'CODEX_TEST Beta Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true, address_street: '820 Sentinel Street', address_city: 'Portland', address_state: 'OR', address_zip: '97205' },
+    { id: ids.vendorA, portfolio_id: ids.portfolioA, association_id: ids.associationA, name: 'CODEX_TEST Alpha Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true, address_street: '410 Fixture Avenue', address_city: 'Seattle', address_state: 'WA', address_zip: '98101' },
+    { id: ids.vendorB, portfolio_id: ids.portfolioB, association_id: ids.associationB, name: 'CODEX_TEST Beta Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true, address_street: '820 Sentinel Street', address_city: 'Portland', address_state: 'OR', address_zip: '97205' },
   ])
   const [boardA, boardObserverA, ownerAUser, tenantAUser, vendorAUser, ownerBUser, vendorBUser] = await Promise.all([
     ensureUser('codex_test.board.a@portier369.invalid', 'CODEX_TEST Board A', ids.portfolioA, 'board'),

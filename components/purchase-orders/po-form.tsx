@@ -6,6 +6,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
+import { VendorSelect, type VendorOption } from '@/components/vendors/vendor-select';
 
 type Option = { id: string; name: string };
 type GlOption = { id: string; number: string | null; name: string; association_id: string | null };
@@ -52,7 +53,7 @@ export function PurchaseOrderForm({
 }: {
   action: (formData: FormData) => void | Promise<void>;
   associations: Option[];
-  vendors: Option[];
+  vendors: VendorOption[];
   glAccounts: GlOption[];
   workOrders: WorkOrderOption[];
   rules: Record<string, ApprovalRule>;
@@ -124,10 +125,8 @@ export function PurchaseOrderForm({
           </Select>
         </Field>
         <Field label="Vendor" htmlFor="vendor_id" required>
-          <Select id="vendor_id" name="vendor_id" required defaultValue={initial?.vendor_id ?? ''}>
-            <option value="">Select vendor</option>
-            {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-          </Select>
+          {/* Only this association's vendors plus the management company. */}
+          <VendorSelect id="vendor_id" name="vendor_id" required defaultValue={initial?.vendor_id ?? ''} vendors={vendors} associationId={associationId || null} placeholder="Select vendor" />
         </Field>
         <Field label="PO number" htmlFor="number" hint="Optional — your internal reference.">
           <Input id="number" name="number" defaultValue={initial?.number ?? ''} maxLength={40} />

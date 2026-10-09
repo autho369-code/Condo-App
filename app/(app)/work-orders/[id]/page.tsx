@@ -20,7 +20,9 @@ import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 import { assignWorkOrderToStaff } from '@/lib/rpcs/work-order-team';
 import { todayInZone } from '@/lib/time/zoned';
 import { firstVendorPhone } from '@/lib/vendors/contact';
+import { VendorSelect } from '@/components/vendors/vendor-select';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,7 +91,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     (supabase as any).from('work_order_updates').select('id, note, new_status, created_at, created_by').eq('work_order_id', id).order('created_at', { ascending: false }),
     (supabase as any).from('work_order_labor_entries').select('id, tech_name, date_worked, hours, hourly_rate, labor_cost, description').eq('work_order_id', id).order('date_worked', { ascending: false }),
     (supabase as any).from('work_order_estimates').select('id, amount, notes, submitted_at, approved_at, rejected_at, vendors(name)').eq('work_order_id', id).order('submitted_at', { ascending: false }),
-    (supabase as any).from('vendors').select('id, name, trade').is('archived_at', null).order('name'),
+    fetchAllRows<any>(() => (supabase as any).from('vendors').select('id, name, trade, association_id, is_management_company, portfolio_id').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     (supabase as any).from('work_order_messages').select('id, author_name, author_role, body, created_at').eq('work_order_id', id).order('created_at', { ascending: true }),
     (supabase as any).from('work_order_ratings').select('rated_by, rater_role, score, quality, timeliness, communication, would_hire_again, comment, created_at').eq('work_order_id', id).order('created_at', { ascending: false }),
     supabase.auth.getUser(),
@@ -118,6 +120,8 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
   const assoc = (wo.units as any)?.buildings?.associations ?? (wo as any).associations;
   const sr = wo.service_requests as any;
   const vendor = wo.vendors as any;
+  // The assign pickers show the trade next to the name.
+  const vendorOptions = (vendors ?? []).map((v: any) => ({ ...v, name: `${v.name} (${v.trade})` }));
 
   const laborTotal = (labor ?? []).reduce((s: number, l: any) => s + Number(l.labor_cost ?? 0), 0);
   const pendingEstimate = (estimates ?? []).find((e: any) => !e.approved_at && !e.rejected_at);
@@ -194,7 +198,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
               <details className="mt-3">
                 <summary className="cursor-pointer text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Reassign</summary>
                 <form action={assignVendor.bind(null, id) as any} className="mt-3 space-y-2">
-                  <Select name="vendor_id" options={(vendors ?? []).map((v: any) => ({ value: v.id, label: `${v.name} (${v.trade})` }))} required />
+                  <VendorSelect name="vendor_id" vendors={vendorOptions} associationId={wo.association_id ?? null} required />
                   <Input name="note" placeholder="Reassignment reason (optional)" />
                   <label className="flex items-center gap-2 text-xs text-gray-600">
                     <input type="checkbox" name="bump_status" defaultChecked={wo.status === 'new'} /> set status to &quot;assigned&quot;
@@ -208,7 +212,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
             </div>
           ) : (
             <form action={assignVendor.bind(null, id) as any} className="space-y-2">
-              <Select name="vendor_id" options={(vendors ?? []).map((v: any) => ({ value: v.id, label: `${v.name} (${v.trade})` }))} required />
+              <VendorSelect name="vendor_id" vendors={vendorOptions} associationId={wo.association_id ?? null} required />
               <Input name="note" placeholder="Dispatch note (optional)" />
               <label className="flex items-center gap-2 text-xs text-gray-600">
                 <input type="checkbox" name="bump_status" defaultChecked /> set status to &quot;assigned&quot;
@@ -417,10 +421,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
         ) : <p className="px-5 py-4 text-sm text-gray-500">No estimates yet.</p>}
 
         <form action={addEstimate.bind(null, id) as any} className="grid grid-cols-1 gap-3 border-t border-gray-100 px-5 py-4 md:grid-cols-3">
-          <select name="vendor_id" className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-            <option value="">Choose vendor…</option>
-            {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
-          </select>
+          <VendorSelect name="vendor_id" vendors={vendors ?? []} associationId={wo.association_id ?? null} placeholder="Choose vendor…" />
           <Input name="amount" type="number" step="0.01" min="0" placeholder="Quote $" required />
           <Button type="submit">Add estimate</Button>
           <Input name="notes" placeholder="Notes" className="md:col-span-3" />

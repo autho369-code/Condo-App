@@ -49,7 +49,7 @@ export default async function SmsPage({
       .order('id')),
     fetchAllRows<any>(() => db
       .from('vendors')
-      .select('id, name, phone_numbers')
+      .select('id, name, phone_numbers, is_management_company, associations(name)')
       .is('archived_at', null)
       .eq('portfolio_id', me.portfolio?.id)
       .order('name')

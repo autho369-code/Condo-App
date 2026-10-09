@@ -11,7 +11,7 @@ import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/fo
 async function accessibleWorkOrder(db: any, workOrderId: string) {
   return db
     .from('work_orders')
-    .select('id, portfolio_id')
+    .select('id, portfolio_id, association_id')
     .eq('id', workOrderId)
     .maybeSingle();
 }
@@ -240,11 +240,16 @@ export async function addEstimate(workOrderId: string, formData: FormData) {
   if (vendorId) {
     const { data: vendor, error: vendorError } = await (supabase as any)
       .from('vendors')
-      .select('id, portfolio_id')
+      .select('id, portfolio_id, association_id, is_management_company')
       .eq('id', vendorId)
       .maybeSingle();
     if (vendorError || !vendor || !workOrder.portfolio_id || vendor.portfolio_id !== workOrder.portfolio_id) {
       redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(vendorError?.message ?? 'Estimate vendor is not accessible in this work order portfolio.')}`);
+      return;
+    }
+    // Each association has its own vendors (the management company serves all).
+    if (!vendor.is_management_company && vendor.association_id !== workOrder.association_id) {
+      redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent('This vendor belongs to another association. Add it as a vendor of this association.')}`);
       return;
     }
   }

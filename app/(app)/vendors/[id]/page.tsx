@@ -76,7 +76,7 @@ export default async function VendorDetailPage({
   const { data: vendor } = await db
     .from('vendors')
     // vendor_financial_details is finance-only; for other staff the embed is null.
-    .select('*, vendor_financial_details(bank_account_number)')
+    .select('*, associations(name), vendor_financial_details(bank_account_number)')
     .eq('id', id)
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
@@ -130,7 +130,7 @@ export default async function VendorDetailPage({
   return (
     <DataWorkspace
       title={vendor.name}
-      description={`${tradeLabel(vendor.trade)} · ${(vendor.vendor_type ?? 'general').replace(/_/g, ' ')}`}
+      description={`${vendor.is_management_company ? 'Management company' : (vendor.associations?.name ?? 'No association')} · ${tradeLabel(vendor.trade)} · ${(vendor.vendor_type ?? 'general').replace(/_/g, ' ')}`}
       actions={
         <div className="flex items-center gap-2">
           <Link href="/vendors"><Button variant="secondary"><ArrowLeft className="h-4 w-4" /> Vendors</Button></Link>

@@ -16,6 +16,7 @@ import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { todayInZone } from '@/lib/time/zoned';
 import { PayablesTabs } from '@/components/accounting/payables-tabs';
+import { vendorAssociationLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
@@ -128,7 +129,7 @@ export default async function BillsPage({
     })(),
     // Vendors for filter
     fetchAllRows<any>(() => db.from('vendors')
-      .select('id, name')
+      .select('id, name, is_management_company, associations(name)')
       .is('archived_at', null)
       .order('name').order('id')).then((r) => ({ data: r.rows })),
     // Associations for filter
@@ -372,7 +373,7 @@ export default async function BillsPage({
           </FilterSelect>
           <FilterSelect label="Vendor" name="vendor_id" defaultValue={vendor}>
             <option value="">All vendors</option>
-            {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+            {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name} · {vendorAssociationLabel(v)}</option>)}
           </FilterSelect>
         </FilterBar>
 

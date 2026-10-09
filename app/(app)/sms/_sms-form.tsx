@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { sendSms } from '@/lib/rpcs/sms';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { phoneEntries } from '@/lib/sms/phone-entries';
+import { vendorAssociationLabel } from '@/lib/vendors/options';
 
 function extractPhone(entity: any, type: string): string {
   if (entity.phone && typeof entity.phone === 'string' && entity.phone.trim()) return entity.phone.trim();
@@ -88,7 +89,7 @@ export function SmsForm({
           <option value="">Select {entityLabel.toLowerCase()}...</option>
           {entities.map((e: any) => (
             <option key={e.id} value={e.id}>
-              {entityName(e)} {extractPhone(e, recipientType) ? `(${extractPhone(e, recipientType)})` : ''}
+              {entityName(e)}{recipientType === 'vendor' ? ` · ${vendorAssociationLabel(e)}` : ''} {extractPhone(e, recipientType) ? `(${extractPhone(e, recipientType)})` : ''}
             </option>
           ))}
         </select>

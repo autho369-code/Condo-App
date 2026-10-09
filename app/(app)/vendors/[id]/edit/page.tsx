@@ -52,17 +52,20 @@ export default async function EditVendorPage({
   if (!portfolioId) notFound();
   const db = (await createClient()) as any;
 
-  const [{ data: v }, { data: glAccounts }] = await Promise.all([
-    db.from('vendors').select('*').eq('id', id).eq('portfolio_id', portfolioId).is('archived_at', null).maybeSingle(),
+  const [{ data: v }, { data: allGlAccounts }] = await Promise.all([
+    db.from('vendors').select('*, associations(name)').eq('id', id).eq('portfolio_id', portfolioId).is('archived_at', null).maybeSingle(),
     db
       .from('gl_accounts')
-      .select('id, number, name')
+      .select('id, number, name, association_id')
       .eq('portfolio_id', portfolioId)
       .eq('active', true)
       .in('account_type', ['expense', 'cost_of_goods_sold', 'other_expense'])
       .order('number'),
   ]);
   if (!v) notFound();
+  // Default account: company-wide or one of the vendor's association (the
+  // management company belongs to no association: company-wide only).
+  const glAccounts = (allGlAccounts ?? []).filter((g: any) => !g.association_id || g.association_id === v.association_id);
   // Internal notes live in staff-only vendor_private (the vendor reads its own row).
   await mergePrivateFieldsOne(db, 'vendor_private', 'vendor_id', ['notes'], v);
 
@@ -89,6 +92,11 @@ export default async function EditVendorPage({
         <input type="hidden" name="vendor_id" value={id} />
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <p className="mb-1.5 text-sm font-medium text-gray-700">Association</p>
+            <p className="text-sm text-gray-900">{v.is_management_company ? 'Management company (all associations)' : (v.associations?.name ?? '—')}</p>
+            <p className="mt-1 text-xs text-gray-500">A vendor stays with its association. For another association, add the company there as its own vendor.</p>
+          </div>
           <div className="md:col-span-2">
             <Label htmlFor="name">Vendor name <span className="text-red-500">*</span></Label>
             <Input id="name" name="name" required defaultValue={v.name} />

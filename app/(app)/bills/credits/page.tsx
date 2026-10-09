@@ -8,6 +8,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { applyVendorCredit, enterVendorCredit } from '@/lib/rpcs/vendor-credits';
 import { createClient } from '@/lib/supabase/server';
 import { PendingSubmit } from '@/components/ui/pending-submit';
+import { VendorSelect } from '@/components/vendors/vendor-select';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { todayInZone } from '@/lib/time/zoned';
 import { date, money } from '@/lib/utils';
@@ -42,7 +43,7 @@ export default async function VendorCreditsPage({
     pageAll(() => db.from('vendor_credits').select(cols).gt('remaining_amount', 0).order('credit_date', { ascending: false }).order('id')),
     db.from('vendor_credits').select(cols).eq('remaining_amount', 0).order('credit_date', { ascending: false }).limit(300),
     pageAll(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')),
-    pageAll(() => db.from('vendors').select('id, name').is('archived_at', null).order('name').order('id')),
+    pageAll(() => db.from('vendors').select('id, name, association_id, is_management_company, portfolio_id').is('archived_at', null).order('name').order('id')),
     pageAll(() => db.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number').order('id')),
   ]);
   const open = (openCredits ?? []) as any[];
@@ -76,17 +77,14 @@ export default async function VendorCreditsPage({
           <SectionTitle title="Enter a credit" description="Posts Dr Accounts Payable / Cr the account the credit reduces — usually the original expense." />
           <form action={enterVendorCredit} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
-            <Field label="Vendor" htmlFor="vendor_id">
-              <Select id="vendor_id" name="vendor_id" required defaultValue="">
-                <option value="">Choose a vendor</option>
-                {((vendors ?? []) as any[]).map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-              </Select>
-            </Field>
             <Field label="Association" htmlFor="association_id">
               <Select id="association_id" name="association_id" required defaultValue="">
                 <option value="">Choose an association</option>
                 {((associations ?? []) as any[]).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </Select>
+            </Field>
+            <Field label="Vendor" htmlFor="vendor_id">
+              <VendorSelect id="vendor_id" name="vendor_id" required defaultValue="" vendors={(vendors ?? []) as any[]} placeholder="Choose a vendor" />
             </Field>
             <Field label="Date" htmlFor="credit_date"><Input id="credit_date" name="credit_date" type="date" required defaultValue={today} /></Field>
             <Field label="Amount" htmlFor="amount"><Input id="amount" name="amount" type="number" min="0.01" step="0.01" required /></Field>

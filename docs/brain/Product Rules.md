@@ -42,6 +42,10 @@ Back to [[Home]].
   buildings). Deleting an association deletes all of its records.
   Imports, pickers and lookups match only inside the association.
   - **Vendors: per association** (same company in two associations = two
-    vendor records). Not built yet: next after homeowners.
+    vendor records). **One exception: the management company** (Mirsad,
+    2026-10-09) is a single company-level vendor (`is_management_company`,
+    no association) that management fees bill from every association. One
+    vendor login sees every association the vendor works for (Mirsad chose
+    "build it now").
   - **Chart of accounts: one per company**, entered and changed by the
     company admin; balances stay per association.

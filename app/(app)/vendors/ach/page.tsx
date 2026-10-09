@@ -13,7 +13,8 @@ import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { verifyVendorAch, activateVendorAch, revokeVendorAch } from '@/lib/rpcs/entities';
 import { Field, Input } from '@/components/ui/input';
-import { tradeLabel } from '@/lib/vendors/options';
+import { tradeLabel, vendorAssociationLabel } from '@/lib/vendors/options';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { mergePrivateFields } from '@/lib/private-fields';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 
@@ -112,11 +113,13 @@ export default async function VendorAchPage({
   const q = (sp.q ?? '').trim().toLowerCase();
   const supabase = await createClient();
 
-  const { data } = await (supabase as any)
+  // Paged: with one record per association a company can pass 1,000 vendors.
+  const { rows: data } = await fetchAllRows<any>(() => (supabase as any)
     .from('vendors')
-    .select('id, name, trade, payment_type, vendor_financial_details(bank_routing_number, bank_account_number), savings_account, is_auto_pay, auto_pay_setup_at, ach_status, ach_verified_at, ach_verified_by, ach_activated_at, ach_activated_by, hold_payments, archived_at')
+    .select('id, name, trade, payment_type, vendor_financial_details(bank_routing_number, bank_account_number), savings_account, is_auto_pay, auto_pay_setup_at, ach_status, ach_verified_at, ach_verified_by, ach_activated_at, ach_activated_by, hold_payments, archived_at, is_management_company, associations(name)')
     .is('archived_at', null)
-    .order('name');
+    .order('name')
+    .order('id'));
   // ACH review notes are staff-only (vendor_private).
   await mergePrivateFields(supabase as any, 'vendor_private', 'vendor_id', ['auto_pay_notes'], (data ?? []) as any[]);
 
@@ -181,7 +184,7 @@ export default async function VendorAchPage({
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-950">{focusVendor.name}</h2>
-                <p className="mt-1 text-sm text-gray-500">{tradeLabel(focusVendor.trade)}</p>
+                <p className="mt-1 text-sm text-gray-500">{tradeLabel(focusVendor.trade)} · {vendorAssociationLabel(focusVendor)}</p>
                 <div className="mt-2 flex gap-2">
                   <StatusChip tone={focusVendor.payment_type === 'ach' ? 'success' : 'neutral'}>
                     {focusVendor.payment_type?.replace(/_/g, ' ') ?? 'check'}
@@ -396,7 +399,7 @@ export default async function VendorAchPage({
                     <Link href={`/vendors/ach?vendor=${vendor.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">
                       {vendor.name}
                     </Link>
-                    <div className="mt-1 text-xs text-gray-500">{tradeLabel(vendor.trade)}</div>
+                    <div className="mt-1 text-xs text-gray-500">{tradeLabel(vendor.trade)} · {vendorAssociationLabel(vendor)}</div>
                   </TD>
                   <TD>
                     <StatusChip tone={vendor.payment_type === 'ach' ? 'success' : 'neutral'}>

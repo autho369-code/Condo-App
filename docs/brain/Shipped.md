@@ -4,6 +4,9 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-09
+- #262 (merged 8f33d0c; migration 20261009011000 already live): delete tool
+  stops on another association's SET NULL links; attached (type, id) records
+  match only by type + id.
 - #261 (merged deb3ad3; migrations 20261009005000 run by Mirsad, 20261009010000
   applied): a homeowner record belongs to one association (column, triggers,
   association-scoped managers see only their homeowners, change homeowner in

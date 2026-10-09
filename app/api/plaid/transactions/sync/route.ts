@@ -62,6 +62,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Plaid item not found' }, { status: 404 });
     }
     const plaidItem = { ...visibleItem, ...secretRow };
+    // Vendor matching stays inside the bank account's association.
+    // A failed or empty lookup must not fall back to company-level matching.
+    const { data: bankAccount, error: bankAccountError } = plaidItem.bank_account_id
+      ? await db.from('bank_accounts').select('association_id').eq('id', plaidItem.bank_account_id).maybeSingle()
+      : { data: null, error: null };
+    if (plaidItem.bank_account_id && (bankAccountError || !bankAccount)) {
+      return NextResponse.json({ error: 'The linked bank account could not be loaded. Nothing was synced; try again.' }, { status: 500 });
+    }
+    const bankAssociationId: string | null = bankAccount?.association_id ?? null;
 
     let addedCount = 0;
     let modifiedCount = 0;
@@ -88,7 +97,8 @@ export async function POST(request: NextRequest) {
           tx.name || '',
           tx.merchant_name || '',
           tx.personal_finance_category?.primary || '',
-          tx.amount
+          tx.amount,
+          bankAssociationId
         );
 
         const { error: upsertError } = await db.from('bank_transactions').upsert(

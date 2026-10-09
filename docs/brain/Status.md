@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #261).
+Back to [[Home]]. Updated 2026-10-09 (after #262; vendors-per-association PR open).
 
 ## Where things stand
 - Design-system migration done (all 219 pages); board + company-admin use the
@@ -43,21 +43,40 @@ Back to [[Home]]. Updated 2026-10-09 (after #261).
   14 old demo owners. Lesson: #261 was merged before its migrations ran, so
   production briefly ran code that needed owners.association_id; post "Clear
   to merge" only once the migrations are live.
-- Open PR #262: the last purge fix that missed the #261 merge, as forward-fix
-  migration 20261009011000 (SET NULL links of
-  another association stop the call; attached (type, id) rows never match by
-  id alone). Already live in production (Mirsad pasted that version).
+- #262 merged (8f33d0c): forward-fix migration 20261009011000 (purge_rows:
+  a SET NULL link of another association stops the call; purge_type_matches:
+  no id-only matching). Definitions already live (Mirsad pasted them); no
+  open PR.
+- Open PR: vendors belong to one association (management company the one
+  company-level exception). Migration 20261009020000 (not applied yet; a
+  rolled-back dry run in production succeeded): vendors.association_id +
+  is_management_company, backfill (the one vendor goes to Randolph Station),
+  same-association trigger on 14 vendor/association tables + estimates,
+  restrictive mgr_assoc_scope on vendors/private/compliance/financial,
+  management-company marking only by company-wide finance or a company
+  admin, management fees only to the management company, invites link the
+  exact vendor record. App: vendor create asks for the association, vendor
+  import into one chosen association, every vendor picker (VendorSelect)
+  shows only that association's vendors. **Order:** Claude applies 020000
+  once Codex is clean (current main's vendor create sends no association),
+  then Mirsad merges right away. Next PR: one vendor login across
+  associations. Follow-up: bills CSV upload matches vendor names company-wide
+  (the trigger refuses a wrong-association vendor; changing import_bills
+  needs Mirsad's SQL editor because its body has a DELETE).
 - Randolph Station created by Mirsad (2026-10-09) for the first real import;
   it is the only association. Granville Courts, 7241 N. Ridge and the Pine
   Tree sample were deleted by Mirsad in the SQL editor (one DO block: user
   triggers paused, journal entries/bills/tenants/blocking rows removed,
   triggers re-enabled; verified 0 disabled triggers, 0 orphan journal
   lines). The 14 old demo owners are gone (0 owners now).
-- Next gaps: (1) vendors per association (Mirsad's rule); (2) multi-property
-  owner portal (one sign-in, all of a person's records) and owner pickers
+- Next gaps: (1) one vendor login across associations (Mirsad: build now);
+  (2) multi-property owner portal (one sign-in, all of a person's records) and owner pickers
   that still list the whole company; (3) chart of accounts entered/changed by
   the company admin only; (4) a real end-to-end import of Randolph Station;
-  (5) credit balances from the Aged Receivable file (listed, not posted).
+  (5) credit balances from the Aged Receivable file (listed, not posted);
+  (6) bills CSV upload (`import_bills`) matches vendor names company-wide —
+  scope it to the row's association (its body has a DELETE, so Mirsad pastes
+  it in the SQL editor).
 - #256 merged (7b37b23); migration 20261008060000 applied and verified (7
   SETOF uuid identity helpers are PL/pgSQL, SECURITY DEFINER, search_path
   kept). Live timings for 30 tables per role, original -> now: board

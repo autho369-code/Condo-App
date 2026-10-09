@@ -13,7 +13,7 @@ import { SelectAllCheckbox } from '@/components/ui/select-all';
 import { bulkWorkOrderAction } from '@/lib/rpcs/work-order-bulk';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
-import { tradeLabel } from '@/lib/vendors/options';
+import { tradeLabel, vendorAssociationLabel } from '@/lib/vendors/options';
 import { todayInZone } from '@/lib/time/zoned';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { sanitizeSearchTerm } from '@/lib/search/global';
@@ -188,7 +188,7 @@ export default async function WorkOrdersPage({
   ] = await Promise.all([
     workOrdersQuery,
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('vendors').select('id, name').is('archived_at', null).order('name'),
+    fetchAllRows<any>(() => db.from('vendors').select('id, name, is_management_company, associations(name)').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
     db.rpc('mentionable_staff'),
     Promise.all(TABS.map((t) => applyTab(countBase(), t.key))),
     countBase().eq('status', 'in_progress'),
@@ -370,7 +370,7 @@ export default async function WorkOrdersPage({
           <FilterSelect label="Vendor" name="vendor_id" defaultValue={vendor_id}>
             <option value="">All</option>
             {(vendors ?? []).map((v: any) => (
-              <option key={v.id} value={v.id}>{v.name}</option>
+              <option key={v.id} value={v.id}>{v.name} · {vendorAssociationLabel(v)}</option>
             ))}
           </FilterSelect>
         </FilterBar>
@@ -393,7 +393,7 @@ export default async function WorkOrdersPage({
               <select name="vendor_id" aria-label="Vendor to assign" defaultValue=""
                 className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">Vendor…</option>
-                {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name} · {vendorAssociationLabel(v)}</option>)}
               </select>
               <Button type="submit" name="op" value="assign" size="sm" variant="secondary">Assign</Button>
               <select name="status" aria-label="New status" defaultValue=""

@@ -7,6 +7,7 @@ import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { SectionTitle, Surface } from '@/components/ui/shell';
 import { createBill } from '@/lib/rpcs/bills';
 import { PendingSubmit } from '@/components/ui/pending-submit';
+import { VendorSelect } from '@/components/vendors/vendor-select';
 
 // ── types ──────────────────────────────────────────────────────────────────
 
@@ -48,8 +49,11 @@ function matchVendorId(name: string | null | undefined, vendors: any[]): string 
   if (!name) return '';
   const n = normalize(name);
   if (!n) return '';
-  const exact = vendors.find((v: any) => normalize(v.name ?? '') === n);
-  if (exact) return exact.id;
+  // The same company can be a vendor of several associations (one record
+  // each): a name that matches more than one record is ambiguous.
+  const exact = vendors.filter((v: any) => normalize(v.name ?? '') === n);
+  if (exact.length === 1) return exact[0].id;
+  if (exact.length > 1) return '';
   const partial = vendors.filter((v: any) => {
     const vn = normalize(v.name ?? '');
     return vn.length > 2 && (vn.includes(n) || n.includes(vn));
@@ -127,6 +131,10 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
 
   const d = extracted;
   const matchedVendorId = matchVendorId(d?.vendor_name, vendors);
+  // Vendors belong to one association: preselect the matched vendor's association
+  // so the vendor picker (which only offers that association's vendors) keeps it.
+  const matchedAssociationId = (vendors ?? []).find((v: any) => v.id === matchedVendorId)?.association_id ?? '';
+  const vendorOptions = (vendors ?? []).map((v: any) => ({ ...v, name: `${v.name} — ${v.trade} (${v.payment_type})` }));
   const matchedGlId = matchGlId(d?.suggested_gl_hint, gls);
   const lineItems = (d?.line_items ?? []).filter((li) => li && (li.description || li.amount != null));
   const defaultMemo = d
@@ -219,32 +227,27 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
           <input type="hidden" name="portfolio_id" value={portfolioId} />
           <input type="hidden" name={submissionField} value={submissionToken} />
 
-          {/* VENDOR */}
-          <div className="sm:col-span-2">
-            <Label htmlFor="vendor_id">Vendor *</Label>
-            <Select id="vendor_id" name="vendor_id" required defaultValue={matchedVendorId}>
-              <option value="">Select a vendor…</option>
-              {(vendors ?? []).map((v: any) => (
-                <option key={v.id} value={v.id}>{v.name} — {v.trade} ({v.payment_type})</option>
-              ))}
-            </Select>
-            {d?.vendor_name && !matchedVendorId && (
-              <p className="mt-1 text-xs text-amber-700">
-                AI read the vendor as &ldquo;{d.vendor_name}&rdquo; but found no matching vendor — select one manually.
-              </p>
-            )}
-          </div>
-
           {/* ASSOCIATION */}
-          <div>
+          <div className="sm:col-span-2">
             <Label htmlFor="association_id">Association *</Label>
-            <Select id="association_id" name="association_id" required defaultValue="">
+            <Select id="association_id" name="association_id" required defaultValue={matchedAssociationId}>
               <option value="">Select an association…</option>
               {(associations ?? []).map((a: any) => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
             </Select>
             <p className="mt-1 text-xs text-gray-500">The HOA the bill is billed to.</p>
+          </div>
+
+          {/* VENDOR */}
+          <div className="sm:col-span-2">
+            <Label htmlFor="vendor_id">Vendor *</Label>
+            <VendorSelect id="vendor_id" name="vendor_id" required defaultValue={matchedVendorId} vendors={vendorOptions} placeholder="Select a vendor…" />
+            {d?.vendor_name && !matchedVendorId && (
+              <p className="mt-1 text-xs text-amber-700">
+                AI read the vendor as &ldquo;{d.vendor_name}&rdquo; but found no matching vendor — select one manually.
+              </p>
+            )}
           </div>
 
           {/* AMOUNT */}

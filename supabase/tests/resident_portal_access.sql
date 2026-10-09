@@ -79,8 +79,8 @@ insert into public.units (id, building_id, unit_number, ownership_pct) values
 insert into public.owners (id, association_id, portfolio_id, full_name, email, portal_activated) values
   ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'Olivia Owner', 'resident@example.test', true);
 
-insert into public.vendors (id, portfolio_id, name, emails, auth_user_id, portal_activated) values
-  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'Resident Email Vendor', '["resident@example.test"]'::jsonb, '10000000-0000-0000-0000-000000000001', true);
+insert into public.vendors (id, portfolio_id, association_id, name, emails, auth_user_id, portal_activated) values
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1', 'Resident Email Vendor', '["resident@example.test"]'::jsonb, '10000000-0000-0000-0000-000000000001', true);
 
 insert into public.occupancies (id, owner_id, unit_id, association_id, occupancy_type, status) values
   ('f0000000-0000-0000-0000-000000000001', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'dddddddd-dddd-dddd-dddd-ddddddddddd1', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1', 'owner', 'current');

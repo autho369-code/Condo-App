@@ -54,31 +54,55 @@ export async function autoMatchTransaction(
   transactionName: string,
   merchantName: string | null,
   plaidCategory: string,
-  amount: number
+  amount: number,
+  // The bank account's association. Each association has its own vendors, so
+  // only that association's vendors (and the management company, which serves
+  // every association) are candidates; a company-level account (null) only
+  // matches the management company.
+  associationId: string | null = null
 ): Promise<MatchResult> {
   const searchName = (merchantName || transactionName).trim();
+  const vendorScope = associationId
+    ? `association_id.eq.${associationId},is_management_company.eq.true`
+    : 'is_management_company.eq.true';
 
-  // Step 1: Try exact vendor name match (highest confidence)
+  // Step 1: Try exact vendor name match (highest confidence); a name on more
+  // than one record is ambiguous.
   if (searchName.length > 2) {
-    const { data: vendor } = await supabase
+    const { data: exact } = await supabase
       .from('vendors')
       .select('id, name, default_gl_account_id')
       .ilike('name', searchName)
       .eq('portfolio_id', portfolioId)
-      .maybeSingle();
+      .or(vendorScope)
+      .limit(2);
+    const vendor = exact && exact.length === 1 ? exact[0] : null;
 
     if (vendor?.default_gl_account_id) {
       return { gl_account_id: vendor.default_gl_account_id, confidence: 0.95, method: 'auto' };
     }
   }
 
-  // Step 2: Try historical match (same transaction name matched before)
-  const { data: historical } = await supabase
+  // Step 2: Try historical match (same transaction name matched before), on
+  // bank accounts of the same association (or company-level accounts), so one
+  // association's coding is never reused for another's.
+  // The coded account must still be in scope now (this company, company-wide
+  // or this association): an account moved since is not reused.
+  let historicalQuery = supabase
     .from('bank_transactions')
-    .select('gl_account_id')
+    .select('gl_account_id, bank_accounts!inner(association_id), gl_accounts!inner(portfolio_id, association_id)')
     .eq('portfolio_id', portfolioId)
     .eq('name', transactionName)
     .not('gl_account_id', 'is', null)
+    .eq('gl_accounts.portfolio_id', portfolioId);
+  historicalQuery = associationId
+    ? historicalQuery
+        .eq('bank_accounts.association_id', associationId)
+        .or(`association_id.is.null,association_id.eq.${associationId}`, { referencedTable: 'gl_accounts' })
+    : historicalQuery
+        .is('bank_accounts.association_id', null)
+        .is('gl_accounts.association_id', null);
+  const { data: historical } = await historicalQuery
     .order('created_at', { ascending: false })
     .limit(1);
 
@@ -92,10 +116,11 @@ export async function autoMatchTransaction(
       .from('vendors')
       .select('id, name, default_gl_account_id')
       .eq('portfolio_id', portfolioId)
+      .or(vendorScope)
       .ilike('name', `%${searchName.substring(0, Math.min(searchName.length, 8))}%`)
-      .limit(1);
+      .limit(2);
 
-    if (fuzzyVendors && fuzzyVendors.length > 0 && fuzzyVendors[0].default_gl_account_id) {
+    if (fuzzyVendors && fuzzyVendors.length === 1 && fuzzyVendors[0].default_gl_account_id) {
       return { gl_account_id: fuzzyVendors[0].default_gl_account_id, confidence: 0.7, method: 'auto' };
     }
   }
@@ -103,9 +128,13 @@ export async function autoMatchTransaction(
   // Step 4: Category-based GL account match
   const rule = CATEGORY_GL_RULES[plaidCategory] || DEFAULT_RULE;
 
+  // Only this company's accounts, company-wide or of the bank account's
+  // association (company-wide only for a company-level bank account).
   const { data: glAccount } = await supabase
     .from('gl_accounts')
     .select('id, number')
+    .eq('portfolio_id', portfolioId)
+    .or(associationId ? `association_id.is.null,association_id.eq.${associationId}` : 'association_id.is.null')
     .gte('number', rule.numberMin)
     .lte('number', rule.numberMax)
     .order('number')

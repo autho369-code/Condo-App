@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
           fromName: reminder.companyName ?? reminder.associationName ?? null,
           replyTo: reminder.supportEmail ?? null,
           portfolioId: reminder.portfolioId ?? null,
+          associationId: reminder.associationId ?? null,
           idempotencyKey: `maintenance-reminder:${reminder.taskId}:${reminder.dueDate}:${reminder.daysUntilDue}:${vendorEmail.toLowerCase()}`,
         }]);
         if (queueError) throw new Error(queueError);

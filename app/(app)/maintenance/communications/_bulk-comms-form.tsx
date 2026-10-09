@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { sendBulkComms } from '@/lib/rpcs/maintenance-comms';
 import { primaryVendorEmail, vendorEmails } from '@/lib/vendors/contact';
+import { vendorAssociationLabel } from '@/lib/vendors/options';
 import { Button } from '@/components/ui/button';
 
 const PRIORITY_TONES: Record<string, string> = {
@@ -159,7 +160,7 @@ export function BulkCommsForm({
       const email = extractEmail(vendor);
       const phone = extractPhone(vendor);
       if (!email && !phone) continue;
-      const key = vendor.name || wo.vendor_id;
+      const key = wo.vendor_id;
       if (!map.has(key)) {
         map.set(key, {
           vendorId: wo.vendor_id,
@@ -180,7 +181,7 @@ export function BulkCommsForm({
       const email = extractEmail(vendor);
       const phone = extractPhone(vendor);
       if (!email && !phone) continue;
-      const key = vendor.name || task.vendor_id;
+      const key = task.vendor_id;
       if (!map.has(key)) {
         map.set(key, {
           vendorId: task.vendor_id,
@@ -199,8 +200,8 @@ export function BulkCommsForm({
       const email = extractEmail(v);
       const phone = extractPhone(v);
       if (!email && !phone) continue;
-      if (!map.has(v.name)) {
-        map.set(v.name, {
+      if (!map.has(v.id)) {
+        map.set(v.id, {
           vendorId: v.id,
           vendorName: v.name,
           email,
@@ -477,7 +478,7 @@ export function BulkCommsForm({
                   />
                   <span className="font-medium text-gray-900">{v.name}</span>
                   <span className="text-gray-400">
-                    {v.trade ?? 'Vendor'}
+                    {vendorAssociationLabel(v)} · {v.trade ?? 'Vendor'}
                     {!hasContact && ' (no contact)'}
                   </span>
                 </label>

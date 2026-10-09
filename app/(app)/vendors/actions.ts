@@ -26,10 +26,17 @@ export async function inviteVendorToPortal(formData: FormData) {
   const db = supabase as any
   const { data: vendor } = await db
     .from('vendors')
-    .select('id, name, emails, portfolio_id, portfolios(company_name)')
+    .select('id, name, emails, portfolio_id, association_id, is_management_company, portfolios(company_name)')
     .eq('id', vendorId)
     .maybeSingle()
   if (!vendor) fail('Vendor not found.')
+  // The management company serves every association: like changing it, inviting
+  // it is for company-wide staff, not a manager limited to some associations.
+  if (vendor.is_management_company && !me.is_company_admin && !me.is_platform_operator) {
+    const { data: scoped, error: scopedErr } = await db.rpc('manager_is_scoped')
+    if (scopedErr) fail('Could not check your access. Try again.')
+    if (scoped) fail('Only company-wide staff can invite the management company.')
+  }
 
   const emails: string[] = Array.isArray(vendor.emails) ? vendor.emails : []
   const email = emails.find((e) => typeof e === 'string' && e.includes('@'))
@@ -54,6 +61,9 @@ export async function inviteVendorToPortal(formData: FormData) {
     email: email!.toLowerCase(),
     full_name: vendor.name,
     hoa_role: 'vendor',
+    // The exact vendor record (one per association) the sign-in links to on accept.
+    association_id: vendor.association_id ?? null,
+    metadata: { vendor_id: vendor.id },
     invited_by: me.auth_user_id,
     message: `Activate your vendor portal for ${companyName ?? 'your community'}.`,
     expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
@@ -119,8 +129,13 @@ export async function updateVendorRecord(formData: FormData) {
 
     const glId = text(formData, 'default_gl_account_id')
     if (glId) {
-      const { data: gl } = await supabase.from('gl_accounts').select('id').eq('id', glId).eq('portfolio_id', portfolioId).maybeSingle()
+      const { data: gl } = await supabase.from('gl_accounts').select('id, association_id').eq('id', glId).eq('portfolio_id', portfolioId).maybeSingle()
       if (!gl) throw new Error('Default GL account not found.')
+      // A vendor belongs to one association (the management company to none):
+      // its default account is company-wide or one of that association's own.
+      if (gl.association_id && gl.association_id !== before.association_id) {
+        throw new Error("Choose a company-wide account or one of this vendor's association.")
+      }
     }
 
     const tin = text(formData, 'taxpayer_id')

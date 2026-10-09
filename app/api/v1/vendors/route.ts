@@ -8,10 +8,15 @@ export async function GET(request: Request) {
   const { page, limit, offset, query } = pagination(request);
   let statement = auth.db
     .from('vendors')
-    .select('id, name, vendor_type, trade, payment_terms, portal_activated, general_liability_expiration, workers_comp_expiration, state_license_expiration, created_at, updated_at', { count: 'exact' })
+    // Each association has its own vendor records (the management company is
+    // company-wide): ownership fields tell same-name records apart.
+    .select('id, name, association_id, is_management_company, associations(name), vendor_type, trade, payment_terms, portal_activated, general_liability_expiration, workers_comp_expiration, state_license_expiration, created_at, updated_at', { count: 'exact' })
     .eq('portfolio_id', auth.portfolioId)
     .is('archived_at', null)
     .order('name')
+    // Same-named records (one per association) need a unique tie-breaker so
+    // pages neither skip nor repeat rows.
+    .order('id')
     .range(offset, offset + limit - 1);
   if (query) statement = statement.ilike('name', `%${query}%`);
   const { data, count, error } = await statement;

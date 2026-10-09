@@ -5,6 +5,7 @@ import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
 import { PendingSubmit } from '@/components/ui/pending-submit';
+import { VendorSelect } from '@/components/vendors/vendor-select';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
@@ -14,6 +15,7 @@ import { recordCreditCardCharge, saveCreditCardAccount, voidCreditCardCharge } f
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 import { todayInZone } from '@/lib/time/zoned';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,7 +54,7 @@ export default async function CreditCardPage({
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
     card.association_id ? { data: [] } : db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('gl_accounts').select('id, number, name, account_type, association_id').eq('active', true).order('number'),
-    db.from('vendors').select('id, name').is('archived_at', null).order('name').limit(1000),
+    fetchAllRows<any>(() => db.from('vendors').select('id, name, association_id, is_management_company, portfolio_id').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     db.from('gl_accounts').select('id, number, name, association_id').eq('active', true).in('account_type', ['liability', 'accounts_payable']).order('number'),
   ]);
   const glOptions = ((gls ?? []) as any[]).filter((g) =>
@@ -101,10 +103,8 @@ export default async function CreditCardPage({
               <Input id="payee" name="payee" placeholder="e.g. Home Depot" />
             </Field>
             <Field label="Vendor (optional)" htmlFor="vendor_id">
-              <Select id="vendor_id" name="vendor_id" defaultValue="">
-                <option value="">None</option>
-                {((vendors ?? []) as any[]).map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-              </Select>
+              {/* A card tied to one association fixes it; otherwise follow the association field above. */}
+              <VendorSelect id="vendor_id" name="vendor_id" defaultValue="" vendors={(vendors ?? []) as any[]} associationId={card.association_id || undefined} placeholder="None" />
             </Field>
             <Field label="Expense account" htmlFor="gl_account_id">
               <Select id="gl_account_id" name="gl_account_id" required defaultValue="">

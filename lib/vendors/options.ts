@@ -30,3 +30,9 @@ export const CHECK_STUB = [
   { value: 'expanded', label: 'List each bill detail line item' },
   { value: 'summary', label: 'One line per bill' },
 ] as const;
+
+/** Each association has its own vendor records (the same company can have one
+ * per association): name the record's association, or the management company. */
+export const vendorAssociationLabel = (
+  v: { is_management_company?: boolean | null; associations?: { name?: string | null } | null } | null | undefined,
+) => (v?.is_management_company ? 'Management company' : v?.associations?.name ?? 'No association');

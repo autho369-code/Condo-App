@@ -46,3 +46,7 @@
 
 ## owners.association_id (20261009010000, NOT NULL)
 - Every owners insert/upsert must set `association_id` (trigger raises 23502 otherwise and derives portfolio_id). Find writers with `grep from('owners')...insert` plus `upsert('owners'` in scripts and `insert into public.owners` in supabase/tests; `tests/database/owners-belong-to-association.test.ts` scans payloads. Occupancies trigger refuses an owner of another association. `idx_owners_auth_user` is no longer unique: any `.eq('auth_user_id').maybeSingle()` on owners needs `.order().limit(1)` (forgot-password fixed 2026-10-09). `lib/types/database.ts` owners types lacked association_id then (callers use `as any`).
+
+## vendors.association_id / is_management_company (20261009020000)
+- CHECK `vendors_association_or_management_company`: association vendor needs association_id; management company has none. Trigger `trg_vendors_set_portfolio_from_association` derives portfolio_id, so inserts may omit it (seed-real/seed-comprehensive do). `tests/database/vendors-belong-to-association.test.ts` scans insert payloads.
+- `vendors(...)`/`associations(name)` embeds are unambiguous: only one direct FK, and tables with both vendor_id and association_id FKs (work_orders, payable_bills, ...) have `id` PKs, so PostgREST does not treat them as many-to-many junctions. (2026-10-09, clean.)

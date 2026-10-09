@@ -5,6 +5,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { requestVendorDocument } from '@/lib/rpcs/vendor-document-requests';
 import { VENDOR_DOC_TYPES, firstVendorEmail, isVendorDocType } from '@/lib/vendors/document-requests';
 
@@ -17,7 +18,11 @@ export default async function VendorFormsPage({ searchParams }: { searchParams: 
   await requireStaff();
   const sp = await searchParams;
   const db = (await createClient()) as any;
-  const { data: vendors } = await db.from('vendors').select('id, name, trade, emails').is('archived_at', null).order('name').limit(1000);
+  // The same company can be a vendor of several associations (one record each):
+  // each option names its association so the request goes to the right record.
+  const { rows: vendors } = await fetchAllRows<any>(() => db.from('vendors')
+    .select('id, name, trade, emails, is_management_company, associations(name)')
+    .is('archived_at', null).order('name').order('id'));
   const requested = sp.doc ?? LEGACY[sp.template ?? ''] ?? sp.template ?? 'w9';
   const docType = isVendorDocType(requested) ? requested : 'w9';
   const selected = (vendors ?? []).find((v: any) => v.id === sp.vendor);
@@ -39,7 +44,7 @@ export default async function VendorFormsPage({ searchParams }: { searchParams: 
                 <Select id="vendor_id" name="vendor_id" defaultValue={sp.vendor ?? ''} required>
                   <option value="">Select a vendor</option>
                   {(vendors ?? []).map((v: any) => (
-                    <option key={v.id} value={v.id}>{v.name}{firstVendorEmail(v.emails) ? '' : ' (no email on file)'}</option>
+                    <option key={v.id} value={v.id}>{v.name} · {v.is_management_company ? 'Management company' : v.associations?.name ?? 'No association'}{firstVendorEmail(v.emails) ? '' : ' (no email on file)'}</option>
                   ))}
                 </Select>
               </Field>

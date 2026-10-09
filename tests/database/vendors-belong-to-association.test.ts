@@ -1,0 +1,287 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+// A vendor record belongs to exactly one association (the management company
+// is the one company-level vendor). Migration
+// 20261009020000_vendors_belong_to_association.sql enforces it in the
+// database; these checks keep the app's writers and pickers in step.
+
+const root = process.cwd();
+const read = (p: string) => readFileSync(resolve(root, p), 'utf8');
+
+function sourceFiles(dir: string): string[] {
+  const out: string[] = [];
+  for (const name of readdirSync(resolve(root, dir))) {
+    if (name === 'node_modules' || name.startsWith('.')) continue;
+    const rel = join(dir, name);
+    const st = statSync(resolve(root, rel));
+    if (st.isDirectory()) out.push(...sourceFiles(rel));
+    else if (/\.(ts|tsx|mjs)$/.test(name) && !/\.test\.tsx?$/.test(name)) out.push(rel);
+  }
+  return out;
+}
+
+/** The text of a call's argument list starting at `open` (an index of "("). */
+function callArgs(src: string, open: number): string {
+  let depth = 0;
+  for (let i = open; i < src.length; i++) {
+    if (src[i] === '(') depth++;
+    else if (src[i] === ')') {
+      depth--;
+      if (depth === 0) return src.slice(open + 1, i);
+    }
+  }
+  return src.slice(open + 1);
+}
+
+/** Every `.from('vendors')…insert(…)` / `upsert('vendors', …)` payload in a file. */
+function vendorWrites(src: string): string[] {
+  const payloads: string[] = [];
+  const fromRe = /\.from\(\s*['"`]vendors['"`]\s*\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = fromRe.exec(src))) {
+    const rest = src.slice(m.index + m[0].length);
+    const chain = rest.match(/^\s*\.(insert|upsert)\(/);
+    if (!chain) continue;
+    payloads.push(callArgs(src, m.index + m[0].length + chain[0].length - 1));
+  }
+  const upsertRe = /upsert\(\s*['"`]vendors['"`]\s*,/g;
+  while ((m = upsertRe.exec(src))) payloads.push(callArgs(src, m.index + 'upsert'.length));
+  return payloads;
+}
+
+describe('vendors belong to exactly one association', () => {
+  const migration = read('supabase/migrations/20261009020000_vendors_belong_to_association.sql');
+
+  it('adds the association and management-company columns and backfills before requiring one of them', () => {
+    expect(migration).toContain('add column if not exists association_id uuid references public.associations(id) on delete restrict');
+    expect(migration).toContain('add column if not exists is_management_company boolean not null default false');
+    expect(migration).toContain('create index if not exists idx_vendors_association_id on public.vendors(association_id)');
+    const backfill = migration.indexOf('update public.vendors set association_id');
+    const guard = migration.indexOf('These vendors cannot be placed in one association');
+    const check = migration.indexOf('vendors_association_or_management_company');
+    expect(backfill).toBeGreaterThan(0);
+    expect(guard).toBeGreaterThan(backfill);
+    expect(check).toBeGreaterThan(guard);
+    expect(migration).toContain('(is_management_company and association_id is null) or (not is_management_company and association_id is not null)');
+  });
+
+  it('guards every table that links a vendor to an association', () => {
+    for (const t of ['work_orders', 'payable_bills', 'payable_checks', 'purchase_orders', 'recurring_bills', 'recurring_work_orders',
+      'recurring_purchase_orders', 'vendor_credits', 'credit_card_charges', 'other_receipts', 'maintenance_tasks',
+      'calendar_events', 'approval_requests', 'inspections']) {
+      expect(migration).toContain(`'public.${t}'::regclass`);
+    }
+    expect(migration).toContain("'public.inspections'::regclass, 'inspector_vendor_id'::name");
+    expect(migration).toContain("'create or replace trigger trg_vendor_same_association before insert or update of %I, association_id%s on %s '");
+    expect(migration).toContain("then ', portfolio_id' else '' end,");
+    expect(migration).toContain("'This vendor belongs to another association. Add it as a vendor of this association.'");
+    // Company-level rows (no association) need a vendor of their own company.
+    expect(migration).toContain('-- A company-level row (no association): the vendor must be of its company.');
+    expect(migration).toMatch(/for share;\s+-- A missing vendor is left to the foreign key\./);
+  });
+
+  it('derives portfolio_id from the association, refuses moves with rows, and locks down its functions', () => {
+    expect(migration).toMatch(/before insert or update of association_id, portfolio_id, is_management_company on public\.vendors/);
+    expect(migration).toContain('new.portfolio_id := v_portfolio_id;');
+    expect(migration).toContain('after update of portfolio_id on public.associations');
+    // An association with vendors cannot move company; nor while its rows use the old management company.
+    expect(migration).toContain("'This association has vendors. It cannot move to another company.'");
+    expect(migration).toContain('It cannot move to another company.');
+    expect(migration).toContain('perform 1 from public.associations a where a.id = new.association_id for share;');
+    // The management-company checks lock the association against a concurrent company move.
+    expect(migration.match(/where a\.id = v_association_id\s+for share;/g)).toHaveLength(2);
+    for (const fn of ['vendors_set_portfolio_from_association', 'vendor_link_same_association', 'associations_move_vendor_portfolio']) {
+      expect(migration).toContain(`revoke all on function public.${fn}() from public, anon, authenticated;`);
+      const body = migration.slice(migration.indexOf(`function public.${fn}()`));
+      expect(body.slice(0, 300)).toContain('security definer');
+      expect(body.slice(0, 300)).toContain("set search_path to 'pg_catalog', 'public'");
+    }
+  });
+
+  it('keeps a vendor\'s association and default account under staff control', () => {
+    expect(migration).toContain("raise exception 'Only staff can move a vendor to another association.' using errcode = '42501';");
+    expect(migration).toContain('before insert or update of default_gl_account_id, association_id on public.vendors');
+    expect(migration).toContain('revoke all on function public.vendors_default_gl_in_association() from public, anon, authenticated;');
+    expect(migration).toContain('if v_gl_portfolio is distinct from v_vendor_portfolio');
+    expect(migration).toContain("raise exception 'The management company cannot move to another company.'");
+    expect(migration).toContain("'A vendor cannot move to an association of another company. Add it as a new vendor there.'");
+    expect(migration).toMatch(/from public\.gl_accounts g where g\.id = new\.default_gl_account_id\s+for share;/);
+    expect(migration).toContain('before update of association_id, portfolio_id on public.gl_accounts');
+    expect(migration).toContain('revoke all on function public.gl_account_vendor_default_scope() from public, anon, authenticated;');
+    expect(read('app/(app)/vendors/compliance/page.tsx')).toContain('vendors(name, is_management_company, associations(name))');
+    // Every vendor picker or list a staffer acts on names the record's association.
+    for (const f of ['app/(app)/vendors/ach/page.tsx', 'app/(app)/vendors/w9/page.tsx', 'app/(app)/work-orders/page.tsx', 'app/(app)/purchase-orders/page.tsx',
+      'app/(app)/recurring-work-orders/page.tsx', 'lib/search/global.ts']) {
+      expect(read(f), f).toContain('vendorAssociationLabel');
+    }
+    expect(read('app/api/v1/vendors/route.ts')).toContain("'id, name, association_id, is_management_company, associations(name),");
+    expect(read('app/(app)/vendors/forms/page.tsx')).toContain("v.is_management_company ? 'Management company' : v.associations?.name ?? 'No association'");
+  });
+
+  it('lets only company-wide finance staff mark the one management company', () => {
+    expect(migration).toMatch(/if auth\.uid\(\) is not null\s+and \(\(tg_op = 'INSERT' and new\.is_management_company\)/);
+    expect(migration).toContain('and (not public.manager_is_scoped() or public.is_company_admin())) then');
+    expect(migration).toContain('create unique index if not exists vendors_one_management_company');
+  });
+
+  it('lets association-scoped managers see but not change the management company', () => {
+    expect(migration).toContain('return p_association_id is not null or not public.manager_is_scoped() or public.is_company_admin();');
+    expect(migration).toContain("array['vendors', 'vendor_private', 'vendor_compliance', 'vendor_financial_details']");
+    for (const p of ['mgr_company_vendor_insert', 'mgr_company_vendor_update', 'mgr_company_vendor_delete']) {
+      expect(migration).toContain(`create policy ${p} on public.%I as restrictive`);
+    }
+  });
+
+  it('keeps vendors linked through a parent in the parent\'s association', () => {
+    for (const [t, parentCol, parent] of [['work_order_estimates', 'work_order_id', 'work_orders'], ['work_order_ratings', 'work_order_id', 'work_orders'],
+      ['maintenance_task_history', 'task_id', 'maintenance_tasks'], ['lock_box_assignments', 'lock_box_id', 'lock_boxes']]) {
+      expect(migration).toContain(`('public.${t}'::regclass, 'vendor_id'::name, '${parentCol}'::name, 'public.${parent}'::regclass)`);
+    }
+    // Counted when placing a vendor and when guarding its moves.
+    expect(migration).toContain('for r in select * from public.vendor_parent_link_tables() loop');
+    // Child writes lock and check the parent; parents cannot move away from their children's vendors.
+    expect(migration).toContain("execute format('select to_jsonb(p) from %s p where p.id = $1 for share', tg_argv[2]::regclass)");
+    // A company-level parent still needs a vendor of its own company.
+    expect(migration).toContain('-- A company-level parent (no association): the vendor must be of its company.');
+    expect(migration).toContain('has rows whose vendor belongs to another company. Correct them, then run this migration again.');
+    // Rows that existed before the migration are checked too.
+    expect(migration).toContain('has rows whose vendor belongs to another association. Correct them, then run this migration again.');
+    expect(migration).toContain('create or replace trigger trg_vendor_parent_same_association before insert or update of %I, %I on %s');
+    expect(migration).toContain('create or replace trigger trg_vendor_parent_association_moved before update of association_id on %s');
+    for (const fn of ['vendor_link_parent_same_association', 'vendor_parent_association_moved']) {
+      expect(migration).toContain(`revoke all on function public.${fn}() from public, anon, authenticated;`);
+    }
+    const estimate = read('lib/rpcs/work-orders.ts');
+    expect(estimate).toContain('!vendor.is_management_company && vendor.association_id !== workOrder.association_id');
+  });
+
+  it('limits association-scoped managers to their associations\' vendors', () => {
+    expect(migration).toMatch(/create policy mgr_assoc_scope on public\.vendors as restrictive for all to authenticated\s+using \(public\.can_view_association_row\(association_id\)\)/);
+    for (const t of ['vendor_private', 'vendor_compliance', 'vendor_financial_details', 'document_requests']) {
+      expect(migration).toMatch(new RegExp(`create policy mgr_assoc_scope on public\\.${t} as restrictive`));
+    }
+  });
+
+  it('scopes vendor document review to the vendor\'s association', () => {
+    const review = migration.slice(migration.indexOf('create or replace function public.review_vendor_document_request('));
+    expect(review).toContain('or not public.can_view_association_row((select ven.association_id from public.vendors ven where ven.id = r.vendor_id)) then');
+    expect(migration).toContain('using (vendor_id is null or exists (select 1 from public.vendors ven');
+    expect(migration).toContain('create policy mgr_vendor_assoc_scope on public.documents as restrictive for all to authenticated');
+  });
+
+  it('bills management fees only to the management company', () => {
+    expect(migration).toContain('create or replace function public.set_management_fee_schedule(');
+    expect(migration).toMatch(/v\.is_management_company\) then/);
+    expect(read('app/(app)/accounting/management-fees/page.tsx')).toContain(".eq('is_management_company', true)");
+  });
+
+  it('links one vendor record per sign-in without dropping anything', () => {
+    expect(migration).not.toMatch(/^\s*drop\s/im);
+    expect(migration).not.toMatch(/drop (index|constraint|policy|trigger)/i);
+    expect(migration).toMatch(/from public\.vendors candidate[\s\S]+order by candidate\.created_at, candidate\.id\s+limit 1/);
+    expect(migration).toMatch(/join public\.vendors v on v\.portfolio_id = p\.portfolio_id[\s\S]+order by u\.id, v\.created_at, v\.id/);
+  });
+
+  it('records the new columns and foreign key in the schema snapshots', () => {
+    const columns = JSON.parse(read('supabase/schema-columns.json'));
+    expect(columns.vendors).toEqual(expect.arrayContaining(['association_id', 'is_management_company']));
+    expect([...columns.vendors].sort()).toEqual(columns.vendors);
+    const fks = JSON.parse(read('supabase/schema-foreign-keys.json'));
+    expect(fks['vendors.association_id']).toBe('associations');
+  });
+
+  it('sets association_id on every vendors insert or upsert', () => {
+    const files = ['app', 'lib', 'components', 'scripts'].flatMap(sourceFiles);
+    const writers: string[] = [];
+    for (const file of files) {
+      const src = read(file);
+      for (const payload of vendorWrites(src)) {
+        writers.push(file);
+        const scope = /association_id/.test(payload) ? payload : src;
+        expect(scope, `${file}: vendors insert without association_id`).toMatch(/association_id\s*:/);
+      }
+    }
+    expect(new Set(writers)).toEqual(new Set([
+      'app/(app)/owners/import/previous-system/vendor-actions.ts',
+      'lib/rpcs/entities.ts',
+      'scripts/seed-real.ts',
+      'scripts/seed-comprehensive.ts',
+      'scripts/seed-staging-verification.mjs',
+    ]));
+  });
+
+  it('imports vendors into one chosen association and matches work-order vendors inside it', () => {
+    const vendorImport = read('app/(app)/owners/import/previous-system/vendor-actions.ts');
+    expect(vendorImport).toContain('export async function importAppfolioVendors(associationId: string, vendors: AppfolioVendor[])');
+    expect(vendorImport).toContain("db.rpc('can_manage_association', { p_association_id: associationId })");
+    expect(vendorImport).toContain(".eq('association_id', associationId)");
+    expect(read('app/(app)/owners/import/previous-system/work-order-actions.ts'))
+      .toContain('.or(`association_id.eq.${association.id},and(is_management_company.eq.true,portfolio_id.eq.${portfolioId})`)');
+  });
+
+  it('keeps the management company invite to company-wide staff and treats duplicate vendor names as ambiguous', () => {
+    const invite = read('app/(app)/vendors/actions.ts');
+    expect(invite).toContain("if (scoped) fail('Only company-wide staff can invite the management company.')");
+    const billForm = read('app/(app)/bills/new/new-bill-form.tsx');
+    expect(billForm).toContain('if (exact.length > 1) return \'\';');
+  });
+
+  it('keeps changes to the management company\'s documents and invitations to company-wide staff', () => {
+    expect(migration).toContain("raise exception 'Only company-wide staff can review the management company''s documents'");
+    expect(migration).toContain("foreach t in array array['document_requests', 'documents'] loop");
+    expect(migration).toContain('create policy vendor_invite_scope on public.user_invitations as restrictive for insert to authenticated');
+    expect(migration).toContain('create policy vendor_invite_scope_update on public.user_invitations as restrictive for update to authenticated');
+  });
+
+  it('scopes vendor notes and tags to the vendor\'s association', () => {
+    expect(migration).toContain("raise exception 'You do not manage this vendor' using errcode = '42501';");
+    expect(migration).toContain("foreach t in array array['record_notes', 'tag_assignments'] loop");
+    // The owner branch of the existing row-scope trigger is kept.
+    expect(migration).toContain("raise exception 'You do not manage this owner' using errcode = '42501';");
+  });
+
+  it('keeps reports, bulk assignment and bank matching inside one association', () => {
+    expect(migration).toContain("or v.association_id = (p_params->>'association_id')::uuid)");
+    expect(read('lib/rpcs/work-order-bulk.ts')).toContain("is a vendor of one association. Select only that association's work orders");
+    const match = read('lib/plaid/auto-match.ts');
+    expect(match).toContain("? `association_id.eq.${associationId},is_management_company.eq.true`");
+    expect(match).toContain('exact && exact.length === 1 ? exact[0] : null');
+    expect(read('app/api/plaid/transactions/sync/route.ts')).toContain('bankAssociationId');
+    expect(match).toContain(".eq('bank_accounts.association_id', associationId)");
+    // A historical match reuses only an account still in scope (company, association).
+    expect(match).toContain("gl_accounts!inner(portfolio_id, association_id)");
+    expect(match).toContain(".or(`association_id.is.null,association_id.eq.${associationId}`, { referencedTable: 'gl_accounts' })");
+    expect(match).toContain("? `association_id.is.null,association_id.eq.${associationId}` : 'association_id.is.null'");
+    expect(migration).toContain("'This record has entries from a vendor of its current company. It cannot move to another company.'");
+    expect(migration).toContain("'create or replace trigger trg_vendor_parent_association_moved before update of association_id, portfolio_id on %s '");
+    expect(read('app/(app)/vendors/actions.ts')).toContain('gl.association_id && gl.association_id !== before.association_id');
+    expect(read('app/(app)/vendors/[id]/edit/page.tsx')).toContain('!g.association_id || g.association_id === v.association_id');
+    expect(read('app/(app)/owners/import/previous-system/vendor-actions.ts'))
+      .toContain('all.filter((g) => !g.association_id || g.association_id === associationId)');
+  });
+
+  it('keeps the management company\'s document-request emails from association-scoped managers', () => {
+    expect(migration).toContain('create policy vendor_doc_request_email_company_wide on public.email_queue as restrictive for select to authenticated');
+    expect(migration).toContain("or idempotency_key not like 'vendor-doc-request:%'");
+    expect(migration).toContain('or not public.manager_is_scoped());');
+  });
+
+  it('links an invitation for an exact vendor record to that record or none', () => {
+    // Neither the sign-up link nor the bulk relink pre-empts a pending vendor invitation.
+    expect(migration.match(/i\.hoa_role::text = 'vendor' and i\.status::text = 'pending'/g)).toHaveLength(2);
+    // An expired invitation still marked pending must not block linking forever.
+    expect(migration.match(/and \(i\.expires_at is null or i\.expires_at > now\(\)\)/g)).toHaveLength(2);
+    expect(migration).toMatch(/and \(nullif\(new\.metadata ->> 'vendor_id', ''\) is null\s+or c\.id::text = new\.metadata ->> 'vendor_id'\)/);
+  });
+
+  it('checks the association on vendor create', () => {
+    const entities = read('lib/rpcs/entities.ts');
+    const create = entities.slice(entities.indexOf('export async function createVendor'));
+    expect(create).toContain("rpc('can_manage_association', { p_association_id: associationId })");
+    expect(create).toContain('association_id: associationId,');
+    expect(create).toContain('is_management_company: isManagementCompany,');
+    expect(create).toContain("failTo('Open a company before adding its management company.')");
+  });
+});

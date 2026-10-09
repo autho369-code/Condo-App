@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { vendorAssociationLabel } from '@/lib/vendors/options';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -23,17 +25,20 @@ export default async function VendorW9Page({
   const supabase = await createClient();
 
   const [{ data: vendors }, { data: requests }] = await Promise.all([
-    (supabase as any)
+    // Paged: with one record per association a company can pass 1,000 vendors.
+    fetchAllRows<any>(() => (supabase as any)
       .from('vendors')
-      .select('id, name, email_echeck_receipt, send_1099, taxpayer_name, has_taxpayer_id, is_utility, archived_at')
+      .select('id, name, email_echeck_receipt, send_1099, taxpayer_name, has_taxpayer_id, is_utility, archived_at, is_management_company, associations(name)')
       .is('archived_at', null)
-      .order('name'),
-    (supabase as any)
+      .order('name')
+      .order('id')).then((r) => ({ data: r.rows })),
+    // Every vendor request (paged), so each vendor's latest W-9 request is found.
+    fetchAllRows<any>(() => (supabase as any)
       .from('document_requests')
       .select('id, vendor_id, name, doc_type, status, requested_at, due_date')
       .not('vendor_id', 'is', null)
       .order('requested_at', { ascending: false })
-      .limit(500),
+      .order('id')).then((r) => ({ data: r.rows })),
   ]);
 
   const latestByVendor = new Map<string, any>();
@@ -68,7 +73,7 @@ export default async function VendorW9Page({
           <tbody>
             {rows.map(({ vendor, latest }) => (
               <TR key={vendor.id} className="hover:bg-gray-50">
-                <TD><div className="font-medium text-gray-950">{vendor.name}</div>{vendor.is_utility && <div className="mt-1 text-xs text-gray-500">Utility</div>}</TD>
+                <TD><div className="font-medium text-gray-950">{vendor.name}</div><div className="mt-1 text-xs text-gray-500">{vendorAssociationLabel(vendor)}{vendor.is_utility ? ' · Utility' : ''}</div></TD>
                 <TD><StatusChip tone={vendor.send_1099 ? 'warning' : 'neutral'}>{vendor.send_1099 ? 'Needs 1099 review' : 'Not marked'}</StatusChip></TD>
                 <TD><StatusChip tone={vendor.has_taxpayer_id ? 'success' : vendor.send_1099 ? 'danger' : 'neutral'}>{vendor.has_taxpayer_id ? 'TIN on file' : 'Missing TIN'}</StatusChip><div className="mt-1 text-xs text-gray-500">{vendor.taxpayer_name ?? 'No taxpayer name'}</div></TD>
                 <TD><div className="capitalize">{latest?.status?.replace(/_/g, ' ') ?? 'No request'}</div><div className="mt-1 text-xs text-gray-500">{date(latest?.requested_at)}</div></TD>

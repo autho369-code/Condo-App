@@ -1,14 +1,17 @@
 'use server';
 
-// Import AppFolio's Vendor Directory export into this company's vendors.
+// Import the previous system's Vendor Directory export into ONE association's
+// vendors (each association has its own vendors; the export is company-wide,
+// so the staffer picks the association it belongs to).
 //
 // The browser parses the CSV (lib/imports/appfolio-vendors) for the preview
 // and sends the parsed rows here; nothing from the client is trusted — every
 // field is re-validated. Runs through the logged-in staff session client so
-// RLS applies (vendors_staff_all: can_access_portfolio(portfolio_id)).
+// RLS applies (vendors_staff_all + mgr_assoc_scope), and the association is
+// re-checked with can_manage_association.
 //
 // Columns written all exist on public.vendors (supabase/schema-columns.json):
-// name, portfolio_id, phone_numbers, emails, address_*, default_gl_account_id,
+// name, portfolio_id, association_id, phone_numbers, emails, address_*, default_gl_account_id,
 // payment_type, send_1099, the six *_expiration dates, notes (moved to
 // vendor_private by the vendors_move_private_fields trigger), created_by.
 import { revalidatePath } from 'next/cache';
@@ -43,6 +46,7 @@ const nameKey = (s: string) => s.normalize('NFKC').toLowerCase().replace(/[^\p{L
 
 type VendorInsert = {
   portfolio_id: string;
+  association_id: string;
   created_by: string | null;
   name: string;
   phone_numbers: Array<{ number: string; type: string | null }>;
@@ -71,34 +75,43 @@ function phonesOf(v: unknown): VendorInsert['phone_numbers'] {
   return out;
 }
 
-export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<VendorImportSummary> {
+export async function importAppfolioVendors(associationId: string, vendors: AppfolioVendor[]): Promise<VendorImportSummary> {
   const me = await requireStaff();
   const portfolioId = me.portfolio?.id;
   if (!portfolioId) return { imported: 0, skipped: 0, errors: ['Your account is not linked to a company.'] };
   if (!Array.isArray(vendors) || vendors.length === 0) return { imported: 0, skipped: 0, errors: ['The file has no vendors.'] };
+  if (typeof associationId !== 'string' || !/^[0-9a-f-]{36}$/i.test(associationId)) {
+    return { imported: 0, skipped: vendors.length, errors: ['Choose the association these vendors belong to.'] };
+  }
   if (vendors.length > MAX_VENDORS) {
     return { imported: 0, skipped: vendors.length, errors: [`The file has ${vendors.length} vendors; import at most ${MAX_VENDORS} at a time.`] };
   }
 
   const db = (await createClient()) as any;
+  // The association comes from the browser: it must be one this staffer manages
+  // (can_manage_association also honors association-scoped managers).
+  const { data: canManage, error: accessErr } = await db.rpc('can_manage_association', { p_association_id: associationId });
+  if (accessErr || canManage !== true) {
+    return { imported: 0, skipped: vendors.length, errors: [accessErr ? `Could not check the association: ${accessErr.message}` : 'You are not authorized to manage that association.'] };
+  }
   try {
-    // One vendor import per company at a time: the duplicate check and the inserts
+    // One vendor import per association at a time: the duplicate check and the inserts
     // must not interleave with another run (vendors have no unique key on name).
-    return await withImportLock(db, portfolioId, 'appfolio_vendors', async () => {
+    return await withImportLock(db, associationId, 'appfolio_vendors', async () => {
       const errors: string[] = [];
       let skipped = 0;
 
-      // Existing vendors in this company, for the duplicate check (paged: PostgREST caps a read at 1000 rows).
-      // Also every email any vendor of the company already has (archived ones too): portal
-      // sign-up links a login to the vendors holding that email, and a login can belong to
-      // only one vendor, so an email is kept on one vendor only.
+      // Existing vendors of this association, for the duplicate check (paged: PostgREST caps a
+      // read at 1000 rows). Also every email a vendor of this association already has (archived
+      // ones too), so one email stays on one vendor of the association. The same company in
+      // another association is a separate vendor record and may share its email.
       const existingNames = new Set<string>();
       const usedEmails = new Set<string>();
       let sharedEmailVendors = 0;
       for (let from = 0; ; from += 1000) {
         const { data, error } = await db
           .from('vendors').select('id, name, emails, archived_at')
-          .eq('portfolio_id', portfolioId)
+          .eq('association_id', associationId)
           .order('id').range(from, from + 999);
         if (error) return { imported: 0, skipped: vendors.length, errors: [`Could not check existing vendors: ${error.message}`] };
         for (const v of data ?? []) {
@@ -133,7 +146,10 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
           const key = String(g.number);
           byNumber.set(key, [...(byNumber.get(key) ?? []), g]);
         }
-        for (const [number, list] of byNumber) {
+        for (const [number, all] of byNumber) {
+          // The vendors belong to this association: only company-wide accounts and
+          // this association's own accounts qualify as their default.
+          const list = all.filter((g) => !g.association_id || g.association_id === associationId);
           const companyWide = list.filter((g) => !g.association_id);
           const pick = companyWide.length === 1 ? companyWide[0] : list.length === 1 ? list[0] : null;
           glByNumber.set(number, pick?.id ?? null);
@@ -195,6 +211,7 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
           name,
           insert: {
             portfolio_id: portfolioId,
+            association_id: associationId,
             created_by: me.auth_user_id ?? null,
             name,
             phone_numbers: phonesOf(v?.phones),
@@ -245,7 +262,7 @@ export async function importAppfolioVendors(vendors: AppfolioVendor[]): Promise<
       if (unmatchedGl.size) {
         notImported.push(`Default GL account left blank for GL number(s) not found among the active expense accounts in your chart: ${[...unmatchedGl].slice(0, 20).join(', ')}${unmatchedGl.size > 20 ? '…' : ''}.`);
       }
-      if (sharedEmailVendors) notImported.push(`${sharedEmailVendors} vendor(s) share an email with another vendor; it was kept on the first one and noted on the others (a vendor portal login can belong to only one vendor).`);
+      if (sharedEmailVendors) notImported.push(`${sharedEmailVendors} vendor(s) share an email with another vendor of this association; it was kept on the first one and noted on the others.`);
       if (unknownPayment) notImported.push(`${unknownPayment} vendor(s) had a payment type that isn't supported; they were set to Check.`);
       if (portalActive) notImported.push(`Vendor portal access was not carried over for ${portalActive} vendor(s): invite them from the vendor page.`);
       if (withLastPayment) notImported.push(`Last payment dates were not imported (${withLastPayment} vendor(s)); payment history comes from bills.`);

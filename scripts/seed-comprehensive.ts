@@ -166,12 +166,16 @@ async function seed() {
     { name: 'ComEd', trade: 'utilities', phones: [{type:'landline',number:'800-334-7661'}], emails: ['service@comed.com'], is_utility: true },
     { name: 'Peoples Gas', trade: 'utilities', phones: [{type:'landline',number:'866-556-6001'}], emails: ['customerservice@peoplesgas.com'], is_utility: true },
   ];
+  // Each association has its own vendors: one record per vendor per association.
   const vendorIds: string[] = [];
+  const vendorIdsByAssoc = new Map<string, string[]>();
+  for (const assocForVendor of associations ?? []) {
   for (const v of vendorData) {
     const vid = uid();
     vendorIds.push(vid);
+    vendorIdsByAssoc.set(assocForVendor.id, [...(vendorIdsByAssoc.get(assocForVendor.id) ?? []), vid]);
     await db.from('vendors').insert({
-      id: vid, name: v.name, trade: v.trade, vendor_type: 'general',
+      id: vid, association_id: assocForVendor.id, name: v.name, trade: v.trade, vendor_type: 'general',
       phone_numbers: v.phones, emails: v.emails,
       payment_type: pick(['check','ach','ach','ach']),
       payment_terms: 'Net 30',
@@ -187,6 +191,7 @@ async function seed() {
       state_license_expiration: futureDays(between(60, 500)),
       contract_expiration: futureDays(between(90, 600)),
     });
+  }
   }
   console.log(`  âœ“ ${vendorIds.length} vendors with compliance dates + contact`);
 
@@ -224,7 +229,7 @@ async function seed() {
       const amount = cents(200, 8500);
       await db.from('payable_bills').insert({
         id: uid(), portfolio_id: portfolioId, association_id: assoc.id,
-        vendor_id: vendorIds[vendorData.indexOf(vendor)],
+        vendor_id: vendorIdsByAssoc.get(assoc.id)![vendorData.indexOf(vendor)],
         gl_account_id: glMap.get(glAcct),
         bill_date: daysAgo(between(1, 45)),
         due_date: futureDays(between(5, 30)),
@@ -292,7 +297,7 @@ async function seed() {
       await db.from('work_orders').insert({
         id: uid(), portfolio_id: portfolioId, association_id: assoc.id,
         unit_id: pick(unitIds),
-        vendor_id: vendorIds[vendorData.indexOf(vendor)],
+        vendor_id: vendorIdsByAssoc.get(assoc.id)![vendorData.indexOf(vendor)],
         title: pick(woTypes),
         description: `Reported by owner â€” requires ${pick(['immediate','scheduled','routine'])} attention.`,
         status: pick(['new','assigned','in_progress','in_progress','completed']),
@@ -315,7 +320,7 @@ async function seed() {
       const poTotal = cents(500, 15000);
       await db.from('purchase_orders').insert({
         id: poId, portfolio_id: portfolioId, association_id: assoc.id,
-        vendor_id: vendorIds[vendorData.indexOf(vendor)],
+        vendor_id: vendorIdsByAssoc.get(assoc.id)![vendorData.indexOf(vendor)],
         number: `PO-${String(between(100,999))}`,
         status: pick(['open','approved','billed']),
         po_total: poTotal,

@@ -13,9 +13,10 @@ import { requireStaff } from '@/lib/auth/me';
 import { resendVendorRequest, reviewVendorDocument } from '@/lib/rpcs/vendor-document-requests';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { date } from '@/lib/utils';
 import { vendorDocExpires, vendorDocLabel } from '@/lib/vendors/document-requests';
-import { tradeLabel } from '@/lib/vendors/options';
+import { tradeLabel, vendorAssociationLabel as vendorAssociation } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,10 +49,12 @@ export default async function VendorCompliancePage({
   const db = (await createClient()) as any;
 
   const [{ data: vendors }, { data: requests }] = await Promise.all([
-    db.from('vendors').select('id, name, trade, general_liability_expiration, workers_comp_expiration, auto_insurance_expiration, state_license_expiration, has_taxpayer_id')
-      .is('archived_at', null).order('name'),
-    db.from('document_requests').select('id, vendor_id, doc_type, status, requested_at, submitted_at, due_date, review_note, attachment_urls, notes, vendors(name)')
-      .not('vendor_id', 'is', null).order('requested_at', { ascending: false }).limit(500),
+    fetchAllRows<any>(() => db.from('vendors').select('id, name, trade, general_liability_expiration, workers_comp_expiration, auto_insurance_expiration, state_license_expiration, has_taxpayer_id, is_management_company, associations(name)')
+      .is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
+    // Every open request (paged), so none awaiting review or a reply drops off.
+    fetchAllRows<any>(() => db.from('document_requests').select('id, vendor_id, doc_type, status, requested_at, submitted_at, due_date, review_note, attachment_urls, notes, vendors(name, is_management_company, associations(name))')
+      .not('vendor_id', 'is', null).in('status', ['submitted', 'requested', 'in_progress', 'rejected'])
+      .order('requested_at', { ascending: false }).order('id')).then((r) => ({ data: r.rows })),
   ]);
 
   const all = (requests ?? []) as any[];
@@ -101,6 +104,7 @@ export default async function VendorCompliancePage({
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <div className="font-medium text-gray-950">{r.vendors?.name} · {vendorDocLabel(r.doc_type)}</div>
+                      <div className="text-xs text-gray-500">{vendorAssociation(r.vendors)}</div>
                       <div className="text-xs text-gray-500">Received {date(r.submitted_at)}</div>
                     </div>
                     {links.has(r.id) && <a href={links.get(r.id)} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-700 underline hover:text-gray-950">Open file</a>}
@@ -136,7 +140,7 @@ export default async function VendorCompliancePage({
               <tbody>
                 {outstanding.map((r) => (
                   <TR key={r.id}>
-                    <TD className="font-medium text-gray-950">{r.vendors?.name}</TD>
+                    <TD className="font-medium text-gray-950">{r.vendors?.name}<div className="text-xs font-normal text-gray-500">{vendorAssociation(r.vendors)}</div></TD>
                     <TD>{vendorDocLabel(r.doc_type)}{r.review_note && <div className="text-xs text-red-700">Sent back: {r.review_note}</div>}</TD>
                     <TD><StatusChip tone={REQUEST_TONE[r.status] ?? 'neutral'}>{r.status === 'rejected' ? 'Sent back' : 'Requested'}</StatusChip></TD>
                     <TD className="tabular-nums">{date(r.requested_at)}</TD>
@@ -162,7 +166,7 @@ export default async function VendorCompliancePage({
               const lapsed = EXPIRATIONS.find(([k]) => tone(v[k]) === 'danger' || tone(v[k]) === 'warning');
               return (
                 <TR key={v.id}>
-                  <TD><Link href={`/vendors/${v.id}`} className="font-medium text-gray-950 hover:underline">{v.name}</Link><div className="text-xs text-gray-500">{tradeLabel(v.trade)}</div></TD>
+                  <TD><Link href={`/vendors/${v.id}`} className="font-medium text-gray-950 hover:underline">{v.name}</Link><div className="text-xs text-gray-500">{tradeLabel(v.trade)} · {vendorAssociation(v)}</div></TD>
                   {EXPIRATIONS.map(([k]) => (
                     <TD key={k}><StatusChip tone={tone(v[k])}>{v[k] ? date(v[k]) : 'None'}</StatusChip></TD>
                   ))}

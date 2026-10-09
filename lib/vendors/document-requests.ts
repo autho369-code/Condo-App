@@ -35,6 +35,9 @@ export function firstVendorEmail(emails: unknown): string | null {
 export async function emailVendorRequest(svc: any, opts: {
   to: string; vendorName: string; companyName: string; docType: string; message?: string | null;
   dueDate?: string | null; token: string; portfolioId: string; requestId: string; attempt: string; reason?: string | null;
+  // The vendor's association, so managers scoped to other associations do
+  // not see the email (null only for the management company).
+  associationId: string | null;
 }) {
   // The link opens on the company's own address, so the upload page carries
   // its name (falls back to the platform address if the lookup fails).
@@ -60,6 +63,7 @@ export async function emailVendorRequest(svc: any, opts: {
     subject: opts.reason ? `Please resend: ${label}` : `Document request: ${label}`,
     text: lines.join('\n'),
     portfolioId: opts.portfolioId,
+    associationId: opts.associationId,
     fromName: opts.companyName,
     idempotencyKey: `vendor-doc-request:${opts.requestId}:${opts.attempt}`,
   }]);

@@ -49,7 +49,7 @@ export default async function AppfolioImportPage() {
         <AppfolioImportClient associations={associations} importUnits={importAppfolioUnits} />
         <HomeownerImportSection associations={associations} importHomeowners={importAppfolioHomeowners} />
         {canFinance && hasCompany && <GlImportSection importChartOfAccounts={importAppfolioChartOfAccounts} />}
-        {hasCompany && <VendorImportSection importVendors={importAppfolioVendors} />}
+        {hasCompany && <VendorImportSection associations={associations} importVendors={importAppfolioVendors} />}
         {canFinance && <ReceivablesImportSection associations={associations} importReceivables={importAppfolioReceivables} />}
         <WorkOrderImportSection associations={associations} importWorkOrders={importAppfolioWorkOrders} />
         {canFinance && hasCompany && (

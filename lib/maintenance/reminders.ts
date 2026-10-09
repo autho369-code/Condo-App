@@ -30,6 +30,7 @@ export interface MaintenanceReminder {
   staffEmail: string | null;
   // White-label branding — vendor emails present as the management company
   portfolioId: string | null;
+  associationId: string | null;
   companyName: string | null;
   supportEmail: string | null;
 }
@@ -53,7 +54,7 @@ export async function getDueReminders(): Promise<MaintenanceReminder[]> {
   // Every task: one request stops at 1,000 rows, which silently dropped the rest.
   const { rows: tasks, error, truncated } = await fetchAllRows<any>(() => svc
     .from('maintenance_tasks')
-    .select('id, task_name, reminder_days, next_due_date, vendor_id, vendors(name, emails, phone_numbers), associations(name, timezone, portfolio_id, portfolios(company_name, support_email))')
+    .select('id, task_name, reminder_days, next_due_date, vendor_id, association_id, vendors(name, emails, phone_numbers), associations(name, timezone, portfolio_id, portfolios(company_name, support_email))')
     .is('archived_at', null)
     .eq('status', 'active')
     .not('vendor_id', 'is', null)
@@ -95,6 +96,7 @@ export async function getDueReminders(): Promise<MaintenanceReminder[]> {
       vendorName: vendor.name ?? null,
       staffEmail: null,
       portfolioId: assoc?.portfolio_id ?? null,
+      associationId: task.association_id ?? null,
       companyName: assoc?.portfolios?.company_name ?? null,
       supportEmail: assoc?.portfolios?.support_email ?? null,
     });

@@ -79,7 +79,7 @@ export async function sendBulkComms(formData: FormData) {
       const email = extractEmail(vendor);
       const phone = extractPhone(vendor);
       if (!email && !phone) continue;
-      const key = vendor.name || wo.vendor_id;
+      const key = wo.vendor_id;
       if (!recipients.has(key)) {
         recipients.set(key, {
           vendorId: wo.vendor_id,
@@ -107,7 +107,7 @@ export async function sendBulkComms(formData: FormData) {
       const email = extractEmail(vendor);
       const phone = extractPhone(vendor);
       if (!email && !phone) continue;
-      const key = vendor.name || task.vendor_id;
+      const key = task.vendor_id;
       if (!recipients.has(key)) {
         recipients.set(key, {
           vendorId: task.vendor_id,
@@ -133,8 +133,8 @@ export async function sendBulkComms(formData: FormData) {
       const email = extractEmail(v);
       const phone = extractPhone(v);
       if (!email && !phone) continue;
-      if (!recipients.has(v.name)) {
-        recipients.set(v.name, {
+      if (!recipients.has(v.id)) {
+        recipients.set(v.id, {
           vendorId: v.id,
           vendorName: v.name,
           email,
@@ -168,9 +168,12 @@ export async function sendBulkComms(formData: FormData) {
   // name and support address.
   const recipientVendorIds = Array.from(new Set(recipientList.map((r) => r.vendorId).filter(Boolean)));
   const { data: vendorCompanies, error: vendorCompanyError } = await db
-    .from('vendors').select('id, portfolio_id').in('id', recipientVendorIds);
+    .from('vendors').select('id, portfolio_id, association_id').in('id', recipientVendorIds);
   if (vendorCompanyError) return { success: false, error: `Could not load the vendors' companies: ${vendorCompanyError.message}` };
   const vendorCompany = new Map<string, string>((vendorCompanies ?? []).map((v: any) => [v.id, v.portfolio_id]));
+  // Each message belongs to the vendor's association, so managers scoped to
+  // other associations do not see it (only the management company has none).
+  const vendorAssociation = new Map<string, string | null>((vendorCompanies ?? []).map((v: any) => [v.id, v.association_id ?? null]));
   const companyIds = Array.from(new Set(vendorCompany.values())).filter(Boolean);
   const { data: companies, error: companyError } = companyIds.length
     ? await createServiceClient().from('portfolios').select('id, company_name, support_email').in('id', companyIds)
@@ -204,6 +207,7 @@ export async function sendBulkComms(formData: FormData) {
     const personalizedSubject = subject.replace(/{vendor_name}/g, r.vendorName);
 
     const companyId = vendorCompany.get(r.vendorId)!;
+    const associationId = vendorAssociation.get(r.vendorId) ?? null;
     const company = companyById.get(companyId);
     const companyName: string | null = company?.company_name?.trim() || null;
 
@@ -214,6 +218,7 @@ export async function sendBulkComms(formData: FormData) {
       commRows.push({
         id: messageId,
         portfolio_id: companyId,
+        association_id: associationId,
         channel: 'email',
         status: 'queued',
         recipient_group: commType,
@@ -232,6 +237,7 @@ export async function sendBulkComms(formData: FormData) {
         subject: personalizedSubject,
         text: personalizedBody,
         portfolioId: companyId,
+        associationId,
         fromAddress: 'maintenance@portier369.com',
         // portfolios has no `name` column — company_name is the brand
         fromName: companyName,
@@ -249,6 +255,7 @@ export async function sendBulkComms(formData: FormData) {
     if (sendSms && r.phone) {
       commRows.push({
         portfolio_id: companyId,
+        association_id: associationId,
         channel: 'sms',
         status: 'queued',
         recipient_group: commType,

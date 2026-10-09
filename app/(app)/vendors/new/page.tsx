@@ -2,9 +2,12 @@ import Link from 'next/link';
 
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/input';
+import { Input, Label, Select } from '@/components/ui/input';
+import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createVendor } from '@/lib/rpcs/entities';
+import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { VENDOR_PAYMENT_TYPES as PAYMENT_TYPES, VENDOR_TRADES as TRADES, VENDOR_TYPES, tradeLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +21,14 @@ export default async function NewVendorPage({
   const me = await requireStaff();
   const canEditFinancials = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
   const sp = await searchParams;
+  const supabase = await createClient();
+  // Paged: a platform operator can see more than 1,000 associations.
+  const { rows: associations, error: associationsLoadError } = await fetchAllRows<any>(() => (supabase as any)
+    .from('associations').select('id, name, portfolio_id, portfolios(company_name)').is('archived_at', null).order('name').order('id'));
+  const associationsError = associationsLoadError ? { message: associationsLoadError } : null;
+  // A platform operator sees every company's associations: name the company so
+  // same-named associations of different companies can't be confused.
+  const manyCompanies = new Set((associations ?? []).map((a: any) => a.portfolio_id)).size > 1;
 
   return (
     <DataWorkspace
@@ -26,13 +37,29 @@ export default async function NewVendorPage({
       actions={<Link href="/vendors"><Button variant="secondary">Back to vendors</Button></Link>}
     >
       {sp.error && (
-        <div className="mb-6 max-w-5xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          <span className="font-semibold">Could not create vendor:</span> {sp.error}
-        </div>
+        <div className="mb-6 max-w-5xl"><Alert tone="danger" title="Could not create vendor">{sp.error}</Alert></div>
+      )}
+
+      {associationsError && (
+        <div className="mb-6 max-w-5xl"><Alert tone="danger" title="Could not load associations">{associationsError.message}</Alert></div>
       )}
 
       <form action={createVendor as any} className="max-w-5xl space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <Label htmlFor="association_id">Association <span className="text-red-500">*</span></Label>
+            <Select id="association_id" name="association_id" defaultValue="">
+              <option value="">Select association</option>
+              {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{manyCompanies ? `${a.name} · ${a.portfolios?.company_name ?? 'Unnamed company'}` : a.name}</option>)}
+            </Select>
+            <p className="mt-1 text-xs text-gray-500">Each association has its own vendors. A company that works for another association is added there as its own vendor.</p>
+          </div>
+          {canEditFinancials && (
+            <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 md:col-span-2">
+              <input type="checkbox" name="is_management_company" className="mt-1" />
+              <span><span className="block text-sm font-medium text-gray-900">This is the management company</span><span className="block text-xs text-gray-500">The one vendor that belongs to the company instead of an association: management fees are billed to it from every association. Leave the association empty.</span></span>
+            </label>
+          )}
           <div className="md:col-span-2">
             <Label htmlFor="name">Vendor name <span className="text-red-500">*</span></Label>
             <Input id="name" name="name" required placeholder="e.g. Acme Plumbing Inc." />
