@@ -108,3 +108,8 @@ Back to [[Home]]. Don't redo these.
   account numbers mean exactly what they meant in the previous system (the
   trial balance and open balances import by number). Starter accounts that
   are not in that chart stay hidden, not deleted.
+- **No bare DELETE in database functions (2026-10-09):** Supabase runs
+  pg_safeupdate for API sessions, so `delete from x;` with no WHERE fails
+  even inside a security definer RPC ("DELETE requires a WHERE clause").
+  Clear a per-call temp table with `truncate`. A test fails any later
+  migration that adds a bare DELETE.

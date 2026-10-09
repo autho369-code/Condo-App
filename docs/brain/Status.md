@@ -1,6 +1,19 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #269 merged; no open PR; next: Mirsad runs the Randolph Station import).
+Back to [[Home]]. Updated 2026-10-09 (open PR: temp-table truncate fix for Journal entries -> Upload batch; next: Mirsad re-uploads the Randolph Station opening journal).
+
+## Open PR
+- Branch claude/serene-wozniak-hvgpxf: Journal entries -> Upload
+  batch failed with "DELETE requires a WHERE clause" (Supabase's
+  pg_safeupdate refuses a bare DELETE from API sessions, even inside a
+  definer RPC). import_journal_entry_batch, import_bills (Bills upload) and
+  app_scan_unapplied_credits cleared their per-call temp table that way;
+  migration 20261009090000 switches each to TRUNCATE (patched from the live
+  definition; owner, definer and grants unchanged). Nothing was posted by
+  the failed upload. A scan of every live plpgsql function found no other
+  bare DELETE. Rule: clear a temp table with truncate, never a bare delete.
+  Mirsad runs the migration in the SQL editor (it rewrites function
+  bodies to use truncate), then Claude reads it back.
 
 ## Where things stand
 - Randolph Station vendors, open balances, work orders imported by Mirsad
@@ -15,7 +28,10 @@ Back to [[Home]]. Updated 2026-10-09 (after #269 merged; no open PR; next: Mirsa
   from the previous system's trial balance, by account, minus what the
   open-balance import already posted (1300/4101 $4,387.69); "Calculated
   Prior Years Retained Earnings" goes to 3350. Mirsad uploads it on Journal
-  entries -> Upload batch, then runs the tie-out (as of 2026-10-08).
+  entries -> Upload batch, then runs the tie-out (as of 2026-10-08). The
+  first upload failed on pg_safeupdate (bare DELETE in the upload function;
+  nothing posted); fixed in the open PR. Bills -> Upload (since #264) and
+  the unapplied-credits scan were broken the same way.
   Possible gap: an opening-balance journal import on the import page.
 - Randolph Station units and homeowners imported by Mirsad (2026-10-09),
   read back: 17 units in 1 building, 17 current homeowners (one per unit),
@@ -68,7 +84,6 @@ Back to [[Home]]. Updated 2026-10-09 (after #269 merged; no open PR; next: Mirsa
   Connect keys, Plaid), decisions (tenant portal, platform remittance, legal,
   pilot).
 
-## Open PR
 - #269 merged: importer credits. A credit
   (prepayment) line in the open-balance file is posted as a homeowner credit
   via new import_opening_credit (migration 20261009080000): Dr the income
@@ -239,10 +254,11 @@ Back to [[Home]]. Updated 2026-10-09 (after #269 merged; no open PR; next: Mirsa
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-0. Randolph Station end-to-end import (Mirsad runs it on the import page,
-   in order: units, homeowners, chart of accounts, vendors, open balances,
-   work orders, trial-balance tie-out). Credits are posted once the credits
-   PR is in. Then: Stripe live for one
+0. Randolph Station: after the truncate fix is live, Mirsad re-uploads the
+   opening journal (Journal entries -> Upload batch) and runs the tie-out
+   as of 2026-10-08; Claude reads the ledger back against the trial
+   balance. The 8 added vendors need contact, tax and insurance details.
+   Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
    step would be per-request identity caching (riskier, measure first).

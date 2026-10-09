@@ -52,3 +52,7 @@ Back to [[Home]].
     invitation, never by email match ([[Decisions]]).
   - **Chart of accounts: one per company**, entered and changed by the
     company admin; balances stay per association.
+- **No bare DELETE in database functions** (2026-10-09): Supabase's
+  pg_safeupdate refuses a DELETE with no WHERE from API sessions, even
+  inside a security definer RPC. Clear a per-call temp table with
+  `truncate`.
