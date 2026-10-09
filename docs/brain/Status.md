@@ -9,8 +9,14 @@ Back to [[Home]]. Updated 2026-10-09 (after #269 merged; no open PR; next: Mirsa
   orders all on units, 14 of them name 8 vendors not in the app (kept in
   the staff note). Mirsad asked Claude to add them: 8 vendors created
   under Randolph Station (name only; contact, tax and insurance details
-  still to fill in) and linked to their 14 work orders. Next: trial balance
-  tie-out.
+  still to fill in) and linked to their 14 work orders.
+- Opening balances: the trial-balance section only compares. Claude built a
+  one-entry opening journal (2026-10-08, 44 lines, $493,061.19 each side)
+  from the previous system's trial balance, by account, minus what the
+  open-balance import already posted (1300/4101 $4,387.69); "Calculated
+  Prior Years Retained Earnings" goes to 3350. Mirsad uploads it on Journal
+  entries -> Upload batch, then runs the tie-out (as of 2026-10-08).
+  Possible gap: an opening-balance journal import on the import page.
 - Randolph Station units and homeowners imported by Mirsad (2026-10-09),
   read back: 17 units in 1 building, 17 current homeowners (one per unit),
   ownership 100%, dues $10,439.96/month on every unit. Unit 304's owner has
