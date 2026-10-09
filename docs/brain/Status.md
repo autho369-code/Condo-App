@@ -3,6 +3,11 @@
 Back to [[Home]]. Updated 2026-10-09 (after #269 merged; no open PR; next: Mirsad runs the Randolph Station import).
 
 ## Where things stand
+- Randolph Station units and homeowners imported by Mirsad (2026-10-09),
+  read back: 17 units in 1 building, 17 current homeowners (one per unit),
+  ownership 100%, dues $10,439.96/month on every unit. Unit 304's owner has
+  no main email (shares unit 204's address; Mirsad: leave it). Next:
+  vendors, open balances, work orders, trial balance.
 - Randolph Station company chart of accounts matched to the previous system
   (Mirsad approved, 2026-10-09, applied by Claude and read back): the 50
   live accounts whose number meant something else (generic starter chart)
