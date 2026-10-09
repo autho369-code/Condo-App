@@ -33,19 +33,12 @@ Back to [[Home]]. Updated 2026-10-08 (after #258).
   (PL/pgSQL) verified; claim_import_lock run by Mirsad (above).
 - #259 merged (bac812b); #260 merged: work-order status "Assigned by
   AppFolio" is shown and stored as "Assigned". No open PR.
-- Randolph Station created by Mirsad (2026-10-09) for the first real import.
-  The 3 archived associations are still in the DB: his delete SQL did not
-  take; waiting for the error text.
-- **All associations archived 2026-10-09 at Mirsad's request** ("remove all
-  associations from the records"): Granville Courts, 7241 N. Ridge Avenue,
-  Pine Tree Court (Sample) have archived_at set (reversible; nothing
-  deleted). The import page's long list was the browser preview of his
-  29-association file, not saved data; the page now shows one at a time.
-- **Sample association for import testing** (created 2026-10-09 by Claude at
-  Mirsad's request, company aaaaaaaa-…): "Pine Tree Court Condominium
-  Association (Sample)", id 582e1b03-c04a-4c54-bcd6-745d8c84d23f, 1 building,
-  12 units (101–304), 2 auto bank accounts. Remove when Mirsad says (the
-  DELETE is his to run).
+- Randolph Station created by Mirsad (2026-10-09) for the first real import;
+  it is the only association. Granville Courts, 7241 N. Ridge and the Pine
+  Tree sample were deleted by Mirsad in the SQL editor (one DO block: user
+  triggers paused, journal entries/bills/tenants/blocking rows removed,
+  triggers re-enabled; verified 0 disabled triggers, 0 orphan journal
+  lines). 14 old demo owners remain at company level (unlinked).
 - Next gaps: a real end-to-end import of one association (Mirsad, in the
   app, in page order); credit balances from the Aged Receivable file
   (listed, not posted).
