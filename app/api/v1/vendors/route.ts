@@ -14,6 +14,9 @@ export async function GET(request: Request) {
     .eq('portfolio_id', auth.portfolioId)
     .is('archived_at', null)
     .order('name')
+    // Same-named records (one per association) need a unique tie-breaker so
+    // pages neither skip nor repeat rows.
+    .order('id')
     .range(offset, offset + limit - 1);
   if (query) statement = statement.ilike('name', `%${query}%`);
   const { data, count, error } = await statement;
