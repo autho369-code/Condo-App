@@ -151,3 +151,8 @@
   a unit test exists (logic sits in the server action, untested - extract the
   matching to lib/imports/appfolio-gl.ts); Status Next gaps 0 drops the
   "possible gap"; Decisions records the rule.
+- When the branch is reused after a merge (tie-out PR on the #270 branch,
+  2026-10-10), grep Status for "the open PR" / "fixed in the open PR": older
+  entries still pointing at the merged PR now read as the new one (Status
+  :53 said the pg_safeupdate fix was "in the open PR" after #270 merged).
+  The tie-out matching stayed in the action, tested via vi.mock (accepted).

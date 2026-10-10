@@ -50,7 +50,7 @@ Back to [[Home]]. Updated 2026-10-10 (open PR: tie-out pairs the prior-years lin
   Prior Years Retained Earnings" goes to 3350. Mirsad uploads it on Journal
   entries -> Upload batch, then runs the tie-out (as of 2026-10-08). The
   first upload failed on pg_safeupdate (bare DELETE in the upload function;
-  nothing posted); fixed in the open PR. Bills -> Upload (since #264) and
+  nothing posted); fixed in #270 (merged a1a0add2). Bills -> Upload (since #264) and
   the unapplied-credits scan were broken the same way.
   Possible gap: an opening-balance journal import on the import page.
 - Randolph Station units and homeowners imported by Mirsad (2026-10-09),
