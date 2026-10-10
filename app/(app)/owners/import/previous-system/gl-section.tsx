@@ -4,10 +4,14 @@
 //   GlImportSection            — Chart of Accounts export -> preview -> add the
 //                                accounts to the company-wide chart.
 //   TrialBalanceTieOutSection  — Trial Balance export -> read-only tie-out
-//                                against the posted ledger (render it last).
+//                                against the posted ledger (render it last),
+//                                then, for one association, an optional
+//                                confirm-first opening balances entry.
 // Files are read in the browser (lib/imports/appfolio-gl); the server actions
-// re-check everything and the tie-out writes nothing.
+// re-check everything. The tie-out writes nothing; the opening balances
+// action recomputes the differences itself before posting.
 import * as React from 'react';
+import Link from 'next/link';
 import { Alert, Badge, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -16,7 +20,9 @@ import {
   TIE_OUT_ALL_ASSOCIATIONS, parseAppfolioChartOfAccounts, parseAppfolioTrialBalance,
   type AppfolioGlAccount, type AppfolioTrialBalanceAmounts, type AppfolioTrialBalanceRow,
 } from '@/lib/imports/appfolio-gl';
-import type { GlImportSummary, TieOutInputRow, TieOutLine, TieOutOptions, TieOutResult } from './gl-actions';
+import type {
+  GlImportSummary, OpeningBalancesOptions, OpeningBalancesResult, TieOutInputRow, TieOutLine, TieOutOptions, TieOutResult,
+} from './gl-actions';
 
 type Association = { id: string; name: string };
 
@@ -32,6 +38,12 @@ export type TrialBalanceTieOutSectionProps = {
     rows: TieOutInputRow[],
     options?: TieOutOptions,
   ) => Promise<TieOutResult>;
+  postOpeningBalances?: (
+    associationId: string,
+    asOf: string,
+    rows: TieOutInputRow[],
+    options?: OpeningBalancesOptions,
+  ) => Promise<OpeningBalancesResult>;
 };
 
 const moneyFmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -200,7 +212,7 @@ function statusBadge(l: TieOutLine) {
   return <Badge tone="pending">Not in the file</Badge>;
 }
 
-export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: TrialBalanceTieOutSectionProps) {
+export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, postOpeningBalances }: TrialBalanceTieOutSectionProps) {
   const [fileName, setFileName] = React.useState('');
   const [property, setProperty] = React.useState<string | undefined>();
   const [priorYears, setPriorYears] = React.useState<Record<string, AppfolioTrialBalanceAmounts>>({});
@@ -217,6 +229,10 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [result, setResult] = React.useState<TieOutResult | null>(null);
+  const [retainedNumber, setRetainedNumber] = React.useState('');
+  const [confirming, setConfirming] = React.useState(false);
+  const [posting, setPosting] = React.useState(false);
+  const [opening, setOpening] = React.useState<OpeningBalancesResult | null>(null);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -282,15 +298,19 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
     ? Object.values(priorYears).reduce<number | null>((sum, p) => (p?.ending == null ? sum : (sum ?? 0) + p.ending), null)
     : priorYears[group]?.ending ?? null;
 
-  async function run() {
+  const inputRows = () => selected.map((r) => ({ number: r.number, name: r.name, ending: r.ending }));
+
+  async function run(keepOpening = false) {
     setBusy(true);
     setError(null);
     setResult(null);
+    setConfirming(false);
+    if (!keepOpening) setOpening(null);
     try {
       const res = await tieOutTrialBalance(
         associationId,
         asOf,
-        selected.map((r) => ({ number: r.number, name: r.name, ending: r.ending })),
+        inputRows(),
         { incomeBasis, priorYearsRetainedEarnings: priorYearsTotal },
       );
       if (res.error) setError(res.error);
@@ -302,10 +322,40 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
     }
   }
 
+  async function postOpening() {
+    if (!postOpeningBalances) return;
+    setPosting(true);
+    setOpening(null);
+    try {
+      const res = await postOpeningBalances(associationId, asOf, inputRows(), {
+        incomeBasis,
+        priorYearsRetainedEarnings: priorYearsTotal,
+        retainedEarningsNumber: retainedNumber ? Number(retainedNumber) : null,
+        basis,
+      });
+      setOpening(res);
+      setConfirming(false);
+      // Show the ledger as it is now: after posting, every account matches.
+      if (res.ok && (res.lines ?? 0) > 0) await run(true);
+    } catch (err) {
+      setOpening({ ok: false, message: err instanceof Error ? err.message : 'The opening balances could not be posted. Try again.' });
+    } finally {
+      setPosting(false);
+    }
+  }
+
   const lines = result?.lines ?? [];
   const visible = onlyDifferences ? lines.filter((l) => l.status !== 'match') : lines;
   const t = result?.totals;
   const unnamedFile = rows !== null && !property && groups.length === 1 && groups[0] === '';
+  // What the opening entry would post (the server recomputes it before posting).
+  const pyDiff = result?.priorYears?.difference ?? 0;
+  const pairedRetained = result?.priorYears?.accounts?.length === 1;
+  const openingLines = lines.filter((l) => l.difference !== 0).length + (pyDiff !== 0 && !pairedRetained ? 1 : 0);
+  const openingTotal = Math.round((lines.reduce((s, l) => s + (l.difference > 0 ? l.difference : 0), 0)
+    + (pyDiff > 0 ? pyDiff : 0)) * 100) / 100;
+  const needsRetainedChoice = pyDiff !== 0 && !pairedRetained;
+  const showOpening = Boolean(postOpeningBalances && result && t && !combined && (openingLines > 0 || opening));
 
   return (
     <div className="space-y-5">
@@ -313,7 +363,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
         <SectionTitle
           className="mb-0"
           title="Trial balance tie-out"
-          description="In your previous system, run Reports → Trial Balance and export it as CSV. This compares each account's ending balance with your posted ledger. It only reads — nothing is saved."
+          description="In your previous system, run Reports → Trial Balance and export it as CSV. This compares each account's ending balance with your posted ledger. Comparing only reads; nothing is saved unless you post opening balances below."
         />
         <Field label="Trial balance CSV" htmlFor="appfolio-tb-file" required>
           <Input id="appfolio-tb-file" type="file" accept=".csv,text/csv" required onChange={onFile} className="h-auto py-2" />
@@ -350,7 +400,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
 
         {rows && (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button type="button" disabled={!associationId || !asOf || busy || selected.length === 0} onClick={run}>
+            <Button type="button" disabled={!associationId || !asOf || busy || selected.length === 0} onClick={() => run()}>
               {busy ? 'Comparing…' : `Compare ${selected.length} account${selected.length === 1 ? '' : 's'}`}
             </Button>
             {basis && <Badge tone="info" className="normal-case">Basis in the file: {basis}</Badge>}
@@ -476,6 +526,66 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
               </TR>
             </tbody>
           </Table>
+        </Surface>
+      )}
+
+      {showOpening && (
+        <Surface className="space-y-4">
+          <SectionTitle
+            className="mb-0"
+            title="Opening balances"
+            description={`Posts one journal entry dated ${result?.asOf ?? asOf} that brings each account to the file's ending balance: the Difference column above. Import open balances first; what they already posted is left out. Once posted, every account matches and running this again posts nothing.`}
+          />
+          {needsRetainedChoice && (
+            (result?.equityAccounts?.length ?? 0) > 0 ? (
+              <Field label="Prior years' retained earnings post to" htmlFor="opening-retained" required>
+                <Select id="opening-retained" required value={retainedNumber} onChange={(e) => { setRetainedNumber(e.target.value); setConfirming(false); }}>
+                  <option value="">Select an equity account</option>
+                  {result?.equityAccounts?.map((a) => <option key={a.number} value={a.number}>{a.number} {a.name}</option>)}
+                </Select>
+              </Field>
+            ) : (
+              <Alert tone="info">
+                Add an equity account named “Prior Year Retained Earnings” (or “Retained Earnings”) to your chart of accounts for
+                prior years&apos; retained earnings, then compare again.
+              </Alert>
+            )
+          )}
+          {openingLines > 0 && (
+            <p className="text-sm text-gray-600">
+              {openingLines} account{openingLines === 1 ? '' : 's'} · {money(openingTotal)} on each side
+            </p>
+          )}
+          {openingLines > 0 && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              {!confirming ? (
+                <Button
+                  type="button"
+                  disabled={posting || busy || (needsRetainedChoice && !retainedNumber)}
+                  onClick={() => setConfirming(true)}
+                >
+                  Post opening balances
+                </Button>
+              ) : (
+                <>
+                  <Button type="button" disabled={posting} onClick={postOpening}>
+                    {posting ? 'Posting…' : `Confirm: post ${openingLines} line${openingLines === 1 ? '' : 's'}`}
+                  </Button>
+                  <Button type="button" variant="secondary" disabled={posting} onClick={() => setConfirming(false)}>Cancel</Button>
+                </>
+              )}
+            </div>
+          )}
+          {opening && (
+            <Alert tone={opening.ok ? 'success' : 'danger'} title={opening.message}>
+              <ResultList items={opening.errors} />
+              {opening.ok && (opening.lines ?? 0) > 0 && (
+                <Link href="/journal-entries?tab=batches" className="mt-1 inline-flex min-h-10 items-center font-medium text-blue-700 hover:underline">
+                  View the journal entry batch
+                </Link>
+              )}
+            </Alert>
+          )}
         </Surface>
       )}
     </div>

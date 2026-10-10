@@ -1,9 +1,19 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (after #271 merged; no open PR; Randolph Station imported and ties out with no flags; next: vendor details, then Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (open PR: opening balances step on the import page; Randolph Station imported and ties out with no flags; next: vendor details, then Stripe pilot).
 
 ## Open PR
-- None.
+- Branch claude/serene-wozniak-hvgpxf: opening balances step on the import
+  page. Under the trial balance tie-out (one association), "Post opening
+  balances" posts one entry dated the as-of date with each account's
+  difference (file minus ledger), prior years' retained earnings to the
+  paired account or a chosen one the tie-out will pair, through
+  import_journal_entry_batch. Server recomputes the tie-out under an import
+  lock; refuses all associations, cash basis, all-time with a prior-years
+  line, accounts missing from the chart, hidden accounts and ledger-only
+  balances. Confirm-first button. A second run posts nothing. No migration.
+  Tests in gl-actions.test.ts. Randolph Station already ties out, so it
+  would post nothing there.
 
 ## Where things stand
 - #271 merged (4f0f197f): trial balance tie-out counts
@@ -44,7 +54,7 @@ Back to [[Home]]. Updated 2026-10-10 (after #271 merged; no open PR; Randolph St
   the staff note). Mirsad asked Claude to add them: 8 vendors created
   under Randolph Station (name only; contact, tax and insurance details
   still to fill in) and linked to their 14 work orders.
-- Opening balances: the trial-balance section only compares. Claude built a
+- Opening balances (Randolph Station, before the import-page step): Claude built a
   one-entry opening journal (2026-10-08, 44 lines, $493,061.19 each side)
   from the previous system's trial balance, by account, minus what the
   open-balance import already posted (1300/4101 $4,387.69); "Calculated
@@ -276,8 +286,8 @@ Back to [[Home]]. Updated 2026-10-10 (after #271 merged; no open PR; Randolph St
 
 ## Next gaps (pick up here, top first)
 0. Randolph Station is fully imported and tied out. Left: the 8 added
-   vendors need contact, tax and insurance details. Possible gap: an
-   opening-balance journal step on the import page.
+   vendors need contact, tax and insurance details. The opening balances
+   step is in the open PR.
    Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
