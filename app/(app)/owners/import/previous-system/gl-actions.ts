@@ -208,7 +208,7 @@ export type TieOutResult = {
    * counts on the prior-years line. Opening balances may post that line only
    * to one of these, so a second run finds nothing to post.
    */
-  equityAccounts?: Array<{ number: number; name: string }>;
+  equityAccounts?: Array<{ id: string; number: number; name: string }>;
 };
 
 export type TieOutOptions = {
@@ -424,9 +424,10 @@ export async function tieOutAppfolioTrialBalance(
     priorYearsNet: cents(priorYearsNet),
     priorYears,
     ...(combined ? {} : {
-      equityAccounts: [...new Map(accounts
+      // By account id: a number can belong to more than one account.
+      equityAccounts: accounts
         .filter((a) => a.account_type === 'equity' && a.active !== false && isPriorRetainedEarnings(a.name) && !appfolio.has(Number(a.number)))
-        .map((a) => [Number(a.number), { number: Number(a.number), name: a.name }])).values()],
+        .map((a) => ({ id: a.id, number: Number(a.number), name: a.name })),
     }),
   };
 }
@@ -443,8 +444,8 @@ export type OpeningBalancesResult = {
 };
 
 export type OpeningBalancesOptions = TieOutOptions & {
-  /** Equity account for prior years' retained earnings, when the ledger has none the tie-out paired. */
-  retainedEarningsNumber?: number | null;
+  /** Equity account (id) for prior years' retained earnings, when the ledger has none the tie-out paired. */
+  retainedEarningsAccountId?: string | null;
   /** The file's accounting basis: read from the file, or confirmed by the user when the file does not say. */
   basis?: 'cash' | 'accrual';
   /** Account or prior-years lines of this property whose amount could not be read (from the browser's parse). */
@@ -541,9 +542,14 @@ export async function postOpeningBalancesFromTrialBalance(
         };
       }
 
-      const amounts = new Map<number, number>();
-      const add = (number: number, amount: number) => amounts.set(number, cents((amounts.get(number) ?? 0) + amount));
-      for (const l of tie.lines) if (l.difference !== 0) add(l.number, l.difference);
+      // Keyed by what the upload resolves: an account number (the file's own
+      // rows), or an account id for prior years' retained earnings, so that
+      // line reaches exactly the equity account chosen even when another
+      // account shares its number.
+      const amounts = new Map<string, { number: number; amount: number }>();
+      const add = (gl: string, number: number, amount: number) =>
+        amounts.set(gl, { number, amount: cents((amounts.get(gl)?.amount ?? 0) + amount) });
+      for (const l of tie.lines) if (l.difference !== 0) add(String(l.number), l.number, l.difference);
 
       const py = tie.priorYears;
       if (py && py.difference !== 0) {
@@ -553,21 +559,20 @@ export async function postOpeningBalancesFromTrialBalance(
         const paired = py.accounts ?? [];
         // Only an active account can take the line (the upload posts to active accounts only).
         const choices = tie.equityAccounts ?? [];
-        let target: number | null = paired.length === 1 && choices.some((a) => a.number === paired[0].number) ? paired[0].number : null;
+        const pairedChoices = paired.length === 1 ? choices.filter((a) => a.number === paired[0].number) : [];
+        let target = pairedChoices.length === 1 ? pairedChoices[0] : null;
         if (target === null) {
-          const chosen = Number(options.retainedEarningsNumber);
           if (choices.length === 0) {
             return { ok: false, message: 'Add an equity account named "Prior Year Retained Earnings" (or "Retained Earnings") to your chart of accounts for prior years\' retained earnings, then post again.' };
           }
-          if (!Number.isInteger(chosen) || !choices.some((a) => a.number === chosen)) {
-            return { ok: false, message: 'Choose the equity account for prior years\' retained earnings.' };
-          }
-          target = chosen;
+          target = choices.find((a) => a.id === options.retainedEarningsAccountId) ?? null;
+          if (!target) return { ok: false, message: 'Choose the equity account for prior years\' retained earnings.' };
         }
-        add(target, py.difference);
+        add(target.id, target.number, py.difference);
       }
 
-      const posting = [...amounts].filter(([, a]) => a !== 0).sort((a, b) => a[0] - b[0]);
+      const posting = [...amounts].map(([gl, v]) => [gl, v.amount, v.number] as const)
+        .filter(([, a]) => a !== 0).sort((a, b) => a[2] - b[2]);
       if (posting.length === 0) return { ok: true, message: 'Nothing to post: every account already matches the file.', lines: 0, total: 0 };
       const debits = cents(posting.reduce((s, [, a]) => s + (a > 0 ? a : 0), 0));
       const credits = cents(posting.reduce((s, [, a]) => s + (a < 0 ? -a : 0), 0));
@@ -578,12 +583,12 @@ export async function postOpeningBalancesFromTrialBalance(
       const entry = `OPENING-${asOf}`;
       const { data, error } = await db.rpc('import_journal_entry_batch', {
         p_name: `Opening balances ${tie.association ?? ''} ${asOf}`.replace(/\s+/g, ' ').trim(),
-        p_rows: posting.map(([number, a], i) => ({
+        p_rows: posting.map(([gl, a], i) => ({
           row: String(i + 1),
           entry,
           date: asOf,
           association: associationId,
-          gl: String(number),
+          gl,
           debit: a > 0 ? a.toFixed(2) : '',
           credit: a < 0 ? (-a).toFixed(2) : '',
           memo: OPENING_MEMO,

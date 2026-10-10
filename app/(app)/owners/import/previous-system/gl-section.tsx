@@ -360,7 +360,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
       const res = await postOpeningBalances(input.associationId, input.asOf, input.rows, {
         incomeBasis: input.incomeBasis,
         priorYearsRetainedEarnings: input.priorYearsTotal,
-        retainedEarningsNumber: retainedNumber ? Number(retainedNumber) : null,
+        retainedEarningsAccountId: retainedNumber || null,
         basis: basis ?? (accrualConfirmed ? 'accrual' : undefined),
         unreadableRows: input.hasUnreadable,
       });
@@ -384,7 +384,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
   const pyDiff = result?.priorYears?.difference ?? 0;
   // Paired automatically only when that one account is active (it is then among the choices).
   const paired = result?.priorYears?.accounts ?? [];
-  const pairedRetained = paired.length === 1 && Boolean(result?.equityAccounts?.some((a) => a.number === paired[0].number));
+  const pairedRetained = paired.length === 1 && (result?.equityAccounts?.filter((a) => a.number === paired[0].number).length ?? 0) === 1;
   // The prior-years line always posts as its own line (its account is never one of the file's rows).
   const openingLines = lines.filter((l) => l.difference !== 0).length + (pyDiff !== 0 ? 1 : 0);
   const openingTotal = Math.round((lines.reduce((s, l) => s + (l.difference > 0 ? l.difference : 0), 0)
@@ -579,7 +579,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
               <Field label="Prior years' retained earnings post to" htmlFor="opening-retained" required>
                 <Select id="opening-retained" required value={retainedNumber} onChange={(e) => { setRetainedNumber(e.target.value); setConfirming(false); }}>
                   <option value="">Select an equity account</option>
-                  {result?.equityAccounts?.map((a) => <option key={a.number} value={a.number}>{a.number} {a.name}</option>)}
+                  {result?.equityAccounts?.map((a) => <option key={a.id} value={a.id}>{a.number} {a.name}</option>)}
                 </Select>
               </Field>
             ) : (
