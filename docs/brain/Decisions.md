@@ -135,3 +135,6 @@ Back to [[Home]]. Don't redo these.
   compared fiscal year to date. One opening entry per association (found by
   its memo on the association's lines, any date); corrections go in as
   journal entries.
+  Mirsad (2026-10-10, #272): the read-then-post gap (a manual journal entry
+  landing in the same second) is accepted; the tie-out re-runs right after
+  posting and shows any mismatch. No transactional RPC for it.
