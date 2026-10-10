@@ -63,7 +63,9 @@ Every AppFolio page is built; these need access, accounts or decisions first.
       environment's network settings (or supply a `.env.local`). Unblocks:
   - [ ] Browser walkthroughs of every workflow on the Vercel preview (manager,
         board, owner, vendor, company admin, platform operator).
-  - [ ] `npm run check:queries` against production. Note: it is a schema probe
+  - [x] `npm run check:queries` against production. DONE 2026-10-10: 0 broken
+        of 1,164 distinct static queries (the script now runs from
+        environment variables when there is no `.env.local`). Note: it is a schema probe
         only (literal `.from().select()` strings, anonymous, `limit=0`); it
         skips template selects and RPCs, so it does not replace the signed-in
         walkthroughs above.

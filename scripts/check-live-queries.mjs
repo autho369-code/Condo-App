@@ -7,12 +7,15 @@
 //
 // Usage: npm run check:queries   (reads NEXT_PUBLIC_SUPABASE_* from .env.local)
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
 const ROOT = process.cwd();
+// .env.local is optional: CI and cloud containers pass the two variables
+// in the environment instead.
+const envFile = join(ROOT, '.env.local');
 const env = Object.fromEntries(
-  readFileSync(join(ROOT, '.env.local'), 'utf8')
+  (existsSync(envFile) ? readFileSync(envFile, 'utf8') : '')
     .split(/\r?\n/)
     .filter((l) => l.includes('=') && !l.trim().startsWith('#'))
     .map((l) => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim().replace(/^"|"$/g, '')]),
