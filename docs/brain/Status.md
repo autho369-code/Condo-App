@@ -1,24 +1,25 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (open PR: tie-out pairs the prior-years line with the ledger's retained-earnings account; Randolph Station import complete and tied out).
+Back to [[Home]]. Updated 2026-10-10 (after #271 merged; no open PR; Randolph Station imported and ties out with no flags; next: vendor details, then Stripe pilot).
 
 ## Open PR
-- #271 (branch claude/serene-wozniak-hvgpxf): trial balance tie-out counts
+- None.
+
+## Where things stand
+- #271 merged (4f0f197f): trial balance tie-out counts
   a ledger retained-earnings account the file does not list (equity; name
   says prior/previous or is exactly "Retained Earnings"; see Decisions) on the file's "Calculated
   Prior Years Retained Earnings" line, only when the file has that line;
   the row names the accounts. Randolph Station's two offsetting flags
   (prior-years line vs 3350) become one matching row. Read-only action, no
-  migration. Test gl-actions.test.ts. Mirsad re-runs the tie-out to see it.
-
-## Where things stand
+  migration. Test gl-actions.test.ts. Mirsad re-ran Randolph Station after the merge: every account ties out, no flags.
 - Randolph Station opening balances posted and tied out (2026-10-10):
   Mirsad uploaded the opening journal (1 batch, 1 entry, $493,061.19 each
   side, dated 2026-10-08) and ran the tie-out (as of 2026-10-08, fiscal
   year to date): 46 accounts match, 0 differ, total difference $0.00. The
   only flags are the expected pair: the file's "Calculated Prior Years
   Retained Earnings" (-159,343.43, no account number) against 3350 on the
-  ledger (the open PR pairs them into one matching row). Claude read back: every account's ledger balance equals the
+  ledger (#271 pairs them; re-run after merge shows no flags). Claude read back: every account's ledger balance equals the
   trial balance ending balance (incl. 1300 A/R $4,387.69 from the open
   balances), ledger nets to 0.00, 16 entries. The trial balance CSV does
   not carry the property name (the page warns it may combine
