@@ -184,7 +184,7 @@ export default async function AssociationHealthPage() {
 
       {/* Health Legend */}
       <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Health Status Legend</div>
+        <div className="mb-3 text-[13px] font-semibold text-gray-700">Health Status Legend</div>
         <div className="flex flex-wrap gap-4">
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-emerald-500" />

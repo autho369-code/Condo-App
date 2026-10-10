@@ -101,13 +101,13 @@ export default async function OwnerAchPage({
                 <TR key={owner.id} className="hover:bg-gray-50">
                   <TD>
                     <Link href={`/owners/${owner.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{owner.full_name}</Link>
-                    <div className="mt-1 text-xs text-gray-500">{owner.email}</div>
+                    <div className="mt-1 text-[13px] text-gray-500">{owner.email}</div>
                   </TD>
                   <TD>
                     {primary ? (
                       <>
                         <div className="font-medium text-gray-900">{primary.bank_name ?? primary.method_type}</div>
-                        <div className="mt-1 text-xs text-gray-500">{primary.account_type ?? 'bank'} ending {primary.last_four ?? '----'}</div>
+                        <div className="mt-1 text-[13px] text-gray-500">{primary.account_type ?? 'bank'} ending {primary.last_four ?? '----'}</div>
                       </>
                     ) : (
                       <span className="text-gray-500">No payment method</span>
@@ -117,13 +117,13 @@ export default async function OwnerAchPage({
                     <StatusChip tone={primary?.is_verified ? 'success' : primary ? 'warning' : 'neutral'}>
                       {primary?.is_verified ? 'Verified' : primary ? 'Needs verification' : 'Not started'}
                     </StatusChip>
-                    <div className="mt-1 text-xs text-gray-500">Verified {date(primary?.verified_at)}</div>
+                    <div className="mt-1 text-[13px] text-gray-500">Verified {date(primary?.verified_at)}</div>
                   </TD>
                   <TD>
                     <StatusChip tone={mandate?.status === 'active' ? 'success' : mandate ? 'warning' : 'neutral'}>
                       {mandate?.status?.replace(/_/g, ' ') ?? 'No mandate'}
                     </StatusChip>
-                    <div className="mt-1 text-xs text-gray-500">Next run {date(mandate?.next_run_date)}</div>
+                    <div className="mt-1 text-[13px] text-gray-500">Next run {date(mandate?.next_run_date)}</div>
                   </TD>
                   <TD>
                     <Link href={`/owners/forms?owner=${owner.id}&template=ach_authorization`} className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">

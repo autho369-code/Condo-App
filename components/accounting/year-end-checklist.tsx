@@ -4,7 +4,7 @@ type Item = { key: string; label: string; detail: string; ok: boolean; required:
 
 export function YearEndChecklist({ items }: { items: Item[] }) {
   return (
-    <ul className="divide-y divide-gray-100">
+    <ul className="divide-y divide-line">
       {items.map((i) => (
         <li key={i.key} className="flex items-start gap-3 px-5 py-3">
           <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${i.ok ? 'bg-gray-900 text-white' : i.required ? 'bg-red-50 text-red-700 ring-1 ring-red-600/20' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20'}`}>

@@ -77,7 +77,7 @@ export default async function FormsPage({
         </FilterBar>
 
         {rows.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={FileText}
               title={audience || status || term ? 'No forms match these filters' : 'No forms yet'}
@@ -114,7 +114,7 @@ export default async function FormsPage({
                           {f.file_path ? (f.file_name ?? 'Download') : 'Open link'}
                         </a>
                       ) : (
-                        <span className="text-xs text-gray-400">No file</span>
+                        <span className="text-[13px] text-gray-500">No file</span>
                       )}
                     </TD>
                     <TD><StatusChip tone={f.active ? 'success' : 'neutral'}>{f.active ? 'Active' : 'Inactive'}</StatusChip></TD>

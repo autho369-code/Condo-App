@@ -178,7 +178,7 @@ export default function EditTemplatePage() {
           )}
 
           {/* Basic info */}
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-xs font-medium text-gray-700">
                 Template Name *
@@ -228,7 +228,7 @@ export default function EditTemplatePage() {
           </div>
 
           {/* Merge variables */}
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
             <h2 className="mb-4 text-sm font-semibold text-gray-950">Merge Variables</h2>
             <p className="text-xs text-gray-500 mb-4">
               Variables are placeholders like{' '}
@@ -273,14 +273,14 @@ export default function EditTemplatePage() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400">No merge variables added yet.</p>
+              <p className="text-[13px] text-gray-500">No merge variables added yet.</p>
             )}
           </div>
 
           {/* Body editor */}
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-950">Template Body</h2>
+              <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Template Body</h2>
               <div className="flex gap-1">
                 {mergeVariables.map((v) => (
                   <button

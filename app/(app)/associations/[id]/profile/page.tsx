@@ -384,7 +384,7 @@ export default async function AssociationProfileTab({
                 id="site_manager_user_id"
                 name="site_manager_user_id"
                 defaultValue={assoc.site_manager_user_id ?? ''}
-                className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+                className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="">— Not assigned (messages go to company admins) —</option>
                 {(managerProfiles ?? []).map((m: any) => (
@@ -417,7 +417,7 @@ export default async function AssociationProfileTab({
             <div>
               <Label htmlFor="payment_instructions">Other options &amp; notes</Label>
               <Textarea id="payment_instructions" name="payment_instructions" rows={4} defaultValue={assoc.payment_instructions ?? ''} placeholder={"Bank bill-pay payee + address, the account/reference owners should use, lockbox details, or any other payment instructions."} />
-              <p className="mt-1 text-xs text-gray-500">Tip: tell owners to include their unit number as the account/memo so payments are applied correctly.</p>
+              <p className="mt-1 text-[13px] text-gray-500">Tip: tell owners to include their unit number as the account/memo so payments are applied correctly.</p>
             </div>
             <div className="flex justify-end">
               <Button type="submit">Save payment instructions</Button>
@@ -440,7 +440,7 @@ export default async function AssociationProfileTab({
                 id="late_fee_enabled"
                 name="late_fee_enabled"
                 defaultValue={assoc.late_fee_enabled ? 'true' : 'false'}
-                className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+                className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="false">Disabled</option>
                 <option value="true">Enabled</option>
@@ -452,7 +452,7 @@ export default async function AssociationProfileTab({
                 id="late_fee_is_percent"
                 name="late_fee_is_percent"
                 defaultValue={assoc.late_fee_is_percent ? 'true' : 'false'}
-                className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+                className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="false">Flat amount ($)</option>
                 <option value="true">% of unpaid balance</option>
@@ -492,7 +492,7 @@ export default async function AssociationProfileTab({
           <form action={saveManagementFee} className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-4">
             <div>
               <Label htmlFor="fee_type">Fee type</Label>
-              <select id="fee_type" name="fee_type" defaultValue={currentFee?.fee_type ?? 'per_door'} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">
+              <select id="fee_type" name="fee_type" defaultValue={currentFee?.fee_type ?? 'per_door'} className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="per_door">Per door / month</option>
                 <option value="flat_monthly">Flat monthly</option>
                 <option value="percentage">% of assessments</option>
@@ -566,7 +566,7 @@ export default async function AssociationProfileTab({
                       ? <Link href={`/accounting/loans/${l.id}`} className="font-medium text-gray-900 hover:underline">{l.lender}</Link>
                       : <span className="font-medium text-gray-900">{l.lender}</span>}
                     <span className="ml-2 text-xs capitalize text-gray-500">{String(l.loan_type).replace(/_/g, ' ')}</span>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-[13px] text-gray-500">
                       {l.current_balance != null ? `Balance $${Number(l.current_balance).toLocaleString()}` : 'No balance'}
                       {l.interest_rate != null ? ` · ${l.interest_rate}%` : ''}
                       {l.payment_amount != null ? ` · $${Number(l.payment_amount).toLocaleString()}/${l.payment_frequency ?? 'mo'}` : ''}
@@ -581,7 +581,7 @@ export default async function AssociationProfileTab({
               ))}
             </ul>
           )}
-          {!canManageLoans && <p className="text-xs text-gray-500">Loans are managed by accounting staff.</p>}
+          {!canManageLoans && <p className="text-[13px] text-gray-500">Loans are managed by accounting staff.</p>}
           {canManageLoans && <details>
             <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-950">+ Add loan / mortgage</summary>
             <form action={addLoan} className="mt-4 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
@@ -591,7 +591,7 @@ export default async function AssociationProfileTab({
               </div>
               <div>
                 <Label htmlFor="loan_type">Type</Label>
-                <select id="loan_type" name="loan_type" defaultValue="mortgage" className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">
+                <select id="loan_type" name="loan_type" defaultValue="mortgage" className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                   <option value="mortgage">Mortgage</option>
                   <option value="line_of_credit">Line of credit</option>
                   <option value="note">Note</option>

@@ -325,13 +325,13 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="sm:col-span-2"><Label htmlFor="task_name">Task name *</Label><Input id="task_name" name="task_name" required defaultValue={editTask?.task_name} /></div>
                     <div><Label htmlFor="category">Category</Label><Select id="category" name="category" defaultValue={editTask?.category || 'Safety'}>{CATS.map(c => <option key={c}>{c}</option>)}</Select></div>
-                    <div><Label htmlFor="association_id">Association *</Label><Select id="association_id" name="association_id" required disabled={!!editTask} defaultValue={editTask?.association_id || sp.assoc || ''}><option value="">Select</option>{(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select>{editTask && <p className="mt-1 text-xs text-gray-500">A saved task stays with its association.</p>}</div>
+                    <div><Label htmlFor="association_id">Association *</Label><Select id="association_id" name="association_id" required disabled={!!editTask} defaultValue={editTask?.association_id || sp.assoc || ''}><option value="">Select</option>{(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select>{editTask && <p className="mt-1 text-[13px] text-gray-500">A saved task stays with its association.</p>}</div>
                     <div><Label htmlFor="frequency">Frequency</Label><Select id="frequency" name="frequency" defaultValue={editTask?.frequency || 'annual'}>{FREQS.map(f => <option key={f} value={f}>{FREQ[f]}</option>)}</Select></div>
                     <div><Label htmlFor="custom_days">Custom days</Label><Input id="custom_days" name="custom_days" type="number" defaultValue={editTask?.custom_interval_days} placeholder="For custom freq" /></div>
                     <div><Label htmlFor="priority">Priority</Label><Select id="priority" name="priority" defaultValue={editTask?.priority || 'normal'}><option>low</option><option>normal</option><option>high</option><option>critical</option></Select></div>
                     <div><Label htmlFor="vendor_id">Vendor</Label><VendorSelect id="vendor_id" name="vendor_id" defaultValue={editTask?.vendor_id || ''} {...(editTask ? { associationId: editTask.association_id ?? null } : {})} vendors={(vendors ?? []).map((v: any) => ({ ...v, name: `${v.name} (${v.trade})` }))} placeholder="None" /></div>
                     <div><Label htmlFor="staff_id">Manager</Label><Select id="staff_id" name="staff_id" defaultValue={editTask?.assigned_staff_id || ''}><option value="">None</option>{(staff ?? []).map((s: any) => <option key={s.id} value={s.id}>{s.full_name || s.email}</option>)}</Select></div>
-                    <div><Label htmlFor="start_date">{editTask ? 'Start *' : 'Start'}</Label><Input id="start_date" name="start_date" type="date" required={!!editTask} defaultValue={editTask?.start_date || ''} placeholder="Today" />{!editTask && <p className="mt-1 text-xs text-gray-500">Blank starts today in the association&rsquo;s time zone.</p>}</div>
+                    <div><Label htmlFor="start_date">{editTask ? 'Start *' : 'Start'}</Label><Input id="start_date" name="start_date" type="date" required={!!editTask} defaultValue={editTask?.start_date || ''} placeholder="Today" />{!editTask && <p className="mt-1 text-[13px] text-gray-500">Blank starts today in the association&rsquo;s time zone.</p>}</div>
                     <div><Label htmlFor="end_date">End</Label><Input id="end_date" name="end_date" type="date" defaultValue={editTask?.end_date} /></div>
                     <div className="sm:col-span-3"><Label>Reminders</Label><div className="mt-1 flex flex-wrap gap-3">{REMINDERS.map(d => (<label key={d} className="flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" name="reminders" value={d} defaultChecked={(editTask?.reminder_days || [30, 14, 7]).includes(d)} />{d}d</label>))}</div></div>
                     <div className="sm:col-span-3"><Label htmlFor="notes">Notes</Label><Textarea id="notes" name="notes" rows={2} defaultValue={editTask?.notes} /></div>
@@ -345,7 +345,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
             )}
 
             {rows.length === 0 ? (
-              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <EmptyState
                   icon={Wrench}
                   title="No tasks yet"
@@ -368,7 +368,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                     const over = isOverdue(t);
                     return (
                       <TR key={t.id}>
-                        <TD><div className="font-medium text-gray-900">{t.task_name}</div><div className="text-xs text-gray-500">{t.category} · {t.priority}</div></TD>
+                        <TD><div className="font-medium text-gray-900">{t.task_name}</div><div className="text-[13px] text-gray-500">{t.category} · {t.priority}</div></TD>
                         <TD>{t.associations?.name}</TD>
                         <TD className="text-xs">{FREQ[t.frequency] || t.frequency}</TD>
                         <TD>{t.vendors?.name || '—'}</TD>
@@ -406,7 +406,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                   {(g.templates ?? []).map((t: any) => (
                     <div key={t.id} className="rounded-lg border border-gray-200 p-3 text-sm">
                       <div className="font-medium text-gray-900">{t.name}</div>
-                      <div className="mt-1 text-xs text-gray-500">
+                      <div className="mt-1 text-[13px] text-gray-500">
                         <span>{t.category}</span>
                         {t.description && <><span> · </span><span>{t.description.slice(0, 60)}{t.description.length > 60 ? '…' : ''}</span></>}
                       </div>

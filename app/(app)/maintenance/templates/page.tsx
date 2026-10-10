@@ -39,7 +39,7 @@ export default async function TemplatesPage() {
       </Alert>
 
       {Object.keys(grouped).length === 0 ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <EmptyState
             icon={LayoutTemplate}
             title="No templates yet"
@@ -60,7 +60,7 @@ export default async function TemplatesPage() {
                   >
                     <div>
                       <div className="font-medium text-gray-900">{t.name}</div>
-                      {t.description && <div className="mt-1 text-xs text-gray-500">{t.description}</div>}
+                      {t.description && <div className="mt-1 text-[13px] text-gray-500">{t.description}</div>}
                     </div>
                     <span className="text-sm font-medium text-gray-400 opacity-0 transition-opacity group-hover:opacity-100">+ Add</span>
                   </Link>

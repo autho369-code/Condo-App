@@ -55,7 +55,7 @@ export default async function ApprovalsTab({
     >
       <Section>
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+          <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
             <tr>
               <th className="px-4 py-2 text-left font-semibold">Title</th>
               <th className="px-4 py-2 text-left font-semibold">Status</th>
@@ -72,7 +72,7 @@ export default async function ApprovalsTab({
             ) : rows.map((r: any) => (
               <tr key={r.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium text-gray-900">{r.title}</td>
-                <td className="px-4 py-3"><StatusPill status={r.status} /></td>
+                <td className="px-4 py-3.5"><StatusPill status={r.status} /></td>
                 <td className="px-4 py-3 tabular-nums text-gray-700">
                   {r.amount != null ? `$${Number(r.amount).toFixed(2)}` : <span className="text-gray-400">—</span>}
                 </td>

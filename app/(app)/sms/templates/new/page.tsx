@@ -17,7 +17,7 @@ export default async function NewTemplatePage({
 
   return (
     <div className="mx-auto h-full max-w-3xl overflow-y-auto px-8 py-6">
-      <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <div className="mb-4 text-[13px] font-semibold text-gray-700">
         <Link href="/sms" className="transition-colors hover:text-gray-700">SMS</Link> / <Link href="/sms/templates" className="transition-colors hover:text-gray-700">Templates</Link> / New
       </div>
       <div className="rounded-lg border border-gray-200 bg-white shadow-sm">

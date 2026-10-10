@@ -56,7 +56,7 @@ export default function PlatformOperatorSidebar({ userEmail }: { userEmail?: str
         <div className="truncate text-sm font-semibold" style={{ color: '#1E3A5F' }}>
           Portier369
         </div>
-        <div className="mt-0.5 text-xs text-gray-500">Platform Operator</div>
+        <div className="mt-0.5 text-[13px] text-gray-500">Platform Operator</div>
       </div>
 
       {/* Navigation */}

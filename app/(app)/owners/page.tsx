@@ -398,11 +398,11 @@ export default async function OwnersPage({
                       <TD className="font-medium text-gray-900">{t.last_name}, {t.first_name}</TD>
                       <TD>
                         <div className="text-gray-900">{t.email ?? 'No email'}</div>
-                        <div className="mt-1 text-xs text-gray-500">{t.phone ?? 'No phone'}</div>
+                        <div className="mt-1 text-[13px] text-gray-500">{t.phone ?? 'No phone'}</div>
                       </TD>
                       <TD>
                         <div className="font-medium text-gray-900">{t.units?.buildings?.associations?.name ?? '—'}</div>
-                        <div className="mt-1 text-xs text-gray-500">Unit {t.units?.unit_number ?? '—'}</div>
+                        <div className="mt-1 text-[13px] text-gray-500">Unit {t.units?.unit_number ?? '—'}</div>
                       </TD>
                       <TD className="tabular-nums">{t.lease_start ? date(t.lease_start) : '—'}</TD>
                       <TD className="tabular-nums">{t.lease_end ? date(t.lease_end) : '—'}</TD>
@@ -432,7 +432,7 @@ export default async function OwnersPage({
                   className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300 hover:shadow-[0_1px_3px_rgba(16,24,40,0.08)]"
                 >
                   <div className="text-sm font-semibold text-gray-950">{row.name}</div>
-                  <div className="mt-0.5 text-xs text-gray-500">
+                  <div className="mt-0.5 text-[13px] text-gray-500">
                     {row.associationName ?? 'No current association'}
                     {row.unitNumber ? ` · Unit ${row.unitNumber}` : ''}
                   </div>
@@ -468,15 +468,15 @@ export default async function OwnersPage({
                       <Link href={`/owners/${row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
                       {row.balance > 0 && <StatusChip tone="danger">{money(row.balance)} due</StatusChip>}
                     </div>
-                    <div className="mt-1 text-xs text-gray-500">{row.preferredComm.replace(/_/g, ' ')} preferred</div>
+                    <div className="mt-1 text-[13px] text-gray-500">{row.preferredComm.replace(/_/g, ' ')} preferred</div>
                   </TD>
                   <TD>
                     <div className="text-gray-900">{row.email ?? 'No email on file'}</div>
-                    <div className="mt-1 text-xs text-gray-500">{row.phone ?? 'No phone'}</div>
+                    <div className="mt-1 text-[13px] text-gray-500">{row.phone ?? 'No phone'}</div>
                   </TD>
                   <TD>
                     <div className="font-medium text-gray-900">{row.associationName ?? 'No current association'}</div>
-                    <div className="mt-1 text-xs text-gray-500">
+                    <div className="mt-1 text-[13px] text-gray-500">
                       {row.unitNumber ? `Unit ${row.unitNumber}` : 'No unit link'}
                       {row.associationAddress ? ` - ${row.associationAddress}` : ''}
                     </div>
@@ -488,7 +488,7 @@ export default async function OwnersPage({
                       </StatusChip>
                       {row.electronicConsent && <StatusChip tone="info">E-consent</StatusChip>}
                     </div>
-                    <div className="mt-1 text-xs text-gray-500">Last login {date(row.portalLastLogin)}</div>
+                    <div className="mt-1 text-[13px] text-gray-500">Last login {date(row.portalLastLogin)}</div>
                   </TD>
                   <TD>
                     <div className="flex flex-wrap gap-2 text-xs">

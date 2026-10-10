@@ -111,7 +111,7 @@ export default async function PaymentPlansPage({ searchParams }: { searchParams:
                 <TR key={p.id}>
                   <TD>
                     <Link href={`/payment-plans/${p.id}`} className="font-medium text-gray-950 hover:underline">{p.owners?.full_name ?? 'Homeowner'}</Link>
-                    <div className="text-xs text-gray-500">{p.installment_count} {p.frequency === 'biweekly' ? 'every-two-week' : p.frequency} installments from {date(p.start_date)}</div>
+                    <div className="text-[13px] text-gray-500">{p.installment_count} {p.frequency === 'biweekly' ? 'every-two-week' : p.frequency} installments from {date(p.start_date)}</div>
                   </TD>
                   <TD className="text-sm text-gray-700">{p.associations?.name ?? '—'} · {p.units?.unit_number ?? '—'}</TD>
                   <TD className="text-right tabular-nums">{money(p.total_amount)}</TD>

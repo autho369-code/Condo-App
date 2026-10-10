@@ -98,14 +98,14 @@ export default async function VendorCompliancePage({
 
         {awaitingReview.length > 0 && (
           <Section title="Awaiting your review" subtitle="Check the file, then approve (with the expiration date for insurance and licenses) or send it back with a reason.">
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-line">
               {awaitingReview.map((r) => (
                 <li key={r.id} className="px-5 py-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <div className="font-medium text-gray-950">{r.vendors?.name} · {vendorDocLabel(r.doc_type)}</div>
-                      <div className="text-xs text-gray-500">{vendorAssociation(r.vendors)}</div>
-                      <div className="text-xs text-gray-500">Received {date(r.submitted_at)}</div>
+                      <div className="text-[13px] text-gray-500">{vendorAssociation(r.vendors)}</div>
+                      <div className="text-[13px] text-gray-500">Received {date(r.submitted_at)}</div>
                     </div>
                     {links.has(r.id) && <a href={links.get(r.id)} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-700 underline hover:text-gray-950">Open file</a>}
                   </div>
@@ -166,7 +166,7 @@ export default async function VendorCompliancePage({
               const lapsed = EXPIRATIONS.find(([k]) => tone(v[k]) === 'danger' || tone(v[k]) === 'warning');
               return (
                 <TR key={v.id}>
-                  <TD><Link href={`/vendors/${v.id}`} className="font-medium text-gray-950 hover:underline">{v.name}</Link><div className="text-xs text-gray-500">{tradeLabel(v.trade)} · {vendorAssociation(v)}</div></TD>
+                  <TD><Link href={`/vendors/${v.id}`} className="font-medium text-gray-950 hover:underline">{v.name}</Link><div className="text-[13px] text-gray-500">{tradeLabel(v.trade)} · {vendorAssociation(v)}</div></TD>
                   {EXPIRATIONS.map(([k]) => (
                     <TD key={k}><StatusChip tone={tone(v[k])}>{v[k] ? date(v[k]) : 'None'}</StatusChip></TD>
                   ))}

@@ -95,37 +95,37 @@ export default async function NoticeDetailPage({
         <div className="rounded-lg border border-gray-200 bg-white p-6">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <div className="text-xs font-medium text-gray-500">Type</div>
+              <div className="text-[13px] font-medium text-gray-500">Type</div>
               <div className="mt-0.5 capitalize text-gray-900">{(notice.notice_type ?? 'general').replace(/_/g, ' ')}</div>
             </div>
             <div>
-              <div className="text-xs font-medium text-gray-500">Status</div>
+              <div className="text-[13px] font-medium text-gray-500">Status</div>
               <div className="mt-0.5">
                 <StatusChip tone={sd.tone}>{sd.label}</StatusChip>
               </div>
             </div>
             <div>
-              <div className="text-xs font-medium text-gray-500">Association</div>
+              <div className="text-[13px] font-medium text-gray-500">Association</div>
               <div className="mt-0.5 text-gray-900">{notice.associations?.name ?? '—'}</div>
             </div>
             <div>
-              <div className="text-xs font-medium text-gray-500">Channel</div>
+              <div className="text-[13px] font-medium text-gray-500">Channel</div>
               <div className="mt-0.5 capitalize text-gray-900">{notice.channel ?? '—'}</div>
             </div>
             <div>
-              <div className="text-xs font-medium text-gray-500">Send To</div>
+              <div className="text-[13px] font-medium text-gray-500">Send To</div>
               <div className="mt-0.5 capitalize text-gray-900">{(notice.send_to ?? '—').replace(/_/g, ' ')}</div>
             </div>
             <div>
-              <div className="text-xs font-medium text-gray-500">Template</div>
+              <div className="text-[13px] font-medium text-gray-500">Template</div>
               <div className="mt-0.5 text-gray-900">{notice.document_templates?.name ?? '—'}</div>
             </div>
             <div>
-              <div className="text-xs font-medium text-gray-500">Created</div>
+              <div className="text-[13px] font-medium text-gray-500">Created</div>
               <div className="mt-0.5 text-gray-900">{date(notice.created_at)}</div>
             </div>
             <div>
-              <div className="text-xs font-medium text-gray-500">Sent</div>
+              <div className="text-[13px] font-medium text-gray-500">Sent</div>
               <div className="mt-0.5 text-gray-900">{notice.sent_at ? date(notice.sent_at) : 'Not yet sent'}</div>
             </div>
           </div>

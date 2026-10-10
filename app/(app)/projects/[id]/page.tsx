@@ -181,10 +181,10 @@ export default async function ProjectDetailPage({
       {sp.saved && <Alert className="mb-5" tone="success">{sp.saved}</Alert>}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-xs text-gray-500">Approved budget</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget)}</div></div>
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-xs text-gray-500">Committed spend</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(spent)}</div></div>
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-xs text-gray-500">Remaining</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget - spent)}</div></div>
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-xs text-gray-500">Milestones</div><div className="mt-1 text-xl font-semibold tabular-nums">{(milestones ?? []).filter((m: any) => m.status === 'completed').length}/{(milestones ?? []).length}</div></div>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Approved budget</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget)}</div></div>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Committed spend</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(spent)}</div></div>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Remaining</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget - spent)}</div></div>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Milestones</div><div className="mt-1 text-xl font-semibold tabular-nums">{(milestones ?? []).filter((m: any) => m.status === 'completed').length}/{(milestones ?? []).length}</div></div>
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
@@ -193,7 +193,7 @@ export default async function ProjectDetailPage({
             {(milestones ?? []).length ? <div className="space-y-3">{(milestones ?? []).map((milestone: any) => (
               <form action={setMilestoneStatus} key={milestone.id} className="flex flex-col gap-3 rounded-xl border border-gray-200 p-3 sm:flex-row sm:items-center">
                 <input type="hidden" name="project_id" value={id} /><input type="hidden" name="milestone_id" value={milestone.id} />
-                <div className="min-w-0 flex-1"><div className="font-medium text-gray-900">{milestone.title}</div><div className="text-xs text-gray-500">Due {date(milestone.due_date)}{milestone.notes ? ` · ${milestone.notes}` : ''}</div></div>
+                <div className="min-w-0 flex-1"><div className="font-medium text-gray-900">{milestone.title}</div><div className="text-[13px] text-gray-500">Due {date(milestone.due_date)}{milestone.notes ? ` · ${milestone.notes}` : ''}</div></div>
                 <Select name="status" defaultValue={milestone.status} className="sm:w-40"><option value="pending">Pending</option><option value="in_progress">In progress</option><option value="blocked">Blocked</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></Select>
                 <Button type="submit" variant="secondary">Save</Button>
               </form>

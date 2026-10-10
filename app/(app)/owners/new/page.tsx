@@ -54,7 +54,7 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
         </div>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Property assignment</div>
+          <div className="mb-3 text-[13px] font-semibold text-gray-700">Property assignment</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
               <Label htmlFor="association_id">Association <span className="text-red-500">*</span></Label>
@@ -87,7 +87,7 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
 
         {/* ── Board membership ── */}
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Board membership</div>
+          <div className="mb-3 text-[13px] font-semibold text-gray-700">Board membership</div>
           <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3">
             <input type="checkbox" name="board_member" className="mt-1" />
             <span>
@@ -119,7 +119,7 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
 
         {/* ── Rental / tenant ── */}
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Rental status</div>
+          <div className="mb-3 text-[13px] font-semibold text-gray-700">Rental status</div>
           <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3">
             <input type="checkbox" name="is_rented" className="mt-1" />
             <span>
@@ -172,7 +172,7 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
         </section>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Portal access</div>
+          <div className="mb-3 text-[13px] font-semibold text-gray-700">Portal access</div>
           <div className="grid grid-cols-1 gap-4">
             <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3">
               <input type="checkbox" name="activate_portal" className="mt-1" defaultChecked />
@@ -185,7 +185,7 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
         </section>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Mailing address (if different from the unit)</div>
+          <div className="mb-3 text-[13px] font-semibold text-gray-700">Mailing address (if different from the unit)</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="md:col-span-4"><Label htmlFor="address_street">Street</Label><Input id="address_street" name="address_street" /></div>
             <div className="md:col-span-2"><Label htmlFor="address_city">City</Label><Input id="address_city" name="address_city" /></div>

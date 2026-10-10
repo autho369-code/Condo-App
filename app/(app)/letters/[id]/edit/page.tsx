@@ -124,14 +124,14 @@ export default function EditLetterPage() {
 
   return (
     <div className="mx-auto h-full max-w-4xl overflow-y-auto px-8 py-6">
-      <nav className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <nav className="mb-4 text-[13px] font-semibold text-gray-700">
         <Link href="/letters" className="transition-colors hover:text-gray-700">Letters</Link>
         <span className="mx-1">/</span>
         <span className="text-gray-900">{name || 'Edit template'}</span>
       </nav>
 
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Edit template</h1>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Edit template</h1>
         <div className="flex items-center gap-2">
           {active ? (
             <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[12.5px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/15">Active</span>

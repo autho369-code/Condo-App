@@ -104,7 +104,7 @@ export default async function OnboardPage({
           <div className="h-2 overflow-hidden rounded-full bg-gray-100">
             <div className="h-full bg-gray-950 transition-all" style={{ width: `${progress}%` }} />
           </div>
-          <div className="mt-1 text-xs text-gray-500">{progress}% complete · {steps.filter((s) => s.done).length} of {steps.length}</div>
+          <div className="mt-1 text-[13px] text-gray-500">{progress}% complete · {steps.filter((s) => s.done).length} of {steps.length}</div>
         </div>
 
         {errorMessage && <Alert tone="danger" title="Something went wrong:">{errorMessage}</Alert>}

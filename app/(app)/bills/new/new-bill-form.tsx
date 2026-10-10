@@ -236,7 +236,7 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
             </Select>
-            <p className="mt-1 text-xs text-gray-500">The HOA the bill is billed to.</p>
+            <p className="mt-1 text-[13px] text-gray-500">The HOA the bill is billed to.</p>
           </div>
 
           {/* VENDOR */}
@@ -293,7 +293,7 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
               ))}
             </Select>
             {d?.suggested_gl_hint && !matchedGlId && (
-              <p className="mt-1 text-xs text-gray-500">AI suggests: {d.suggested_gl_hint}</p>
+              <p className="mt-1 text-[13px] text-gray-500">AI suggests: {d.suggested_gl_hint}</p>
             )}
           </div>
 
@@ -314,7 +314,7 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
             <Textarea id="memo" name="memo" rows={2}
               placeholder="e.g. Dec 2026 gas utility — Granville Tower"
               defaultValue={defaultMemo} />
-            <p className="mt-1 text-xs text-gray-500">This shows on the printed check&apos;s memo line and on the check stub.</p>
+            <p className="mt-1 text-[13px] text-gray-500">This shows on the printed check&apos;s memo line and on the check stub.</p>
           </div>
 
           {/* SUBMISSION + APPROVAL */}

@@ -51,7 +51,7 @@ export function ResidentConversationList({
 
       {compose ? (
         <Surface>
-          <h2 className="text-[15px] font-semibold text-gray-950">New message</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">New message</h2>
           {units.length === 0 ? (
             <Alert tone="warning" className="mt-4">Your account isn&apos;t linked to a unit yet. Contact management.</Alert>
           ) : (
@@ -87,7 +87,7 @@ export function ResidentConversationList({
         {threads.length === 0 ? (
           <EmptyState icon={MessageSquare} title="No messages yet" description="Conversations with your management team show up here." />
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-line">
             {threads.map((t) => (
               <li key={t.id}>
                 <Link href={`${base}/${t.id}`} className="flex items-start justify-between gap-4 px-5 py-4 transition-colors hover:bg-gray-50">
@@ -101,7 +101,7 @@ export function ResidentConversationList({
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="text-xs text-gray-500">{when(t.last_message_at)}</div>
+                    <div className="text-[13px] text-gray-500">{when(t.last_message_at)}</div>
                     {t.status === 'closed' ? <div className="mt-1"><StatusChip>closed</StatusChip></div> : null}
                   </div>
                 </Link>

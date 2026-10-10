@@ -212,7 +212,7 @@ export default async function VendorsPage({
                       {v.ach_status ? (
                         <AchStatusChip status={v.ach_status} />
                       ) : (
-                        <span className="text-xs text-gray-400">—</span>
+                        <span className="text-[13px] text-gray-500">—</span>
                       )}
                     </td>
                   </tr>

@@ -131,9 +131,9 @@ export default async function NewHomeownerReceiptPage({
                 actions={<Link href={`/units/${selected.id}`} className="text-[13px] font-medium text-gray-600 hover:text-gray-950 hover:underline">Open unit ledger</Link>}
               />
               <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <div><div className="text-xs text-gray-500">Balance due</div><div className="text-lg font-semibold tabular-nums text-gray-950">{money(balanceDue)}</div></div>
-                <div><div className="text-xs text-gray-500">Past due</div><div className="text-lg font-semibold tabular-nums text-gray-950">{money(pastDue)}</div></div>
-                <div><div className="text-xs text-gray-500">Unapplied credit</div><div className="text-lg font-semibold tabular-nums text-gray-950">{money(summary?.unapplied_credit ?? 0)}</div></div>
+                <div><div className="text-[13px] text-gray-500">Balance due</div><div className="text-lg font-semibold tabular-nums text-gray-950">{money(balanceDue)}</div></div>
+                <div><div className="text-[13px] text-gray-500">Past due</div><div className="text-lg font-semibold tabular-nums text-gray-950">{money(pastDue)}</div></div>
+                <div><div className="text-[13px] text-gray-500">Unapplied credit</div><div className="text-lg font-semibold tabular-nums text-gray-950">{money(summary?.unapplied_credit ?? 0)}</div></div>
               </div>
               {(openCharges ?? []).length === 0 ? (
                 <p className="text-sm text-gray-500">No open charges — this receipt will be held as a prepayment credit.</p>

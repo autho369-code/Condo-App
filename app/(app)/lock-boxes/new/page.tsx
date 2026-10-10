@@ -62,7 +62,7 @@ export default async function NewLockBoxPage({
     >
       <div className="max-w-2xl space-y-4">
         {sp.error && <Alert tone="danger" title="Could not add lock box">{sp.error}</Alert>}
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
           <form action={createLockBox} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="serial_number">Serial number *</Label>

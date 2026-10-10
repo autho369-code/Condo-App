@@ -214,7 +214,7 @@ function FeatureRow({ title, desc, status }: { title: string; desc: string; stat
             {status === 'ready' ? 'Ready' : status === 'needs-key' ? 'Needs key' : 'Soon'}
           </StatusChip>
         </div>
-        <p className="mt-0.5 text-xs text-gray-500">{desc}</p>
+        <p className="mt-0.5 text-[13px] text-gray-500">{desc}</p>
       </div>
     </div>
   );

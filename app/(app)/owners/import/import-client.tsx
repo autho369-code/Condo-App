@@ -61,7 +61,7 @@ export function ImportClient({ associations, importOwners, importOpeningBalances
       </div>
 
       {/* Association picker (required for both imports) */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <label htmlFor="association" className="mb-1.5 block text-sm font-medium text-gray-900">
           Target association <span className="text-red-500">*</span>
         </label>

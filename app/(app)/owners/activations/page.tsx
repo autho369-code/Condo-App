@@ -151,7 +151,7 @@ export default async function OwnerActivationsPage({
         </FilterBar>
 
         {rows.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState title="No owners match this filter" description="Change the status or association filter." />
           </div>
         ) : (
@@ -187,19 +187,19 @@ export default async function OwnerActivationsPage({
                       </TD>
                       <TD>
                         <Link href={`/owners/${owner.id}`} className="font-medium text-gray-900 hover:underline">{owner.full_name}</Link>
-                        <div className="mt-0.5 text-xs text-gray-500">{owner.email || 'No email on file'}</div>
+                        <div className="mt-0.5 text-[13px] text-gray-500">{owner.email || 'No email on file'}</div>
                       </TD>
                       <TD className="text-sm text-gray-600">{homes?.units.length ? homes.units.join(', ') : '—'}</TD>
                       <TD>
                         <StatusChip tone={STATUS[status].tone}>{STATUS[status].label}</StatusChip>
-                        {status === 'account' && <div className="mt-1 text-xs text-gray-500"><Link href={`/owners/${owner.id}`} className="underline">Turn on access</Link> on the owner page.</div>}
-                        {status === 'no_email' && <div className="mt-1 text-xs text-gray-500"><Link href={`/owners/${owner.id}`} className="underline">Add an email</Link> to invite.</div>}
+                        {status === 'account' && <div className="mt-1 text-[13px] text-gray-500"><Link href={`/owners/${owner.id}`} className="underline">Turn on access</Link> on the owner page.</div>}
+                        {status === 'no_email' && <div className="mt-1 text-[13px] text-gray-500"><Link href={`/owners/${owner.id}`} className="underline">Add an email</Link> to invite.</div>}
                       </TD>
                       <TD className="text-sm text-gray-600">
                         {invitation ? (
                           <>
                             <div>Sent {date(invitation.created_at)}</div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-[13px] text-gray-500">
                               {invitation.status === 'accepted' ? `Accepted ${date(invitation.accepted_at)}` : invitation.status === 'revoked' ? 'Replaced or revoked' : `Expires ${date(invitation.expires_at)}`}
                             </div>
                           </>

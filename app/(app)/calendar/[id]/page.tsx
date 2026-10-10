@@ -114,7 +114,7 @@ export default async function CalendarEventPage({
                 <textarea id="internal_notes" name="internal_notes" rows={3} defaultValue={internalNotes} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
               </div>
             </div>
-            <p className="text-xs text-gray-500">Times are in the association&apos;s time zone ({zone}). Scheduled reminders move with the start time.</p>
+            <p className="text-[13px] text-gray-500">Times are in the association&apos;s time zone ({zone}). Scheduled reminders move with the start time.</p>
             <div className="flex justify-end border-t border-gray-100 pt-5">
               <Button type="submit">Save changes</Button>
             </div>

@@ -196,7 +196,7 @@ export default async function MeetingDetailPage({
             <Surface>
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-950">Structured agenda</h2>
+                  <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Structured agenda</h2>
                   <p className="mt-1 text-xs leading-5 text-gray-500">Build the ordered agenda shown to the board and included in its PDF packet.</p>
                 </div>
                 <StatusChip tone="neutral">{agendaItems?.length ?? 0} items</StatusChip>
@@ -250,7 +250,7 @@ export default async function MeetingDetailPage({
             <Surface>
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-950">Follow-up actions</h2>
+                  <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Follow-up actions</h2>
                   <p className="mt-1 text-xs leading-5 text-gray-500">Track ownership and completion after the meeting closes.</p>
                 </div>
                 <StatusChip tone="neutral">{actionItems?.length ?? 0} actions</StatusChip>
@@ -331,7 +331,7 @@ export default async function MeetingDetailPage({
           <div className="space-y-4">
             <Surface>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-950">Sign-in &amp; quorum</h2>
+                <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Sign-in &amp; quorum</h2>
                 <div className="flex items-center gap-2">
                   <StatusChip tone="neutral">{presentCount} present</StatusChip>
                   {quorum != null && <StatusChip tone={quorumMet ? 'success' : 'warning'}>{quorumMet ? 'Quorum met' : `Need ${Math.max(0, quorum - votingPresent)} more voting owners`}</StatusChip>}
@@ -345,7 +345,7 @@ export default async function MeetingDetailPage({
                         <span className="font-medium text-gray-900">{attendee.attendee_name}</span>
                         {attendee.attendee_role && <span className="ml-2 text-xs capitalize text-gray-500">{attendee.attendee_role}</span>}
                         {attendee.voting_eligible && <span className="ml-2 text-[12.5px] font-medium text-blue-700">Voting</span>}
-                        <div className="text-xs text-gray-400">{attendee.check_in_time ? `Checked in ${new Date(attendee.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: displayTimeZone() })}` : '—'}</div>
+                        <div className="text-[13px] text-gray-500">{attendee.check_in_time ? `Checked in ${new Date(attendee.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: displayTimeZone() })}` : '—'}</div>
                       </div>
                       <form action={removeMeetingAttendee.bind(null, id, attendee.id)}><PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this attendee?">Remove</PendingSubmit></form>
                     </li>
@@ -386,7 +386,7 @@ export default async function MeetingDetailPage({
             <Surface>
               <div className="mb-3 flex items-center justify-between">
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-950">Meeting documents</h2>
+                  <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Meeting documents</h2>
                   <p className="mt-1 text-xs leading-5 text-gray-500">Private, short-lived downloads for authorized staff and board members.</p>
                 </div>
                 <StatusChip tone="neutral">{documents?.length ?? 0}</StatusChip>
@@ -397,7 +397,7 @@ export default async function MeetingDetailPage({
                     <li key={document.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                       <div className="min-w-0">
                         <a href={`/api/meeting-documents/${document.id}`} target="_blank" rel="noreferrer" className="block truncate font-medium text-gray-900 hover:underline">{document.name}</a>
-                        <span className="text-xs text-gray-400">{document.file_size ? `${(document.file_size / 1024).toFixed(1)} KB · ` : ''}{date(document.uploaded_at ?? document.created_at)}</span>
+                        <span className="text-[13px] text-gray-500">{document.file_size ? `${(document.file_size / 1024).toFixed(1)} KB · ` : ''}{date(document.uploaded_at ?? document.created_at)}</span>
                       </div>
                       <form action={removeMeetingDocument.bind(null, id, document.id)}><PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this document from the meeting?">Remove</PendingSubmit></form>
                     </li>

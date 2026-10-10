@@ -130,7 +130,7 @@ export function GlImportSection({ importChartOfAccounts }: GlImportSectionProps)
         <Field label="Chart of accounts CSV" htmlFor="appfolio-coa-file" required>
           <Input id="appfolio-coa-file" type="file" accept=".csv,text/csv" required onChange={onFile} className="h-auto py-2" />
         </Field>
-        {fileName && <p className="text-xs text-gray-500">{fileName}</p>}
+        {fileName && <p className="text-[13px] text-gray-500">{fileName}</p>}
       </Surface>
 
       {error && <Alert tone="danger">{error}</Alert>}
@@ -184,7 +184,7 @@ export function GlImportSection({ importChartOfAccounts }: GlImportSectionProps)
               {showAll ? 'Show fewer' : `Show all ${accounts.length} accounts`}
             </Button>
           )}
-          <p className="text-xs text-gray-500">
+          <p className="text-[13px] text-gray-500">
             Not imported: offset accounts, 1099 exclusions, late fee settings and tax authorities (GL accounts here do not store them).
           </p>
           <div>
@@ -413,7 +413,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
         <Field label="Trial balance CSV" htmlFor="appfolio-tb-file" required>
           <Input id="appfolio-tb-file" type="file" accept=".csv,text/csv" required onChange={onFile} className="h-auto py-2" />
         </Field>
-        {fileName && <p className="text-xs text-gray-500">{fileName}{property ? ` · ${property}` : ''}</p>}
+        {fileName && <p className="text-[13px] text-gray-500">{fileName}{property ? ` · ${property}` : ''}</p>}
 
         {rows && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -481,7 +481,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
         <Surface className="space-y-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h3 className="text-[15px] font-semibold text-gray-950">{result.association}</h3>
+              <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{result.association}</h3>
               <p className="mt-0.5 text-sm text-gray-500">
                 As of {result.asOf}
                 {result.incomeFrom ? ` · income and expense from ${result.incomeFrom}` : ' · all-time balances'}

@@ -152,7 +152,7 @@ export default async function OtherReceiptsPage({
             </tbody>
           </Table>
         )}
-        {rows.length > 500 && <p className="text-xs text-gray-500">Showing the newest 500 of {rows.length.toLocaleString()}; totals include all of them.</p>}
+        {rows.length > 500 && <p className="text-[13px] text-gray-500">Showing the newest 500 of {rows.length.toLocaleString()}; totals include all of them.</p>}
       </div>
     </DataWorkspace>
   );

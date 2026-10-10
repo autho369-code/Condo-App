@@ -8,7 +8,7 @@ const ICON = { meeting: CalendarDays, vendor: Truck, maintenance: Wrench, event:
 export function AssociationCalendar({ items, timeZone = 'America/Chicago' }: { items: AssociationCalendarItem[]; timeZone?: string }) {
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <Calendar className="mx-auto mb-3 h-10 w-10 text-gray-300" />
         <p className="text-sm text-gray-500">Nothing scheduled in the next 90 days.</p>
       </div>
@@ -37,7 +37,7 @@ export function AssociationCalendar({ items, timeZone = 'America/Chicago' }: { i
               return (
                 <div key={item.key} className="flex items-start gap-4 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300">
                   <div className="w-14 flex-shrink-0 text-center">
-                    <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">
+                    <div className="text-[13px] font-medium text-gray-500">
                       {d.toLocaleDateString('en-US', { weekday: 'short', timeZone })}
                     </div>
                     <div className="text-2xl font-semibold tabular-nums text-blue-600">

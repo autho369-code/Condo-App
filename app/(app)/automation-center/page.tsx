@@ -121,7 +121,7 @@ export default async function AutomationCenterPage({ searchParams }: { searchPar
                       <TD className="whitespace-nowrap">{formatDate(reminder.remind_at)}</TD>
                       <TD>
                         <div className="font-medium text-gray-900">{reminder.calendar_events?.title ?? 'Calendar event'}</div>
-                        <div className="text-xs text-gray-500">{reminder.associations?.name ?? 'Portfolio-wide'}</div>
+                        <div className="text-[13px] text-gray-500">{reminder.associations?.name ?? 'Portfolio-wide'}</div>
                       </TD>
                       <TD className="capitalize">{String(reminder.recipient_group).replaceAll('_', ' ')}</TD>
                       <TD className="max-w-xs text-gray-600">{String(reminder.action).replaceAll(',', ', ')}</TD>
@@ -131,7 +131,7 @@ export default async function AutomationCenterPage({ searchParams }: { searchPar
                 </tbody>
               </Table>
             ) : (
-              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <EmptyState
                   icon={BellRing}
                   title="No reminders scheduled"
@@ -177,7 +177,7 @@ export default async function AutomationCenterPage({ searchParams }: { searchPar
                 </tbody>
               </Table>
             ) : (
-              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <EmptyState
                   icon={ListChecks}
                   title="No follow-up tasks"

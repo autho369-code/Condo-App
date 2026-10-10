@@ -468,7 +468,7 @@ export default async function BillsPage({
               </Table>
               </form>
             ) : (
-              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <EmptyState
                   icon={Receipt}
                   title="No bills in this view"
@@ -530,12 +530,12 @@ export default async function BillsPage({
                 </tbody>
               </Table>
             ) : (
-              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <EmptyState icon={Receipt} title="No paid bills in this view" />
               </div>
             )}
             {(paidMatching ?? 0) > filteredPayments.length && (
-              <p className="text-xs text-gray-500">
+              <p className="text-[13px] text-gray-500">
                 Showing the latest {filteredPayments.length} of {paidMatching} payments. Narrow with search, an association or a vendor to see older ones.
               </p>
             )}

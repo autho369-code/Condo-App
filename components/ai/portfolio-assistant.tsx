@@ -103,7 +103,7 @@ export function PortfolioAssistant({
         </span>
         <div>
           <h2 className="text-sm font-semibold tracking-[-0.01em] text-gray-950">{title}</h2>
-          <p className="text-xs text-gray-500">{subtitle}</p>
+          <p className="text-[13px] text-gray-500">{subtitle}</p>
         </div>
         {scopeOptions && scopeOptions.length > 0 && (
           <label className="ml-auto flex items-center gap-2 text-xs font-medium text-gray-600">

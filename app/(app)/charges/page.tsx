@@ -381,7 +381,7 @@ export default async function ChargesPage({
   };
   const shownNote = (shown: number, matching: number) =>
     matching > shown ? (
-      <p className="text-xs text-gray-500">Showing {shown} of {matching}. Narrow with search or an association to see the rest.</p>
+      <p className="text-[13px] text-gray-500">Showing {shown} of {matching}. Narrow with search or an association to see the rest.</p>
     ) : null;
 
   return (
@@ -564,10 +564,10 @@ export default async function ChargesPage({
 
             {categoryBreakdown.length > 0 && (
               <Surface padded={false}>
-                <div className="border-b border-gray-100 px-5 py-4">
+                <div className="border-b border-line px-5 py-4">
                   <SectionTitle title="Charges by category" description="Outstanding balance by charge category across all associations." className="mb-0" />
                 </div>
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-line">
                   {categoryBreakdown.map((cat: any) => (
                     <div key={cat.key} className="flex items-center justify-between px-5 py-3">
                       <div>
@@ -603,7 +603,7 @@ export default async function ChargesPage({
                       <TD className="whitespace-nowrap">{date(d.date)}</TD>
                       <TD>
                         <div className="font-medium text-gray-900">{d.bank}</div>
-                        {d.bankName && <div className="text-xs text-gray-500">{d.bankName}</div>}
+                        {d.bankName && <div className="text-[13px] text-gray-500">{d.bankName}</div>}
                       </TD>
                       <TD className="text-center tabular-nums">{d.count}</TD>
                       <TD className="text-right font-medium tabular-nums text-gray-900">{money(d.total)}</TD>
@@ -760,9 +760,9 @@ function formatBucket(bucket: string): string {
 
 function SummaryCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <Surface padded={false} className="px-4 py-3">
-      <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
+    <Surface padded={false} className="px-4 py-3.5">
+      <div className="text-[13px] font-medium text-gray-500">{label}</div>
+      <div className="mt-1 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
     </Surface>
   );
 }

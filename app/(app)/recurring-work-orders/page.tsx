@@ -194,7 +194,7 @@ export default async function RecurringWorkOrdersPage({
                     <TD className="max-w-xs">
                       <div className="font-medium text-gray-900">{r.title}</div>
                       {r.trade && (
-                        <div className="text-xs text-gray-500">{tradeLabel(r.trade)}</div>
+                        <div className="text-[13px] text-gray-500">{tradeLabel(r.trade)}</div>
                       )}
                       {r.description && (
                         <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">{r.description}</div>
@@ -213,7 +213,7 @@ export default async function RecurringWorkOrdersPage({
                     <TD className="text-sm text-gray-700">
                       {r.associations?.name ?? '—'}
                       {r.units?.unit_number && (
-                        <div className="text-xs text-gray-400">Unit {r.units.unit_number}</div>
+                        <div className="text-[13px] text-gray-500">Unit {r.units.unit_number}</div>
                       )}
                     </TD>
                     <TD className="whitespace-nowrap text-sm text-gray-700">{date(r.next_due_date)}</TD>
@@ -257,7 +257,7 @@ export default async function RecurringWorkOrdersPage({
             </tbody>
           </Table>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={Repeat}
               title="No recurring work orders match this view"

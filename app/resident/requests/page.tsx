@@ -74,7 +74,7 @@ export default async function ResidentRequestsPage({
       {banner.error ? <Alert>{banner.error}</Alert> : null}
 
       <Surface>
-        <h2 className="text-[15px] font-semibold text-gray-950">Submit a request</h2>
+        <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Submit a request</h2>
         <p className="mt-1 text-[13px] leading-5 text-gray-500">For fire, gas, an active flood, or immediate danger, call 911 and your building&apos;s emergency line first.</p>
         <p className="mt-1 text-[13px] leading-5 text-gray-500">A question rather than a repair? <Link href="/resident/messages?compose=1" className="font-medium text-gray-900 hover:underline">Send a message instead</Link>.</p>
         {unitOptions.length === 0 ? (
@@ -123,11 +123,11 @@ export default async function ResidentRequestsPage({
       </Surface>
 
       <Surface padded={false}>
-        <div className="border-b border-gray-100 px-5 py-4"><h2 className="text-[15px] font-semibold text-gray-950">Request history</h2></div>
+        <div className="border-b border-line px-5 py-4"><h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Request history</h2></div>
         {(requests ?? []).length === 0 ? (
           <EmptyState icon={Wrench} title="No service requests" description="Requests you submit will appear here with their current status." />
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-line">
             {(requests ?? []).map((request: any) => {
               const workOrder = currentWorkOrder(request);
               const canCancel = ['open', 'waiting'].includes(request.status) && !workOrder;

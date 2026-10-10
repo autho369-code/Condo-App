@@ -75,7 +75,7 @@ export default function NavList({
     <div className="flex h-full flex-col">
       <div className="border-b border-gray-200 px-4 py-3">
         <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
+        {subtitle && <p className="mt-0.5 text-[13px] text-gray-500">{subtitle}</p>}
       </div>
 
       {topActions && (

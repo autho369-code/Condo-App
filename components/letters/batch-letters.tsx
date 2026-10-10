@@ -79,7 +79,7 @@ export function BatchLetters({ letters, title }: { letters: BatchLetter[]; title
           <article key={l.key} className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-8">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-gray-100 pb-3">
               <p className="text-sm font-semibold text-gray-950">{l.recipient}</p>
-              <p className="text-xs text-gray-500">{l.unitLabel}</p>
+              <p className="text-[13px] text-gray-500">{l.unitLabel}</p>
             </div>
             {addressBlock && (
               <p className="mb-6 text-sm leading-6 text-gray-700">

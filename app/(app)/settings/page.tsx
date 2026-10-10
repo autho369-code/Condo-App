@@ -267,13 +267,13 @@ export default async function SettingsPage({
               <Label htmlFor="nsf_fee_amount">NSF fee ($) — auto-applied to owner account</Label>
               <Input id="nsf_fee_amount" name="nsf_fee_amount" type="number" step="0.01" min="0"
                 defaultValue={portfolio?.default_nsf_fee_amount ?? 35} />
-              <p className="mt-1 text-xs text-gray-500">Charged automatically when a payment is returned. Applied per-occurrence to the owner ledger.</p>
+              <p className="mt-1 text-[13px] text-gray-500">Charged automatically when a payment is returned. Applied per-occurrence to the owner ledger.</p>
             </div>
             <div>
               <Label htmlFor="reminder_days">Payment reminder schedule (days before/after due)</Label>
               <Input id="reminder_days" name="reminder_days"
                 defaultValue={(portfolio?.default_payment_reminder_days ?? [14, 7, 1, -7, -30]).join(', ')} />
-              <p className="mt-1 text-xs text-gray-500">Comma-separated. Positive = before due, negative = after due.</p>
+              <p className="mt-1 text-[13px] text-gray-500">Comma-separated. Positive = before due, negative = after due.</p>
             </div>
 
             <div className="border-t border-gray-100 pt-4 sm:col-span-2">

@@ -70,34 +70,34 @@ export default async function VendorPaymentsPage({ searchParams }: { searchParam
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr>
-                  <th className="px-5 py-2.5 text-left font-medium">Bill</th>
-                  <th className="px-5 py-2.5 text-left font-medium">Association</th>
-                  <th className="px-5 py-2.5 text-left font-medium">Bill Date</th>
-                  <th className="px-5 py-2.5 text-left font-medium">Due</th>
-                  <th className="px-5 py-2.5 text-left font-medium">Status</th>
-                  <th className="px-5 py-2.5 text-left font-medium">Paid</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Amount</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Bill</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Association</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Bill Date</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Due</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Paid</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((b: any) => (
-                  <tr key={b.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-5 py-3">
+                  <tr key={b.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                    <td className="px-5 py-3.5">
                       <div className="font-medium text-gray-900">{b.bill_number ?? '—'}</div>
                       {b.memo && <div className="mt-0.5 max-w-xs truncate text-xs text-gray-500">{b.memo}</div>}
                     </td>
-                    <td className="px-5 py-3 text-[13px] text-gray-700">{b.associations?.name ?? '—'}</td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(b.bill_date)}</td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(b.due_date)}</td>
-                    <td className="px-5 py-3"><Badge status={b.status}>{statusLabel(b.status)}</Badge></td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{b.paid_at ? date(b.paid_at) : '—'}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-700">{b.associations?.name ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{date(b.bill_date)}</td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{date(b.due_date)}</td>
+                    <td className="px-5 py-3.5"><Badge status={b.status}>{statusLabel(b.status)}</Badge></td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{b.paid_at ? date(b.paid_at) : '—'}</td>
                     <td className="px-5 py-3 text-right tabular-nums">
                       {/* Net of vendor credits, the same basis as the totals above. */}
                       <div className="font-medium text-gray-950">{money(Number(b.amount ?? 0) - Number(b.credit_applied ?? 0))}</div>
                       {Number(b.credit_applied ?? 0) > 0 && (
-                        <div className="text-xs text-gray-500">{money(Number(b.amount ?? 0))} less {money(Number(b.credit_applied))} credit</div>
+                        <div className="text-[13px] text-gray-500">{money(Number(b.amount ?? 0))} less {money(Number(b.credit_applied))} credit</div>
                       )}
                     </td>
                   </tr>

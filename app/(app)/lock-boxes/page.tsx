@@ -338,13 +338,13 @@ export default async function LockBoxesPage({
                           {box.active_assignments > 0 ? (
                             <StatusChip tone="info">{box.active_assignments} active</StatusChip>
                           ) : (
-                            <span className="text-xs text-gray-400">None</span>
+                            <span className="text-[13px] text-gray-500">None</span>
                           )}
                         </TD>
                         <TD>
                           <StatusBadge status={box.status} />
                         </TD>
-                        <TD className="text-xs text-gray-500">{formatDateTime(box.last_accessed_at)}</TD>
+                        <TD className="text-[13px] text-gray-500">{formatDateTime(box.last_accessed_at)}</TD>
                       </TR>
                     ))
                   )}

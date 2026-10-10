@@ -261,7 +261,7 @@ export default function PreviewLetterPage() {
 
   return (
     <div className="mx-auto h-full max-w-6xl overflow-y-auto px-8 py-6">
-      <nav className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <nav className="mb-4 text-[13px] font-semibold text-gray-700">
         <Link href="/letters" className="hover:text-emerald-600">Letters</Link>
         <span className="mx-1">/</span>
         <Link href={`/letters/${id}/edit`} className="transition-colors hover:text-gray-700">{template.name}</Link>

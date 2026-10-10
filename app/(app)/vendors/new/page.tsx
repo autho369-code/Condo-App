@@ -52,7 +52,7 @@ export default async function NewVendorPage({
               <option value="">Select association</option>
               {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{manyCompanies ? `${a.name} · ${a.portfolios?.company_name ?? 'Unnamed company'}` : a.name}</option>)}
             </Select>
-            <p className="mt-1 text-xs text-gray-500">Each association has its own vendors. A company that works for another association is added there as its own vendor.</p>
+            <p className="mt-1 text-[13px] text-gray-500">Each association has its own vendors. A company that works for another association is added there as its own vendor.</p>
           </div>
           {canEditFinancials && (
             <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 md:col-span-2">
@@ -79,7 +79,7 @@ export default async function NewVendorPage({
         </div>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Contact</div>
+          <div className="mb-3 text-[13px] font-semibold text-gray-700">Contact</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" placeholder="vendor@example.com" /></div>
             <div><Label htmlFor="phone_landline">Phone (landline)</Label><Input id="phone_landline" name="phone_landline" type="tel" placeholder="312-555-0100" /></div>
@@ -88,7 +88,7 @@ export default async function NewVendorPage({
         </section>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Contact and remit-to address</div>
+          <div className="mb-3 text-[13px] font-semibold text-gray-700">Contact and remit-to address</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="md:col-span-4"><Label htmlFor="address_street">Street</Label><Input id="address_street" name="address_street" /></div>
             <div className="md:col-span-2"><Label htmlFor="address_city">City</Label><Input id="address_city" name="address_city" /></div>
@@ -98,7 +98,7 @@ export default async function NewVendorPage({
         </section>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Compliance & insurance tracking</div>
+          <div className="mb-3 text-[13px] font-semibold text-gray-700">Compliance & insurance tracking</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div><Label htmlFor="workers_comp_expiration">Workers comp expires</Label><Input id="workers_comp_expiration" name="workers_comp_expiration" type="date" /></div>
             <div><Label htmlFor="general_liability_expiration">General liability expires</Label><Input id="general_liability_expiration" name="general_liability_expiration" type="date" /></div>
@@ -110,7 +110,7 @@ export default async function NewVendorPage({
         </section>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Tax and 1099</div>
+          <div className="mb-3 text-[13px] font-semibold text-gray-700">Tax and 1099</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div><Label htmlFor="taxpayer_name">Taxpayer name</Label><Input id="taxpayer_name" name="taxpayer_name" placeholder="Name on W-9" /></div>
             {canEditFinancials && <div><Label htmlFor="taxpayer_id">Taxpayer ID</Label><Input id="taxpayer_id" name="taxpayer_id" autoComplete="off" placeholder="EIN or SSN" /></div>}
@@ -126,7 +126,7 @@ export default async function NewVendorPage({
         </section>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Payment defaults</div>
+          <div className="mb-3 text-[13px] font-semibold text-gray-700">Payment defaults</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="payment_type">Preferred payment method</Label>

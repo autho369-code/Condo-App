@@ -188,7 +188,7 @@ export default async function Tax1099Page({
                         >
                           {v.vendor_name}
                         </Link>
-                        {v.association_name && <div className="text-xs text-gray-500">Payer: {v.association_name}</div>}
+                        {v.association_name && <div className="text-[13px] text-gray-500">Payer: {v.association_name}</div>}
                       </TD>
                       <TD>{v.taxpayer_name}</TD>
                       <TD className="font-mono text-xs">{maskTIN(v.taxpayer_id)}</TD>
@@ -251,7 +251,7 @@ export default async function Tax1099Page({
                         >
                           {v.vendor_name}
                         </Link>
-                        {v.association_name && <div className="text-xs text-gray-500">Payer: {v.association_name}</div>}
+                        {v.association_name && <div className="text-[13px] text-gray-500">Payer: {v.association_name}</div>}
                       </TD>
                       <TD>{v.taxpayer_name}</TD>
                       <TD className="font-mono text-xs">{maskTIN(v.taxpayer_id)}</TD>
@@ -275,7 +275,7 @@ export default async function Tax1099Page({
         )}
 
         {vendors.length === 0 && (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={FileText}
               title={`No 1099-reportable vendors for ${taxYear}`}

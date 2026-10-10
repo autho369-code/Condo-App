@@ -76,7 +76,7 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
     return (
       <div className="max-w-4xl rounded-2xl border border-gray-200/70 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-2xl text-emerald-600">&#10003;</div>
-        <h3 className="text-[15px] font-semibold text-gray-950">Settings updated</h3>
+        <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Settings updated</h3>
         <p className="mt-1 text-sm text-gray-500">
           {result.updated_count} association{result.updated_count !== 1 ? 's' : ''} updated with {changedCount} setting{changedCount !== 1 ? 's' : ''}.
         </p>
@@ -90,11 +90,11 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-gray-950">1. Select Associations</h3>
-            <p className="mt-0.5 text-xs text-gray-500">Choose which associations to update</p>
+            <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">1. Select Associations</h3>
+            <p className="mt-0.5 text-[13px] text-gray-500">Choose which associations to update</p>
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={selectAll} className="text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Select all</button>
@@ -114,8 +114,8 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
       </div>
 
       <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] space-y-4">
-        <h3 className="text-sm font-semibold text-gray-950">2. Statement Settings</h3>
-        <p className="text-xs text-gray-500">Changes apply only to the selected associations. Unchanged settings keep their current value.</p>
+        <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">2. Statement Settings</h3>
+        <p className="text-[13px] text-gray-500">Changes apply only to the selected associations. Unchanged settings keep their current value.</p>
 
         {/* Boolean toggles */}
         <div className="space-y-2">
@@ -125,7 +125,7 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600" />
               <div>
                 <span className="text-sm font-medium text-gray-900">{label}</span>
-                <p className="text-xs text-gray-500">{description}</p>
+                <p className="text-[13px] text-gray-500">{description}</p>
               </div>
             </label>
           ))}

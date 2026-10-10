@@ -152,7 +152,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
       rail={
         <>
           {/* Status transitions */}
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Status</div>
+          <div className="mb-2 text-[13px] font-semibold text-gray-700">Status</div>
           <div className="mb-5 space-y-1.5">
             {STATUSES.filter((s) => s !== wo.status).map((s) => {
               const isDestr = s === 'cancelled';
@@ -173,7 +173,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
           </div>
 
           {/* In-house assignee */}
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">In-house assignee</div>
+          <div className="mb-2 text-[13px] font-semibold text-gray-700">In-house assignee</div>
           <form action={assignWorkOrderToStaff.bind(null, id) as any} className="mb-5 flex gap-2">
             <select name="assignee_id" defaultValue={wo.assignee_id ?? ''} aria-label="In-house assignee"
               className="h-10 min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
@@ -184,7 +184,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
           </form>
 
           {/* Vendor */}
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">{vendor ? 'Vendor' : 'Assign vendor'}</div>
+          <div className="mb-2 text-[13px] font-semibold text-gray-700">{vendor ? 'Vendor' : 'Assign vendor'}</div>
           {vendor ? (
             <div className="rounded-xl border border-gray-200 p-3 text-sm">
               <div className="font-medium">{vendor.name}</div>
@@ -248,16 +248,16 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
 
       <Section title="Work details">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 text-sm">
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Priority</dt><dd className="mt-0.5 font-medium capitalize">{wo.priority}</dd></div>
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Category</dt><dd className="mt-0.5 capitalize">{wo.category?.replace(/_/g, ' ') ?? '—'}</dd></div>
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Trade</dt><dd className="mt-0.5">{wo.trade ? tradeLabel(wo.trade) : '—'}</dd></div>
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Scheduled</dt><dd className="mt-0.5">{date(wo.scheduled_date)} {wo.scheduled_time ?? ''}</dd></div>
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">In-house assignee</dt><dd className="mt-0.5">{wo.assignee_id ? (staff.find((s) => s.id === wo.assignee_id)?.name ?? wo.assigned_to ?? 'Team member') : '—'}</dd></div>
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Requested by</dt><dd className="mt-0.5">{wo.requested_by ?? '—'}</dd></div>
-          <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Issue</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.issue ?? wo.description ?? '—'}</dd></div>
-          {wo.vendor_instructions && <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Vendor instructions</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.vendor_instructions}</dd></div>}
-          {wo.owner_availability && <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Access / availability</dt><dd className="mt-0.5">{wo.owner_availability}</dd></div>}
-          {wo.internal_notes && <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Internal notes</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.internal_notes}</dd></div>}
+          <div><dt className="text-[13px] text-gray-500">Priority</dt><dd className="mt-0.5 font-medium capitalize">{wo.priority}</dd></div>
+          <div><dt className="text-[13px] text-gray-500">Category</dt><dd className="mt-0.5 capitalize">{wo.category?.replace(/_/g, ' ') ?? '—'}</dd></div>
+          <div><dt className="text-[13px] text-gray-500">Trade</dt><dd className="mt-0.5">{wo.trade ? tradeLabel(wo.trade) : '—'}</dd></div>
+          <div><dt className="text-[13px] text-gray-500">Scheduled</dt><dd className="mt-0.5">{date(wo.scheduled_date)} {wo.scheduled_time ?? ''}</dd></div>
+          <div><dt className="text-[13px] text-gray-500">In-house assignee</dt><dd className="mt-0.5">{wo.assignee_id ? (staff.find((s) => s.id === wo.assignee_id)?.name ?? wo.assigned_to ?? 'Team member') : '—'}</dd></div>
+          <div><dt className="text-[13px] text-gray-500">Requested by</dt><dd className="mt-0.5">{wo.requested_by ?? '—'}</dd></div>
+          <div className="col-span-2"><dt className="text-[13px] text-gray-500">Issue</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.issue ?? wo.description ?? '—'}</dd></div>
+          {wo.vendor_instructions && <div className="col-span-2"><dt className="text-[13px] text-gray-500">Vendor instructions</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.vendor_instructions}</dd></div>}
+          {wo.owner_availability && <div className="col-span-2"><dt className="text-[13px] text-gray-500">Access / availability</dt><dd className="mt-0.5">{wo.owner_availability}</dd></div>}
+          {wo.internal_notes && <div className="col-span-2"><dt className="text-[13px] text-gray-500">Internal notes</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.internal_notes}</dd></div>}
         </dl>
 
         <details className="border-t border-gray-100 px-5 py-4">
@@ -308,7 +308,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
 
       <Section
         title="Labor entries"
-        actions={laborTotal > 0 ? <div className="text-xs text-gray-500">Total <span className="font-semibold text-gray-900">{money(laborTotal)}</span></div> : null}
+        actions={laborTotal > 0 ? <div className="text-[13px] text-gray-500">Total <span className="font-semibold text-gray-900">{money(laborTotal)}</span></div> : null}
       >
         {labor && labor.length > 0 ? (
           <Table>
@@ -387,7 +387,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
               <Input id="cb_description" name="description" maxLength={500} placeholder={`Chargeback: ${wo.title ?? 'repair'}${wo.number ? ` (work order #${wo.number})` : ''}`} />
             </div>
             <div className="flex flex-col gap-2 md:col-span-3 md:flex-row md:items-center md:justify-between">
-              <p className="text-xs text-gray-500">
+              <p className="text-[13px] text-gray-500">
                 Costs on this work order: labor {money(laborTotal)}{approvedEstimate ? ` · approved estimate ${money(approvedEstimate.amount)}` : ''}
               </p>
               <Button type="submit" variant="secondary">Post chargeback</Button>
@@ -470,8 +470,8 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
             <li key={u.id} className="relative">
               <div className="absolute -left-5 top-1 h-2 w-2 rounded-full bg-gray-400" />
               <div className="text-sm">{u.note}</div>
-              {u.new_status && <div className="text-xs text-gray-500">→ status: <span className="capitalize">{u.new_status.replace(/_/g, ' ')}</span></div>}
-              <div className="text-xs text-gray-400">{date(u.created_at)}</div>
+              {u.new_status && <div className="text-[13px] text-gray-500">→ status: <span className="capitalize">{u.new_status.replace(/_/g, ' ')}</span></div>}
+              <div className="text-[13px] text-gray-500">{date(u.created_at)}</div>
             </li>
           ))}
           {!updates?.length && <li className="text-sm text-gray-500">No activity yet.</li>}

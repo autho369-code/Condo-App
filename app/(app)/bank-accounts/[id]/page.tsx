@@ -175,7 +175,7 @@ export default async function BankAccountDetailPage({
 
         {/* Account details */}
         <Surface padded={false}>
-          <div className="border-b border-gray-100 px-5 py-4">
+          <div className="border-b border-line px-5 py-4">
             <h2 className="text-sm font-semibold text-gray-900">Account details</h2>
           </div>
           <dl className="grid grid-cols-1 gap-x-8 gap-y-4 px-5 py-4 sm:grid-cols-2">
@@ -218,9 +218,9 @@ export default async function BankAccountDetailPage({
         </Surface>
 
         <Surface padded={false}>
-          <div className="border-b border-gray-100 px-5 py-4">
+          <div className="border-b border-line px-5 py-4">
             <h2 className="text-sm font-semibold text-gray-900">Check authorization</h2>
-            <p className="mt-1 text-xs text-gray-500">Required before checks can be issued. This records the authorized signer reference but does not apply a physical or electronic signature.</p>
+            <p className="mt-1 text-[13px] text-gray-500">Required before checks can be issued. This records the authorized signer reference but does not apply a physical or electronic signature.</p>
           </div>
           <form action={updateBankCheckSettings as unknown as (formData: FormData) => Promise<void>} className="space-y-4 px-5 py-4">
             <input type="hidden" name="bank_account_id" value={account.id} />
@@ -239,7 +239,7 @@ export default async function BankAccountDetailPage({
 
         {/* Reconciliation status */}
         <Surface padded={false}>
-          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
             <h2 className="text-sm font-semibold text-gray-900">Reconciliation</h2>
             <StatusChip tone={lastRecon?.status === 'completed' ? 'success' : lastRecon?.status === 'in_progress' ? 'warning' : 'neutral'}>
               {reconStatus}
@@ -266,7 +266,7 @@ export default async function BankAccountDetailPage({
 
         {/* Recent activity */}
         <Surface padded={false}>
-          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
             <h2 className="text-sm font-semibold text-gray-900">Recent activity</h2>
             <Link href={`/bank-accounts/activity?bank_account_id=${account.id}`} className="text-sm font-medium text-gray-600 hover:text-gray-950">
               View all →

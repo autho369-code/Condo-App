@@ -134,7 +134,7 @@ export default async function EditGlAccountPage({
           </div>
         </div>
         {locked && (
-          <p className="text-xs text-gray-500">This account is already in use, so its type and association can&apos;t be changed.</p>
+          <p className="text-[13px] text-gray-500">This account is already in use, so its type and association can&apos;t be changed.</p>
         )}
 
         <div>

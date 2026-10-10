@@ -86,7 +86,7 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
 
         <Surface padded={false}>
           <div className="border-b border-gray-100 px-5 py-3">
-            <h2 className="text-sm font-semibold text-gray-950">Spaces</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Spaces</h2>
           </div>
           <div className="overflow-x-auto">
             <Table>
@@ -124,7 +124,7 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
                             <div>
                               <div className="font-medium text-gray-900">{assignedUnit(a) ?? assignedOccupant(a) ?? '—'}</div>
                               {assignedUnit(a) && assignedOccupant(a) && (
-                                <div className="text-xs text-gray-500">{assignedOccupant(a)}</div>
+                                <div className="text-[13px] text-gray-500">{assignedOccupant(a)}</div>
                               )}
                             </div>
                           ) : <StatusChip tone="success">Available</StatusChip>}
@@ -138,7 +138,7 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
                             ? (a.deposit_paid
                                 ? <StatusChip tone="success">Held {money(a.deposit_amount)}</StatusChip>
                                 : <StatusChip tone="warning">Unpaid</StatusChip>)
-                            : (space.deposit_amount ? <span className="text-xs text-gray-500">{money(space.deposit_amount)} req.</span> : '—')}
+                            : (space.deposit_amount ? <span className="text-[13px] text-gray-500">{money(space.deposit_amount)} req.</span> : '—')}
                         </TD>
                         <TD className="text-right">
                           {a ? (

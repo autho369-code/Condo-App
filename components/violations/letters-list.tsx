@@ -27,7 +27,7 @@ export function ViolationLettersList({ letters, links, markMailed, back }: Props
     );
   }
   return (
-    <ul className="divide-y divide-gray-100">
+    <ul className="divide-y divide-line">
       {letters.map((l) => {
         const href = links.get(l.pdf_path);
         const email = markMailed ? emailLabel(l) : null;

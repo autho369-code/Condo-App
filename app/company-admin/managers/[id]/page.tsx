@@ -242,7 +242,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
         <div className="border-b border-gray-100 px-6 py-4">
           <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Recent Activity</h2>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-line">
           {(recentActivity ?? []).length === 0 ? (
             <div className="px-6 py-8 text-center text-sm text-gray-500">No recent activity recorded.</div>
           ) : (

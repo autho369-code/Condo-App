@@ -70,7 +70,7 @@ export default async function BoardTab({
     >
       <Section title="Board Members">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+          <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
             <tr>
               <th className="px-4 py-2 text-left font-semibold">Name</th>
               <th className="px-4 py-2 text-left font-semibold">Role</th>
@@ -86,7 +86,7 @@ export default async function BoardTab({
               <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">No active board members.</td></tr>
             ) : current.map((m: any) => (
               <tr key={m.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
-                <td className="px-4 py-3"><span className="font-medium text-gray-900">{m.full_name}</span></td>
+                <td className="px-4 py-3.5"><span className="font-medium text-gray-900">{m.full_name}</span></td>
                 <td className="px-4 py-3 text-gray-700">{humanRole(m.role)}</td>
                 <td className="px-4 py-3 text-gray-700">{m.term_start ? formatDate(m.term_start) : <span className="text-gray-400">—</span>}</td>
                 <td className="px-4 py-3 text-gray-700">{m.term_end ? formatDate(m.term_end) : <span className="text-gray-400">—</span>}</td>
@@ -111,14 +111,14 @@ export default async function BoardTab({
       </Section>
 
       <Section>
-        <details className="px-5 py-3">
+        <details className="px-5 py-3.5">
           <summary className="cursor-pointer text-sm font-semibold text-gray-900 list-none flex items-center gap-1">
             <span className="text-gray-500 text-xs">▸</span>
             Past Board Members
             {past.length > 0 && <span className="font-normal text-gray-500">({past.length})</span>}
           </summary>
           <table className="mt-3 w-full text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
                 <th className="px-4 py-2 text-left font-semibold">Name</th>
                 <th className="px-4 py-2 text-left font-semibold">Role</th>

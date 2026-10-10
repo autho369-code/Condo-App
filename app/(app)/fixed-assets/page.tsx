@@ -157,7 +157,7 @@ export default async function FixedAssetsPage({
                   <TR key={a.id}>
                     <TD className="font-medium text-gray-900">
                       <Link href={`/fixed-assets/${a.id}`} className="underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900">{a.name}</Link>
-                      {(a.make || a.model) && <div className="mt-0.5 text-xs text-gray-500">{[a.make, a.model].filter(Boolean).join(' ')}</div>}
+                      {(a.make || a.model) && <div className="mt-0.5 text-[13px] text-gray-500">{[a.make, a.model].filter(Boolean).join(' ')}</div>}
                     </TD>
                     <TD className="text-sm text-gray-700">{a.asset_type ?? '—'}</TD>
                     <TD className="text-sm text-gray-700">{a.associations?.name ?? '—'}</TD>
@@ -179,7 +179,7 @@ export default async function FixedAssetsPage({
             </tbody>
           </Table>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={Boxes}
               title={filtering ? 'No fixed assets match this filter' : 'No fixed assets recorded yet'}

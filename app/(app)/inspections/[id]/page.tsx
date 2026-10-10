@@ -178,9 +178,9 @@ export default async function InspectionDetailPage({
       {sp.saved && <Alert className="mb-5" tone="success">{sp.saved}</Alert>}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-xs text-gray-500">Findings</div><div className="mt-1 text-2xl font-semibold tabular-nums">{(findings ?? []).length}</div></div>
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-xs text-gray-500">Unresolved</div><div className="mt-1 text-2xl font-semibold tabular-nums">{unresolved.length}</div></div>
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-xs text-gray-500">Major / critical</div><div className="mt-1 text-2xl font-semibold tabular-nums">{critical.length}</div></div>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Findings</div><div className="mt-1 text-2xl font-semibold tabular-nums">{(findings ?? []).length}</div></div>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Unresolved</div><div className="mt-1 text-2xl font-semibold tabular-nums">{unresolved.length}</div></div>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Major / critical</div><div className="mt-1 text-2xl font-semibold tabular-nums">{critical.length}</div></div>
       </div>
 
       {checklistRows.length > 0 && (
@@ -227,7 +227,7 @@ export default async function InspectionDetailPage({
           {(findings ?? []).length ? <div className="space-y-4">{(findings ?? []).map((finding: any) => {
             const workOrder = Array.isArray(finding.work_orders) ? finding.work_orders[0] : finding.work_orders;
             return <div key={finding.id} className="rounded-xl border border-gray-200 p-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><div className="font-medium text-gray-900">{finding.issue}</div><div className="mt-1 text-xs text-gray-500">{finding.area ?? 'Area not specified'} · captured {date(finding.captured_at ?? finding.created_at)}</div></div><div className="flex gap-2"><Badge status={finding.severity}>{finding.severity}</Badge><Badge status={finding.resolved ? 'resolved' : 'open'} /></div></div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><div className="font-medium text-gray-900">{finding.issue}</div><div className="mt-1 text-[13px] text-gray-500">{finding.area ?? 'Area not specified'} · captured {date(finding.captured_at ?? finding.created_at)}</div></div><div className="flex gap-2"><Badge status={finding.severity}>{finding.severity}</Badge><Badge status={finding.resolved ? 'resolved' : 'open'} /></div></div>
               {workOrder && <p className="mt-3 text-sm"><Link href={`/work-orders/${workOrder.id}`} className="font-medium text-gray-700 hover:text-blue-700">Remediation #{workOrder.number ?? workOrder.id.slice(0, 8)} · {workOrder.title}</Link></p>}
               {(eventsByFinding.get(finding.id) ?? []).length > 0 && <div className="mt-3 space-y-1 text-xs text-gray-500">{(eventsByFinding.get(finding.id) ?? []).slice(0, 4).map((event: any, index: number) => <div key={`${event.created_at}-${index}`}><span className="font-medium capitalize text-gray-700">{event.action.replaceAll('_', ' ')}</span> · {date(event.created_at)}{event.note ? ` · ${event.note}` : ''}</div>)}</div>}
               <form action={resolveFinding} className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row"><input type="hidden" name="inspection_id" value={id} /><input type="hidden" name="finding_id" value={finding.id} /><input type="hidden" name="resolved" value={finding.resolved ? 'false' : 'true'} /><Input name="resolution_notes" defaultValue={finding.resolution_notes ?? ''} placeholder="Resolution evidence or follow-up note" /><Button type="submit" variant="secondary">{finding.resolved ? 'Reopen' : 'Resolve'}</Button>{!workOrder && <Button type="submit" formAction={createRemediation}>Create work order</Button>}</form>

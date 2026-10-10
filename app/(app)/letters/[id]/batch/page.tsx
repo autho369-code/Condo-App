@@ -156,7 +156,7 @@ export default async function BatchLettersPage({
             {letters.length > 0 ? (
               <BatchLetters letters={letters} title={`${template.name} · ${association.name}`} />
             ) : (
-              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <EmptyState icon={Users} title="No current homeowners" description="This association has no units with a current owner of record." />
               </div>
             )}
@@ -164,7 +164,7 @@ export default async function BatchLettersPage({
         )}
 
         {!associationId && (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState icon={Users} title="Choose an association" description="Every current homeowner gets a letter with their own name, unit and address merged in." />
           </div>
         )}

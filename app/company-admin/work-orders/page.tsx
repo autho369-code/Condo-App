@@ -196,7 +196,7 @@ export default async function WorkOrdersOversightPage({
                       {isOverdue ? (
                         <StatusChip tone="danger">Overdue</StatusChip>
                       ) : (
-                        <span className="text-xs text-gray-400">—</span>
+                        <span className="text-[13px] text-gray-500">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3.5">

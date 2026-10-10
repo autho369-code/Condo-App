@@ -116,7 +116,7 @@ export default async function ServiceRequestDetail({
       rail={
         <div className="space-y-5 text-sm">
           <div>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Next step</div>
+            <div className="mb-2 text-[13px] font-semibold text-gray-700">Next step</div>
             <div className="space-y-2">
               {openWorkOrder ? (
                 <Link href={`/work-orders/${openWorkOrder.id}`}>
@@ -137,7 +137,7 @@ export default async function ServiceRequestDetail({
           </div>
 
           <div>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Response time</div>
+            <div className="mb-2 text-[13px] font-semibold text-gray-700">Response time</div>
             <dl className="space-y-1.5">
               <div className="flex justify-between gap-3"><dt className="text-gray-500">Submitted</dt><dd>{date(sr.created_at)}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-gray-500">Reply due</dt><dd>{sr.first_response_due_at ? new Date(sr.first_response_due_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimeZone() }) : '—'}</dd></div>
@@ -147,7 +147,7 @@ export default async function ServiceRequestDetail({
 
           {workOrders.length > 0 ? (
             <div>
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Work orders</div>
+              <div className="mb-2 text-[13px] font-semibold text-gray-700">Work orders</div>
               <ul className="space-y-1">
                 {workOrders.map((w) => (
                   <li key={w.id} className="flex items-center justify-between gap-2">
@@ -193,14 +193,14 @@ export default async function ServiceRequestDetail({
         <div className="px-5 py-4 text-sm">
           <p className="whitespace-pre-wrap leading-6 text-gray-900">{sr.description}</p>
           <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-            <div><dt className="text-xs uppercase tracking-wider text-gray-500">Submitted by</dt><dd className="mt-0.5">{who.name} <span className="text-gray-400">({who.role})</span></dd></div>
-            <div><dt className="text-xs uppercase tracking-wider text-gray-500">Contact</dt><dd className="mt-0.5 space-x-2">
+            <div><dt className="text-[13px] text-gray-500">Submitted by</dt><dd className="mt-0.5">{who.name} <span className="text-gray-400">({who.role})</span></dd></div>
+            <div><dt className="text-[13px] text-gray-500">Contact</dt><dd className="mt-0.5 space-x-2">
               {who.email ? <a className="hover:underline" href={`mailto:${who.email}`}>{who.email}</a> : null}
               {who.phone ? <a className="hover:underline" href={`tel:${who.phone}`}>{who.phone}</a> : null}
               {!who.email && !who.phone ? '—' : null}
             </dd></div>
-            <div><dt className="text-xs uppercase tracking-wider text-gray-500">Permission to enter</dt><dd className="mt-0.5">{sr.permission_to_enter ? 'Yes' : 'No'}</dd></div>
-            <div><dt className="text-xs uppercase tracking-wider text-gray-500">Priority</dt><dd className="mt-0.5 capitalize">
+            <div><dt className="text-[13px] text-gray-500">Permission to enter</dt><dd className="mt-0.5">{sr.permission_to_enter ? 'Yes' : 'No'}</dd></div>
+            <div><dt className="text-[13px] text-gray-500">Priority</dt><dd className="mt-0.5 capitalize">
               {sr.priority}{sr.submitted_priority && sr.submitted_priority !== sr.priority ? <span className="text-gray-500"> (resident chose {sr.submitted_priority})</span> : null}
             </dd></div>
           </dl>
@@ -262,7 +262,7 @@ export default async function ServiceRequestDetail({
 
       {merged && merged.length > 0 ? (
         <Section title="Other reports of this issue" subtitle="Merged into this request">
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-line">
             {merged.map((m: any) => (
               <li key={m.id} className="px-5 py-3 text-sm">
                 <Link href={`/service-requests/${m.id}`} className="font-medium text-gray-900 hover:underline">#{m.number ?? m.id.slice(0, 8)}</Link>

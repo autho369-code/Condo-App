@@ -26,14 +26,14 @@ export default async function ResidentMeetingsPage() {
             <Surface key={meeting.id}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h2 className="text-[15px] font-semibold text-gray-950">{meeting.title}</h2>
+                  <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{meeting.title}</h2>
                   <p className="mt-1 text-xs capitalize text-gray-500">{String(meeting.meeting_type ?? 'meeting').replace(/_/g, ' ')}{meeting.location ? ` · ${meeting.location}` : ''}</p>
                 </div>
-                <div className="flex items-center gap-2"><span className="text-xs text-gray-500">{date(meeting.start_time, 'long')}</span><Badge status={meeting.status} /></div>
+                <div className="flex items-center gap-2"><span className="text-[13px] text-gray-500">{date(meeting.start_time, 'long')}</span><Badge status={meeting.status} /></div>
               </div>
-              {meeting.ai_summary ? <section className="mt-4"><div className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400">Summary</div><p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{meeting.ai_summary}</p></section> : null}
-              {meeting.agenda ? <section className="mt-4"><div className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400">Agenda</div><p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{meeting.agenda}</p></section> : null}
-              {meeting.minutes ? <section className="mt-4"><div className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400">Minutes</div><p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{meeting.minutes}</p></section> : null}
+              {meeting.ai_summary ? <section className="mt-4"><div className="text-[13px] font-semibold text-gray-700">Summary</div><p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{meeting.ai_summary}</p></section> : null}
+              {meeting.agenda ? <section className="mt-4"><div className="text-[13px] font-semibold text-gray-700">Agenda</div><p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{meeting.agenda}</p></section> : null}
+              {meeting.minutes ? <section className="mt-4"><div className="text-[13px] font-semibold text-gray-700">Minutes</div><p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{meeting.minutes}</p></section> : null}
             </Surface>
           ))}
         </div>

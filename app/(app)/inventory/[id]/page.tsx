@@ -194,7 +194,7 @@ export default async function InventoryItemPage({
                         {m.work_orders?.number ? `#${m.work_orders.number}` : 'Work order'}
                       </Link>
                     ) : '—'}
-                    {m.associations?.name && <div className="text-xs text-gray-500">{m.associations.name}</div>}
+                    {m.associations?.name && <div className="text-[13px] text-gray-500">{m.associations.name}</div>}
                   </TD>
                   <TD className="text-sm text-gray-600">{m.note ?? '—'}</TD>
                   <TD className="text-sm text-gray-600">{nameById.get(m.created_by) ?? '—'}</TD>

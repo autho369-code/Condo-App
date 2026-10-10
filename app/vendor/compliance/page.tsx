@@ -191,7 +191,7 @@ export default async function VendorCompliance({
           {documents.length === 0 ? (
             <p className="text-sm text-gray-500">No compliance documents uploaded yet.</p>
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-line">
               {documents.map((document: any) => (
                 <li key={document.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                   <FileText className="h-4 w-4 flex-shrink-0 text-gray-400" />
@@ -216,7 +216,7 @@ export default async function VendorCompliance({
       {requests.length > 0 && (
         <Surface className="mt-5">
           <SectionTitle title="Requests from management" description="Upload the requested file above and link it to the matching request." />
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-line">
             {requests.map((request: any) => (
               <li key={request.id} className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0">
                 <div>

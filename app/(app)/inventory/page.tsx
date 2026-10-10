@@ -327,7 +327,7 @@ export default async function InventoryPage({
                           {row.category}
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-400">—</span>
+                        <span className="text-[13px] text-gray-500">—</span>
                       )}
                     </TD>
                     <TD>

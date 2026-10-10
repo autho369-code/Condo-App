@@ -83,7 +83,7 @@ export default async function CreditCardsPage({ searchParams }: { searchParams: 
                 <TR key={c.id}>
                   <TD>
                     <Link href={`/credit-cards/${c.id}`} className="font-medium text-gray-950 hover:underline">{c.name}</Link>
-                    <div className="text-xs text-gray-500">{[c.issuer, c.last_four ? `•••• ${c.last_four}` : null].filter(Boolean).join(' · ') || '—'}</div>
+                    <div className="text-[13px] text-gray-500">{[c.issuer, c.last_four ? `•••• ${c.last_four}` : null].filter(Boolean).join(' · ') || '—'}</div>
                   </TD>
                   <TD className="text-sm text-gray-700">{c.associations?.name ?? 'Any association'}</TD>
                   <TD className="text-sm text-gray-700">{c.gl_accounts ? `${c.gl_accounts.number} ${c.gl_accounts.name}` : '—'}</TD>

@@ -113,7 +113,7 @@ export default async function ScheduledReportsPage({
                   <TR key={s.id}>
                     <TD className="font-medium text-gray-900">
                       <Link href={`/scheduled-reports/${s.id}`} className="underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900">{s.name}</Link>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-[13px] text-gray-500">
                         {s.saved_report_id ? `Custom report: ${s.saved_reports?.name ?? 'removed'}` : s.report_definitions?.name}
                       </div>
                     </TD>
@@ -158,7 +158,7 @@ export default async function ScheduledReportsPage({
             </tbody>
           </Table>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               title={q || status ? 'No schedules match this filter' : 'No scheduled reports yet'}
               description="Schedule a report, or a custom report with its saved filters, to run and email automatically."

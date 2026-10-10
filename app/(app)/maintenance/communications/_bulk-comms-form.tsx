@@ -364,7 +364,7 @@ export function BulkCommsForm({
       {/* Work Order Selection */}
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <label className="text-sm font-medium text-gray-700">Select by work order</label>
+          <label className="text-[13.5px] font-medium text-gray-700">Select by work order</label>
           {hasWorkOrders && (
             <div className="flex gap-2">
               <button type="button" onClick={selectAllWos} className="text-xs text-emerald-600 hover:underline">
@@ -452,7 +452,7 @@ export function BulkCommsForm({
       {/* Manual Vendor Selection */}
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <label className="text-sm font-medium text-gray-700">Or select vendors directly</label>
+          <label className="text-[13.5px] font-medium text-gray-700">Or select vendors directly</label>
           {vendors.length > 0 && (
             <button type="button" onClick={selectAllVendors} className="text-xs text-emerald-600 hover:underline">
               Select all
@@ -567,7 +567,7 @@ export function BulkCommsForm({
         <Button type="submit" disabled={sending || recipients.length === 0}>
           {sending ? 'Sending...' : `Send to ${recipients.length} Vendor${recipients.length !== 1 ? 's' : ''}`}
         </Button>
-        <span className="text-xs text-gray-400">
+        <span className="text-[13px] text-gray-500">
           Messages will be queued and logged in the Communication Center.
         </span>
       </div>

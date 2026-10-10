@@ -156,7 +156,7 @@ export default async function NewPropertyPage({ searchParams }: { searchParams: 
 
   return (
     <div className="mx-auto h-full max-w-4xl overflow-y-auto px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-      <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">New Property</h1>
+      <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">New Property</h1>
 
       {sp.error && <Alert tone="danger" title="Property not created." className="mt-4">{sp.error}</Alert>}
       <form action={createProperty as any} className="mt-6 space-y-5">

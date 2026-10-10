@@ -302,12 +302,12 @@ export function FieldCaptureForm({
               <RefreshCw className="h-4 w-4 text-gray-400" /> Sync now
             </button>
           </div>
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-line">
             {queue.map((c) => (
               <li key={c.id} className="flex items-start justify-between gap-3 py-3">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium text-gray-900">{c.title}</div>
-                  <div className="mt-0.5 text-xs text-gray-500">
+                  <div className="mt-0.5 text-[13px] text-gray-500">
                     {c.associationName}{c.unitLabel ? ` · ${c.unitLabel}` : ''} · {c.photos.length} photo{c.photos.length === 1 ? '' : 's'}
                     {c.violationId ? ' · case filed, photos pending' : ''}
                   </div>

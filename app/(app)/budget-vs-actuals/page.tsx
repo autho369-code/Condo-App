@@ -154,7 +154,7 @@ export default async function BudgetVsActualsPage({
 
         <Surface padded={false}>
           <div className="border-b border-gray-100 px-5 py-3">
-            <h2 className="text-sm font-semibold text-gray-950">
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">
               {associations?.find((a: any) => a.id === selectedAssociation)?.name ?? 'Select an association'} — FY{selectedYear}
             </h2>
           </div>
@@ -186,17 +186,17 @@ export default async function BudgetVsActualsPage({
                   <span className="text-sm font-semibold text-gray-950">Net total</span>
                   <div className="flex items-center gap-6 text-sm">
                     <div className="text-right">
-                      <div className="text-xs text-gray-500">Budget</div>
+                      <div className="text-[13px] text-gray-500">Budget</div>
                       <div className="font-semibold tabular-nums text-gray-950">{money(netBudget)}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs text-gray-500">Actual</div>
+                      <div className="text-[13px] text-gray-500">Actual</div>
                       <div className={`font-semibold tabular-nums ${netActual >= netBudget ? 'text-emerald-700' : 'text-red-700'}`}>
                         {money(netActual)}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs text-gray-500">Variance</div>
+                      <div className="text-[13px] text-gray-500">Variance</div>
                       <div className={`font-semibold tabular-nums ${netVariance >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                         {money(netVariance)}
                       </div>
@@ -246,7 +246,7 @@ function ProgressCard({
             style={{ width: `${pct}%` }}
           />
         </div>
-        <div className="text-xs text-gray-400">
+        <div className="text-[13px] text-gray-500">
           {budget > 0 ? `${((actual / budget) * 100).toFixed(1)}% of budget` : 'No budget set'}
         </div>
       </div>
@@ -275,28 +275,28 @@ function ReportSection({ title, income = false, rows, months }: { title: string;
                 {row.gl_account_number} — {row.gl_account_name}
               </div>
               {row.budget_line_id == null
-                ? <div className="mt-0.5 text-xs text-gray-500">Not budgeted — posted activity only</div>
-                : row.notes && <div className="mt-0.5 text-xs text-gray-500">{row.notes}</div>}
+                ? <div className="mt-0.5 text-[13px] text-gray-500">Not budgeted — posted activity only</div>
+                : row.notes && <div className="mt-0.5 text-[13px] text-gray-500">{row.notes}</div>}
             </div>
             <div className="flex items-center gap-4 text-sm tabular-nums">
               <div className="text-right">
-                <div className="text-xs text-gray-500">Budget</div>
+                <div className="text-[13px] text-gray-500">Budget</div>
                 <div className="font-medium text-gray-950">{money(row.annual_budget)}</div>
               </div>
               <div className="text-right">
-                <div className="text-xs text-gray-500">Actual</div>
+                <div className="text-[13px] text-gray-500">Actual</div>
                 <div className={`font-medium ${tone(row.annual_actual - row.annual_budget)}`}>
                   {money(row.annual_actual)}
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xs text-gray-500">Variance</div>
+                <div className="text-[13px] text-gray-500">Variance</div>
                 <div className={`font-medium ${tone(row.annual_variance)}`}>
                   {money(row.annual_variance)}
                 </div>
               </div>
               <div className="w-16 text-right">
-                <div className="text-xs text-gray-500">%</div>
+                <div className="text-[13px] text-gray-500">%</div>
                 <div className={`font-medium ${tone(row.annual_variance_pct)}`}>
                   {row.annual_variance_pct}%
                 </div>

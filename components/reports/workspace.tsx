@@ -75,7 +75,7 @@ export function Section({
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
           <div>
             {title && <h2 className="text-sm font-semibold text-gray-900">{title}</h2>}
-            {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
+            {subtitle && <p className="mt-0.5 text-[13px] text-gray-500">{subtitle}</p>}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
@@ -107,7 +107,7 @@ export function Tile({
     <div className="rounded-md border border-gray-200 bg-white px-4 py-3">
       <div className="text-[12.5px] font-medium uppercase tracking-wider text-gray-500">{label}</div>
       <div className={'mt-1 text-xl font-semibold tabular-nums ' + toneClasses[tone]}>{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-gray-500">{sub}</div>}
+      {sub && <div className="mt-0.5 text-[13px] text-gray-500">{sub}</div>}
     </div>
   );
 }

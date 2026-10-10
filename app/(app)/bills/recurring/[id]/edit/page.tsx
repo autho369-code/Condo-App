@@ -39,7 +39,7 @@ export default async function EditRecurringBillPage({
       <RecurringBillForm values={bill} {...options} />
       {(generated ?? []).length > 0 && (
         <div className="mt-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <h2 className="text-[15px] font-semibold text-gray-950">Bills created</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Bills created</h2>
           <ul className="mt-3 divide-y divide-gray-100 text-sm">
             {(generated as any[]).map((b) => (
               <li key={b.id} className="flex items-center justify-between py-2">

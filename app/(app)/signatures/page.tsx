@@ -77,7 +77,7 @@ export default async function SignaturesPage({ searchParams }: { searchParams: P
             </tbody>
           </Table>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState icon={PenLine} title="No signature requests yet" description="Send a board resolution, architectural decision, or agreement for electronic signature."
               action={<Link href="/signatures/new"><Button><Plus className="h-4 w-4" /> Request signatures</Button></Link>} />
           </div>

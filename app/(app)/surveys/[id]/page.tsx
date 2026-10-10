@@ -172,7 +172,7 @@ export default async function SurveyPage({
                     <TD className="whitespace-nowrap text-sm text-gray-600">{date(r.submitted_at)}</TD>
                     <TD className="text-sm text-gray-900">
                       {r.submitted_by_name ?? '—'}
-                      {r.submitted_by_email && <div className="text-xs text-gray-500">{r.submitted_by_email}</div>}
+                      {r.submitted_by_email && <div className="text-[13px] text-gray-500">{r.submitted_by_email}</div>}
                     </TD>
                     {questions.map((q) => <TD key={q.order} className="text-sm text-gray-700">{answerText(q, (r.answers ?? {})[String(q.order)])}</TD>)}
                     <TD className="text-sm text-gray-600">{r.comments ?? '—'}</TD>

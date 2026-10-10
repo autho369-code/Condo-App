@@ -100,7 +100,7 @@ export function ArcAttachmentsUploader({
           ))}
         </ul>
       )}
-      <p className="text-xs text-gray-400">
+      <p className="text-[13px] text-gray-500">
         Select several at once — plans, drawings, contractor quotes, photos. Up to {remaining} more, max 25 MB each; files upload one at a time so large sets don&apos;t fail.
       </p>
     </div>

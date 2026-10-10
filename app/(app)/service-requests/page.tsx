@@ -230,7 +230,7 @@ export default async function ServiceRequestsPage({
                         <form action={triageServiceRequest.bind(null, request.id)}>
                           <Button type="submit" size="sm"><Wrench className="h-3.5 w-3.5" /> Create work order</Button>
                         </form>
-                      ) : <span className="text-xs text-gray-400">No action</span>}
+                      ) : <span className="text-[13px] text-gray-500">No action</span>}
                     </TD>
                   </TR>
                 );

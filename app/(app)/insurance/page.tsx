@@ -99,7 +99,7 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
         />
 
         {rows.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={ShieldCheck}
               title="No insurance policies yet"
@@ -139,7 +139,7 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
                     <span className={'whitespace-nowrap ' + (p.days_remaining <= 30 ? 'font-medium text-red-700' : 'text-gray-700')}>
                       {date(p.expiration_date)}
                     </span>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-[13px] text-gray-500">
                       {p.days_remaining > 0 ? `${p.days_remaining} days left` : p.days_remaining === 0 ? 'Expires today' : 'Expired'}
                     </div>
                   </TD>

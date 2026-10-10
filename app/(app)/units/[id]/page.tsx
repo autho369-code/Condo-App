@@ -74,7 +74,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
       <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <div className="text-[13px] font-semibold text-gray-700">
               <Link href="/units" className="transition-colors hover:text-gray-700">Units</Link>
               {' · '}
               <span className="text-gray-400">{(unit.buildings as any)?.associations?.name}</span>
@@ -351,7 +351,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
             <div className="md:col-span-5">
               <Label htmlFor="pay_notes">Notes</Label>
               <Input id="pay_notes" name="notes" placeholder="Optional" />
-              <p className="mt-1 text-xs text-gray-500">Applies to outstanding charges by the association&apos;s payment order. Open a payment above to change its allocation or reverse it.</p>
+              <p className="mt-1 text-[13px] text-gray-500">Applies to outstanding charges by the association&apos;s payment order. Open a payment above to change its allocation or reverse it.</p>
             </div>
           </form>
         </CardBody>

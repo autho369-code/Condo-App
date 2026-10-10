@@ -180,7 +180,7 @@ export default async function VendorAchPage({
         <div className="space-y-6">
           {sp.error && <Alert tone="danger" title="ACH authorization failed">{sp.error}</Alert>}
           {/* Vendor header */}
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-950">{focusVendor.name}</h2>
@@ -197,36 +197,36 @@ export default async function VendorAchPage({
           </div>
 
           {/* Workflow progress */}
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="mb-3 text-xs font-semibold uppercase text-gray-500">Authorization Progress</div>
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="mb-3 text-[13px] font-semibold text-gray-700">Authorization Progress</div>
             <AchWorkflowBadge status={focusVendor.ach_status ?? 'pending'} />
           </div>
 
           {/* Bank details */}
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="mb-3 text-xs font-semibold uppercase text-gray-500">Bank Account Details</div>
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="mb-3 text-[13px] font-semibold text-gray-700">Bank Account Details</div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <div className="text-xs text-gray-500">Routing Number</div>
+                <div className="text-[13px] text-gray-500">Routing Number</div>
                 <div className="mt-1 font-mono text-lg font-semibold text-gray-900">{focusVendor.bank_routing_number}</div>
               </div>
               <div>
-                <div className="text-xs text-gray-500">Account Number</div>
+                <div className="text-[13px] text-gray-500">Account Number</div>
                 <div className="mt-1 font-mono text-lg font-semibold text-gray-900">{maskAccount(focusVendor.bank_account_number)}</div>
                 <div className="mt-1 text-xs text-gray-400">Last 4 digits shown — full number stored securely</div>
               </div>
               <div>
-                <div className="text-xs text-gray-500">Account Type</div>
+                <div className="text-[13px] text-gray-500">Account Type</div>
                 <div className="mt-1 text-sm font-medium text-gray-900">{focusVendor.savings_account ? 'Savings' : 'Checking'}</div>
               </div>
               <div>
-                <div className="text-xs text-gray-500">Auto-Pay</div>
+                <div className="text-[13px] text-gray-500">Auto-Pay</div>
                 <div className="mt-1">
                   <StatusChip tone={focusVendor.is_auto_pay ? 'info' : 'neutral'}>
                     {focusVendor.is_auto_pay ? 'Enabled' : 'Not enabled'}
                   </StatusChip>
                   {focusVendor.auto_pay_setup_at && (
-                    <div className="mt-1 text-xs text-gray-500">Since {date(focusVendor.auto_pay_setup_at)}</div>
+                    <div className="mt-1 text-[13px] text-gray-500">Since {date(focusVendor.auto_pay_setup_at)}</div>
                   )}
                 </div>
               </div>
@@ -239,8 +239,8 @@ export default async function VendorAchPage({
           </div>
 
           {/* Audit log */}
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="mb-3 text-xs font-semibold uppercase text-gray-500">Audit Log</div>
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="mb-3 text-[13px] font-semibold text-gray-700">Audit Log</div>
             <div className="space-y-3">
               {/* Bank info added — always shown if bank info exists */}
               {hasBank && (
@@ -248,7 +248,7 @@ export default async function VendorAchPage({
                   <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-500">i</div>
                   <div>
                     <div className="font-medium text-gray-900">Bank account added</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-[13px] text-gray-500">
                       Routing {focusVendor.bank_routing_number} / Account ending {maskAccount(focusVendor.bank_account_number)}
                       {' '}· {focusVendor.savings_account ? 'Savings' : 'Checking'}
                     </div>
@@ -262,7 +262,7 @@ export default async function VendorAchPage({
                   <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-xs text-blue-600">✓</div>
                   <div>
                     <div className="font-medium text-gray-900">Bank account verified</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-[13px] text-gray-500">
                       Verified {date(focusVendor.ach_verified_at, 'long')}
                       {focusVendor.ach_verified_by && <> by {profileMap.get(focusVendor.ach_verified_by) ?? 'staff'}</>}
                     </div>
@@ -276,7 +276,7 @@ export default async function VendorAchPage({
                   <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-100 text-xs text-green-600">✓</div>
                   <div>
                     <div className="font-medium text-gray-900">ACH payments activated</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-[13px] text-gray-500">
                       Activated {date(focusVendor.ach_activated_at, 'long')}
                       {focusVendor.ach_activated_by && <> by {profileMap.get(focusVendor.ach_activated_by) ?? 'staff'}</>}
                     </div>
@@ -291,7 +291,7 @@ export default async function VendorAchPage({
                   <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-xs text-amber-600">!</div>
                   <div>
                     <div className="font-medium text-gray-900">Awaiting verification</div>
-                    <div className="text-xs text-gray-500">Bank account details have not yet been verified by staff.</div>
+                    <div className="text-[13px] text-gray-500">Bank account details have not yet been verified by staff.</div>
                   </div>
                 </div>
               )}
@@ -299,8 +299,8 @@ export default async function VendorAchPage({
           </div>
 
           {/* Action buttons */}
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="mb-3 text-xs font-semibold uppercase text-gray-500">Actions</div>
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="mb-3 text-[13px] font-semibold text-gray-700">Actions</div>
             <div className="flex flex-wrap gap-3">
               {canVerify && (
                 <form action={verifyVendorAch}>
@@ -348,7 +348,7 @@ export default async function VendorAchPage({
       >
         <div className="max-w-2xl space-y-5">
           {sp.error && <Alert tone="danger" title="Could not save bank details">{sp.error}</Alert>}
-          <form action={saveVendorBankDetails} className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <form action={saveVendorBankDetails} className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <input type="hidden" name="vendor_id" value={focusVendor.id} />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Field label="Routing number">
@@ -399,7 +399,7 @@ export default async function VendorAchPage({
                     <Link href={`/vendors/ach?vendor=${vendor.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">
                       {vendor.name}
                     </Link>
-                    <div className="mt-1 text-xs text-gray-500">{tradeLabel(vendor.trade)} · {vendorAssociationLabel(vendor)}</div>
+                    <div className="mt-1 text-[13px] text-gray-500">{tradeLabel(vendor.trade)} · {vendorAssociationLabel(vendor)}</div>
                   </TD>
                   <TD>
                     <StatusChip tone={vendor.payment_type === 'ach' ? 'success' : 'neutral'}>
@@ -411,7 +411,7 @@ export default async function VendorAchPage({
                     {hasBank ? (
                       <>
                         <div className="text-sm font-mono text-gray-900">…{maskAccount(vendor.bank_account_number)}</div>
-                        <div className="mt-1 text-xs text-gray-500">{vendor.savings_account ? 'Savings' : 'Checking'}</div>
+                        <div className="mt-1 text-[13px] text-gray-500">{vendor.savings_account ? 'Savings' : 'Checking'}</div>
                       </>
                     ) : (
                       <StatusChip tone="warning">Missing bank info</StatusChip>
@@ -419,13 +419,13 @@ export default async function VendorAchPage({
                   </TD>
                   <TD>
                     <AchStatusBadge status={vendor.ach_status ?? 'pending'} />
-                    {vendor.ach_verified_at && <div className="mt-1 text-xs text-gray-500">Verified {date(vendor.ach_verified_at)}</div>}
+                    {vendor.ach_verified_at && <div className="mt-1 text-[13px] text-gray-500">Verified {date(vendor.ach_verified_at)}</div>}
                   </TD>
                   <TD>
                     <StatusChip tone={vendor.is_auto_pay ? 'info' : 'neutral'}>
                       {vendor.is_auto_pay ? 'Enabled' : 'Not enabled'}
                     </StatusChip>
-                    <div className="mt-1 text-xs text-gray-500">Setup {date(vendor.auto_pay_setup_at)}</div>
+                    <div className="mt-1 text-[13px] text-gray-500">Setup {date(vendor.auto_pay_setup_at)}</div>
                   </TD>
                   <TD>
                     {hasBank ? (

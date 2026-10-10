@@ -223,7 +223,7 @@ export default async function CommunicationCenterPage({
         </div>
 
         {rows.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={MessageSquare}
               title={filtering ? 'Nothing matches these filters' : 'Nothing here yet'}
@@ -248,7 +248,7 @@ export default async function CommunicationCenterPage({
                   <TD className="whitespace-nowrap text-sm text-gray-600">{when(m.sent_at ?? m.created_at)}</TD>
                   <TD className="text-sm">
                     <div className="text-gray-900">{m.to_name || m.to_email}</div>
-                    {m.to_name && <div className="text-xs text-gray-500">{m.to_email}</div>}
+                    {m.to_name && <div className="text-[13px] text-gray-500">{m.to_email}</div>}
                   </TD>
                   <TD className="max-w-md text-sm">
                     <Link href={`/communication-center/emails/${m.id}`} className="font-medium text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900">{m.subject || 'No subject'}</Link>
@@ -286,7 +286,7 @@ export default async function CommunicationCenterPage({
                   <TD className="whitespace-nowrap text-sm text-gray-600">{when(m.sent_at ?? m.created_at)}</TD>
                   <TD className="text-sm">
                     <div className="text-gray-900">{m.sms_conversations?.with_name ?? '—'}</div>
-                    <div className="text-xs text-gray-500">{m.direction === 'inbound' ? m.from_number : m.to_number}</div>
+                    <div className="text-[13px] text-gray-500">{m.direction === 'inbound' ? m.from_number : m.to_number}</div>
                   </TD>
                   <TD className="text-sm capitalize text-gray-600">{m.direction === 'inbound' ? 'Received' : 'Sent'}</TD>
                   <TD className="max-w-md text-sm text-gray-800"><span className="line-clamp-2">{m.body}</span></TD>
@@ -317,7 +317,7 @@ export default async function CommunicationCenterPage({
                   <TD className="whitespace-nowrap text-sm text-gray-600">{when(m.created_at)}</TD>
                   <TD className="text-sm">
                     <div className="text-gray-900">{m.recipient_name}</div>
-                    <div className="text-xs text-gray-500">{[m.address_line1, m.address_city, m.address_state, m.address_zip].filter(Boolean).join(', ')}</div>
+                    <div className="text-[13px] text-gray-500">{[m.address_line1, m.address_city, m.address_state, m.address_zip].filter(Boolean).join(', ')}</div>
                   </TD>
                   <TD className="text-sm text-gray-800">{m.description ?? '—'}<div className="text-xs capitalize text-gray-500">{String(m.mail_class ?? '').replace(/_/g, ' ')}</div></TD>
                   <TD className="text-sm text-gray-600">{m.associations?.name ?? '—'}</TD>
@@ -350,7 +350,7 @@ export default async function CommunicationCenterPage({
                   <TD className="text-xs font-semibold uppercase text-gray-600">{message.channel}</TD>
                   <TD>
                     <div className="capitalize text-gray-900">{String(message.recipient_group ?? '').replaceAll('_', ' ')}</div>
-                    <div className="text-xs text-gray-500">{message.recipient_email ?? message.recipient_phone ?? 'Resolved at send time'}</div>
+                    <div className="text-[13px] text-gray-500">{message.recipient_email ?? message.recipient_phone ?? 'Resolved at send time'}</div>
                   </TD>
                   <TD>{message.associations?.name ?? 'Portfolio-wide'}</TD>
                   <TD className="max-w-xl">
@@ -370,7 +370,7 @@ export default async function CommunicationCenterPage({
                     ) : message.channel === 'sms' && message.status !== 'sent' ? (
                       <Link href="/sms" className="text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">SMS console →</Link>
                     ) : (
-                      <span className="text-xs text-gray-400">—</span>
+                      <span className="text-[13px] text-gray-500">—</span>
                     )}
                   </TD>
                 </TR>

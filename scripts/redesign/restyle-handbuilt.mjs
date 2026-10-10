@@ -63,6 +63,20 @@ export const CLASS_MAP = {
   'px-5 py-2 text-left font-medium': 'whitespace-nowrap px-5 py-3 text-left font-medium',
   'text-sm font-medium text-gray-700': 'text-[13.5px] font-medium text-gray-700',
   'flex items-center justify-between border-b border-gray-100 px-4 py-3': 'flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3.5',
+  // Uppercase labels and table heads (older pages)
+  'text-xs uppercase tracking-wider text-gray-500': 'text-[13px] text-gray-500',
+  'text-[12.5px] uppercase tracking-wider text-gray-500': 'text-[13px] text-gray-500',
+  'bg-gray-50 text-xs uppercase tracking-wide text-gray-600': 'border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500',
+  'border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600': 'border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500',
+  'mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500': 'mb-2 text-[13px] font-semibold text-gray-700',
+  'mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500': 'mb-3 text-[13px] font-semibold text-gray-700',
+  'mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500': 'mb-4 text-[13px] font-semibold text-gray-700',
+  'text-xs font-semibold uppercase tracking-wider text-gray-500': 'text-[13px] font-semibold text-gray-700',
+  'text-xs font-medium uppercase tracking-wide text-gray-400': 'text-[13px] font-medium text-gray-500',
+  'text-xs font-semibold uppercase text-gray-400 mb-3': 'mb-3 text-[13px] font-semibold text-gray-700',
+  'mb-3 text-xs font-semibold uppercase text-gray-500': 'mb-3 text-[13px] font-semibold text-gray-700',
+  'text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400': 'text-[13px] font-semibold text-gray-700',
+  'mr-1 text-xs font-medium uppercase tracking-[0.14em] text-gray-400': 'mr-1 text-[13px] font-medium text-gray-500',
 };
 
 // Section-title styles apply only to headings, so item names in lists keep

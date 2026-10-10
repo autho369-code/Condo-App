@@ -78,7 +78,7 @@ export function NoteComposer({ staff, currentUserId }: { staff: MentionableStaff
                 className={`flex min-h-10 w-full flex-col items-start px-3 py-1.5 text-left ${i === active ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
               >
                 <span className="text-sm font-medium text-gray-900">{p.name}</span>
-                <span className="text-xs text-gray-500">{p.email}</span>
+                <span className="text-[13px] text-gray-500">{p.email}</span>
               </button>
             </li>
           ))}
@@ -86,7 +86,7 @@ export function NoteComposer({ staff, currentUserId }: { staff: MentionableStaff
       )}
       {mentioned.map((p) => <input key={p.id} type="hidden" name="mention_ids" value={p.id} />)}
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-gray-500">
+        <p className="text-[13px] text-gray-500">
           {mentioned.length ? <>Will email {mentioned.map((p) => p.name).join(', ')}</> : 'Notes are visible to staff only.'}
         </p>
         <Button type="submit" variant="secondary" size="sm">Add note</Button>

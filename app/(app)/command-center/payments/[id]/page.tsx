@@ -67,7 +67,7 @@ export default async function PaymentTimelinePage({
         </Link>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">
+            <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">
               {money(Number(intent.amount))} — {intent.owners?.full_name ?? 'Owner'}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
@@ -116,14 +116,14 @@ export default async function PaymentTimelinePage({
       <div className={`${card} p-6`}>
         <h2 className="mb-4 text-sm font-semibold text-gray-950">References</h2>
         <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
-          <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Stripe Payment Intent</dt><dd className="mt-0.5 font-mono text-xs text-gray-900">{intent.processor_payment_intent_id ?? '—'}</dd></div>
-          <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Stripe Payout</dt><dd className="mt-0.5 font-mono text-xs text-gray-900">{intent.processor_payout_id ?? '—'}</dd></div>
-          <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Ledger Payment</dt><dd className="mt-0.5 font-mono text-xs text-gray-900">{intent.payment_id ?? '—'}</dd></div>
-          <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Processing Fee</dt><dd className="mt-0.5 text-gray-900">{intent.processor_fee_cents != null ? money(intent.processor_fee_cents / 100) : '—'}</dd></div>
-          <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Payout Status</dt><dd className="mt-0.5 capitalize text-gray-900">{payout?.status?.replace(/_/g, ' ') ?? '—'}</dd></div>
-          <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Bank Match</dt><dd className="mt-0.5 text-gray-900">{payout?.bank_transaction_id ? 'Matched to bank feed' : '—'}</dd></div>
+          <div><dt className="text-[13px] font-medium text-gray-500">Stripe Payment Intent</dt><dd className="mt-0.5 font-mono text-xs text-gray-900">{intent.processor_payment_intent_id ?? '—'}</dd></div>
+          <div><dt className="text-[13px] font-medium text-gray-500">Stripe Payout</dt><dd className="mt-0.5 font-mono text-xs text-gray-900">{intent.processor_payout_id ?? '—'}</dd></div>
+          <div><dt className="text-[13px] font-medium text-gray-500">Ledger Payment</dt><dd className="mt-0.5 font-mono text-xs text-gray-900">{intent.payment_id ?? '—'}</dd></div>
+          <div><dt className="text-[13px] font-medium text-gray-500">Processing Fee</dt><dd className="mt-0.5 text-gray-900">{intent.processor_fee_cents != null ? money(intent.processor_fee_cents / 100) : '—'}</dd></div>
+          <div><dt className="text-[13px] font-medium text-gray-500">Payout Status</dt><dd className="mt-0.5 capitalize text-gray-900">{payout?.status?.replace(/_/g, ' ') ?? '—'}</dd></div>
+          <div><dt className="text-[13px] font-medium text-gray-500">Bank Match</dt><dd className="mt-0.5 text-gray-900">{payout?.bank_transaction_id ? 'Matched to bank feed' : '—'}</dd></div>
           {intent.failure_reason && (
-            <div className="sm:col-span-2"><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Failure Reason</dt><dd className="mt-0.5 text-red-700">{intent.failure_reason}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-[13px] font-medium text-gray-500">Failure Reason</dt><dd className="mt-0.5 text-red-700">{intent.failure_reason}</dd></div>
           )}
         </dl>
       </div>

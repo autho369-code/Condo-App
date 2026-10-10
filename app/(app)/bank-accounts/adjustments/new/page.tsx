@@ -115,7 +115,7 @@ export default async function NewBankAdjustmentPage({
               <thead className="text-left text-[12.5px] uppercase tracking-wide text-gray-500">
                 <tr><th className="py-2 pr-4 font-medium">Date</th><th className="py-2 pr-4 font-medium">Account</th><th className="py-2 pr-4 font-medium">Description</th><th className="py-2 text-right font-medium">Amount</th></tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {(recent ?? []).map((r: any) => (
                   <tr key={r.id}>
                     <td className="py-2 pr-4 tabular-nums text-gray-700">{date(r.adjustment_date)}</td>

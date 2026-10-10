@@ -134,7 +134,7 @@ export default async function BrandingPage({
               )}
               <div>
                 <div className="text-lg font-semibold tracking-[-0.01em] text-gray-950">{p.company_name?.trim() || 'Your Company'}</div>
-                <div className="text-xs text-gray-500">Property Management Portal</div>
+                <div className="text-[13px] text-gray-500">Property Management Portal</div>
               </div>
             </div>
             <div className="mt-4 rounded-lg p-3 text-sm text-gray-700" style={{ backgroundColor: `${previewColor}15`, borderLeft: `3px solid ${previewColor}` }}>

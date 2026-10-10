@@ -97,13 +97,13 @@ export default async function ViolationLettersPage({
                     <TD className="whitespace-nowrap">{date(l.created_at)}</TD>
                     <TD>
                       <div className="text-gray-950">{l.owners?.full_name ?? 'Owner not on file'}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-[13px] text-gray-500">
                         {l.associations?.name ?? '—'}{l.violations?.units?.unit_number ? ` · Unit ${l.violations.units.unit_number}` : ''}
                       </div>
                     </TD>
                     <TD>
                       <Link href={`/violations/${l.violation_id}`} className="text-gray-950 hover:underline">{l.violations?.title ?? 'Violation'}</Link>
-                      <div className="text-xs text-gray-500">{l.step_name}</div>
+                      <div className="text-[13px] text-gray-500">{l.step_name}</div>
                     </TD>
                     <TD>
                       {l.mail_status === 'to_mail'

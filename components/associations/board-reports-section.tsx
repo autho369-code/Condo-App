@@ -115,14 +115,14 @@ export async function BoardReportsSection({
         {(published ?? []).length > 0 && (
           <div className="mt-5 border-t border-gray-100 pt-4">
             <h3 className="mb-2 text-sm font-semibold text-gray-900">Published</h3>
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-line">
               {(published ?? []).map((d: any) => (
                 <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <div className="min-w-0">
                     {links.has(d.id)
                       ? <a href={links.get(d.id)} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-900 hover:underline">{d.file_name}</a>
                       : <span className="text-sm font-medium text-gray-900">{d.file_name}</span>}
-                    {d.description && <div className="text-xs text-gray-500">{d.description}</div>}
+                    {d.description && <div className="text-[13px] text-gray-500">{d.description}</div>}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <Badge tone={d.share_scope === 'owners' ? 'complete' : 'progress'}>{d.share_scope === 'owners' ? 'Board and owners' : 'Board'}</Badge>

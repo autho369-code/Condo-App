@@ -63,7 +63,7 @@ export async function ArcAttachments({
       {docs.length === 0 ? (
         <p className="text-sm text-gray-400">No documents uploaded yet.</p>
       ) : (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-line">
           {docs.map((d) => (
             <li key={d.path} className="flex items-center justify-between gap-3 py-2">
               <div className="flex min-w-0 items-center gap-2.5">
@@ -76,7 +76,7 @@ export async function ArcAttachments({
                   ) : (
                     <span className="block truncate text-sm font-medium text-gray-800">{d.name}</span>
                   )}
-                  <div className="text-xs text-gray-400">
+                  <div className="text-[13px] text-gray-500">
                     {[formatSize(d.size), d.uploaded_by_name ?? null].filter(Boolean).join(' · ')}
                   </div>
                 </div>

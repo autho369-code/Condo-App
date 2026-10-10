@@ -273,7 +273,7 @@ export default function GenerateDocumentPage() {
                       className="rounded-lg border border-gray-200 px-4 py-3 text-left text-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
                     >
                       <div className="font-medium text-gray-900">{t.name}</div>
-                      {t.subject && <div className="mt-0.5 text-xs text-gray-500">{t.subject}</div>}
+                      {t.subject && <div className="mt-0.5 text-[13px] text-gray-500">{t.subject}</div>}
                     </button>
                   ))}
                 </div>
@@ -436,7 +436,7 @@ export default function GenerateDocumentPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
             <CheckCircle2 className="h-6 w-6" />
           </div>
-          <h2 className="text-[15px] font-semibold text-gray-950">Document generated successfully</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Document generated successfully</h2>
           <p className="mt-1 text-sm text-gray-500">
             {sendAsNotice ? 'The PDF is saved and the notice draft is ready for review.' : 'The PDF has been saved securely.'}
           </p>

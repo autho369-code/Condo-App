@@ -52,7 +52,7 @@ export default async function PropertyGroupsPage({
         />
 
         {allGroups.length === 0 && !canEdit && (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState icon={FolderTree} title="No property groups yet" description="A company admin can create groups here." />
           </div>
         )}

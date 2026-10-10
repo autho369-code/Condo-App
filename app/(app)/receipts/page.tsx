@@ -187,7 +187,7 @@ export default async function ReceiptsPage({
 
         {truncated && <p className="text-xs text-amber-700">This range has more than 20,000 receipts — totals cover the newest 20,000. Narrow the dates to see all.</p>}
 
-        {rows.length > 500 && <p className="text-xs text-gray-500">Showing the newest 500 of {rows.length.toLocaleString()} receipts; totals include all of them.</p>}
+        {rows.length > 500 && <p className="text-[13px] text-gray-500">Showing the newest 500 of {rows.length.toLocaleString()} receipts; totals include all of them.</p>}
         {rows.length === 0 ? (
           <Surface padded={false}>
             <EmptyState
@@ -225,7 +225,7 @@ export default async function ReceiptsPage({
                     <Link href={`/units/${r.unit_id}`} className="text-gray-950 hover:underline">
                       {r.units?.buildings?.associations?.name ?? '—'} · Unit {r.units?.unit_number ?? '—'}
                     </Link>
-                    {r.method === 'credit' && r.notes && <div className="text-xs text-gray-500">{r.notes}</div>}
+                    {r.method === 'credit' && r.notes && <div className="text-[13px] text-gray-500">{r.notes}</div>}
                   </TD>
                   <TD>
                     {receiptMethodLabel(r.method)}

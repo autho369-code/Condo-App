@@ -170,8 +170,8 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                       <p className="mt-0.5 line-clamp-1 text-xs text-gray-500">{t.last_message_role === 'staff' ? 'You: ' : ''}{t.last_message_preview}</p>
                       {state && !t.acknowledged_at ? <div className="mt-1"><StatusChip tone={state.tone}>{state.label}</StatusChip></div> : null}
                     </TD>
-                    <TD><div className="font-medium text-gray-900">{who.name}</div><div className="text-xs text-gray-500">{who.role}</div></TD>
-                    <TD><div className="text-gray-900">{one<any>(t.associations)?.name ?? '—'}</div><div className="text-xs text-gray-500">{one<any>(t.units)?.unit_number ? `Unit ${one<any>(t.units).unit_number}` : ''}</div></TD>
+                    <TD><div className="font-medium text-gray-900">{who.name}</div><div className="text-[13px] text-gray-500">{who.role}</div></TD>
+                    <TD><div className="text-gray-900">{one<any>(t.associations)?.name ?? '—'}</div><div className="text-[13px] text-gray-500">{one<any>(t.units)?.unit_number ? `Unit ${one<any>(t.units).unit_number}` : ''}</div></TD>
                     <TD className="text-sm text-gray-700">{assignee ? (assignee.full_name ?? assignee.email) : <span className="text-gray-400">—</span>}</TD>
                     <TD className="whitespace-nowrap text-sm text-gray-600">{formatInZone(t.last_message_at)}</TD>
                   </TR>

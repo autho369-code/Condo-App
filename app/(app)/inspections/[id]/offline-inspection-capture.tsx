@@ -96,6 +96,6 @@ export function OfflineInspectionCapture({ inspectionId, compact = false }: { in
       <div className={compact ? '' : 'sm:col-span-2'}><Label htmlFor={`offline-issue-${inspectionId}`}>Finding</Label><Textarea id={`offline-issue-${inspectionId}`} name="issue" required /></div>
       <Button type="submit" className="w-fit">Save to device</Button>
     </form>
-    {queue.length > 0 && <div className="space-y-2 border-t border-gray-100 pt-4">{queue.map((item) => <div key={item.clientMutationId} className="rounded-xl border border-gray-200 p-3"><div className="flex items-start justify-between gap-3"><div><div className="text-sm font-medium text-gray-900">{item.issue}</div><div className="mt-1 text-xs text-gray-500">{item.area || 'Area not specified'} · {item.severity}</div>{item.error && <div className="mt-1 text-xs text-red-700">{item.error}</div>}</div><Badge status={item.state}>{item.state}</Badge></div></div>)}</div>}
+    {queue.length > 0 && <div className="space-y-2 border-t border-gray-100 pt-4">{queue.map((item) => <div key={item.clientMutationId} className="rounded-xl border border-gray-200 p-3"><div className="flex items-start justify-between gap-3"><div><div className="text-sm font-medium text-gray-900">{item.issue}</div><div className="mt-1 text-[13px] text-gray-500">{item.area || 'Area not specified'} · {item.severity}</div>{item.error && <div className="mt-1 text-xs text-red-700">{item.error}</div>}</div><Badge status={item.state}>{item.state}</Badge></div></div>)}</div>}
   </div>;
 }

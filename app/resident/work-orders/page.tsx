@@ -29,7 +29,7 @@ export default async function ResidentWorkOrdersPage() {
         {(workOrders ?? []).length === 0 ? (
           <EmptyState icon={Wrench} title="No work orders" description="When management converts a service request into a work order, its progress will appear here." />
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-line">
             {(workOrders ?? []).map((workOrder: any) => (
               <div key={workOrder.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>

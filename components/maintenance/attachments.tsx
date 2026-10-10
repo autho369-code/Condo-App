@@ -116,7 +116,7 @@ export function MaintenanceAttachments({
           <input id={`maint-files-${parentId}`} ref={input} type="file" multiple className="sr-only" disabled={busy}
             accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
             onChange={(e) => upload(Array.from(e.target.files ?? []))} />
-          <p className="text-xs text-gray-400">Photos (JPG, PNG, HEIC, WebP) or PDFs · up to 20 MB each · 12 per record</p>
+          <p className="text-[13px] text-gray-500">Photos (JPG, PNG, HEIC, WebP) or PDFs · up to 20 MB each · 12 per record</p>
         </>
       ) : null}
     </div>

@@ -58,7 +58,7 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
             <div className="text-sm text-gray-500">on behalf of {assoc?.name ?? 'the association'}</div>
           </div>
           <div className="text-right">
-            <div className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400">{p.method === 'credit' ? 'Credit memo' : 'Payment receipt'}</div>
+            <div className="text-[13px] font-semibold text-gray-700">{p.method === 'credit' ? 'Credit memo' : 'Payment receipt'}</div>
             <div className="mt-1 font-mono text-sm text-gray-900">#{receiptNo}</div>
             {p.reversed_at && <div className="mt-1 text-sm font-semibold uppercase tracking-[0.08em] text-red-700">Reversed</div>}
           </div>

@@ -76,7 +76,7 @@ export default async function ResidentDocumentsPage() {
 
       {privateDocs.length > 0 ? (
         <Surface>
-          <h2 className="text-[15px] font-semibold text-gray-950">My occupancy documents</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">My occupancy documents</h2>
           <div className="mt-4 divide-y divide-gray-100">
             {privateDocs.map((item) => {
               const href = signedByPath.get(item.path as string);
@@ -87,7 +87,7 @@ export default async function ResidentDocumentsPage() {
                   </span>
                   {href ? (
                     <a href={href} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-gray-700 hover:underline">View &rarr;</a>
-                  ) : <span className="text-xs text-gray-400">Unavailable</span>}
+                  ) : <span className="text-[13px] text-gray-500">Unavailable</span>}
                 </div>
               );
             })}
@@ -106,17 +106,17 @@ export default async function ResidentDocumentsPage() {
             <Surface key={section.id} padded={false}>
               <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50/60 px-5 py-4">
                 <section.icon className="h-5 w-5 text-gray-400" />
-                <h2 className="text-sm font-semibold text-gray-950">{section.title}</h2>
+                <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{section.title}</h2>
               </div>
               {items.length === 0 ? <div className="px-5 py-6 text-sm text-gray-400">No documents in this section.</div> : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-line">
                   {items.map((doc) => {
                     const href = directLinks.get(doc.id);
                     return (
                       <div key={doc.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
                         <div className="min-w-0">
                           <div className="truncate text-sm font-medium text-gray-900">{doc.file_name ?? 'Untitled document'}</div>
-                          <div className="mt-0.5 text-xs text-gray-500">{doc.uploaded_at ? `Uploaded ${date(doc.uploaded_at)}` : String(doc.doc_type ?? 'Document').replace(/_/g, ' ')}</div>
+                          <div className="mt-0.5 text-[13px] text-gray-500">{doc.uploaded_at ? `Uploaded ${date(doc.uploaded_at)}` : String(doc.doc_type ?? 'Document').replace(/_/g, ' ')}</div>
                         </div>
                         {href ? (
                           <a href={href} target="_blank" rel="noopener noreferrer" className="shrink-0 text-xs font-medium text-gray-700 hover:underline">View &rarr;</a>

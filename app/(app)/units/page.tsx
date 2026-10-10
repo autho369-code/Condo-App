@@ -89,7 +89,7 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
             </tbody>
           </Table>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={Building}
               title="No units match this filter"

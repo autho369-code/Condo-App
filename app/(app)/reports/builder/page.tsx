@@ -150,7 +150,7 @@ export default async function ReportBuilderPage({
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold text-gray-950">
+                <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">
                   {req.source.label} — {rows.length} row{rows.length === 1 ? '' : 's'}
                   {rows.length === 500 ? ' (showing first 500)' : ''}
                 </h2>
@@ -193,9 +193,9 @@ export default async function ReportBuilderPage({
         )}
 
         {/* Saved reports */}
-        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <h2 className="text-sm font-semibold text-gray-950">Saved reports</h2>
+        <section className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3.5">
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Saved reports</h2>
             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">
               {savedViews.length}
             </span>
@@ -205,7 +205,7 @@ export default async function ReportBuilderPage({
               No saved reports yet. Run a report above and save it to reuse later.
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-line">
               {savedViews.map((view) => {
                 const source = getSource(view.source_key);
                 const q = savedViewQuery(view);
@@ -218,7 +218,7 @@ export default async function ReportBuilderPage({
                       >
                         {view.name}
                       </Link>
-                      <p className="mt-0.5 text-xs text-gray-500">
+                      <p className="mt-0.5 text-[13px] text-gray-500">
                         {source?.label ?? view.source_key}
                         {Array.isArray(view.columns) ? ` · ${view.columns.length} columns` : ''}
                       </p>

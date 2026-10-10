@@ -67,7 +67,7 @@ export default function NewLetterPage() {
 
   return (
     <div className="mx-auto h-full max-w-4xl overflow-y-auto px-8 py-6">
-      <nav className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <nav className="mb-4 text-[13px] font-semibold text-gray-700">
         <Link href="/letters" className="transition-colors hover:text-gray-700">Letters</Link>
         <span className="mx-1">/</span>
         <span className="text-gray-900">New template</span>

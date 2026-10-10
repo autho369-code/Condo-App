@@ -59,7 +59,7 @@ function GroupCard({ group, associations, importUnits }: { group: Group; associa
   return (
     <Surface className="space-y-4">
       <div>
-        <h3 className="text-[15px] font-semibold text-gray-950">{group.name || 'Units'}</h3>
+        <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{group.name || 'Units'}</h3>
         {group.address && <p className="mt-0.5 text-sm text-gray-500">{group.address}</p>}
         <div className="mt-2 flex flex-wrap gap-2">
           <Badge tone="info">{group.units.length} unit{group.units.length === 1 ? '' : 's'}</Badge>
@@ -155,7 +155,7 @@ export function AppfolioImportClient({ associations, importUnits }: Props) {
           <Label htmlFor="appfolio-unit-directory">Unit Directory CSV</Label>
           <Input id="appfolio-unit-directory" type="file" accept=".csv,text/csv" onChange={onFile} className="h-auto py-2" />
         </div>
-        {fileName && !error && groups && <p className="text-xs text-gray-500">{fileName}</p>}
+        {fileName && !error && groups && <p className="text-[13px] text-gray-500">{fileName}</p>}
       </Surface>
 
       {error && <Alert tone="danger">{error}</Alert>}

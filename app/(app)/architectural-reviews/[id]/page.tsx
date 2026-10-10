@@ -83,7 +83,7 @@ export default async function ManagerArchitecturalDetail({
           <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{req.description}</p>
           {req.decision_notes && (
             <div className="mt-4 rounded-xl border border-gray-200/70 bg-gray-50 p-3.5">
-              <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Decision notes</div>
+              <div className="text-[13px] font-medium text-gray-500">Decision notes</div>
               <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{req.decision_notes}</p>
             </div>
           )}

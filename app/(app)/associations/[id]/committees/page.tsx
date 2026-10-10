@@ -172,7 +172,7 @@ export default async function CommitteesTab({
           </div>
           <div>
             <Label htmlFor="chair_owner_id">Chair (optional)</Label>
-            <select id="chair_owner_id" name="chair_owner_id" defaultValue="" className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">
+            <select id="chair_owner_id" name="chair_owner_id" defaultValue="" className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="">— No chair yet —</option>
               {ownerOptions.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
             </select>
@@ -196,10 +196,10 @@ export default async function CommitteesTab({
             key={c.id}
             title={c.name}
             subtitle={c.description}
-            actions={<span className="text-xs text-gray-500">{activeMembers.length} member{activeMembers.length === 1 ? '' : 's'}</span>}
+            actions={<span className="text-[13px] text-gray-500">{activeMembers.length} member{activeMembers.length === 1 ? '' : 's'}</span>}
           >
             <table className="w-full text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr>
                   <th className="px-4 py-2 text-left font-semibold">Name</th>
                   <th className="px-4 py-2 text-left font-semibold">Role</th>
@@ -213,7 +213,7 @@ export default async function CommitteesTab({
                   <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">No members on this committee.</td></tr>
                 ) : activeMembers.map((m: any) => (
                   <tr key={m.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       {m.owner ? (
                         <Link href={`/owners/${m.owner.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{m.owner.full_name}</Link>
                       ) : <span className="text-gray-400">—</span>}

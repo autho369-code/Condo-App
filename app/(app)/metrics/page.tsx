@@ -53,13 +53,13 @@ function pct(part: number, whole: number) {
 
 /** Change from last month, shown under a tile. `inverse` = a rise is bad (balances owed, open items). */
 function Change({ now, before, format, inverse }: { now: number | null; before: number | null; format: 'money' | 'pct' | 'count'; inverse?: boolean }) {
-  if (now == null || before == null) return <span className="text-xs text-gray-400">Last month: —</span>;
+  if (now == null || before == null) return <span className="text-[13px] text-gray-500">Last month: —</span>;
   const diff = now - before;
   const shown = format === 'money' ? money(before) : format === 'pct' ? `${before.toFixed(1)}%` : before.toLocaleString();
-  if (Math.abs(diff) < 0.005) return <span className="text-xs text-gray-500">Last month: {shown} (no change)</span>;
+  if (Math.abs(diff) < 0.005) return <span className="text-[13px] text-gray-500">Last month: {shown} (no change)</span>;
   const bad = inverse ? diff > 0 : diff < 0;
   return (
-    <span className="text-xs text-gray-500">
+    <span className="text-[13px] text-gray-500">
       Last month: {shown}{' '}
       <span className={bad ? 'font-medium text-red-600' : 'font-medium text-emerald-700'}>{diff > 0 ? '▲' : '▼'}</span>
     </span>
@@ -70,7 +70,7 @@ function Tile({ label, value, sub, href }: { label: string; value: string; sub?:
   const body = (
     <div className="h-full rounded-2xl border border-gray-200/70 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
+      <div className="mt-1 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
       {sub && <div className="mt-0.5">{sub}</div>}
     </div>
   );
@@ -81,8 +81,8 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   return (
     <section className="space-y-3">
       <div>
-        <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
+        <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-[13px] text-gray-500">{subtitle}</p>}
       </div>
       {children}
     </section>
@@ -308,7 +308,7 @@ export default async function MetricsPage({
               <Tile
                 label="Owner portal activated"
                 value={ownerTotal == null || ownerActivated == null ? '—' : fmtPct(pct(ownerActivated, ownerTotal) ?? 0)}
-                sub={ownerTotal != null && ownerActivated != null ? <span className="text-xs text-gray-500">{(ownerTotal - ownerActivated).toLocaleString()} not activated</span> : undefined}
+                sub={ownerTotal != null && ownerActivated != null ? <span className="text-[13px] text-gray-500">{(ownerTotal - ownerActivated).toLocaleString()} not activated</span> : undefined}
                 href="/owners/activations"
               />
             )}

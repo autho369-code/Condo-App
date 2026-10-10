@@ -79,7 +79,7 @@ export default function NewInsuranceForm({ owners, associations, addPolicy, serv
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-8 py-6">
       <div>
-        <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <nav className="text-[13px] font-semibold text-gray-700">
           <Link href="/insurance" className="hover:text-gray-700">Insurance</Link>
           <span className="mx-2">/</span>
           New policy

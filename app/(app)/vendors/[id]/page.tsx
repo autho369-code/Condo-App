@@ -251,7 +251,7 @@ export default async function VendorDetailPage({
             )}
             {vendor.notes && (
               <div className="mt-5 border-t border-gray-100 pt-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Notes</div>
+                <div className="text-[13px] font-semibold text-gray-700">Notes</div>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{vendor.notes}</p>
               </div>
             )}
@@ -335,7 +335,7 @@ export default async function VendorDetailPage({
                       <Link href={`/work-orders/${w.id}`} className="font-medium text-gray-900 hover:underline">
                         {w.title}
                       </Link>
-                      {w.number && <div className="text-xs text-gray-500">#{w.number}</div>}
+                      {w.number && <div className="text-[13px] text-gray-500">#{w.number}</div>}
                     </TD>
                     <TD className="text-gray-700">{w.associations?.name ?? '—'}</TD>
                     <TD><StatusChip tone={woStatusTone(w.status)}>{(w.status ?? '').replace(/_/g, ' ') || '—'}</StatusChip></TD>
@@ -355,12 +355,12 @@ export default async function VendorDetailPage({
           {(auditRows ?? []).length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">No changes recorded yet.</p>
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-line">
               {(auditRows as any[]).map((a, i) => (
                 <li key={i} className="py-3 text-sm">
                   <div className="text-gray-900">{String(a.action).replace(/_/g, ' ')} <span className="text-gray-500">· {a.actor_email ?? 'system'} · {date(a.created_at)}</span></div>
                   {a.changes && Object.keys(a.changes).length > 0 && (
-                    <div className="mt-1 text-xs text-gray-500">Changed: {Object.keys(a.changes).map((k) => k.replace(/_/g, ' ')).join(', ')}</div>
+                    <div className="mt-1 text-[13px] text-gray-500">Changed: {Object.keys(a.changes).map((k) => k.replace(/_/g, ' ')).join(', ')}</div>
                   )}
                 </li>
               ))}

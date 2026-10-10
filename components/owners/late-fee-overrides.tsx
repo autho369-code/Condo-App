@@ -34,7 +34,7 @@ export function OwnerLateFeeOverrides({ ownerId, occupancies, canEdit }: { owner
   return (
     <div id="late-fees" className="border-t border-gray-100 px-5 py-4">
       <h3 className="text-sm font-semibold text-gray-900">Late fees</h3>
-      <p className="mt-0.5 text-xs text-gray-500">Exempt this owner or set a different fee. The automatic late-fee run honors it; changes are logged.</p>
+      <p className="mt-0.5 text-[13px] text-gray-500">Exempt this owner or set a different fee. The automatic late-fee run honors it; changes are logged.</p>
       <ul className="mt-3 space-y-3">
         {owned.map((o) => {
           const rule = describeLateFeeRule(o);
@@ -49,7 +49,7 @@ export function OwnerLateFeeOverrides({ ownerId, occupancies, canEdit }: { owner
                 <Badge tone={rule.tone}>{rule.label}</Badge>
               </div>
               {(rule.detail || o.late_fee_override_until) && (
-                <div className="mt-1 text-xs text-gray-500">
+                <div className="mt-1 text-[13px] text-gray-500">
                   {rule.detail}{o.late_fee_override_until && rule.label !== 'Association default' ? ` · until ${o.late_fee_override_until}` : ''}
                 </div>
               )}

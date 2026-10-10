@@ -103,7 +103,7 @@ export function BulkChargesForm({
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
           <CheckCircle2 className="h-6 w-6" />
         </div>
-        <h3 className="text-[15px] font-semibold text-gray-950">Charges created</h3>
+        <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Charges created</h3>
         <p className="mt-1 text-sm text-gray-500">
           {result.count} charge{result.count !== 1 ? 's' : ''} created for {selectedUnits.size} unit{selectedUnits.size !== 1 ? 's' : ''}.
         </p>

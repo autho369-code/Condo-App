@@ -58,14 +58,14 @@ export default async function TemplateDetailPage({
     >
       <div className="max-w-3xl space-y-6">
         {/* Template info */}
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <div className="text-xs font-medium text-gray-500">Type</div>
+              <div className="text-[13px] font-medium text-gray-500">Type</div>
               <div className="mt-0.5 capitalize text-gray-900">{(template.letter_type ?? 'general').replace(/_/g, ' ')}</div>
             </div>
             <div>
-              <div className="text-xs font-medium text-gray-500">Status</div>
+              <div className="text-[13px] font-medium text-gray-500">Status</div>
               <div className="mt-0.5">
                 <StatusChip tone={template.active ? 'success' : 'neutral'}>
                   {template.active ? 'Active' : 'Inactive'}
@@ -73,18 +73,18 @@ export default async function TemplateDetailPage({
               </div>
             </div>
             <div>
-              <div className="text-xs font-medium text-gray-500">Created</div>
+              <div className="text-[13px] font-medium text-gray-500">Created</div>
               <div className="mt-0.5 text-gray-900">{date(template.created_at)}</div>
             </div>
             <div>
-              <div className="text-xs font-medium text-gray-500">Updated</div>
+              <div className="text-[13px] font-medium text-gray-500">Updated</div>
               <div className="mt-0.5 text-gray-900">{date(template.updated_at)}</div>
             </div>
           </div>
 
           {template.subject && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="text-xs font-medium text-gray-500">Subject</div>
+              <div className="text-[13px] font-medium text-gray-500">Subject</div>
               <div className="mt-0.5 text-sm text-gray-900">{template.subject}</div>
             </div>
           )}
@@ -92,7 +92,7 @@ export default async function TemplateDetailPage({
 
         {/* Merge variables */}
         {varKeys.length > 0 && (
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
             <h2 className="mb-3 text-sm font-semibold text-gray-950">Merge Variables</h2>
             <div className="flex flex-wrap gap-1">
               {varKeys.map((v: string) => (
@@ -110,7 +110,7 @@ export default async function TemplateDetailPage({
         )}
 
         {/* Body preview */}
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
           <h2 className="mb-3 text-sm font-semibold text-gray-950">Template Body</h2>
           <div className="rounded-lg border border-gray-100 bg-gray-50 p-6">
             <pre className="whitespace-pre-wrap font-sans text-sm text-gray-800 leading-relaxed">{template.body}</pre>

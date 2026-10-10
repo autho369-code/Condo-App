@@ -125,15 +125,15 @@ export default async function ViolationDetailPage({
         <EscalationPanel violation={violation} steps={steps ?? []} settings={violationSettings ?? null} fines={fines ?? []} />
 
         {rule && (
-          <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <h2 className="text-sm font-semibold text-gray-950"><Link href={`/violations/rules/${rule.id}`} className="hover:text-gray-600">{rule.rule_number} — {rule.title}</Link></h2>
+          <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink"><Link href={`/violations/rules/${rule.id}`} className="hover:text-gray-600">{rule.rule_number} — {rule.title}</Link></h2>
             <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{rule.description}</p>
             {rule.action_to_resolve && <p className="mt-2 text-sm text-gray-600"><span className="font-medium text-gray-800">To resolve: </span>{rule.action_to_resolve}</p>}
           </section>
         )}
 
-        <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <h2 className="text-sm font-semibold text-gray-950">Violation details</h2>
+        <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Violation details</h2>
           <div className="mt-4 grid gap-4 text-sm md:grid-cols-2">
             <Info label="Type" value={formatStatus(violation.violation_type)} />
             <Info label="Reported" value={date(violation.reported_date)} />
@@ -161,10 +161,10 @@ export default async function ViolationDetailPage({
           <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-gray-700">{violation.description ?? 'No description provided.'}</p>
         </section>
 
-        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="border-b border-gray-100 px-5 py-3"><h2 className="text-sm font-semibold text-gray-950">Timeline</h2></div>
+        <section className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="border-b border-gray-100 px-5 py-3"><h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Timeline</h2></div>
           {(updates ?? []).length > 0 ? (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-line">
               {(updates ?? []).map((update: any) => (
                 <div key={update.id} className="px-5 py-4">
                   <div className="flex items-center justify-between text-xs text-gray-500"><span>{update.profiles?.full_name ?? 'Staff'}</span><span>{date(update.created_at)}</span></div>
@@ -178,11 +178,11 @@ export default async function ViolationDetailPage({
           )}
         </section>
 
-        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <section className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-gray-950">Letters sent</h2>
-              <p className="mt-0.5 text-xs text-gray-500">Written and delivered automatically at each follow-up step, using the step&apos;s template and delivery methods.</p>
+              <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Letters sent</h2>
+              <p className="mt-0.5 text-[13px] text-gray-500">Written and delivered automatically at each follow-up step, using the step&apos;s template and delivery methods.</p>
             </div>
             {currentStep > 0 && (
               <form action={sendCurrentStepLetter} className="shrink-0">
@@ -203,8 +203,8 @@ export default async function ViolationDetailPage({
 
         <ViolationLetterDrafter violationId={violation.id} />
 
-        <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <h2 className="text-sm font-semibold text-gray-950">Evidence and documents</h2>
+        <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Evidence and documents</h2>
           {attachments.length === 0 ? (
             <p className="mt-2 text-sm text-gray-500">No photos or documents on file. Use <Link href="/violations/field" className="font-medium text-gray-700 hover:text-gray-950 hover:underline">field capture</Link> to attach photos from the property.</p>
           ) : (
@@ -240,7 +240,7 @@ export default async function ViolationDetailPage({
 }
 
 function DetailRail() {
-  return <div className="space-y-3 text-sm text-gray-600"><h2 className="text-sm font-semibold text-gray-950">Next steps</h2><p>Review evidence, preview owner notice, confirm hearing date, then record follow-up updates.</p><Link href="/reports/violation_log" className="block rounded border border-gray-200 px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">Violation log report</Link></div>;
+  return <div className="space-y-3 text-sm text-gray-600"><h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Next steps</h2><p>Review evidence, preview owner notice, confirm hearing date, then record follow-up updates.</p><Link href="/reports/violation_log" className="block rounded border border-gray-200 px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">Violation log report</Link></div>;
 }
 
 function Info({ label, value }: { label: string; value: ReactNode }) {

@@ -69,19 +69,19 @@ export function AddInsurancePolicyForm({ ownerId, returnQuery = '' }: { ownerId?
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-      <label className="block"><span className="text-sm font-medium text-gray-700">Insurance Carrier <span className="text-red-600">*</span></span>
+      <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Insurance Carrier <span className="text-red-600">*</span></span>
         <input name="carrier" required className={input} placeholder="e.g. State Farm" /></label>
-      <label className="block"><span className="text-sm font-medium text-gray-700">Policy Number <span className="text-red-600">*</span></span>
+      <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Policy Number <span className="text-red-600">*</span></span>
         <input name="policy_number" required className={input} /></label>
-      <label className="block"><span className="text-sm font-medium text-gray-700">Coverage Amount</span>
+      <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Coverage Amount</span>
         <input name="coverage_amount" inputMode="decimal" className={input} placeholder="e.g. 300,000" /></label>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className="block"><span className="text-sm font-medium text-gray-700">Policy Start Date <span className="text-red-600">*</span></span>
+        <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Policy Start Date <span className="text-red-600">*</span></span>
           <input type="date" name="effective_date" required className={input} /></label>
-        <label className="block"><span className="text-sm font-medium text-gray-700">Policy End Date <span className="text-red-600">*</span></span>
+        <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Policy End Date <span className="text-red-600">*</span></span>
           <input type="date" name="expiration_date" required className={input} /></label>
       </div>
-      <label className="block"><span className="text-sm font-medium text-gray-700">Policy Document (PDF or photo)</span>
+      <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Policy Document (PDF or photo)</span>
         <input ref={fileRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic" disabled={busy}
           className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800 disabled:opacity-50" />
         <span className="mt-1 block text-xs text-gray-400">Max 25 MB. Uploads directly to your association&apos;s records — large PDFs are fine.</span></label>

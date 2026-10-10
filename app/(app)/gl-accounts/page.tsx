@@ -108,7 +108,7 @@ export default async function GLAccountsPage({
         </FilterBar>
 
         {accounts.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={BookOpen}
               title={q || status || assoc ? 'No GL accounts match your filters' : 'No GL accounts configured yet'}
@@ -121,7 +121,7 @@ export default async function GLAccountsPage({
             />
           </div>
         ) : grouped.length === 0 && q ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState icon={BookOpen} title={`No GL accounts match “${q}”`} />
           </div>
         ) : (
@@ -130,7 +130,7 @@ export default async function GLAccountsPage({
               <SectionTitle
                 title={g.label}
                 actions={
-                  <span className="text-xs text-gray-400">{g.items.length} account{g.items.length !== 1 ? 's' : ''}</span>
+                  <span className="text-[13px] text-gray-500">{g.items.length} account{g.items.length !== 1 ? 's' : ''}</span>
                 }
               />
               <Table>

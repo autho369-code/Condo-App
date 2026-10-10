@@ -171,19 +171,19 @@ export default async function OwnerPacketsPage({
               const latest = ownerRequests[0];
               return (
                 <TR key={owner.id} className="hover:bg-gray-50">
-                  <TD><Link href={`/owners/${owner.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{owner.full_name}</Link><div className="mt-1 text-xs text-gray-500">{owner.email}</div></TD>
+                  <TD><Link href={`/owners/${owner.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{owner.full_name}</Link><div className="mt-1 text-[13px] text-gray-500">{owner.email}</div></TD>
                   <TD><StatusChip tone={owner.portal_activated ? 'success' : 'warning'}>{owner.portal_activated ? 'Ready' : 'Activate first'}</StatusChip></TD>
                   <TD>
                     {config ? (
                       <>
                         <StatusChip tone="info">{FREQ_LABELS[config.frequency] ?? config.frequency} · {DELIVERY_LABELS[config.delivery] ?? config.delivery}</StatusChip>
-                        <div className="mt-1 text-xs text-gray-500">{config.statement_template === 'enhanced' ? 'Enhanced statement' : 'Standard statement'}</div>
+                        <div className="mt-1 text-[13px] text-gray-500">{config.statement_template === 'enhanced' ? 'Enhanced statement' : 'Standard statement'}</div>
                       </>
                     ) : (
                       <StatusChip tone="neutral">Not configured</StatusChip>
                     )}
                   </TD>
-                  <TD><div className="text-gray-900">{latest?.name ?? 'No packet activity'}</div><div className="mt-1 text-xs text-gray-500">{date(latest?.requested_at)}</div></TD>
+                  <TD><div className="text-gray-900">{latest?.name ?? 'No packet activity'}</div><div className="mt-1 text-[13px] text-gray-500">{date(latest?.requested_at)}</div></TD>
                   <TD>
                     <div className="flex flex-wrap gap-2 text-sm font-medium">
                       <Link href={`/owners/packets?owner=${owner.id}`} className="text-gray-600 transition-colors hover:text-gray-950">Configure</Link>
