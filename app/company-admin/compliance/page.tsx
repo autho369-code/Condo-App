@@ -115,8 +115,8 @@ export default async function CompliancePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Compliance</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Compliance</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Company-wide compliance posture — vendor credentials, owner insurance, violations, and statutory inspections
         </p>
       </div>
@@ -136,7 +136,7 @@ export default async function CompliancePage() {
             <div key={item.label} className={`${card} px-4 py-3.5`}>
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
+                  <div className="text-[13px] font-medium text-gray-500">{item.label}</div>
                   <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${item.warn ? 'text-red-700' : 'text-gray-950'}`}>{item.value}</div>
                 </div>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
@@ -150,18 +150,18 @@ export default async function CompliancePage() {
 
       {/* ── Vendor credential issues ──────────────────── */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Vendor Credentials</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Missing, expired, and soon-to-expire COIs, workers comp, licenses, and contracts</p>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Vendor Credentials</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Missing, expired, and soon-to-expire COIs, workers comp, licenses, and contracts</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Vendor</th>
-                <th className="px-5 py-2.5 text-left font-medium">Credential</th>
-                <th className="px-5 py-2.5 text-left font-medium">Status</th>
-                <th className="px-5 py-2.5 text-left font-medium">Date</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Vendor</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Credential</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Date</th>
               </tr>
             </thead>
             <tbody>
@@ -169,11 +169,11 @@ export default async function CompliancePage() {
                 <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-500">No vendor compliance issues — all credentials current.</td></tr>
               ) : (
                 vendorIssues.map((issue, i) => (
-                  <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={i} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="px-5 py-3 font-medium text-gray-900">{issue.vendor}</td>
-                    <td className="px-5 py-3 text-[13px] text-gray-700">{issue.item}</td>
-                    <td className="px-5 py-3"><StatusChip tone={stateTone(issue.state)}>{stateLabel(issue.state)}</StatusChip></td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{issue.date ? date(issue.date) : '—'}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-700">{issue.item}</td>
+                    <td className="px-5 py-3.5"><StatusChip tone={stateTone(issue.state)}>{stateLabel(issue.state)}</StatusChip></td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{issue.date ? date(issue.date) : '—'}</td>
                   </tr>
                 ))
               )}
@@ -184,18 +184,18 @@ export default async function CompliancePage() {
 
       {/* ── Owner insurance ───────────────────────────── */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Owner Insurance</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Expired and expiring HO-6 / owner policies on file</p>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Owner Insurance</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Expired and expiring HO-6 / owner policies on file</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Owner</th>
-                <th className="px-5 py-2.5 text-left font-medium">Policy #</th>
-                <th className="px-5 py-2.5 text-left font-medium">Expires</th>
-                <th className="px-5 py-2.5 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Owner</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Policy #</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Expires</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -203,11 +203,11 @@ export default async function CompliancePage() {
                 <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-500">No expired or expiring owner policies.</td></tr>
               ) : (
                 [...expiredPolicies, ...expiringPolicies].map((p: any) => (
-                  <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={p.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="px-5 py-3 font-medium text-gray-900">{p.owners?.full_name ?? '—'}</td>
-                    <td className="px-5 py-3 text-[13px] text-gray-700">{p.policy_number ?? '—'}</td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(p.expiration_date)}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-3.5 text-sm text-gray-700">{p.policy_number ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{date(p.expiration_date)}</td>
+                    <td className="px-5 py-3.5">
                       <StatusChip tone={p.expiration_date < today ? 'danger' : 'warning'}>{p.expiration_date < today ? 'Expired' : 'Expiring soon'}</StatusChip>
                     </td>
                   </tr>
@@ -220,18 +220,18 @@ export default async function CompliancePage() {
 
       {/* ── Statutory inspections & certificates ──────── */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Statutory Inspections & Certificates</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Fire, elevator, boiler, backflow, sprinkler, and generator items tracked as preventive maintenance</p>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Statutory Inspections & Certificates</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Fire, elevator, boiler, backflow, sprinkler, and generator items tracked as preventive maintenance</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Item</th>
-                <th className="px-5 py-2.5 text-left font-medium">Association</th>
-                <th className="px-5 py-2.5 text-left font-medium">Next Due</th>
-                <th className="px-5 py-2.5 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Item</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Association</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Next Due</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -244,11 +244,11 @@ export default async function CompliancePage() {
                 </tr>
               ) : (
                 (certTasks ?? []).map((t: any) => (
-                  <tr key={t.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={t.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="px-5 py-3 font-medium text-gray-900">{t.task_name}</td>
-                    <td className="px-5 py-3 text-[13px] text-gray-700">{t.associations?.name ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-700">{t.associations?.name ?? '—'}</td>
                     <td className={`px-5 py-3 text-[13px] tabular-nums ${t.next_due_date && t.next_due_date < today ? 'font-medium text-red-700' : 'text-gray-700'}`}>{date(t.next_due_date)}</td>
-                    <td className="px-5 py-3"><StatusChip tone={t.next_due_date && t.next_due_date < today ? 'danger' : 'success'}>{t.next_due_date && t.next_due_date < today ? 'Overdue' : 'Scheduled'}</StatusChip></td>
+                    <td className="px-5 py-3.5"><StatusChip tone={t.next_due_date && t.next_due_date < today ? 'danger' : 'success'}>{t.next_due_date && t.next_due_date < today ? 'Overdue' : 'Scheduled'}</StatusChip></td>
                   </tr>
                 ))
               )}
@@ -259,21 +259,21 @@ export default async function CompliancePage() {
 
       {/* ── Violations by association ─────────────────── */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Open Violations by Association</h2>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Open Violations by Association</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Association</th>
-                <th className="px-5 py-2.5 text-right font-medium">Open Violations</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Association</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Open Violations</th>
               </tr>
             </thead>
             <tbody>
               {(assocs ?? []).map((a: any) => (
-                <tr key={a.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                  <td className="px-5 py-3">
+                <tr key={a.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                  <td className="px-5 py-3.5">
                     <Link href={`/company-admin/violations`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
                   </td>
                   <td className={`px-5 py-3 text-right tabular-nums ${(violByAssoc.get(a.id) ?? 0) > 0 ? 'font-medium text-red-700' : 'text-gray-700'}`}>{violByAssoc.get(a.id) ?? 0}</td>

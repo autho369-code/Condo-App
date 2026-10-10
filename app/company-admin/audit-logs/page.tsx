@@ -54,8 +54,8 @@ export default async function AuditLogsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Audit Logs</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Audit Logs</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Track changes across {me.portfolio?.company_name ?? me.portfolio?.name ?? 'your portfolio'}
         </p>
       </div>
@@ -66,11 +66,11 @@ export default async function AuditLogsPage({
       <div className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <form action="/company-admin/audit-logs" method="get" className="flex flex-wrap items-end gap-3">
           <label className="block">
-            <span className="text-xs font-medium text-gray-500">From</span>
+            <span className="text-[13px] font-medium text-gray-500">From</span>
             <input type="date" name="from" defaultValue={sp.from ?? ''} className={inputCls} />
           </label>
           <label className="block">
-            <span className="text-xs font-medium text-gray-500">To</span>
+            <span className="text-[13px] font-medium text-gray-500">To</span>
             <input type="date" name="to" defaultValue={sp.to ?? ''} className={inputCls} />
           </label>
           <button
@@ -91,11 +91,11 @@ export default async function AuditLogsPage({
       </div>
 
       {/* Audit Log Table */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="border-b border-gray-100 px-5 py-4">
+      <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="border-b border-line px-5 py-4">
           <div className="flex items-center gap-2">
             <ScrollText className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-950">
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">
               {logRows.length > 0 ? `${logRows.length} log entries` : 'Audit Trail'}
             </h2>
           </div>
@@ -122,7 +122,7 @@ export default async function AuditLogsPage({
                 </tr>
               ) : (
                 logRows.map((row: any) => (
-                  <tr key={row.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={row.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <Td className="whitespace-nowrap font-mono text-xs text-gray-500">
                       {row.created_at
                         ? formatInZone(row.created_at, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' }, zone)

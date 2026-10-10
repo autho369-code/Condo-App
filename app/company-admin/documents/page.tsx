@@ -74,8 +74,8 @@ export default async function GlobalDocumentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Document Repository</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Document Repository</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Global repository across every association — governing documents, minutes, contracts, insurance, and audits
         </p>
       </div>
@@ -93,7 +93,7 @@ export default async function GlobalDocumentsPage() {
             <div key={item.label} className={`${card} px-4 py-3.5`}>
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
+                  <div className="text-[13px] font-medium text-gray-500">{item.label}</div>
                   <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${item.warn ? 'text-red-700' : 'text-gray-950'}`}>{item.value}</div>
                 </div>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
@@ -112,35 +112,35 @@ export default async function GlobalDocumentsPage() {
       ) : (
         [...groups.entries()].map(([label, items]) => (
           <div key={label} className={card}>
-            <div className="border-b border-gray-100 px-5 py-4">
-              <h2 className="text-sm font-semibold text-gray-950">{label}</h2>
-              <p className="mt-0.5 text-xs text-gray-500">{items.length} document{items.length === 1 ? '' : 's'}</p>
+            <div className="border-b border-line px-5 py-4">
+              <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{label}</h2>
+              <p className="mt-0.5 text-[13px] text-gray-500">{items.length} document{items.length === 1 ? '' : 's'}</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+                <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                   <tr>
-                    <th className="px-5 py-2.5 text-left font-medium">File</th>
-                    <th className="px-5 py-2.5 text-left font-medium">Association</th>
-                    <th className="px-5 py-2.5 text-left font-medium">Uploaded</th>
-                    <th className="px-5 py-2.5 text-left font-medium">Expires</th>
+                    <th className="whitespace-nowrap px-5 py-3 text-left font-medium">File</th>
+                    <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Association</th>
+                    <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Uploaded</th>
+                    <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Expires</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((d: any) => (
-                    <tr key={d.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                      <td className="px-5 py-3">
+                    <tr key={d.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                      <td className="px-5 py-3.5">
                         {docLinks.get(d.id) ? (
                           <a href={docLinks.get(d.id)} target="_blank" rel="noreferrer" className="font-medium text-gray-900 hover:underline">{d.file_name ?? 'Document'}</a>
                         ) : (
                           <span className="font-medium text-gray-900">{d.file_name ?? 'Document'}</span>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-[13px] text-gray-700">
+                      <td className="px-5 py-3.5 text-sm text-gray-700">
                         {d.entity_type === 'association' ? (assocName.get(d.entity_id) ?? '—') : d.entity_type}
                       </td>
-                      <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(d.uploaded_at)}</td>
-                      <td className="px-5 py-3">
+                      <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{date(d.uploaded_at)}</td>
+                      <td className="px-5 py-3.5">
                         {d.expires_at ? (
                           d.expires_at < today
                             ? <StatusChip tone="danger">Expired {date(d.expires_at)}</StatusChip>

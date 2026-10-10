@@ -46,8 +46,8 @@ export default async function CompanyMaintenanceCalendarPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Maintenance Calendar</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Maintenance Calendar</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Company-wide preventive maintenance and inspections due in the next 90 days
         </p>
       </div>
@@ -65,7 +65,7 @@ export default async function CompanyMaintenanceCalendarPage() {
             <div key={item.label} className={`${card} px-4 py-3.5`}>
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
+                  <div className="text-[13px] font-medium text-gray-500">{item.label}</div>
                   <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${item.warn ? 'text-red-700' : 'text-gray-950'}`}>{item.value}</div>
                 </div>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
@@ -78,20 +78,20 @@ export default async function CompanyMaintenanceCalendarPage() {
       </div>
 
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Upcoming Preventive Maintenance</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Elevator, fire alarm, HVAC, landscaping, and every other scheduled task across all associations</p>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Upcoming Preventive Maintenance</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Elevator, fire alarm, HVAC, landscaping, and every other scheduled task across all associations</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Task</th>
-                <th className="px-5 py-2.5 text-left font-medium">Association</th>
-                <th className="px-5 py-2.5 text-left font-medium">Category</th>
-                <th className="px-5 py-2.5 text-left font-medium">Vendor</th>
-                <th className="px-5 py-2.5 text-left font-medium">Next Due</th>
-                <th className="px-5 py-2.5 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Task</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Association</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Category</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Vendor</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Next Due</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -106,13 +106,13 @@ export default async function CompanyMaintenanceCalendarPage() {
                 (upcoming ?? []).map((t: any) => {
                   const isOverdue = t.next_due_date && t.next_due_date < today
                   return (
-                    <tr key={t.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <tr key={t.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                       <td className="px-5 py-3 font-medium text-gray-900">{t.task_name}</td>
-                      <td className="px-5 py-3 text-[13px] text-gray-700">{t.association_name ?? '—'}</td>
+                      <td className="px-5 py-3.5 text-sm text-gray-700">{t.association_name ?? '—'}</td>
                       <td className="px-5 py-3 text-[13px] capitalize text-gray-700">{(t.category ?? '—').replace(/_/g, ' ')}</td>
-                      <td className="px-5 py-3 text-[13px] text-gray-700">{t.vendor_name ?? '—'}</td>
+                      <td className="px-5 py-3.5 text-sm text-gray-700">{t.vendor_name ?? '—'}</td>
                       <td className={`px-5 py-3 text-[13px] tabular-nums ${isOverdue ? 'font-medium text-red-700' : 'text-gray-700'}`}>{date(t.next_due_date)}</td>
-                      <td className="px-5 py-3"><StatusChip tone={isOverdue ? 'danger' : 'success'}>{isOverdue ? 'Overdue' : 'Scheduled'}</StatusChip></td>
+                      <td className="px-5 py-3.5"><StatusChip tone={isOverdue ? 'danger' : 'success'}>{isOverdue ? 'Overdue' : 'Scheduled'}</StatusChip></td>
                     </tr>
                   )
                 })
@@ -123,17 +123,17 @@ export default async function CompanyMaintenanceCalendarPage() {
       </div>
 
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Open Inspections</h2>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Open Inspections</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Inspection</th>
-                <th className="px-5 py-2.5 text-left font-medium">Association</th>
-                <th className="px-5 py-2.5 text-left font-medium">Scheduled</th>
-                <th className="px-5 py-2.5 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Inspection</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Association</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Scheduled</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -141,11 +141,11 @@ export default async function CompanyMaintenanceCalendarPage() {
                 <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-500">No open inspections in the next 90 days.</td></tr>
               ) : (
                 (inspections ?? []).map((i: any) => (
-                  <tr key={i.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={i.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="px-5 py-3 font-medium capitalize text-gray-900">{(i.inspection_type ?? 'Inspection').replace(/_/g, ' ')}</td>
-                    <td className="px-5 py-3 text-[13px] text-gray-700">{i.associations?.name ?? '—'}</td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(i.scheduled_date)}</td>
-                    <td className="px-5 py-3"><StatusChip tone="info">{(i.status ?? 'scheduled').replace(/_/g, ' ')}</StatusChip></td>
+                    <td className="px-5 py-3.5 text-sm text-gray-700">{i.associations?.name ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{date(i.scheduled_date)}</td>
+                    <td className="px-5 py-3.5"><StatusChip tone="info">{(i.status ?? 'scheduled').replace(/_/g, ' ')}</StatusChip></td>
                   </tr>
                 ))
               )}

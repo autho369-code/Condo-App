@@ -29,9 +29,9 @@ function StatCard({
     <div className={`${card} px-4 py-3.5`}>
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
-          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
-          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
+          <div className="mt-1.5 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
+          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -114,8 +114,8 @@ export default async function RevenuePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Revenue</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Revenue</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Company-wide revenue dashboard for {me.portfolio?.company_name ?? me.portfolio?.name ?? 'your portfolio'}
         </p>
       </div>
@@ -173,7 +173,7 @@ export default async function RevenuePage() {
                       backgroundColor: m.key === currentMonthStart.slice(0, 7) ? '#10B981' : '#E5E7EB',
                     }}
                   />
-                  <span className="text-xs text-gray-500">{m.label}</span>
+                  <span className="text-[13px] text-gray-500">{m.label}</span>
                 </div>
               )
             })}

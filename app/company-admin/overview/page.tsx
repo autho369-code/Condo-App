@@ -51,9 +51,9 @@ function StatCard({
     <div className={`${card} px-4 py-3.5`}>
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
           <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${tone === 'danger' ? 'text-red-700' : tone === 'warning' ? 'text-amber-700' : 'text-gray-950'}`}>{value}</div>
-          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -182,8 +182,8 @@ export default async function OverviewPage() {
     <div className="space-y-6">
       {/* ── Page Header ────────────────────────────────── */}
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Executive Dashboard</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Executive Dashboard</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Command center for {me.portfolio?.company_name ?? me.portfolio?.name ?? 'your portfolio'}
         </p>
       </div>
@@ -230,10 +230,10 @@ export default async function OverviewPage() {
 
       {/* ── Manager Workload ──────────────────────────── */}
       <div className={card}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">Manager Workload</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Assigned properties and open work per manager</p>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Manager Workload</h2>
+            <p className="mt-0.5 text-[13px] text-gray-500">Assigned properties and open work per manager</p>
           </div>
           <Link href="/company-admin/performance" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
             Performance rankings <ArrowRight className="h-3 w-3" />
@@ -241,15 +241,15 @@ export default async function OverviewPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Manager</th>
-                <th className="px-5 py-2.5 text-right font-medium">Properties</th>
-                <th className="px-5 py-2.5 text-right font-medium">Doors</th>
-                <th className="px-5 py-2.5 text-right font-medium">Open WO</th>
-                <th className="px-5 py-2.5 text-right font-medium">Overdue</th>
-                <th className="px-5 py-2.5 text-right font-medium">Violations</th>
-                <th className="px-5 py-2.5 text-right font-medium">ARC</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Manager</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Properties</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Doors</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Open WO</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Overdue</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Violations</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">ARC</th>
               </tr>
             </thead>
             <tbody>
@@ -257,16 +257,16 @@ export default async function OverviewPage() {
                 <tr><td colSpan={7} className="px-5 py-8 text-center text-sm text-gray-500">No managers with assigned properties yet. Managers with full-portfolio access appear once they are scoped to specific associations.</td></tr>
               ) : (
                 (workload ?? []).map((w: any) => (
-                  <tr key={w.manager_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-5 py-3">
+                  <tr key={w.manager_id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                    <td className="px-5 py-3.5">
                       <Link href={`/company-admin/managers/${w.manager_id}`} className="font-medium text-gray-900 hover:underline">{w.manager_name ?? w.manager_email}</Link>
                     </td>
-                    <td className="px-5 py-3 text-right tabular-nums text-gray-700">{w.assigned_associations}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-gray-700">{Number(w.total_doors_managed ?? 0).toLocaleString()}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-gray-700">{w.open_work_orders}</td>
+                    <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{w.assigned_associations}</td>
+                    <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{Number(w.total_doors_managed ?? 0).toLocaleString()}</td>
+                    <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{w.open_work_orders}</td>
                     <td className={`px-5 py-3 text-right tabular-nums ${w.overdue_work_orders > 0 ? 'font-medium text-red-700' : 'text-gray-700'}`}>{w.overdue_work_orders}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-gray-700">{w.open_violations}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-gray-700">{w.open_arch_reviews}</td>
+                    <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{w.open_violations}</td>
+                    <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{w.open_arch_reviews}</td>
                   </tr>
                 ))
               )}
@@ -324,10 +324,10 @@ export default async function OverviewPage() {
 
       {/* ── Association Health + AI Score ─────────────── */}
       <div className={card}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">Property Health Scores</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Live health score per association — computed from open work, overdue items, emergencies, and violations</p>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Property Health Scores</h2>
+            <p className="mt-0.5 text-[13px] text-gray-500">Live health score per association — computed from open work, overdue items, emergencies, and violations</p>
           </div>
           <Link href="/company-admin/portfolio-health" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
             View full report <ArrowRight className="h-3 w-3" />
@@ -335,15 +335,15 @@ export default async function OverviewPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Association</th>
-                <th className="px-5 py-2.5 text-right font-medium">Units</th>
-                <th className="px-5 py-2.5 text-right font-medium">Open WO</th>
-                <th className="px-5 py-2.5 text-right font-medium">Overdue</th>
-                <th className="px-5 py-2.5 text-right font-medium">Violations</th>
-                <th className="px-5 py-2.5 text-right font-medium">Health Score</th>
-                <th className="px-5 py-2.5 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Association</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Units</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Open WO</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Overdue</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Violations</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Health Score</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -356,18 +356,18 @@ export default async function OverviewPage() {
                   const tone = healthTone(status)
                   const label = HEALTH_LABELS[status]
                   return (
-                    <tr key={assoc.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                      <td className="px-5 py-3">
+                    <tr key={assoc.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                      <td className="px-5 py-3.5">
                         <Link href={`/associations/${assoc.slug ?? assoc.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{assoc.name}</Link>
                       </td>
-                      <td className="px-5 py-3 text-right tabular-nums text-gray-700">{assoc.unit_count ?? '—'}</td>
-                      <td className="px-5 py-3 text-right tabular-nums text-gray-700">{h?.open ?? 0}</td>
+                      <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{assoc.unit_count ?? '—'}</td>
+                      <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{h?.open ?? 0}</td>
                       <td className={`px-5 py-3 text-right tabular-nums ${(h?.overdue ?? 0) > 0 ? 'font-medium text-red-700' : 'text-gray-700'}`}>{h?.overdue ?? 0}</td>
-                      <td className="px-5 py-3 text-right tabular-nums text-gray-700">{h?.violations ?? 0}</td>
+                      <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{h?.violations ?? 0}</td>
                       <td className="px-5 py-3 text-right">
                         <span className={`font-semibold tabular-nums ${(h?.score ?? 100) >= 80 ? 'text-emerald-700' : (h?.score ?? 100) >= 50 ? 'text-amber-700' : 'text-red-700'}`}>{h?.score ?? 100}</span>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-5 py-3.5">
                         <StatusChip tone={tone}>{label}</StatusChip>
                       </td>
                     </tr>

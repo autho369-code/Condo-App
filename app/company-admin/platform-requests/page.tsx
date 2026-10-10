@@ -99,8 +99,8 @@ export default function PlatformRequestsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Platform Requests</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Platform Requests</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Submit and track requests to the platform operator
         </p>
       </div>
@@ -149,7 +149,7 @@ export default function PlatformRequestsPage() {
           <form ref={formRef} action={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className="block">
-                <span className="text-xs font-medium text-gray-500">Request Type</span>
+                <span className="text-[13px] font-medium text-gray-500">Request Type</span>
                 <select name="request_type" required className={inputCls}>
                   <option value="">Select type...</option>
                   {REQUEST_TYPES.map((t) => (
@@ -158,7 +158,7 @@ export default function PlatformRequestsPage() {
                 </select>
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-gray-500">Priority</span>
+                <span className="text-[13px] font-medium text-gray-500">Priority</span>
                 <select name="priority" required defaultValue="medium" className={inputCls}>
                   {PRIORITIES.map((p) => (
                     <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
@@ -167,7 +167,7 @@ export default function PlatformRequestsPage() {
               </label>
             </div>
             <label className="block">
-              <span className="text-xs font-medium text-gray-500">Subject</span>
+              <span className="text-[13px] font-medium text-gray-500">Subject</span>
               <input
                 name="subject"
                 required
@@ -176,7 +176,7 @@ export default function PlatformRequestsPage() {
               />
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-gray-500">Description</span>
+              <span className="text-[13px] font-medium text-gray-500">Description</span>
               <textarea
                 name="description"
                 required
@@ -200,8 +200,8 @@ export default function PlatformRequestsPage() {
       {/* Request History Tab */}
       {activeTab === 'history' && (
         <div className={card}>
-          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-950">Request History</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Request History</h2>
             <button
               onClick={fetchRequests}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-950"
@@ -250,7 +250,7 @@ export default function PlatformRequestsPage() {
                   requests.map((r: any) => {
                     const typeLabel = REQUEST_TYPES.find((t) => t.value === r.request_type)?.label ?? r.request_type?.replace(/_/g, ' ') ?? '—'
                     return (
-                      <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                      <tr key={r.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                         <Td className="font-medium text-gray-900">{typeLabel}</Td>
                         <Td className="max-w-xs truncate text-gray-900">{r.title ?? '—'}</Td>
                         <Td>

@@ -110,8 +110,8 @@ export default async function CompanyAdminAssociationsPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Associations</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">Manage all associations in your portfolio</p>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Associations</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Manage all associations in your portfolio</p>
         </div>
         <Link href="/onboard">
           <Button className="gap-2"><Building2 className="h-4 w-4" /> Add Association</Button>
@@ -122,21 +122,21 @@ export default async function CompanyAdminAssociationsPage({
       {loadErrors.length > 0 && <Alert tone="danger" title="Some data could not be loaded; health scores may be incomplete.">{loadErrors.join(' · ')}</Alert>}
 
       <form action="/company-admin/associations" method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <label className="text-xs font-medium text-gray-500">
+        <label className="text-[13px] font-medium text-gray-500">
           Manager
           <select name="manager" defaultValue={sp.manager ?? ''} className={selectCls}>
             <option value="">All Managers</option>
             {(managers ?? []).map((mgr: any) => <option key={mgr.id} value={mgr.full_name ?? mgr.email}>{mgr.full_name ?? mgr.email}</option>)}
           </select>
         </label>
-        <label className="text-xs font-medium text-gray-500">
+        <label className="text-[13px] font-medium text-gray-500">
           City
           <select name="city" defaultValue={sp.city ?? ''} className={selectCls}>
             <option value="">All Cities</option>
             {cities.map((city) => <option key={city} value={city}>{city}</option>)}
           </select>
         </label>
-        <label className="text-xs font-medium text-gray-500">
+        <label className="text-[13px] font-medium text-gray-500">
           Health
           <select name="health" defaultValue={sp.health ?? ''} className={selectCls}>
             <option value="">All</option>
@@ -145,7 +145,7 @@ export default async function CompanyAdminAssociationsPage({
             <option value="critical">Critical (&lt;50)</option>
           </select>
         </label>
-        <label className="text-xs font-medium text-gray-500">
+        <label className="text-[13px] font-medium text-gray-500">
           Status
           <select name="status" defaultValue={sp.status ?? ''} className={selectCls}>
             <option value="">All</option>
@@ -154,11 +154,11 @@ export default async function CompanyAdminAssociationsPage({
           </select>
         </label>
         <div className="flex items-end gap-2">
-          <label className="text-xs font-medium text-gray-500">
+          <label className="text-[13px] font-medium text-gray-500">
             Min Units
             <input type="number" name="min_units" defaultValue={sp.min_units ?? ''} placeholder="0" className={`${selectCls} w-24 placeholder:text-gray-400`} />
           </label>
-          <label className="text-xs font-medium text-gray-500">
+          <label className="text-[13px] font-medium text-gray-500">
             Max Units
             <input type="number" name="max_units" defaultValue={sp.max_units ?? ''} placeholder="999" className={`${selectCls} w-24 placeholder:text-gray-400`} />
           </label>
@@ -166,18 +166,18 @@ export default async function CompanyAdminAssociationsPage({
         <button type="submit" className="h-10 rounded-xl bg-gray-950 px-4 text-sm font-medium text-white transition hover:bg-gray-800">Apply</button>
       </form>
 
-      <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+          <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
             <tr>
-              <th className="px-4 py-2.5 text-left font-medium">Association</th>
-              <th className="px-4 py-2.5 text-left font-medium">City</th>
-              <th className="px-4 py-2.5 text-right font-medium">Units</th>
-              <th className="px-4 py-2.5 text-left font-medium">Manager</th>
-              <th className="px-4 py-2.5 text-left font-medium">Health</th>
-              <th className="px-4 py-2.5 text-right font-medium">Open WO</th>
-              <th className="px-4 py-2.5 text-right font-medium">Violations</th>
-              <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Association</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">City</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Units</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Manager</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Health</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Open WO</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Violations</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -185,15 +185,15 @@ export default async function CompanyAdminAssociationsPage({
               <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-500">No associations match your filters.</td></tr>
             ) : (
               rows.map((row: any) => (
-                <tr key={row.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                  <td className="px-4 py-3">
+                <tr key={row.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                  <td className="px-4 py-3.5">
                     <Link href={`/associations/${row.slug ?? row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
-                    <div className="mt-0.5 text-xs text-gray-500">{row.address}</div>
+                    <div className="mt-0.5 text-[13px] text-gray-500">{row.address}</div>
                   </td>
-                  <td className="px-4 py-3 text-[13px] text-gray-700">{row.city}{row.state ? `, ${row.state}` : ''}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.units.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-[13px] text-gray-700">{row.managerNames}</td>
-                  <td className="px-4 py-3"><HealthBadge score={row.healthScore} /></td>
+                  <td className="px-4 py-3.5 text-sm text-gray-700">{row.city}{row.state ? `, ${row.state}` : ''}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{row.units.toLocaleString()}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-700">{row.managerNames}</td>
+                  <td className="px-4 py-3.5"><HealthBadge score={row.healthScore} /></td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     <span className={row.openWorkOrders > 0 ? 'font-medium text-amber-700' : 'text-gray-700'}>{row.openWorkOrders}</span>
                     {row.overdueWorkOrders > 0 && <span className="ml-1 text-xs text-red-700">({row.overdueWorkOrders} overdue)</span>}
@@ -201,7 +201,7 @@ export default async function CompanyAdminAssociationsPage({
                   <td className={`px-4 py-3 text-right tabular-nums ${row.openViolations > 0 ? 'font-medium text-red-700' : 'text-gray-700'}`}>
                     {row.openViolations}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <div className="flex items-center justify-end gap-1">
                       <Link href={`/associations/${row.slug ?? row.id}`} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950" title="View"><Eye className="h-4 w-4" /></Link>
                     </div>
@@ -212,7 +212,7 @@ export default async function CompanyAdminAssociationsPage({
           </tbody>
         </table>
       </div>
-      <div className="text-xs text-gray-500">Showing {rows.length} of {associations?.length ?? 0} associations{sp.city ? ` in ${sp.city}` : ''}</div>
+      <div className="text-[13px] text-gray-500">Showing {rows.length} of {associations?.length ?? 0} associations{sp.city ? ` in ${sp.city}` : ''}</div>
     </div>
   )
 }

@@ -183,8 +183,8 @@ export default async function ManagerPerformancePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Manager Performance</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Manager Performance</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Response times, throughput, and workload — computed live from work orders, violations, and inspections
         </p>
       </div>
@@ -202,20 +202,20 @@ export default async function ManagerPerformancePage() {
                 <div>
                   {p.isManager
                     ? <Link href={`/company-admin/managers/${p.id}`} className="text-[15px] font-semibold text-gray-950 hover:underline">{p.name}</Link>
-                    : <span className="text-[15px] font-semibold text-gray-950">{p.name}</span>}
-                  <div className="mt-0.5 text-xs text-gray-500">{p.email}</div>
+                    : <span className="text-[14.5px] font-semibold text-ink">{p.name}</span>}
+                  <div className="mt-0.5 text-[13px] text-gray-500">{p.email}</div>
                 </div>
                 <StatusChip tone={p.performance >= 80 ? 'success' : p.performance >= 50 ? 'warning' : 'danger'}>
                   {p.performance}%
                 </StatusChip>
               </div>
               <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
-                <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Properties</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{p.properties}</dd></div>
-                <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Units</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{p.doors.toLocaleString()}</dd></div>
-                <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Open Requests</dt><dd className={`mt-0.5 font-semibold tabular-nums ${p.openRequests > 0 ? 'text-amber-700' : 'text-gray-950'}`}>{p.openRequests}</dd></div>
-                <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Avg Resolution</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{fmtDays(p.avgResolutionDays)}</dd></div>
-                <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Closed (90d)</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{p.closed90d}</dd></div>
-                <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Overdue</dt><dd className={`mt-0.5 font-semibold tabular-nums ${p.overdue > 0 ? 'text-red-700' : 'text-gray-950'}`}>{p.overdue}</dd></div>
+                <div><dt className="text-[13px] font-medium text-gray-500">Properties</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{p.properties}</dd></div>
+                <div><dt className="text-[13px] font-medium text-gray-500">Units</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{p.doors.toLocaleString()}</dd></div>
+                <div><dt className="text-[13px] font-medium text-gray-500">Open Requests</dt><dd className={`mt-0.5 font-semibold tabular-nums ${p.openRequests > 0 ? 'text-amber-700' : 'text-gray-950'}`}>{p.openRequests}</dd></div>
+                <div><dt className="text-[13px] font-medium text-gray-500">Avg Resolution</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{fmtDays(p.avgResolutionDays)}</dd></div>
+                <div><dt className="text-[13px] font-medium text-gray-500">Closed (90d)</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{p.closed90d}</dd></div>
+                <div><dt className="text-[13px] font-medium text-gray-500">Overdue</dt><dd className={`mt-0.5 font-semibold tabular-nums ${p.overdue > 0 ? 'text-red-700' : 'text-gray-950'}`}>{p.overdue}</dd></div>
               </dl>
             </div>
           ))
@@ -232,7 +232,7 @@ export default async function ManagerPerformancePage() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
                   <Icon className="h-4 w-4 text-gray-400" />
                 </div>
-                <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{r.label}</div>
+                <div className="text-[13px] font-medium text-gray-500">{r.label}</div>
               </div>
               <ol className="mt-4 space-y-2.5">
                 {r.entries.length === 0 ? (
@@ -256,10 +256,10 @@ export default async function ManagerPerformancePage() {
 
       {/* ── Full table ────────────────────────────────── */}
       <div className={card}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">All Managers</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Complete performance detail — resolution times use the last 90 days of completed work</p>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">All Managers</h2>
+            <p className="mt-0.5 text-[13px] text-gray-500">Complete performance detail — resolution times use the last 90 days of completed work</p>
           </div>
           <Link href="/company-admin/managers" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
             Manage team <ArrowRight className="h-3 w-3" />
@@ -267,19 +267,19 @@ export default async function ManagerPerformancePage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-4 py-2.5 text-left font-medium">Manager</th>
-                <th className="px-4 py-2.5 text-right font-medium">Properties</th>
-                <th className="px-4 py-2.5 text-right font-medium">Units</th>
-                <th className="px-4 py-2.5 text-right font-medium">Open</th>
-                <th className="px-4 py-2.5 text-right font-medium">Overdue</th>
-                <th className="px-4 py-2.5 text-right font-medium">Closed 90d</th>
-                <th className="px-4 py-2.5 text-right font-medium">Avg Resolution</th>
-                <th className="px-4 py-2.5 text-right font-medium">Emergency Avg</th>
-                <th className="px-4 py-2.5 text-right font-medium">Violations</th>
-                <th className="px-4 py-2.5 text-right font-medium">Inspections</th>
-                <th className="px-4 py-2.5 text-right font-medium">Performance</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Manager</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Properties</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Units</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Open</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Overdue</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Closed 90d</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Avg Resolution</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Emergency Avg</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Violations</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Inspections</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Performance</th>
               </tr>
             </thead>
             <tbody>
@@ -287,21 +287,21 @@ export default async function ManagerPerformancePage() {
                 <tr><td colSpan={11} className="px-4 py-10 text-center text-sm text-gray-500">No managers found.</td></tr>
               ) : (
                 [...perfs].sort((a, b) => b.performance - a.performance).map((p) => (
-                  <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-4 py-3">
+                  <tr key={p.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                    <td className="px-4 py-3.5">
                       {p.isManager
                         ? <Link href={`/company-admin/managers/${p.id}`} className="font-medium text-gray-900 hover:underline">{p.name}</Link>
                         : <span className="font-medium text-gray-900">{p.name}</span>}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-700">{p.properties}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-700">{p.doors.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-700">{p.openRequests}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{p.properties}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{p.doors.toLocaleString()}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{p.openRequests}</td>
                     <td className={`px-4 py-3 text-right tabular-nums ${p.overdue > 0 ? 'font-medium text-red-700' : 'text-gray-700'}`}>{p.overdue}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-700">{p.closed90d}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-700">{fmtDays(p.avgResolutionDays)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-700">{fmtDays(p.emergencyAvgDays)}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{p.closed90d}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{fmtDays(p.avgResolutionDays)}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{fmtDays(p.emergencyAvgDays)}</td>
                     <td className={`px-4 py-3 text-right tabular-nums ${p.openViolations > 0 ? 'font-medium text-red-700' : 'text-gray-700'}`}>{p.openViolations}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-700">{p.inspectionsTotal > 0 ? `${p.inspectionsDone}/${p.inspectionsTotal}` : '—'}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{p.inspectionsTotal > 0 ? `${p.inspectionsDone}/${p.inspectionsTotal}` : '—'}</td>
                     <td className="px-4 py-3 text-right">
                       <span className={`font-semibold tabular-nums ${p.performance >= 80 ? 'text-emerald-700' : p.performance >= 50 ? 'text-amber-700' : 'text-red-700'}`}>{p.performance}%</span>
                     </td>
