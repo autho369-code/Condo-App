@@ -155,7 +155,7 @@ export default async function ReportsIndex({
             <nav aria-label="Report categories" className="mt-3 flex flex-wrap gap-2">
               {q && <span className="inline-flex min-h-9 items-center text-[13px] text-gray-500">{shown} match{shown === 1 ? '' : 'es'} for &quot;{q}&quot; ·</span>}
               {(favorites.length > 0 || pinnedSaved.length > 0) && <CategoryChip href="#favorites" label="Favorites" count={favorites.length + pinnedSaved.length} />}
-              {categories.map((c) => <CategoryChip key={c.key} href={`#${c.key}`} label={c.title.replace(/ Reports$/, '')} count={c.rows.length} />)}
+              {categories.map((c) => <CategoryChip key={c.key} href={sectionAnchor(c.key)} label={c.title.replace(/ Reports$/, '')} count={c.rows.length} />)}
               <CategoryChip href="#saved" label="Saved" count={savedVisible.length} />
             </nav>
           )}
@@ -207,6 +207,11 @@ export default async function ReportsIndex({
       </div>
     </DataWorkspace>
   );
+}
+
+/** In-page link to a category section (each ReportSection gets the key as its id). */
+function sectionAnchor(key: string): string {
+  return '#' + key;
 }
 
 function CategoryChip({ href, label, count }: { href: string; label: string; count: number }) {
