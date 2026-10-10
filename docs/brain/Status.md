@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (after #276 merged; open PR: unlink owner login; next: vendor details for Randolph Station, then Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (after #277 merged; open PR: speed round trips; next: vendor details for Randolph Station, then Stripe pilot).
 
 ## Open PR
 - claude/speed-round-trips: fewer sequential Supabase round trips (dashboard
