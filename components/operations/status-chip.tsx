@@ -13,8 +13,9 @@ export const toneClass: Record<Tone, string> = {
 export function StatusChip({ tone = 'neutral', children }: { tone?: Tone; children: React.ReactNode }) {
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ring-1 ring-inset ${toneClass[tone]}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12.5px] font-medium capitalize ring-1 ring-inset ${toneClass[tone]}`}
     >
+      <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-80" />
       {children}
     </span>
   );

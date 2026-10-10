@@ -26,7 +26,7 @@ function ChevronDown({ open }: { open: boolean }) {
 
 function Hamburger({ open, onClick }: { open: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="lg:hidden print:hidden fixed top-3 left-3 z-50 flex h-10 w-10 items-center justify-center rounded-md bg-white border border-gray-200 shadow-sm" aria-label="Toggle menu">
+    <button onClick={onClick} className="lg:hidden print:hidden fixed top-3 left-3 z-50 flex h-10 w-10 items-center justify-center rounded-[10px] bg-white border border-line shadow-sm" aria-label="Toggle menu" aria-expanded={open}>
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
         {open ? (
           <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -109,13 +109,16 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
     router.push('/login')
   }
 
+  // Readable on the dark rail: 14px items, light-gray idle text, and the
+  // company's color marking the current page.
   const itemBase =
-    'flex items-center h-[34px] px-3 mx-2 rounded-md text-[13px] font-medium transition-colors duration-100'
-  const itemIdle = 'text-[#8a8a93] hover:text-[#e4e4e7] hover:bg-white/[0.04]'
-  const itemActive = 'bg-[#16161a] text-[#f4f4f5]'
+    'relative flex items-center h-9 px-3 mx-2 rounded-lg text-[14px] font-medium transition-colors duration-100'
+  const itemIdle = 'text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-white/[0.05]'
+  const activeMark = 'before:absolute before:-left-2 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r before:bg-accent'
+  const itemActive = 'bg-[#16161a] text-[#f4f4f5] ' + activeMark
 
   const sidebarContent = (
-    <aside className="flex h-screen w-56 flex-shrink-0 flex-col overflow-hidden border-r border-white/[0.06] bg-[#060709]">
+    <aside className="flex h-screen w-60 flex-shrink-0 flex-col overflow-hidden border-r border-white/[0.06] bg-[#060709]">
       {/* Workspace header */}
       <div className="flex-shrink-0 border-b border-white/[0.06] px-4 py-4">
         {logoUrl ? (
@@ -123,14 +126,14 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
           <img src={logoUrl} alt={portfolioName ?? 'Portal'} className="mb-1 h-8 object-contain" />
         ) : (
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-white/[0.12] bg-white/[0.06] text-[12px] font-semibold text-white">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-accent font-display text-[14px] font-bold text-accent-ink">
               {(portfolioName ?? 'P').charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <div className="truncate text-[13px] font-semibold tracking-[-0.01em] text-[#f4f4f5]">
+              <div className="truncate font-display text-[14px] font-semibold tracking-[-0.01em] text-[#f4f4f5]" title={portfolioName ?? NEUTRAL_COMPANY_NAME}>
                 {portfolioName ?? NEUTRAL_COMPANY_NAME}
               </div>
-              <div className="text-[11px] leading-4 text-[#52525b]">{subtitle}</div>
+              <div className="text-[12px] leading-4 text-[#8a8a93]">{subtitle}</div>
             </div>
           </div>
         )}
@@ -141,7 +144,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
             value={navQuery}
             onChange={(event) => setNavQuery(event.target.value)}
             placeholder="Find a workspace"
-            className="h-8 w-full rounded-md border border-white/[0.08] bg-white/[0.04] pl-8 pr-2 text-[12px] text-[#e4e4e7] outline-none placeholder:text-[#52525b] focus:border-white/[0.18] focus:bg-white/[0.06] focus:ring-1 focus:ring-white/[0.08]"
+            className="h-9 w-full rounded-lg border border-white/[0.08] bg-white/[0.04] pl-8 pr-2 text-[13px] text-[#e4e4e7] outline-none placeholder:text-[#71717a] focus:border-white/[0.18] focus:bg-white/[0.06] focus:ring-1 focus:ring-white/[0.08]"
             aria-label="Filter navigation"
             aria-controls="workspace-navigation"
           />
@@ -149,10 +152,10 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
         {showRecordSearch && <button
           type="button"
           onClick={openCommandPalette}
-          className="mt-1.5 flex h-8 w-full items-center justify-between rounded-md px-2.5 text-[12px] text-[#8a8a93] transition-colors hover:bg-white/[0.04] hover:text-[#e4e4e7]"
+          className="mt-1.5 flex h-9 w-full items-center justify-between rounded-lg px-2.5 text-[13px] text-[#a1a1aa] transition-colors hover:bg-white/[0.05] hover:text-[#f4f4f5]"
         >
           <span>Search records</span>
-          <kbd className="rounded border border-white/[0.08] px-1 font-sans text-[10px] text-[#52525b]">Ctrl K</kbd>
+          <kbd className="rounded border border-white/[0.1] px-1.5 font-sans text-[11px] text-[#8a8a93]">Ctrl K</kbd>
         </button>}
       </div>
 
@@ -167,7 +170,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
           if (s.accent) return (
             <Link key={s.label} href={s.href}
               className={
-                'my-1.5 flex h-[34px] items-center justify-center px-3 mx-2 rounded-md text-[13px] font-semibold transition-colors duration-100 ' +
+                'my-1.5 flex h-9 items-center justify-center px-3 mx-2 rounded-lg text-[14px] font-semibold transition-colors duration-100 ' +
                 (active(s.href)
                   ? 'bg-white text-gray-950'
                   : 'bg-white/[0.92] text-gray-950 hover:bg-white')
@@ -193,20 +196,20 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
                 aria-controls={submenuId}
                 className={itemBase + ' w-[calc(100%-16px)] justify-between ' + (isActive && !isOpen ? itemActive : itemIdle)}>
                 <span>{s.label}</span>
-                <span className={isOpen ? 'text-[#71717a]' : 'text-[#3f3f46]'}>
+                <span className={isOpen ? 'text-[#a1a1aa]' : 'text-[#71717a]'}>
                   <ChevronDown open={!!isOpen} />
                 </span>
               </button>
               {isOpen && (
-                <div id={submenuId} className="relative my-0.5 ml-[22px] border-l border-white/[0.07] pl-1">
+                <div id={submenuId} className="relative my-0.5 ml-[22px] border-l border-white/[0.08] pl-1">
                   {s.children.map((c: any) => (
                     <Link key={c.href} href={c.href}
                       aria-current={active(c.href) ? 'page' : undefined}
                       className={
-                        'flex h-[30px] items-center rounded-md px-3 text-[12.5px] transition-colors duration-100 ' +
+                        'flex min-h-8 items-center rounded-md px-3 py-1 text-[13.5px] leading-5 transition-colors duration-100 ' +
                         (active(c.href)
                           ? 'bg-[#16161a] font-medium text-[#f4f4f5]'
-                          : 'text-[#71717a] hover:bg-white/[0.04] hover:text-[#d4d4d8]')
+                          : 'text-[#a1a1aa] hover:bg-white/[0.05] hover:text-[#f4f4f5]')
                       }>
                       {c.label}
                     </Link>
@@ -219,7 +222,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
           return (
             <div key={s.label}>
               {showGroup ? (
-                <div className={`px-5 pb-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#3f3f46] ${index === 0 ? 'pt-1' : 'pt-4'}`}>
+                <div className={`px-5 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#71717a] ${index === 0 ? 'pt-1' : 'pt-5'}`}>
                   {s.group}
                 </div>
               ) : null}
@@ -228,7 +231,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
           )
         })}
         {visibleModules.length === 0 ? (
-          <div className="px-5 py-8 text-center text-[12px] leading-5 text-[#52525b]">
+          <div className="px-5 py-8 text-center text-[13px] leading-5 text-[#8a8a93]">
             No workspace matches &quot;{navQuery}&quot;.
           </div>
         ) : null}
@@ -237,17 +240,17 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
       {/* User footer */}
       <div className="flex-shrink-0 border-t border-white/[0.06] px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[11px] font-medium uppercase text-[#a1a1aa]">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[12px] font-medium uppercase text-[#d4d4d8]">
             {(userEmail ?? '?').charAt(0)}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[12px] font-medium text-[#d4d4d8]">{userEmail}</div>
-            <div className="flex items-center gap-2 text-[11px] text-[#52525b]">
-              <Link href="/account" className="transition-colors hover:text-[#a1a1aa]">
+            <div className="truncate text-[13px] font-medium text-[#e4e4e7]" title={userEmail}>{userEmail}</div>
+            <div className="flex items-center gap-2 text-[12.5px] text-[#a1a1aa]">
+              <Link href="/account" className="py-1 transition-colors hover:text-[#f4f4f5]">
                 Account
               </Link>
-              <span className="text-[#3f3f46]">·</span>
-              <button onClick={handleLogout} className="transition-colors hover:text-[#a1a1aa]">
+              <span className="text-[#52525b]">·</span>
+              <button onClick={handleLogout} className="py-1 transition-colors hover:text-[#f4f4f5]">
                 Log out
               </button>
             </div>

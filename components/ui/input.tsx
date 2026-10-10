@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 import * as React from 'react';
 
 const fieldBase =
-  'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 ' +
+  'h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 ' +
   'placeholder:text-gray-400 transition-colors outline-none ' +
   'focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-gray-50 disabled:text-gray-500';
 
@@ -24,7 +24,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
 Textarea.displayName = 'Textarea';
 
 export function Label({ className, ...p }: React.LabelHTMLAttributes<HTMLLabelElement>) {
-  return <label className={cn('mb-1.5 block text-[13px] font-medium text-gray-700', className)} {...p} />;
+  return <label className={cn('mb-1.5 block text-[13.5px] font-medium text-gray-700', className)} {...p} />;
 }
 
 /** Label + control wrapper with optional hint and required marker. */
@@ -43,7 +43,7 @@ export function Field({
         </Label>
       )}
       {children}
-      {hint && <p className="mt-1 text-[12px] leading-4 text-gray-400">{hint}</p>}
+      {hint && <p className="mt-1.5 text-[13px] leading-5 text-gray-500">{hint}</p>}
     </div>
   );
 }

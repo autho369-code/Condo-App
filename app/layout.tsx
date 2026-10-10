@@ -12,6 +12,15 @@ const inter = localFont({
   variable: '--font-inter',
 })
 
+// Schibsted Grotesk (OFL) for titles and key figures, bundled the same way.
+const display = localFont({
+  src: '../node_modules/@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2',
+  weight: '400 900',
+  style: 'normal',
+  display: 'swap',
+  variable: '--font-display',
+})
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://portier369.com'),
   title: {
@@ -75,7 +84,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${display.variable}`}>
       <body className="font-sans">
         {children}
         <Analytics />

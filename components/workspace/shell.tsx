@@ -15,15 +15,15 @@ export function Workspace({
 }) {
   return (
     <div className="min-h-full">
-      <div className="shrink-0 border-b border-gray-200/80 bg-white px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
+      <div className="shrink-0 border-b border-line bg-white px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         {header}
       </div>
-      <div data-workspace-main className="bg-[#f6f7f9] px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+      <div data-workspace-main className="bg-canvas px-4 py-6 sm:px-6 lg:px-8 lg:py-7">
         {rail ? (
           // The rail is a card inside the content area (not a fourth page
           // column): above the content on small screens, beside it on wide ones.
           <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start">
-            <aside data-workspace-rail className="rounded-2xl border border-gray-200/70 bg-white px-5 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] xl:sticky xl:top-4 xl:order-2">
+            <aside data-workspace-rail className="rounded-2xl border border-line bg-white px-5 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] xl:sticky xl:top-4 xl:order-2">
               {rail}
             </aside>
             <div className="min-w-0 xl:order-1">{children}</div>
@@ -48,9 +48,9 @@ export function WorkspaceHeader({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
       <div className="min-w-0">
-        {eyebrow && <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">{eyebrow}</div>}
-        <h1 className="truncate text-[20px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[24px]">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm leading-6 text-gray-500">{subtitle}</p>}
+        {eyebrow && <div className="mb-1.5 text-[13px] font-medium text-gray-500">{eyebrow}</div>}
+        <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{title}</h1>
+        {subtitle && <p className="mt-1.5 text-[15px] leading-6 text-gray-500">{subtitle}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -73,17 +73,17 @@ export function Section({
   padded?: boolean;
 }) {
   return (
-    <section className={'mb-6 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] ' + (className ?? '')}>
+    <section className={'mb-6 overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] ' + (className ?? '')}>
       {(title || actions) && (
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
-          <div>
-            {title && <h2 className="text-sm font-semibold text-gray-900">{title}</h2>}
-            {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+          <div className="min-w-0">
+            {title && <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>}
+            {subtitle && <p className="mt-0.5 text-[13px] leading-5 text-gray-500">{subtitle}</p>}
           </div>
-          {actions && <div className="flex items-center gap-2">{actions}</div>}
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </div>
       )}
-      <div className={padded ? 'px-5 py-4' : ''}>{children}</div>
+      <div className={padded ? 'px-5 py-5' : ''}>{children}</div>
     </section>
   );
 }
@@ -111,16 +111,16 @@ export function Tile({
   tone?: TileTone;
   href?: string;
 }) {
-  const cls = 'block rounded-md border border-gray-200 bg-white px-4 py-3 transition';
+  const cls = 'block rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition';
   const body = (
     <>
-      <div className="text-[11px] font-medium uppercase tracking-wider text-gray-500">{label}</div>
-      <div className={'mt-1 text-xl font-semibold tabular-nums ' + TONE_CLS[tone]}>{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-gray-500">{sub}</div>}
+      <div className="text-[13px] font-medium text-gray-500">{label}</div>
+      <div className={'mt-1 font-display text-[24px] font-semibold tabular-nums tracking-[-0.02em] ' + TONE_CLS[tone]}>{value}</div>
+      {sub && <div className="mt-0.5 text-[13px] text-gray-500">{sub}</div>}
     </>
   );
   if (href) {
-    return <Link href={href} className={cls + ' hover:border-brand-500 hover:bg-brand-50'}>{body}</Link>;
+    return <Link href={href} className={cls + ' hover:border-gray-300 hover:bg-gray-50/60'}>{body}</Link>;
   }
   return <div className={cls}>{body}</div>;
 }

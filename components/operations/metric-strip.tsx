@@ -12,15 +12,15 @@ export function MetricStrip({ metrics }: { metrics: Metric[] }) {
       {metrics.map((metric) => (
         <div
           key={metric.label}
-          className="group rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]"
+          className="group rounded-2xl border border-line bg-white px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
         >
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
+          <div className="text-[13px] font-medium leading-5 text-gray-500">
             {metric.label}
           </div>
-          <div className="mt-1.5 text-[22px] font-semibold leading-none tabular-nums tracking-[-0.01em] text-gray-950 sm:text-[26px]">
+          <div className="mt-1.5 font-display text-[26px] font-semibold leading-none tabular-nums tracking-[-0.02em] text-ink sm:text-[28px]">
             {metric.value}
           </div>
-          {metric.sublabel && <div className="mt-2 text-xs text-gray-500">{metric.sublabel}</div>}
+          {metric.sublabel && <div className="mt-2 text-[13px] leading-5 text-gray-500">{metric.sublabel}</div>}
         </div>
       ))}
     </div>

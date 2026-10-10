@@ -8,8 +8,16 @@ const config: Config = {
       // Inter is loaded by next/font in app/layout.tsx (DESIGN_SYSTEM.md).
       fontFamily: {
         sans: ['var(--font-inter)', ...defaultTheme.fontFamily.sans],
+        // Page titles, section titles and key figures (Schibsted Grotesk, app/layout.tsx).
+        display: ['var(--font-display)', 'var(--font-inter)', ...defaultTheme.fontFamily.sans],
       },
       colors: {
+        canvas: 'var(--canvas)',
+        line: 'var(--line)',
+        ink: 'var(--ink)',
+        // The workspace company's color (role shells set it); decorative
+        // accents only: status colors never come from it.
+        accent: { DEFAULT: 'var(--brand)', ink: 'var(--brand-ink)' },
         brand: {
           50:  '#eff6ff',
           100: '#dbeafe',
