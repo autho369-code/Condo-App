@@ -44,13 +44,13 @@ export function WorkspaceHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-6">
-      <div className="min-w-0">
-        {eyebrow && <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">{eyebrow}</div>}
-        <h1 className="truncate text-xl font-semibold text-gray-900">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}
+    <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-x-6 md:gap-y-4">
+      <div className="min-w-0 md:flex-1 md:basis-[22rem]">
+        {eyebrow && <div className="mb-1.5 text-[13px] font-medium text-gray-500">{eyebrow}</div>}
+        <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{title}</h1>
+        {subtitle && <p className="mt-1.5 text-[15px] leading-6 text-gray-500">{subtitle}</p>}
       </div>
-      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+      {actions && <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
@@ -70,14 +70,14 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={'mb-6 overflow-hidden rounded-lg border border-gray-200 bg-white ' + (className ?? '')}>
+    <section className={'mb-6 overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] ' + (className ?? '')}>
       {(title || actions) && (
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
-          <div>
-            {title && <h2 className="text-sm font-semibold text-gray-900">{title}</h2>}
-            {subtitle && <p className="mt-0.5 text-[13px] text-gray-500">{subtitle}</p>}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+          <div className="min-w-0">
+            {title && <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>}
+            {subtitle && <p className="mt-0.5 text-[13px] leading-5 text-gray-500">{subtitle}</p>}
           </div>
-          {actions && <div className="flex items-center gap-2">{actions}</div>}
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </div>
       )}
       <div>{children}</div>
@@ -104,9 +104,9 @@ export function Tile({
     positive: 'text-green-700',
   };
   return (
-    <div className="rounded-md border border-gray-200 bg-white px-4 py-3">
-      <div className="text-[12.5px] font-medium uppercase tracking-wider text-gray-500">{label}</div>
-      <div className={'mt-1 text-xl font-semibold tabular-nums ' + toneClasses[tone]}>{value}</div>
+    <div className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="text-[13px] font-medium text-gray-500">{label}</div>
+      <div className={'mt-1 font-display text-[24px] font-semibold tabular-nums tracking-[-0.02em] ' + toneClasses[tone]}>{value}</div>
       {sub && <div className="mt-0.5 text-[13px] text-gray-500">{sub}</div>}
     </div>
   );
