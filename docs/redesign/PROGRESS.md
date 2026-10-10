@@ -20,6 +20,9 @@ no Supabase schema, policy, RPC or integration change; the parity test
 
 - **42 active reports were missing from `/reports`.** The page showed only the reports in `lib/reports/appfolio-catalog.ts`, which lists 101. The other 42 are active and runnable: 38 through `report_data_dispatch`, and `ap_aging`, `delinquency_summary`, `bank_reconciliation` and `bank_account_reconciliation` through the live export. They were reachable only by direct URL or the Action Center. They now appear under the section that matches their own category. Same table and query; the only addition is that the page also reads `name` and `category`.
 
+- **Company admin > Managers "Total Doors Managed" counted shared associations once per manager.** It showed 85 for a company with 17 units (5 managers × 17). It now counts the doors of the associations managers cover, each association once (17). The per-manager column is unchanged.
+- **Two-step setup page crashed when showing the QR code.** next/image could not take Supabase's raw-SVG data URL, so company admins and operators could not finish setup. Fixed separately in PR #280; the same commit is on this branch.
+
 ## Notes
 
 - **CodeQL flags two existing patterns, kept out of this redesign.** These files are left unchanged so the redesign does not touch them; each needs its own review:
