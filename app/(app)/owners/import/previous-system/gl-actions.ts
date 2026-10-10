@@ -309,7 +309,10 @@ export async function tieOutAppfolioTrialBalance(
   }
 
   let priorYearsNet = 0;
-  const portier = new Map<number, { name: string; account_type: string; balance: number }>();
+  // `retained`/`retainedName`: the part of the balance on prior years'
+  // retained-earnings accounts, classified per account before accounts that
+  // share a number (association-own, combined view) are added up.
+  const portier = new Map<number, { name: string; account_type: string; balance: number; retained: number; retainedName: string | null; otherName: string | null }>();
   for (const a of accounts) {
     const t = allTime[a.id] ?? { debit: 0, credit: 0 };
     let balance = t.debit - t.credit;
@@ -320,10 +323,14 @@ export async function tieOutAppfolioTrialBalance(
     }
     // Association-own accounts can share a number across associations; combined, they add up.
     const prev = portier.get(Number(a.number));
+    const isRetained = a.account_type === 'equity' && PRIOR_RETAINED_EARNINGS.test(a.name) && !CURRENT_YEAR.test(a.name);
     portier.set(Number(a.number), {
       name: prev?.name ?? a.name,
       account_type: prev?.account_type ?? a.account_type,
       balance: cents((prev?.balance ?? 0) + balance),
+      retained: cents((prev?.retained ?? 0) + (isRetained ? balance : 0)),
+      retainedName: prev?.retainedName ?? (isRetained ? a.name : null),
+      otherName: prev?.otherName ?? (isRetained ? null : a.name),
     });
   }
 
@@ -345,12 +352,16 @@ export async function tieOutAppfolioTrialBalance(
   const pyAppfolio = typeof pyRaw === 'number' && Number.isFinite(pyRaw) ? cents(pyRaw) : null;
   const retainedAccounts: Array<{ number: number; name: string; balance: number }> = [];
   for (const [number, p] of portier) {
-    if (appfolio.has(number) || p.balance === 0) continue;
-    if (pyAppfolio !== null && p.account_type === 'equity' && PRIOR_RETAINED_EARNINGS.test(p.name) && !CURRENT_YEAR.test(p.name)) {
-      retainedAccounts.push({ number, name: p.name, balance: p.balance });
-      continue;
+    if (appfolio.has(number)) continue;
+    let rest = p.balance;
+    let name = p.name;
+    if (pyAppfolio !== null && p.retainedName && p.retained !== 0) {
+      retainedAccounts.push({ number, name: p.retainedName, balance: p.retained });
+      rest = cents(p.balance - p.retained);
+      name = p.otherName ?? p.name;
     }
-    lines.push({ number, name: p.name, account_type: p.account_type, appfolio: null, portier: p.balance, difference: cents(-p.balance), status: 'not_in_appfolio' });
+    if (rest === 0) continue;
+    lines.push({ number, name, account_type: p.account_type, appfolio: null, portier: rest, difference: cents(-rest), status: 'not_in_appfolio' });
   }
   lines.sort((a, b) => a.number - b.number);
 

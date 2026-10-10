@@ -75,4 +75,17 @@ describe('trial balance tie-out: prior years retained earnings', () => {
     expect(r.lines?.find((l) => l.number === 3360)?.status).toBe('not_in_appfolio');
     expect(r.priorYears?.accounts?.map((a) => a.number)).toEqual([3350]);
   });
+
+  it('classifies each account before adding up accounts that share a number (all associations)', async () => {
+    // Two associations' own 3350s: one prior years', one current year's.
+    state.accounts = [
+      ...state.accounts.filter((a) => a.number !== 3360),
+      { id: 'cy2', number: 3350, name: 'Current Year Retained Earnings', account_type: 'equity' },
+    ];
+    state.totals.cy2 = { debit: 0, credit: 50 };
+    state.totals.cash = { debit: 1050, credit: 0 };
+    const r = await tieOutAppfolioTrialBalance(ASSOC, '2026-10-08', rows, { priorYearsRetainedEarnings: -600 });
+    expect(r.priorYears).toMatchObject({ portier: -600, difference: 0, accounts: [{ number: 3350, name: 'Prior Year Retained Earnings', balance: -600 }] });
+    expect(r.lines?.find((l) => l.number === 3350)).toMatchObject({ name: 'Current Year Retained Earnings', portier: -50, status: 'not_in_appfolio' });
+  });
 });
