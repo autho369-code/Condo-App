@@ -58,7 +58,7 @@ export function OfflineInspectionCapture({ inspectionId, compact = false }: { in
       const accepted = new Set<string>(result.accepted ?? []);
       setQueue((current) => current
         .filter((item) => !accepted.has(item.clientMutationId))
-        .map((item) => item.state === 'syncing' ? { ...item, state: 'failed', error: 'Portier did not acknowledge this finding.' } : item));
+        .map((item) => item.state === 'syncing' ? { ...item, state: 'failed', error: 'The server did not confirm this finding was saved.' } : item));
     } catch (error: any) {
       setQueue((current) => current.map((item) => item.state === 'syncing' ? { ...item, state: 'failed', error: error?.message ?? 'Sync failed' } : item));
     }

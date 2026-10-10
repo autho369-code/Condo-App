@@ -118,3 +118,14 @@
 ## Trial-balance opening entry (2026-10-10 review, uncommitted diff)
 - `postOpeningBalancesFromTrialBalance`: auth chain clean (requireFinanceStaff, `claim_import_lock` = can_manage_association, server-side tie-out, DEFINER `import_journal_entry_batch` re-checks can_manage_finance + can_manage_association; `csv_gl_id` limits GL to the company + own association + active). Client rows only pick amounts within the caller's own association.
 - "Recompute the differences, so a rerun posts nothing" is idempotent only for the same as-of date: the ledger read is `to: asOf`, so a rerun with an EARLIER date skips the first entry and posts again. Check the date window of any "diff vs ledger" dedupe.
+
+## Third audit (2026-10-10)
+- New company-data tables need `operator_write_guard` (statement trigger,
+  `operator_write_guard('false')`), which is attached per table, not
+  automatically: a write policy using can_admin_portfolio is true for EVERY
+  platform operator. Missed in #275 (company_state_rules), caught here; fixed by
+  20261010020000. Check every `create table` in a migration for it.
+- Storage policies are not in the repo's migrations (dashboard-made): when a
+  table policy is moved to a new identity helper, look for its storage.objects
+  twin in live pg_policies (association-documents missed in #268, fixed by
+  20261010030000).

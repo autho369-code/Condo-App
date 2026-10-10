@@ -20,6 +20,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { withImportLock } from '@/lib/imports/import-lock';
+import { OPENING_ENTRY_POSTED_MESSAGE, openingEntryPosted } from '@/lib/imports/opening-entry';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import type { AppfolioReceivableItem } from '@/lib/imports/appfolio-receivables';
 
@@ -152,6 +153,11 @@ export async function importAppfolioReceivables(
   // item twice: the check and the posting run under the association's import lock.
   try {
     return await withImportLock(db, associationId, 'appfolio_receivables', async () => {
+      // The trial-balance opening entry already includes the open balances
+      // (it takes this lock too, so it cannot land while this runs).
+      const opening = await openingEntryPosted(db, associationId);
+      if (opening.error) return fail(opening.error);
+      if (opening.posted) return fail(OPENING_ENTRY_POSTED_MESSAGE);
       // Idempotency: import_opening_balance records every posting in
       // imported_balances with the description as memo, so earlier AppFolio
       // postings for this association are known. With any present the import is

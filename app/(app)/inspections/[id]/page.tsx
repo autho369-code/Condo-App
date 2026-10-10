@@ -247,7 +247,7 @@ export default async function InspectionDetailPage({
           <Section title="Inspection controls" padded>
             <form action={updateStatus} className="space-y-4"><input type="hidden" name="inspection_id" value={id} /><Field label="Status"><Select name="status" defaultValue={inspection.status}><option value="scheduled">Scheduled</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></Select></Field><Field label="Notes"><Textarea name="notes" defaultValue={inspection.notes ?? ''} /></Field><Button type="submit">Save inspection</Button></form>
           </Section>
-          <Section title="Field capture" subtitle="Queue findings while disconnected; Portier syncs them idempotently when the connection returns." padded><OfflineInspectionCapture inspectionId={id} compact /></Section>
+          <Section title="Field capture" subtitle="Queue findings while disconnected; they sync once, automatically, when the connection returns." padded><OfflineInspectionCapture inspectionId={id} compact /></Section>
         </div>
       </div>
     </Workspace>

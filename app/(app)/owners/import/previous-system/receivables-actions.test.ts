@@ -12,6 +12,7 @@ const UNIT_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const state = vi.hoisted(() => ({
   imported: [] as Array<{ unit_id: string; imported_balance: number; memo: string }>,
   rpcs: [] as Array<{ fn: string; args: Record<string, unknown> }>,
+  opening: false,
 }));
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
@@ -31,6 +32,7 @@ vi.mock('@/lib/supabase/server', () => ({
         if (table === 'associations') return { data: { id: ASSOC, portfolio_id: 'co' }, error: null };
         if (table === 'charge_categories') return { data: [{ id: 'cat-other' }], error: null };
         if (table === 'imported_balances') return { data: state.imported, error: null };
+        if (table === 'journal_lines') return { data: state.opening ? [{ id: 'opening-line' }] : [], error: null };
         return { data: [], error: null };
       };
       const q: any = {
@@ -54,6 +56,15 @@ describe('open-balance import: credits', () => {
   beforeEach(() => {
     state.imported = [];
     state.rpcs = [];
+    state.opening = false;
+  });
+
+  it('refuses once the trial-balance opening entry is posted (it already includes the open balances)', async () => {
+    state.opening = true;
+    const r = await importAppfolioReceivables(ASSOC, '2026-09-30', items, { complete: true });
+    expect(r.imported).toBe(0);
+    expect(r.errors?.join(' ')).toMatch(/already has its opening balances/);
+    expect(state.rpcs).toEqual([]);
   });
 
   it('posts a credit as a homeowner credit, never as a negative charge', async () => {

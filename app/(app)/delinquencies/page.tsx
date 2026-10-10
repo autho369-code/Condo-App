@@ -111,12 +111,11 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
     db.from('delinquency_cases').select('*, associations(name), units(unit_number), owners(full_name, email), delinquency_policies(name)').order('balance_snapshot', { ascending: false }),
     db.from('delinquency_policies').select('id, association_id, name, minimum_balance, active, jurisdiction, pre_referral_notice_days, notice_method, payment_plan_offer_required, payment_plan_min_months, board_vote_required, foreclosure_min_balance, foreclosure_min_months'),
     db.from('delinquency_steps').select('policy_id, step_number, name, days_past_due, action_type, requires_human_approval').order('step_number'),
-    db.from('associations').select('id, name').is('archived_at', null).order('name'),
+    db.from('associations').select('id, name, portfolio_id').is('archived_at', null).order('name'),
     db.from('physical_mail_deliveries').select('id, delinquency_case_id, status, provider, provider_piece_id, expected_delivery_date, delivered_at, delivery_verified_at, updated_at').not('delinquency_case_id', 'is', null).order('created_at', { ascending: false }),
     db.from('collection_jurisdiction_profiles').select('state_code, state_name, summary, citations').order('state_name'),
-    me.portfolio?.id
-      ? db.from('company_state_rules').select('state_code, summary, other_rules, citations').eq('portfolio_id', me.portfolio.id)
-      : Promise.resolve({ data: [], error: null }),
+    // RLS limits this to the caller's company (platform operators: every company).
+    db.from('company_state_rules').select('portfolio_id, state_code, summary, other_rules, citations'),
   ]);
   // A failed read must never look like "no cases" or a $0.00 balance.
   const loadErrors: string[] = [];
@@ -129,13 +128,23 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
   const steps = pick(stepsRes, 'Policy steps');
   const associations = pick(associationsRes, 'Associations');
   const mailDeliveries = pick(mailRes, 'Tracked mail');
-  // The company's own state rules replace the built-in profile of that state.
+  // Each association's company's own state rules replace the built-in profile
+  // of that state (apply_delinquency_jurisdiction uses the association's company too).
   const companyRules = pick(companyRulesRes, 'Company state rules');
-  const companyRuleStates = new Set(companyRules.map((r: any) => r.state_code));
-  const profiles = [
-    ...pick(profilesRes, 'State collection rules').filter((p: any) => !companyRuleStates.has(p.state_code)),
-    ...companyRules.map((r: any) => ({ ...r, state_name: stateName(r.state_code), company: true })),
-  ].sort((a: any, b: any) => a.state_name.localeCompare(b.state_name));
+  const builtInProfiles = pick(profilesRes, 'State collection rules');
+  const profilesByCompany = new Map<string, any[]>();
+  const profilesFor = (portfolioId: string | null | undefined): any[] => {
+    const key = portfolioId ?? '';
+    if (!profilesByCompany.has(key)) {
+      const own = companyRules.filter((r: any) => r.portfolio_id === portfolioId);
+      const ownStates = new Set(own.map((r: any) => r.state_code));
+      profilesByCompany.set(key, [
+        ...builtInProfiles.filter((p: any) => !ownStates.has(p.state_code)),
+        ...own.map((r: any) => ({ ...r, state_name: stateName(r.state_code), company: true })),
+      ].sort((a: any, b: any) => a.state_name.localeCompare(b.state_name)));
+    }
+    return profilesByCompany.get(key)!;
+  };
   const casesFailed = !!casesRes.error;
   const policyAssociations = new Set((policies ?? []).map((policy: any) => policy.association_id));
   const stepsByPolicy = new Map<string, any[]>();
@@ -145,6 +154,7 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
   const openCases = (cases ?? []).filter((record: any) => !['resolved', 'closed'].includes(record.status));
   const policyById = new Map<string, any>((policies ?? []).map((policy: any) => [policy.id, policy]));
   const associationName = new Map<string, string>((associations ?? []).map((a: any) => [a.id, a.name]));
+  const associationCompany = new Map<string, string>((associations ?? []).map((a: any) => [a.id, a.portfolio_id]));
 
   // Referral readiness (jurisdiction gates) for cases approaching or in legal review.
   const nearReferral = openCases.filter((record: any) => {
@@ -168,7 +178,7 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
           <ul className="mt-1 list-disc pl-5">{loadErrors.map((message) => <li key={message}>{message}</li>)}</ul>
         </Alert>
       )}
-      <Alert tone="warning" title="No autonomous legal action.">Portier may identify a case as ready for review, but only a portfolio administrator can approve counsel referral with a written rationale. The software never files a lien, lawsuit, or collection action.</Alert>
+      <Alert tone="warning" title="No autonomous legal action.">The app may identify a case as ready for review, but only a portfolio administrator can approve counsel referral with a written rationale. The software never files a lien, lawsuit, or collection action.</Alert>
       <MetricStrip metrics={[
         { label: 'Open cases', value: casesFailed ? '—' : openCases.length, sublabel: 'Active owner accounts' },
         { label: 'Overdue balance', value: casesFailed ? '—' : currency(overdueTotal), sublabel: 'Latest ledger snapshot' },
@@ -178,7 +188,7 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
 
       {hasPortfolioAdminAccess(me) && !policiesRes.error && (associations ?? []).some((association: any) => !policyAssociations.has(association.id)) && <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><h2 className="font-semibold text-gray-950">Initialize association policies</h2><p className="mt-1 text-sm text-gray-500">Creates a 10-day reminder, 30-day approved notice, 45-day tracked mail, and 60-day counsel review, and applies the collection protections for the association&apos;s state.</p><div className="mt-3 flex flex-wrap gap-2">{(associations ?? []).filter((association: any) => !policyAssociations.has(association.id)).map((association: any) => <form action={initializePolicy} key={association.id}><input type="hidden" name="association_id" value={association.id} /><Button type="submit" variant="secondary">Initialize {association.name}</Button></form>)}</div></div>}
 
-      {(policies ?? []).length > 0 && <div className="space-y-2"><h2 className="text-sm font-semibold text-gray-950">Collection protections by association</h2>{(policies ?? []).map((policy: any) => <JurisdictionPanel key={policy.id} associationName={associationName.get(policy.association_id) ?? 'Association'} policy={policy} profiles={profiles ?? []} canEdit={hasPortfolioAdminAccess(me)} />)}</div>}
+      {(policies ?? []).length > 0 && <div className="space-y-2"><h2 className="text-sm font-semibold text-gray-950">Collection protections by association</h2>{(policies ?? []).map((policy: any) => <JurisdictionPanel key={policy.id} associationName={associationName.get(policy.association_id) ?? 'Association'} policy={policy} profiles={profilesFor(associationCompany.get(policy.association_id) ?? policy.portfolio_id)} canEdit={hasPortfolioAdminAccess(me)} />)}</div>}
 
       {openCases.length ? <div className="space-y-4">{openCases.map((record: any) => {
         const policySteps = stepsByPolicy.get(record.policy_id) ?? [];
