@@ -370,10 +370,17 @@ Back to [[Home]]. Updated 2026-10-10 (after #279 and #281 merged; open PR: #282 
    real association uses the import page incl. the opening balances step
    (CSV exports do not state the basis: tick the accrual box).
 1. Stripe live for one pilot association (Mirsad's account setup).
-2. Optional: per-request identity caching for speed. Re-measure first:
-   since 20261011010000/20000 identity checks run once per query, so the
-   old ~0.1-0.5 ms per row figure no longer applies.
-3. Low priority: per-row policy helpers left on rarely used tables
-   (current_resident_unit_since, can_manage_violations, budget/meeting/
-   signature helpers, journal_entry_touches_board_associations). Same
-   once-per-query rewrite + equivalence script if one of them gets slow.
+2. CLOSED 2026-10-10: per-request identity caching is not needed.
+   Re-measured after 20261011010000-60000: the security checks cost
+   0.2-2 ms per query for manager, owner and vendor (one-row reads of
+   work orders, owners, journal entries, violations, meetings).
+3. DONE 2026-10-10 (20261011060000): board journal-entry read
+   (journal_entry_touches_board_associations per entry -> once-per-query
+   set rls_private.my_board_journal_entry_ids; board 5.6 -> 1.0 ms with 16
+   entries, and it no longer grows per entry) and can_manage_violations
+   (same body as can_manage_association -> my_manageable_association_ids)
+   on 6 violation policies. 0 differences in 338 checks incl. a fixture
+   board member. Left per-row on purpose: resident move-in date checks
+   (run only on rows already narrowed to the owner's units), meetings,
+   budgets, signatures, notices, bank transfers, import locks (small
+   tables). Revisit only if one of them is measured slow.
