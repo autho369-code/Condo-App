@@ -39,9 +39,10 @@ async function addTask(formData: FormData) {'use server';
   // A blank start date means today in the selected association's own zone.
   const startDate = (formData.get('start_date') as string)
     || todayInZone(await associationZone(db, (formData.get('association_id') as string) || null));
-  // The vendor must be the association's company's (the id comes from the form).
+  // The vendor must be the association's own (the id comes from the form).
   const linkError = await checkLinkedRecords(db, {
     associationId: (formData.get('association_id') as string) || null,
+    portfolioId: me.portfolio?.id,
     vendorId: (formData.get('vendor_id') as string) || null,
   });
   if (linkError) maintenanceFail(`Task not added: ${linkError}`);
@@ -76,7 +77,7 @@ async function addTask(formData: FormData) {'use server';
 }
 
 async function updateTask(formData: FormData) {'use server';
-  await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
+  const me = await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
   const supabase = await createClient(); const db = supabase as any;
   const freq = formData.get('frequency') as string;
   const id = formData.get('id') as string;
@@ -84,6 +85,7 @@ async function updateTask(formData: FormData) {'use server';
   if (!current) maintenanceFail('Task not updated: it was not found or you do not have access to it.');
   const linkError = await checkLinkedRecords(db, {
     associationId: current.association_id,
+    portfolioId: me.portfolio?.id,
     vendorId: (formData.get('vendor_id') as string) || null,
   });
   if (linkError) maintenanceFail(`Task not updated: ${linkError}`);

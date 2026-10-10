@@ -23,19 +23,25 @@ export async function managesAssociation(db: any, associationId: string | null |
 /**
  * The unit/building/vendor/owner ids a staff form attaches to a record must be
  * visible to the caller and (for units/buildings) inside the chosen
- * association. Returns an error message, or null when everything checks out.
+ * association. A vendor must be the association's own (or its company's
+ * management company), and on a record with no association the vendor must be
+ * of `portfolioId`, the record's company (mirrors the database's
+ * vendor_link_same_association trigger). Returns an error message, or null
+ * when everything checks out.
  */
 export async function checkLinkedRecords(
   db: any,
   input: {
     associationId: string | null;
+    /** The record's company; required when a vendor is linked with no association. */
+    portfolioId?: string | null;
     buildingId?: string | null;
     unitId?: string | null;
     vendorId?: string | null;
     ownerId?: string | null;
   },
 ): Promise<string | null> {
-  const { associationId, buildingId, unitId, vendorId, ownerId } = input;
+  const { associationId, portfolioId, buildingId, unitId, vendorId, ownerId } = input;
   for (const [label, id] of [['building', buildingId], ['unit', unitId], ['vendor', vendorId], ['owner', ownerId]] as const) {
     if (id && !isUuid(id)) return `The selected ${label} is not valid.`;
   }
@@ -50,13 +56,19 @@ export async function checkLinkedRecords(
     if (!data) return 'The selected unit is not in this association.';
   }
   if (vendorId) {
-    const { data } = await db.from('vendors').select('id, portfolio_id').eq('id', vendorId).maybeSingle();
+    const { data } = await db.from('vendors').select('id, portfolio_id, association_id, is_management_company').eq('id', vendorId).maybeSingle();
     if (!data) return 'The selected vendor is unavailable or outside your access.';
-    // Visible is not enough (platform operators see every company's vendors):
-    // the vendor must be the association's company's.
+    // Visible is not enough (platform operators see every company's vendors).
     if (associationId) {
-      const { data: assoc } = await db.from('associations').select('portfolio_id').eq('id', associationId).maybeSingle();
-      if (!assoc || assoc.portfolio_id !== data.portfolio_id) return 'The selected vendor is not one of this association\'s company\'s vendors.';
+      if (data.is_management_company) {
+        // The management company serves every association of its company.
+        const { data: assoc } = await db.from('associations').select('portfolio_id').eq('id', associationId).maybeSingle();
+        if (!assoc || assoc.portfolio_id !== data.portfolio_id) return 'The selected vendor belongs to another company.';
+      } else if (data.association_id !== associationId) {
+        return 'The selected vendor belongs to another association. Add it as a vendor of this association.';
+      }
+    } else if (!portfolioId || data.portfolio_id !== portfolioId) {
+      return 'The selected vendor belongs to another company.';
     }
   }
   if (ownerId) {
