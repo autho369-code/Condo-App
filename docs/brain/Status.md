@@ -9,7 +9,15 @@ Back to [[Home]]. Updated 2026-10-10 (after #279 and #281 merged; open PR: #282 
 ## Merged 2026-10-10 (late)
 - #279 MERGED by Mirsad (f4201176): one design for all six roles
   (docs/redesign/). Signed-in checks done for owner, vendor, manager and
-  company admin; operator and board screens still to check signed in.
+  company admin; operator checked signed in 2026-10-10 (21 pages + 11
+  detail pages OK); board checked signed in 2026-10-10 (owner1@portier369.com
+  added as director on Randolph Station via SQL, no owner record): 7 pages
+  OK after fixing the receivables timeout (20261011070000, APPLIED:
+  aged_receivables sums payment_applications once, grouped by charge;
+  identical rows for 12 callers; board receivables 8.5 s -> 64 ms). Watch: each read now sums every
+  payment_application the caller can see once per query; if operator or
+  company-admin reads get slow at scale, switch to a LATERAL per-charge sum
+  written once.
 - #281 MERGED (aa573336), claude/rls-hoist: security checks run once per query, not once per row.
   Migration 20261011010000 APPLIED to prod 2026-10-10 (Claude). 1,475
   public policies rewritten in place (ALTER POLICY; roles/commands kept):
