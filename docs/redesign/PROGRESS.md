@@ -37,6 +37,23 @@ no Supabase schema, policy, RPC or integration change; the parity test
 - **The new layout checked visually.** Dashboard, Work Orders.
 - **Speed problem found, not caused by the redesign.** Loading four owner pages at once triggered database statement timeouts (`canceling statement due to statement timeout`, then `25P02`). The identity check then failed and the request redirected to sign-in. This is the per-row RLS helper cost measured in the speed work; the fix is the policy rewrite proposed there. Slowest pages in dev, one at a time: `/portal` 4.7s, `/portal/pay` 3.3s, `/portal/ledger` 2.7s.
 
+## Vendor portal check (signed in as vendor@, two vendor records)
+
+- **All 14 links load.** The dashboard compliance notice named one association twice; fixed.
+
+## Manager check (signed in as autho369@gmail.com, manager, not finance or admin)
+
+- **Every sidebar and Action Center destination checked, 162 links**, loaded one at a time:
+  - **152 load directly** with their title.
+  - **Short aliases forward to their real page by design:**
+    - `/reports/ar-aging` → `/reports/ar_aging`
+    - `/journal-entries/recurring` → `/journal-entries?tab=recurring`
+    - `/budget/new` → `/budget`
+    - `/buildings/new` → `/associations`, to pick the association first
+  - **Admin-only pages are hidden from this user and redirect** when opened by URL, as their guards say: `/settings`, `/settings/branding`, `/settings/developer`, `/gl-accounts/permissions`, and finance-only `/bills/owner-payable/new`.
+  - **8 pages briefly redirected to sign-in during the long run.** All of them loaded on recheck; this is the same intermittent statement-timeout problem noted for the owner portal.
+- **No page shows an error.**
+
 ## Not yet verified
 
 - **Phone widths in a signed-in browser.** The Chrome window could not be resized.
