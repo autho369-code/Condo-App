@@ -1,11 +1,22 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (after #270 merged; no open PR; next: Mirsad re-uploads the Randolph Station opening journal).
+Back to [[Home]]. Updated 2026-10-09 (no open PR; Randolph Station import complete and tied out; next: vendor details, then Stripe pilot).
 
 ## Open PR
 - None.
 
 ## Where things stand
+- Randolph Station opening balances posted and tied out (2026-10-10):
+  Mirsad uploaded the opening journal (1 batch, 1 entry, $493,061.19 each
+  side, dated 2026-10-08) and ran the tie-out (as of 2026-10-08, fiscal
+  year to date): 46 accounts match, 0 differ, total difference $0.00. The
+  only flags are the expected pair: the file's "Calculated Prior Years
+  Retained Earnings" (-159,343.43, no account number) against 3350 on the
+  ledger. Claude read back: every account's ledger balance equals the
+  trial balance ending balance (incl. 1300 A/R $4,387.69 from the open
+  balances), ledger nets to 0.00, 16 entries. The trial balance CSV does
+  not carry the property name (the page warns it may combine
+  associations); fine here, it was one property.
 - #270 merged (a1a0add2): Journal entries -> Upload
   batch failed with "DELETE requires a WHERE clause" (Supabase's
   pg_safeupdate refuses a bare DELETE from API sessions, even inside a
@@ -257,10 +268,11 @@ Back to [[Home]]. Updated 2026-10-09 (after #270 merged; no open PR; next: Mirsa
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-0. Randolph Station: the truncate fix is live (#270); Mirsad re-uploads the
-   opening journal (Journal entries -> Upload batch) and runs the tie-out
-   as of 2026-10-08; Claude reads the ledger back against the trial
-   balance. The 8 added vendors need contact, tax and insurance details.
+0. Randolph Station is fully imported and tied out. Left: the 8 added
+   vendors need contact, tax and insurance details. Possible gaps seen:
+   the tie-out could show the prior-years retained-earnings line against
+   the account the opening journal used (3350) instead of two offsetting
+   flags; an opening-balance journal step on the import page.
    Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
