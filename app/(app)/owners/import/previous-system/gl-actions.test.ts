@@ -269,6 +269,7 @@ describe('opening balances from the trial balance', () => {
     expect(section).toContain('setAssociationId(e.target.value); invalidate();');
     expect(section).toContain('setAsOf(e.target.value); invalidate();');
     expect(section).toContain('requestId.current === before) await run(true, input);');
+    expect(section).toContain('if (gen !== fileGen.current) return;');
   });
 
   it('posts prior years by account id when another account shares its number', async () => {

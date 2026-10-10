@@ -241,6 +241,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
     priorYearsTotal: number | null; hasUnreadable: boolean;
   } | null>(null);
   const requestId = React.useRef(0);
+  const fileGen = React.useRef(0);
   // Any change to the inputs drops the shown result and any comparison still running.
   function invalidate() {
     requestId.current += 1;
@@ -253,6 +254,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    const gen = ++fileGen.current;
     setRows(null);
     setGroups([]);
     setIgnored([]);
@@ -270,7 +272,10 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
     setFileName(file?.name ?? '');
     if (!file) return;
     try {
-      const parsed = parseAppfolioTrialBalance(await file.text());
+      const text = await file.text();
+      // A newer file was chosen while this one was being read: keep the newer one.
+      if (gen !== fileGen.current) return;
+      const parsed = parseAppfolioTrialBalance(text);
       if (parsed.error || !parsed.rows) { setError(parsed.error ?? 'Could not read the file.'); return; }
       const g = parsed.groups ?? [''];
       setRows(parsed.rows);
@@ -292,6 +297,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
       setAssociationId(suggestAssociation(g[0] || parsed.property || '', associations)
         || (unnamed && associations.length > 1 ? TIE_OUT_ALL_ASSOCIATIONS : ''));
     } catch (err) {
+      if (gen !== fileGen.current) return;
       setError(err instanceof Error ? `Could not read the file: ${err.message}` : 'Could not read the file.');
     }
   }
