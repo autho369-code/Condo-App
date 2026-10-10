@@ -63,11 +63,17 @@ Every AppFolio page is built; these need access, accounts or decisions first.
       environment's network settings (or supply a `.env.local`). Unblocks:
   - [ ] Browser walkthroughs of every workflow on the Vercel preview (manager,
         board, owner, vendor, company admin, platform operator).
-  - [ ] `npm run check:queries` against production. Note: it is a schema probe
+  - [x] `npm run check:queries` against production. DONE 2026-10-10: 0 broken
+        of 1,164 distinct static queries (the script now runs from
+        environment variables when there is no `.env.local`). Note: it is a schema probe
         only (literal `.from().select()` strings, anonymous, `limit=0`); it
         skips template selects and RPCs, so it does not replace the signed-in
         walkthroughs above.
-  - [ ] End-to-end Excel report download (run a report as `.xlsx`, open it).
+  - [x] End-to-end Excel report download. DONE 2026-10-10 as a manager:
+        Owner Directory, portfolio scope, Excel -> run succeeded, file is a
+        valid .xlsx (spreadsheetml type, 1 sheet, 21 rows: title lines,
+        headers, 17 owners). A refused run now returns to the same report
+        with the reason above the form (was: the Reports list).
   - [ ] End-to-end checks of the 2026-10-04 work: batch letters print, Forms
         upload + owner-portal download, Inbox saved replies/search.
 

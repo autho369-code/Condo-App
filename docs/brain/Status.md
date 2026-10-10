@@ -1,12 +1,16 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (after #280 merged; open PRs: redesign #279, RLS once-per-query; next: Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (after #279 and #281 merged; open PR: #282 query probe + report-run errors; next: Stripe pilot).
 
 ## Open PR
-- #279 claude/redesign-six-roles: one design for all six roles (do not
-  merge yet; progress and handoff in docs/redesign/). Signed-in checks done
-  for owner, vendor, manager and company admin; operator and board pending.
-- claude/rls-hoist: security checks run once per query, not once per row.
+- #282 claude/live-query-probe: production query probe (0 broken of 1,164),
+  Excel export checked end to end, refused report runs return to the report.
+
+## Merged 2026-10-10 (late)
+- #279 MERGED by Mirsad (f4201176): one design for all six roles
+  (docs/redesign/). Signed-in checks done for owner, vendor, manager and
+  company admin; operator and board screens still to check signed in.
+- #281 MERGED (aa573336), claude/rls-hoist: security checks run once per query, not once per row.
   Migration 20261011010000 APPLIED to prod 2026-10-10 (Claude). 1,475
   public policies rewritten in place (ALTER POLICY; roles/commands kept):
   zero-argument helpers and operator_may_write(..) wrapped as
@@ -356,16 +360,27 @@ Back to [[Home]]. Updated 2026-10-10 (after #280 merged; open PRs: redesign #279
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- 2026-10-10: `npm run check:queries` against production: 0 broken of
+  1,164 static queries. Excel report run checked end to end (valid .xlsx,
+  17 owners); a refused run now returns to its report with the reason. Still open in docs/TODO.md "Needs access":
+  signed-in walkthroughs for operator and board, and the 2026-10-04 checks (batch letters, Forms upload, Inbox).
 0. Randolph Station is a TEST-ONLY association (Mirsad, 2026-10-10): it
    proved the import end to end (imported and tied out); its 8 name-only
    vendors stay as they are, no contact/tax/insurance to enter. The next
    real association uses the import page incl. the opening balances step
    (CSV exports do not state the basis: tick the accrual box).
 1. Stripe live for one pilot association (Mirsad's account setup).
-2. Optional: per-request identity caching for speed. Re-measure first:
-   since 20261011010000/20000 identity checks run once per query, so the
-   old ~0.1-0.5 ms per row figure no longer applies.
-3. Low priority: per-row policy helpers left on rarely used tables
-   (current_resident_unit_since, can_manage_violations, budget/meeting/
-   signature helpers, journal_entry_touches_board_associations). Same
-   once-per-query rewrite + equivalence script if one of them gets slow.
+2. CLOSED 2026-10-10: per-request identity caching is not needed.
+   Re-measured after 20261011010000-60000: the security checks cost
+   0.2-2 ms per query for manager, owner and vendor (one-row reads of
+   work orders, owners, journal entries, violations, meetings).
+3. DONE 2026-10-10 (20261011060000): board journal-entry read
+   (journal_entry_touches_board_associations per entry -> once-per-query
+   set rls_private.my_board_journal_entry_ids; board 5.6 -> 1.0 ms with 16
+   entries, and it no longer grows per entry) and can_manage_violations
+   (same body as can_manage_association -> my_manageable_association_ids)
+   on 6 violation policies. 0 differences in 338 checks incl. a fixture
+   board member. Left per-row on purpose: resident move-in date checks
+   (run only on rows already narrowed to the owner's units), meetings,
+   budgets, signatures, notices, bank transfers, import locks (small
+   tables). Revisit only if one of them is measured slow.
