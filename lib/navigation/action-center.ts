@@ -145,6 +145,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
       work('Portfolio setup', [
         { label: 'New association', href: '/associations/new', description: 'Create the association source record.', primary: true },
         { label: 'Import homeowners & units', href: '/owners/import', description: 'Load a reviewed CSV into the portfolio.' },
+        { label: 'Import from previous system', href: '/owners/import/previous-system', description: 'Units, homeowners, vendors, open balances, work orders and the trial balance.' },
         { label: 'New building', href: '/buildings/new', description: 'Add a building to an association.' },
         { label: 'New unit', href: '/units/new', description: 'Create a unit manually.' },
       ]),
@@ -165,6 +166,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
       work('Association records', [
         { label: 'New unit', href: '/units/new', description: 'Create a unit in the selected building.', primary: true },
         { label: 'Import homeowners & units', href: '/owners/import', description: 'Load a reviewed association roster.' },
+        { label: 'Import from previous system', href: '/owners/import/previous-system', description: 'Units, homeowners, vendors, open balances, work orders and the trial balance.' },
         { label: 'Parking register', href: '/parking', description: 'Review vehicles and assigned spaces.' },
         { label: 'Homeowner directory', href: '/owners', description: 'Open owner and occupancy records.' },
       ]),
@@ -265,6 +267,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
       work('Homeowner records', [
         { label: 'New homeowner', href: '/owners/new', description: 'Create an owner and occupancy.', primary: true },
         { label: 'Import homeowners & units', href: '/owners/import', description: 'Load a reviewed CSV.' },
+        { label: 'Import from previous system', href: '/owners/import/previous-system', description: 'Units, homeowners, vendors, open balances, work orders and the trial balance.' },
         { label: 'Portal activations', href: '/owners/activations', description: 'Invite and monitor homeowner access.' },
         { label: 'Owner forms', href: '/owners/forms', description: 'Prepare and distribute owner forms.' },
         { label: 'Send statements', href: '/statements/send', description: 'Generate a reviewed statement batch.' },

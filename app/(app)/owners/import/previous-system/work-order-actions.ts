@@ -173,7 +173,7 @@ async function insertWorkOrders(
   vendorByName: Map<string, string | null>,
 ): Promise<WorkOrderImportSummary> {
   // Archived ones count too: a work order someone removed is not brought back.
-  const existingRes = await fetchAllRows<any>(() => db.from('work_orders').select('id, description')
+  const existingRes = await fetchAllRows<any>(() => db.from('work_orders').select('id, description, vendor_id')
     .eq('association_id', associationId).or(`description.ilike."${MARKER}*",description.ilike."${LEGACY_MARKER}*"`).order('id'));
   if (existingRes.error) return { imported: 0, skipped: workOrders.length, errors: [`Could not load the association's work orders: ${existingRes.error}`] };
   // An incomplete list of earlier imports would let duplicates through: refuse instead.
@@ -181,10 +181,16 @@ async function insertWorkOrders(
     return { imported: 0, skipped: workOrders.length, errors: ['This association has too many imported work orders to check for duplicates. Nothing was imported.'] };
   }
   const importedNumbers = new Set<string>();
+  // Already imported without a vendor: a re-import links the vendor once it
+  // has been added (e.g. vendors the first import could not match).
+  const importedWithoutVendor = new Map<string, string>();
   for (const w of existingRes.rows) {
     const m = clean(w.description, 200).match(MARKER_RE);
-    if (m) importedNumbers.add(m[1].toLowerCase());
+    if (!m) continue;
+    importedNumbers.add(m[1].toLowerCase());
+    if (!w.vendor_id) importedWithoutVendor.set(m[1].toLowerCase(), w.id);
   }
+  const vendorLinks: Array<{ line: string; number: string; id: string; vendorId: string }> = [];
 
   let skipped = 0;
   const errors: string[] = [];
@@ -199,7 +205,14 @@ async function insertWorkOrders(
     const number = clean(w?.number, 60).replace(/\s+/g, '');
     if (!number) { skipped++; errors.push(`Line ${line}: no work order number.`); continue; }
     const numberKey = number.toLowerCase();
-    if (importedNumbers.has(numberKey)) { skipped++; duplicates++; continue; }
+    if (importedNumbers.has(numberKey)) {
+      skipped++; duplicates++;
+      const existingId = importedWithoutVendor.get(numberKey);
+      const vendorId = existingId && !inFile.has(numberKey) ? vendorByName.get(nameKey(orNull(w.vendor, 200) ?? '')) : null;
+      if (existingId && vendorId) vendorLinks.push({ line, number, id: existingId, vendorId });
+      inFile.add(numberKey);
+      continue;
+    }
     if (inFile.has(numberKey)) { skipped++; errors.push(`Line ${line} (WO ${number}): appears earlier in the file; skipped.`); continue; }
     inFile.add(numberKey);
 
@@ -274,9 +287,18 @@ async function insertWorkOrders(
     }
   }
 
-  if (duplicates) errors.unshift(`${duplicates} work order${duplicates === 1 ? ' was' : 's were'} already imported into this association; skipped.`);
+  // Only rows still without a vendor are set, so a vendor staff assigned since is kept.
+  let linked = 0;
+  for (const l of vendorLinks) {
+    const { data: rows, error: linkErr } = await db.from('work_orders').update({ vendor_id: l.vendorId })
+      .eq('id', l.id).eq('association_id', associationId).is('vendor_id', null).select('id');
+    if (linkErr) errors.push(`Line ${l.line} (WO ${l.number}): already imported; its vendor could not be set: ${linkErr.message}`);
+    else if (rows?.length) linked++;
+  }
+
+  if (duplicates) errors.unshift(`${duplicates} work order${duplicates === 1 ? ' was' : 's were'} already imported into this association; skipped${linked ? `. Vendor set on ${linked} of them that had none` : ''}.`);
   if (unmatchedVendors.size) {
-    errors.push(`Imported without a vendor (no vendor with exactly this name in this company): ${[...unmatchedVendors].map(([n, c]) => `${n} (${c})`).join(', ')}. Add the vendor and assign it on the work order.`);
+    errors.push(`Imported without a vendor (no vendor with exactly this name in this association or the management company): ${[...unmatchedVendors].map(([n, c]) => `${n} (${c})`).join(', ')}. Add the vendor to this association, then import the file again to link it.`);
   }
   if (unmatchedUnits.size) {
     errors.push(`Imported without a unit (no single unit with this number in the association): ${[...unmatchedUnits].map(([n, c]) => `${n} (${c})`).join(', ')}.`);

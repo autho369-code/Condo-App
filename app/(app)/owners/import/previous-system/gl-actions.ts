@@ -19,6 +19,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { withImportLock } from '@/lib/imports/import-lock';
+import { OPENING_MEMO } from '@/lib/imports/opening-entry';
 import { ledgerTotalsByAccount } from '@/lib/finance/totals';
 import { fiscalWindow, fiscalYearFor } from '@/lib/budget/fiscal';
 import { glWriteError } from '@/lib/gl/accounts';
@@ -455,7 +456,6 @@ export type OpeningBalancesOptions = TieOutOptions & {
   unreadableRows?: boolean;
 };
 
-const OPENING_MEMO = 'Opening balance from previous system trial balance';
 const fmtMoney = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /**

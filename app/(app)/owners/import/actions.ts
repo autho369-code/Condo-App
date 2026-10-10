@@ -17,6 +17,7 @@ import { todayInZone } from '@/lib/time/zoned';
 import { escapeLike } from '@/lib/db/escape-like';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { withImportLock } from '@/lib/imports/import-lock';
+import { OPENING_ENTRY_POSTED_MESSAGE, openingEntryPosted } from '@/lib/imports/opening-entry';
 
 export type ImportSummary = { imported: number; skipped: number; errors?: string[] };
 
@@ -294,42 +295,79 @@ export async function importOpeningBalances(
   let skipped = 0;
   const errors: string[] = [];
 
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i];
-    const line = i + 1;
-    const unitNumber = clean(r.unit_number);
-    const amount = num(r.opening_balance);
+  // One run at a time per association (a double click or a second tab would
+  // post every row twice), under the same lock as the previous-system
+  // open-balance import and the trial-balance opening entry.
+  try {
+    await withImportLock(db, associationId, 'appfolio_receivables', async () => {
+      // The trial-balance opening entry already includes the open balances.
+      const opening = await openingEntryPosted(db, associationId);
+      if (opening.error || opening.posted) {
+        skipped = rows.length;
+        errors.push(opening.error ?? OPENING_ENTRY_POSTED_MESSAGE);
+        return;
+      }
+      // A rerun of the same file skips rows already posted (same unit,
+      // memo, as-of date and amount), recorded by import_opening_balance.
+      const { rows: earlier, error: earlierErr } = await fetchAllRows<any>(() => db
+        .from('imported_balances')
+        .select('id, unit_id, memo, as_of_date, imported_balance')
+        .eq('association_id', associationId)
+        .order('id'));
+      if (earlierErr) {
+        skipped = rows.length;
+        errors.push(`Could not check for an earlier import: ${earlierErr}`);
+        return;
+      }
+      const postedKey = (unitId: string, memo: string, asOf: string, amount: number) =>
+        `${unitId}|${memo}|${asOf}|${Math.round(amount * 100)}`;
+      const posted = new Set((earlier ?? []).map((e: any) => postedKey(e.unit_id, e.memo ?? '', e.as_of_date, Number(e.imported_balance))));
 
-    if (!unitNumber || amount == null) {
-      skipped++;
-      errors.push(`Row ${line}: missing unit_number or a numeric opening_balance.`);
-      continue;
-    }
-    const unitId = unitByNumber.get(unitNumber);
-    if (!unitId) {
-      skipped++;
-      errors.push(`Row ${line}: no unit "${unitNumber}" in this association.`);
-      continue;
-    }
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const line = i + 1;
+        const unitNumber = clean(r.unit_number);
+        const amount = num(r.opening_balance);
 
-    try {
-      const dueDate = toDate(r.as_of_date) ?? todayInZone();
-      const description = clean(r.memo) || 'Opening balance';
-      // One transaction: the charge and the record of what the previous
-      // system reported (for Import Variances) succeed or fail together.
-      const { error: postErr } = await db.rpc('import_opening_balance', {
-        p_unit_id: unitId,
-        p_charge_category_id: chargeCategoryId,
-        p_amount: amount,
-        p_description: description,
-        p_as_of: dueDate,
-      });
-      if (postErr) throw new Error(postErr.message);
-      imported++;
-    } catch (err: any) {
-      skipped++;
-      errors.push(`Row ${line} (${unitNumber}): ${err?.message ?? 'failed'}`);
-    }
+        if (!unitNumber || amount == null) {
+          skipped++;
+          errors.push(`Row ${line}: missing unit_number or a numeric opening_balance.`);
+          continue;
+        }
+        const unitId = unitByNumber.get(unitNumber);
+        if (!unitId) {
+          skipped++;
+          errors.push(`Row ${line}: no unit "${unitNumber}" in this association.`);
+          continue;
+        }
+
+        try {
+          const dueDate = toDate(r.as_of_date) ?? todayInZone();
+          const description = clean(r.memo) || 'Opening balance';
+          if (posted.has(postedKey(unitId, description, dueDate, amount))) {
+            skipped++;
+            errors.push(`Row ${line} (${unitNumber}): already imported; skipped.`);
+            continue;
+          }
+          // One transaction: the charge and the record of what the previous
+          // system reported (for Import Variances) succeed or fail together.
+          const { error: postErr } = await db.rpc('import_opening_balance', {
+            p_unit_id: unitId,
+            p_charge_category_id: chargeCategoryId,
+            p_amount: amount,
+            p_description: description,
+            p_as_of: dueDate,
+          });
+          if (postErr) throw new Error(postErr.message);
+          imported++;
+        } catch (err: any) {
+          skipped++;
+          errors.push(`Row ${line} (${unitNumber}): ${err?.message ?? 'failed'}`);
+        }
+      }
+    });
+  } catch (err: any) {
+    return { imported, skipped: rows.length - imported, errors: [...errors, err?.message ?? 'The import could not start.'] };
   }
 
   revalidatePath('/charges');

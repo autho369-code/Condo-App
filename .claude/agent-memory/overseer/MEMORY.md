@@ -166,3 +166,10 @@
   reads inactive accounts too (refuse up front with a named list);
   not_in_appfolio rows (ledger-only) policy stated in Decisions; confirm
   button; no "AppFolio" in batch name / memo / reference.
+
+## Third audit (2026-10-10)
+- Wrong finding: "no page edits an association's address/state". The profile's
+  settings sections (`lib/associations/settings-fields.ts` 'general': address,
+  city, state, zip) render through AssociationSettingsSection. Before calling a
+  field uneditable, grep the field key in `lib/associations/settings-fields.ts`
+  and other generic settings renderers, not only `lib/rpcs/*`.

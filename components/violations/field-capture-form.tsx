@@ -271,7 +271,7 @@ export function FieldCaptureForm({
         resetForm();
         setNotice(latest.violationId
           ? `The case was filed, but some photos are still on this device and will keep retrying. ${message}`
-          : `Saved on this device — Portier could not be reached (${message}). It will retry automatically.`);
+          : `Saved on this device — the server could not be reached (${message}). It will retry automatically.`);
         scheduleRetry();
       }
       await reloadQueue();

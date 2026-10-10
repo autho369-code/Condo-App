@@ -1,22 +1,31 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (after #272 merged; no open PR; next: vendor details for Randolph Station, then Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (after #275 merged; open PR: third-audit fixes; next: vendor details for Randolph Station, then Stripe pilot).
 
 ## Open PR
-- claude/company-state-rules: State Rules. Company admins record the rules
-  their company follows in each state (`/company-admin/state-rules`):
-  collection gates + plain-words summary, other state requirements
-  (fines/hearings, notices, records, resale), citations; a new state starts
-  from the built-in profile + the /hoa-laws state summary. Managers see the
-  association's state rules on its profile and on Delinquencies.
-  `apply_delinquency_jurisdiction` uses the company's rule first, then the
-  built-in profile, then DEFAULT; "Apply to associations" re-applies to the
-  state's existing policies. Migration 20261010010000 applied by Claude and
-  read back (RLS on, read can_access_portfolio, write can_admin_portfolio,
-  touch + audit triggers, anon no access/execute); tested as the live
-  company admin and a manager in rolled-back transactions.
+- claude/audit-3-fixes: third audit (security-reviewer x3 + overseer over
+  #255-#275). Migrations 20261010020000 (operator_write_guard on
+  company_state_rules), 20261010030000 (association-documents storage read:
+  owners via current_resident_association_ids, so a turned-off / archived /
+  suspended owner login or an added record follows the table rule),
+  20261010040000 (link_vendor_on_invitation_accept: the accepting login's
+  email must be the invitation's, as for owners) all applied by Claude and
+  read back. App: open-balance imports refuse after the trial-balance
+  opening entry (it already includes them; lib/imports/opening-entry.ts);
+  the old CSV opening-balance import takes the receivables lock and skips
+  rows already posted; work-order re-import sets the vendor on imported work
+  orders still without one; Delinquencies shows each association's
+  company's state rules; Action Center links the previous-system import;
+  "Portier" removed from four in-app texts.
 
 ## Where things stand
+- #275 merged (ed76ad91): State Rules. Company admins record the rules
+  their company follows in each state (`/company-admin/state-rules`):
+  collection gates + plain-words summary, other state requirements,
+  citations; managers see them on the association profile and on
+  Delinquencies; `apply_delinquency_jurisdiction` uses the company's rule
+  first, then the built-in profile, then DEFAULT. Migration 20261010010000
+  applied and read back; tested as the live company admin and a manager.
 - #274 merged (7da84a8b): `checkLinkedRecords` vendor check mirrors the
   vendor_link_same_association trigger (association's own vendor or its
   company's management company; no association -> the record's company).
@@ -81,7 +90,6 @@ Back to [[Home]]. Updated 2026-10-10 (after #272 merged; no open PR; next: vendo
   first upload failed on pg_safeupdate (bare DELETE in the upload function;
   nothing posted); fixed in #270 (merged a1a0add2). Bills -> Upload (since #264) and
   the unapplied-credits scan were broken the same way.
-  Possible gap: an opening-balance journal import on the import page.
 - Randolph Station units and homeowners imported by Mirsad (2026-10-09),
   read back: 17 units in 1 building, 17 current homeowners (one per unit),
   ownership 100%, dues $10,439.96/month on every unit. Unit 304's owner has
@@ -311,6 +319,11 @@ Back to [[Home]]. Updated 2026-10-10 (after #272 merged; no open PR; next: vendo
    pilot association (Mirsad's account setup).
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
    step would be per-request identity caching (riskier, measure first).
-1. Run a third overseer + security-reviewer audit for new gaps.
+1. Mirsad decides: changing an owner record's email revokes its ADDED
+   logins (owner_portal_logins) but keeps the record's original login
+   (owners.auth_user_id), though the migration comment says the record "no
+   longer belongs to the login". Options: staff email change also clears
+   auth_user_id (owner must be invited again, also after a typo fix), or an
+   explicit "Unlink login" button. Found by the third audit (low).
 2. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
    forms.
