@@ -13,6 +13,12 @@
 -- For every policy the migration changed and every test caller, it counts
 -- rows of the policy's table where the old and new expression disagree
 -- about letting the row through (null counts as "no", as in RLS). It also
+-- It evaluates expressions as the session user (not as `authenticated`), so
+-- it does not prove grants; also run:
+--   select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+--    where n.nspname = 'public' and not has_function_privilege('authenticated', p.oid, 'EXECUTE')
+--      and p.proname in (<every function the policies now call>);
+-- (must return no rows). It also
 -- compares each split helper with its rewrite over every portfolio and
 -- association id, a random id and null.
 

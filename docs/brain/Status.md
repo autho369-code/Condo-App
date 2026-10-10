@@ -29,7 +29,14 @@ Back to [[Home]]. Updated 2026-10-10 (after #280 merged; open PRs: redesign #279
   my_editable_association_ids). 307 policies; 14,716 checks, 0
   differences. After both parts: gl_accounts 247 -> 0.6 ms (manager),
   508 -> 1.2 ms (vendor); owners+units 215 -> 4-6 ms; charges, work
-  orders, documents 1-5 ms. Still per-row (rare tables):
+  orders, documents 1-5 ms.
+- Part 3, 20261011030000 APPLIED (migration-reviewer finding): the
+  association set helpers look only at the caller's company (or all, for
+  an operator) instead of calling a helper for every association on the
+  platform. 52 caller/helper sets identical before/after. Note: part 2's
+  `(?<!COALESCE)` guard is ineffective, so re-running part 2 would nest
+  COALESCE (same result, longer text) - don't replay it by hand.
+  Still per-row (rare tables):
   current_resident_unit_since, can_manage_violations, budget/meeting/
   signature helpers, journal_entry_touches_board_associations.
 
