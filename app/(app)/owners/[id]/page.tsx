@@ -13,7 +13,7 @@ import { updateOwner, linkOccupancy, endOccupancy } from '@/lib/rpcs/entities';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
 import { createServiceClient } from '@/lib/supabase/server';
-import { addPet, addTenant, addVehicle, endTenancy, removePet, removeVehicle, saveOwnerEmergencyContact, sendOwnerPasswordReset, sendTenantPasswordReset, sendTenantPortalInvitation, setOwnerPortalAccess, setTenantPortalAccess } from './occupancy-actions';
+import { addPet, addTenant, addVehicle, endTenancy, removePet, removeVehicle, saveOwnerEmergencyContact, sendOwnerPasswordReset, sendTenantPasswordReset, sendTenantPortalInvitation, setOwnerPortalAccess, setTenantPortalAccess, unlinkOwnerLogins } from './occupancy-actions';
 import { addOwnerToBoard, endBoardSeat } from '@/lib/rpcs/board-membership';
 import { addOwnerAttachment, removeOwnerAttachment, saveOwnerFinancialDetails } from './financial-actions';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
@@ -417,6 +417,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       {sp.saved === 'attachment' && <div className="mb-4"><Alert tone="success" title="Attachment added" /></div>}
       {sp.saved === 'reset_sent' && <div className="mb-4"><Alert tone="success" title="Password reset email queued" /></div>}
       {sp.saved === 'portal_enabled' && <div className="mb-4"><Alert tone="success" title="Portal access enabled" /></div>}
+      {sp.saved === 'logins_unlinked' && <div className="mb-4"><Alert tone="success" title="Login unlinked">Nobody can sign in to this owner record now. Send a new invitation to give portal access again.</Alert></div>}
+      {sp.saved === 'no_logins' && <div className="mb-4"><Alert tone="info" title="No login was linked to this owner record" /></div>}
       {sp.saved === 'portal_disabled' && <div className="mb-4"><Alert tone="success" title="Owner portal access disabled">Owner-portal requests are now blocked for this portfolio. Any separate board, vendor, staff, or other portfolio access remains unchanged.</Alert></div>}
       {sp.saved === 'board' && <div className="mb-4"><Alert tone="success" title="Board seat added">Their existing login now opens both the board portal and their owner portal.</Alert></div>}
       {sp.saved === 'board_end' && <div className="mb-4"><Alert tone="success" title="Board seat ended" /></div>}
@@ -1481,8 +1483,14 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                     <Button type="submit" size="sm" variant="secondary">Enable portal access</Button>
                   </form>
                 )}
+                {(owner.auth_user_id || addedLogin) && (
+                  <form action={unlinkOwnerLogins.bind(null, id)}>
+                    <PendingSubmit variant="secondary" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Unlinking…" confirm="Unlink every login from this owner record? Whoever signs in with it loses access right away, and the owner must be invited again.">Unlink login</PendingSubmit>
+                  </form>
+                )}
               </div>
               <p className="text-xs text-gray-500">
+                Unlink login when the wrong person is linked to this record, or the record changed hands; changing the email does not remove the record&apos;s own sign-in.
                 Disabling blocks this portfolio&apos;s owner portal without globally banning the person&apos;s shared sign-in identity. The owner record and history are kept.
                 The reset email goes to {owner.email ?? 'the owner’s email on file'}.
               </p>
