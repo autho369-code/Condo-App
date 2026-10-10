@@ -22,6 +22,10 @@ no Supabase schema, policy, RPC or integration change; the parity test
 
 ## Notes
 
+- **CodeQL flags two existing patterns, kept out of this redesign.** These files are left unchanged so the redesign does not touch them; each needs its own review:
+  - `components/marketing/piper-widget.tsx:45`: chat session id from `Math.random()` (insecure randomness). Marketing widget, outside the redesign's scope.
+  - `components/violations/open-violation-form.tsx:65`: the association id goes into a link href ("DOM text reinterpreted as HTML"). It is a UUID from a select and React escapes it, so this is likely a false positive.
+
 - **18 of the 26 board pages are redirect stubs.** Sections deliberately removed from the read-only board portal, such as `/board/work-orders` and `/board/owners`, only redirect to `/board`. They have nothing to style and their behavior is unchanged.
 
 ## Not yet verified

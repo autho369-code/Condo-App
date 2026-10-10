@@ -75,7 +75,7 @@ export function PiperWidget() {
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-sm font-bold text-white">P</div>
               <div>
                 <div className="text-sm font-semibold text-white">Piper</div>
-                <div className="text-[12.5px] text-white/70">AI Receptionist · answers 24/7</div>
+                <div className="text-[11px] text-white/70">AI Receptionist · answers 24/7</div>
               </div>
             </div>
             <div className="flex items-center gap-1">
