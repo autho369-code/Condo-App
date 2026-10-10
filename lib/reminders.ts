@@ -37,23 +37,27 @@ function daysAgo(n: number): string {
 export async function computeReminders(db: any, portfolioId: string | undefined, associationId?: string): Promise<ReminderGroup[]> {
   if (!portfolioId) return [];
 
-  // Settings (fall back to defaults when no row exists).
-  const { data: settingsRows } = await db.from('reminder_settings').select('alert_type, enabled, lead_days').eq('portfolio_id', portfolioId);
+  // Settings and the association list are independent: one round trip.
+  const [{ data: settingsRows }, { data: assocs }] = await Promise.all([
+    db.from('reminder_settings').select('alert_type, enabled, lead_days').eq('portfolio_id', portfolioId),
+    // Associations in this portfolio (for view-backed queries that aren't RLS-scoped).
+    db.from('associations').select('id').eq('portfolio_id', portfolioId).is('archived_at', null),
+  ]);
   const settings: Settings = new Map();
   for (const r of settingsRows ?? []) settings.set(r.alert_type, { enabled: r.enabled, lead_days: r.lead_days });
   const cfg = (t: AlertType) => settings.get(t) ?? { enabled: true, lead_days: ALERT_TYPES.find((a) => a.key === t)!.defaultLeadDays };
 
-  // Associations in this portfolio (for view-backed queries that aren't RLS-scoped).
-  const { data: assocs } = await db.from('associations').select('id').eq('portfolio_id', portfolioId).is('archived_at', null);
   const assocIds = (assocs ?? []).map((a: any) => a.id).filter((id: string) => !associationId || id === associationId);
   // Narrow a query to the one association when filtering.
   const scoped = (q: any, column = 'association_id') => (associationId ? q.eq(column, associationId) : q);
 
   const today = todayInZone();
-  const groups: ReminderGroup[] = [];
+  // The alerts run at once (they were five sequential round trips); each
+  // returns its group or null, and the groups keep this order.
+  const alerts: Array<Promise<ReminderGroup | null>> = [];
 
   // 1) Lease renewals
-  {
+  alerts.push((async (): Promise<ReminderGroup | null> => {
     const c = cfg('lease_renewal');
     if (c.enabled) {
       const { data } = await scoped(db.from('tenants')
@@ -62,7 +66,7 @@ export async function computeReminders(db: any, portfolioId: string | undefined,
         .not('lease_end', 'is', null)
         .gte('lease_end', today).lte('lease_end', daysFromNow(c.lead_days)))
         .order('lease_end');
-      groups.push({
+      return {
         key: 'lease_renewal', label: 'Lease renewals', leadDays: c.lead_days,
         items: (data ?? []).map((t: any) => ({
           title: `${t.first_name} ${t.last_name}`,
@@ -70,12 +74,13 @@ export async function computeReminders(db: any, portfolioId: string | undefined,
           when: t.lease_end,
           href: t.owner_id ? `/owners/${t.owner_id}` : '/owners?view=tenants',
         })),
-      });
+      };
     }
-  }
+    return null;
+  })());
 
   // 2) Parking became available (recently released)
-  {
+  alerts.push((async (): Promise<ReminderGroup | null> => {
     const c = cfg('parking_available');
     if (c.enabled) {
       const { data } = await scoped(db.from('parking_assignments')
@@ -83,7 +88,7 @@ export async function computeReminders(db: any, portfolioId: string | undefined,
         .eq('status', 'ended').eq('portfolio_id', portfolioId)
         .not('end_date', 'is', null).gte('end_date', daysAgo(c.lead_days)), 'parking_spaces.association_id')
         .order('end_date', { ascending: false });
-      groups.push({
+      return {
         key: 'parking_available', label: 'Parking became available', leadDays: c.lead_days,
         items: (data ?? []).map((a: any) => ({
           title: `Space ${a.parking_spaces?.label ?? '—'}`,
@@ -91,12 +96,13 @@ export async function computeReminders(db: any, portfolioId: string | undefined,
           when: a.end_date,
           href: '/parking',
         })),
-      });
+      };
     }
-  }
+    return null;
+  })());
 
   // 3) Owner insurance expiring
-  {
+  alerts.push((async (): Promise<ReminderGroup | null> => {
     const c = cfg('owner_insurance_expiring');
     if (c.enabled) {
       const { data } = await scoped(db.from('insurance_policies')
@@ -105,7 +111,7 @@ export async function computeReminders(db: any, portfolioId: string | undefined,
         .not('expiration_date', 'is', null)
         .gte('expiration_date', today).lte('expiration_date', daysFromNow(c.lead_days)))
         .order('expiration_date');
-      groups.push({
+      return {
         key: 'owner_insurance_expiring', label: 'Owner insurance expiring', leadDays: c.lead_days,
         items: (data ?? []).map((p: any) => ({
           title: p.owners?.full_name ?? 'Owner',
@@ -113,12 +119,13 @@ export async function computeReminders(db: any, portfolioId: string | undefined,
           when: p.expiration_date,
           href: p.owner_id ? `/owners/${p.owner_id}` : '/insurance',
         })),
-      });
+      };
     }
-  }
+    return null;
+  })());
 
   // 4) Renter insurance expiring
-  {
+  alerts.push((async (): Promise<ReminderGroup | null> => {
     const c = cfg('renter_insurance_expiring');
     if (c.enabled) {
       const { data } = await scoped(db.from('tenants')
@@ -127,7 +134,7 @@ export async function computeReminders(db: any, portfolioId: string | undefined,
         .not('insurance_expiration', 'is', null)
         .gte('insurance_expiration', today).lte('insurance_expiration', daysFromNow(c.lead_days)))
         .order('insurance_expiration');
-      groups.push({
+      return {
         key: 'renter_insurance_expiring', label: 'Renter insurance expiring', leadDays: c.lead_days,
         items: (data ?? []).map((t: any) => ({
           title: `${t.first_name} ${t.last_name}`,
@@ -135,12 +142,13 @@ export async function computeReminders(db: any, portfolioId: string | undefined,
           when: t.insurance_expiration,
           href: t.owner_id ? `/owners/${t.owner_id}` : '/owners?view=tenants',
         })),
-      });
+      };
     }
-  }
+    return null;
+  })());
 
   // 5) Delinquent accounts (past due by at least lead_days)
-  {
+  alerts.push((async (): Promise<ReminderGroup | null> => {
     const c = cfg('delinquency');
     if (c.enabled && assocIds.length > 0) {
       const cutoff = daysAgo(c.lead_days);
@@ -150,7 +158,7 @@ export async function computeReminders(db: any, portfolioId: string | undefined,
         .gt('balance', 0)
         .lte('oldest_due', cutoff)
         .order('balance', { ascending: false });
-      groups.push({
+      return {
         key: 'delinquency', label: 'Delinquent accounts', leadDays: c.lead_days,
         items: (data ?? []).map((d: any) => ({
           title: `Unit ${d.unit_number ?? '—'}`,
@@ -158,9 +166,10 @@ export async function computeReminders(db: any, portfolioId: string | undefined,
           when: d.oldest_due,
           href: d.unit_id ? `/units/${d.unit_id}` : '/charges',
         })),
-      });
+      };
     }
-  }
+    return null;
+  })());
 
-  return groups;
+  return (await Promise.all(alerts)).filter((g): g is ReminderGroup => g !== null);
 }

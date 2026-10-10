@@ -3,20 +3,16 @@
 Back to [[Home]]. Updated 2026-10-10 (after #275 merged; open PR: third-audit fixes; next: vendor details for Randolph Station, then Stripe pilot).
 
 ## Open PR
-- claude/audit-3-fixes: third audit (security-reviewer x3 + overseer over
-  #255-#275). Migrations 20261010020000 (operator_write_guard on
-  company_state_rules), 20261010030000 (association-documents storage read:
-  owners via current_resident_association_ids, so a turned-off / archived /
-  suspended owner login or an added record follows the table rule),
-  20261010040000 (link_vendor_on_invitation_accept: the accepting login's
-  email must be the invitation's, as for owners) all applied by Claude and
-  read back. App: open-balance imports refuse after the trial-balance
-  opening entry (it already includes them; lib/imports/opening-entry.ts);
-  the old CSV opening-balance import takes the receivables lock and skips
-  rows already posted; work-order re-import sets the vendor on imported work
-  orders still without one; Delinquencies shows each association's
-  company's state rules; Action Center links the previous-system import;
-  "Portier" removed from four in-app texts.
+- claude/speed-round-trips: fewer sequential Supabase round trips (dashboard
+  reminders 7 -> 2 waves; owner portal home ~13 -> 2 waves). No migration.
+  Measured 2026-10-10 (read-only): the biggest DB cost is RLS helpers that
+  take a column (can_access_portfolio(portfolio_id), can_manage_finance,
+  can_read_gl) running once PER ROW: gl_accounts 609 rows = 247 ms as a
+  manager vs 0.1 ms bypassed, 508 ms for a vendor who sees 0 rows; a hoisted
+  set comparison (`portfolio_id in (select my_..._ids())`) measured 242 ->
+  31 ms (manager) and 504 -> 1 ms (vendor). Next speed step: rewrite those
+  policies with per-role equivalence tests (medium risk). Middleware me()
+  is still needed per request (MFA, operator write block).
 
 ## Where things stand
 - #275 merged (ed76ad91): State Rules. Company admins record the rules
