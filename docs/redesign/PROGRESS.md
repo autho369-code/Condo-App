@@ -54,8 +54,13 @@ no Supabase schema, policy, RPC or integration change; the parity test
   - **8 pages briefly redirected to sign-in during the long run.** All of them loaded on recheck; this is the same intermittent statement-timeout problem noted for the owner portal.
 - **No page shows an error.**
 
+## Company admin check (signed in as admin@portier369.com, with two-step)
+
+- **All 30 sidebar destinations and pages load with their titles.** No errors and no redirects; `/company-admin` forwards to the overview by design.
+- **Checked visually:** overview, financials, compliance, settings and managers. The managers count and layout were fixed.
+
 ## Not yet verified
 
 - **Phone widths in a signed-in browser.** The Chrome window could not be resized.
 - **Owner, board and vendor screens.** There are no logins for these roles in production.
-- **Company admin and operator screens.** Their passwords are unknown and need a reset by Mirsad.
+- **Operator screens.** These need the operator account's two-step setup.
