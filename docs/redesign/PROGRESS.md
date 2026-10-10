@@ -64,6 +64,12 @@ no Supabase schema, policy, RPC or integration change; the parity test
 - All 21 sidebar destinations and 11 linked detail pages load with their titles and no errors: the company record and the Piper edit views.
 - Checked visually: overview and the company record (header actions, figure tiles, plan, limits and workspace address sections).
 
+## Board check (signed in as owner1@portier369.com, director on Randolph Station)
+
+- All 7 board pages load with their titles. The only other link is the two-step setup page, from Account.
+- **Found and fixed:** the dashboard's receivables card timed out ("canceling statement due to statement timeout") and the page took about 19 s. The `aged_receivables` view summed payment applications three times per charge, each through that table's security rules. Migration 20261011070000 does one grouped pass: identical rows for all 12 callers, and the board's receivables total went from 8.5 s to 64 ms. After the fix no board page shows an error, and the dashboard loads in 2.2 s on the dev server.
+- Checked visually: Financials (figures, income vs expenses, recent transactions).
+
 ## Not yet verified
 
 - **Phone widths in a signed-in browser.** The Chrome window could not be resized.
