@@ -22,7 +22,7 @@ import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 function StatCard({
   label,
@@ -41,9 +41,9 @@ function StatCard({
     <div className={`${card} px-4 py-3.5`}>
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
           <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${tone === 'danger' ? 'text-red-700' : tone === 'warning' ? 'text-amber-700' : tone === 'success' ? 'text-emerald-700' : 'text-gray-950'}`}>{value}</div>
-          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -148,8 +148,8 @@ export default async function FinancialOversightPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Financial Oversight</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Financial Oversight</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Company-wide financials across every association — from the posted ledger
         </p>
       </div>
@@ -170,10 +170,10 @@ export default async function FinancialOversightPage() {
 
       {/* ── Vendor bills ──────────────────────────────── */}
       <div className={card}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">Open Vendor Bills</h2>
-            <p className="mt-0.5 text-xs text-gray-500">
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Open Vendor Bills</h2>
+            <p className="mt-0.5 text-[13px] text-gray-500">
               Bills awaiting approval or payment across the portfolio
               {apTotals.count > openBills.length ? ` — showing the ${openBills.length} due soonest of ${apTotals.count}` : ''}
             </p>
@@ -181,12 +181,12 @@ export default async function FinancialOversightPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Vendor</th>
-                <th className="px-5 py-2.5 text-left font-medium">Due</th>
-                <th className="px-5 py-2.5 text-left font-medium">Status</th>
-                <th className="px-5 py-2.5 text-right font-medium">Amount</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Vendor</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Due</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -194,10 +194,10 @@ export default async function FinancialOversightPage() {
                 <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-500">No open vendor bills.</td></tr>
               ) : (
                 openBills.map((b: any, i: number) => (
-                  <tr key={b.id ?? i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={b.id ?? i} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="px-5 py-3 font-medium text-gray-900">{b.vendors?.name ?? '—'}</td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{b.due_date ?? '—'}</td>
-                    <td className="px-5 py-3"><StatusChip tone={b.status === 'pending_approval' ? 'warning' : 'info'}>{b.status === 'pending_approval' ? 'Pending approval' : 'Approved'}</StatusChip></td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{b.due_date ?? '—'}</td>
+                    <td className="px-5 py-3.5"><StatusChip tone={b.status === 'pending_approval' ? 'warning' : 'info'}>{b.status === 'pending_approval' ? 'Pending approval' : 'Approved'}</StatusChip></td>
                     <td className="px-5 py-3 text-right font-medium tabular-nums text-gray-950">{money(Number(b.amount ?? 0) - Number(b.credit_applied ?? 0))}</td>
                   </tr>
                 ))
@@ -209,21 +209,21 @@ export default async function FinancialOversightPage() {
 
       {/* ── Banking ───────────────────────────────────── */}
       <div className={card}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">Banking</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Account balances from the posted ledger, with reconciliation status</p>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Banking</h2>
+            <p className="mt-0.5 text-[13px] text-gray-500">Account balances from the posted ledger, with reconciliation status</p>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Account</th>
-                <th className="px-5 py-2.5 text-left font-medium">Bank</th>
-                <th className="px-5 py-2.5 text-left font-medium">Purpose</th>
-                <th className="px-5 py-2.5 text-left font-medium">Last Reconciled</th>
-                <th className="px-5 py-2.5 text-right font-medium">Ledger Balance</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Account</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Bank</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Purpose</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Last Reconciled</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Ledger Balance</th>
               </tr>
             </thead>
             <tbody>
@@ -231,11 +231,11 @@ export default async function FinancialOversightPage() {
                 <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">No bank accounts configured.</td></tr>
               ) : (
                 (bankAccounts ?? []).map((b: any) => (
-                  <tr key={b.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={b.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="px-5 py-3 font-medium text-gray-900"><span className="inline-flex items-center gap-2"><Landmark className="h-3.5 w-3.5 text-gray-400" />{b.name}</span></td>
-                    <td className="px-5 py-3 text-[13px] text-gray-700">{b.bank_name ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-700">{b.bank_name ?? '—'}</td>
                     <td className="px-5 py-3 text-[13px] capitalize text-gray-700">{b.purpose ?? b.account_type ?? '—'}</td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{b.last_reconciliation_date ?? 'Never'}</td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{b.last_reconciliation_date ?? 'Never'}</td>
                     <td className="px-5 py-3 text-right font-medium tabular-nums text-gray-950">{b.gl_account_id ? money(balanceByGl.get(b.gl_account_id) ?? 0) : '—'}</td>
                   </tr>
                 ))
@@ -247,10 +247,10 @@ export default async function FinancialOversightPage() {
 
       {/* ── Budget performance ────────────────────────── */}
       <div className={card}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">Budget Performance — Current Fiscal Year</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Year-to-date budget vs actual per association</p>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Budget Performance — Current Fiscal Year</h2>
+            <p className="mt-0.5 text-[13px] text-gray-500">Year-to-date budget vs actual per association</p>
           </div>
           <Link href="/budget-vs-actuals" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
             Full budget report <ArrowRight className="h-3 w-3" />
@@ -258,14 +258,14 @@ export default async function FinancialOversightPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Association</th>
-                <th className="px-5 py-2.5 text-right font-medium">Income Budget (YTD)</th>
-                <th className="px-5 py-2.5 text-right font-medium">Income Actual</th>
-                <th className="px-5 py-2.5 text-right font-medium">Expense Budget (YTD)</th>
-                <th className="px-5 py-2.5 text-right font-medium">Expense Actual</th>
-                <th className="px-5 py-2.5 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Association</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Income Budget (YTD)</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Income Actual</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Expense Budget (YTD)</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Expense Actual</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -273,15 +273,15 @@ export default async function FinancialOversightPage() {
                 <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-gray-500">No associations found.</td></tr>
               ) : (
                 budgetRows.map(({ assoc, incomeBudget, incomeActual, expenseBudget, expenseActual, overBudget }) => (
-                  <tr key={assoc.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-5 py-3">
+                  <tr key={assoc.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                    <td className="px-5 py-3.5">
                       <Link href={`/associations/${assoc.slug ?? assoc.id}/budget`} className="font-medium text-gray-900 hover:underline">{assoc.name}</Link>
                     </td>
-                    <td className="px-5 py-3 text-right tabular-nums text-gray-700">{money(incomeBudget)}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-gray-700">{money(incomeActual)}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-gray-700">{money(expenseBudget)}</td>
+                    <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{money(incomeBudget)}</td>
+                    <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{money(incomeActual)}</td>
+                    <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{money(expenseBudget)}</td>
                     <td className={`px-5 py-3 text-right tabular-nums ${overBudget ? 'font-medium text-red-700' : 'text-gray-700'}`}>{money(expenseActual)}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-3.5">
                       <StatusChip tone={overBudget ? 'danger' : 'success'}>{overBudget ? 'Over budget' : 'On track'}</StatusChip>
                     </td>
                   </tr>

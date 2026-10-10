@@ -9,8 +9,8 @@ export default function SettingsHelpPage() {
           <span className="mx-2">/</span>
           Help
         </nav>
-        <h1 className="mt-2 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Settings overview</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="mt-2 font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Settings overview</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Configure your company profile, manage your team, and set default policies for all associations.
         </p>
       </header>

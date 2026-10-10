@@ -95,7 +95,7 @@ export default async function SentEmailPage({ params }: { params: Promise<{ id: 
           <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
             {facts.map(([k, v]) => (
               <div key={k}>
-                <dt className="text-xs text-gray-500">{k}</dt>
+                <dt className="text-[13px] text-gray-500">{k}</dt>
                 <dd className="break-words text-gray-900">{v}</dd>
               </div>
             ))}

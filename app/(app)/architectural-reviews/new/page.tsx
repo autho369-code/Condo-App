@@ -83,7 +83,7 @@ export default async function NewArchitecturalRequestForOwner({
             description="Add owners and link them to units first — then you can file architectural requests on their behalf."
           />
         ) : (
-          <form action={submitArchitecturalRequestOnBehalf as any} className="space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <form action={submitArchitecturalRequestOnBehalf as any} className="space-y-6 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <Field
               label="Homeowner & unit"
               htmlFor="occupancy_id"

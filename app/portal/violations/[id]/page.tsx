@@ -79,10 +79,10 @@ export default async function OwnerViolationDetail({
       {sp.hearing_requested === '1' && <Alert tone="success">Hearing request submitted to association management.</Alert>}
       {sp.error && <Alert tone="danger" title="Could not request a hearing:">{sp.error}</Alert>}
 
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{v.title}</h1>
+            <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{v.title}</h1>
             <div className="mt-1 text-sm capitalize text-gray-500">{v.violation_type?.replace('_',' ')} — Unit {v.units?.unit_number}</div>
           </div>
           <Badge status={v.status} />
@@ -108,15 +108,15 @@ export default async function OwnerViolationDetail({
                 const tile = (
                   <>
                     <ImageIcon className="h-8 w-8 text-gray-400" />
-                    <span className="mt-1 w-full truncate px-2 text-center text-[11px] text-gray-500">{href ? a.name : 'Unavailable'}</span>
+                    <span className="mt-1 w-full truncate px-2 text-center text-[12.5px] text-gray-500">{href ? a.name : 'Unavailable'}</span>
                   </>
                 )
                 return href ? (
-                  <a key={i} href={href} target="_blank" rel="noopener noreferrer" title={a.name} className="flex h-24 w-24 flex-col items-center justify-center rounded-xl border border-gray-200/70 bg-gray-50 transition hover:border-gray-300">
+                  <a key={i} href={href} target="_blank" rel="noopener noreferrer" title={a.name} className="flex h-24 w-24 flex-col items-center justify-center rounded-xl border border-line bg-gray-50 transition hover:border-gray-300">
                     {tile}
                   </a>
                 ) : (
-                  <div key={i} title={a.name} className="flex h-24 w-24 flex-col items-center justify-center rounded-xl border border-gray-200/70 bg-gray-50">
+                  <div key={i} title={a.name} className="flex h-24 w-24 flex-col items-center justify-center rounded-xl border border-line bg-gray-50">
                     {tile}
                   </div>
                 )

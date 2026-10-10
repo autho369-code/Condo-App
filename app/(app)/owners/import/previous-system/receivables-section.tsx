@@ -170,7 +170,7 @@ function AssociationCard({
               <TR key={u.unit_number}>
                 <TD>
                   <div className="font-medium text-gray-900">{u.unit_number}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-[13px] text-gray-500">
                     {u.payers.join(', ') || '—'} · {plural(u.items.length, 'item')}
                   </div>
                 </TD>
@@ -181,7 +181,7 @@ function AssociationCard({
                 <TD className="text-right font-medium tabular-nums text-gray-900">{usd(u.total)}</TD>
                 <TD>
                   {matched === null
-                    ? <span className="text-xs text-gray-400">Choose an association</span>
+                    ? <span className="text-[13px] text-gray-500">Choose an association</span>
                     : matched
                       ? <Badge tone="complete">Matched</Badge>
                       : <Badge tone="danger">Not found</Badge>}
@@ -307,7 +307,7 @@ export function ReceivablesImportSection({ associations, importReceivables }: Pr
             <Input id={asOfId} type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} required />
           </div>
         </div>
-        {fileName && parsed && <p className="text-xs text-gray-500">{fileName}</p>}
+        {fileName && parsed && <p className="text-[13px] text-gray-500">{fileName}</p>}
       </Surface>
 
       {parseError && <Alert tone="danger">{parseError}</Alert>}

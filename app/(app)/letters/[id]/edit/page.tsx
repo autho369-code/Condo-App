@@ -124,19 +124,19 @@ export default function EditLetterPage() {
 
   return (
     <div className="mx-auto h-full max-w-4xl overflow-y-auto px-8 py-6">
-      <nav className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <nav className="mb-4 text-[13px] font-semibold text-gray-700">
         <Link href="/letters" className="transition-colors hover:text-gray-700">Letters</Link>
         <span className="mx-1">/</span>
         <span className="text-gray-900">{name || 'Edit template'}</span>
       </nav>
 
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Edit template</h1>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Edit template</h1>
         <div className="flex items-center gap-2">
           {active ? (
-            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/15">Active</span>
+            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[12.5px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/15">Active</span>
           ) : (
-            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500 ring-1 ring-inset ring-gray-500/15">Inactive</span>
+            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[12.5px] font-medium text-gray-500 ring-1 ring-inset ring-gray-500/15">Inactive</span>
           )}
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function EditLetterPage() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
           <div>
@@ -162,7 +162,7 @@ export default function EditLetterPage() {
               type="text"
               value={letterType}
               onChange={(e) => setLetterType(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
           <div>
@@ -183,7 +183,7 @@ export default function EditLetterPage() {
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
         </div>

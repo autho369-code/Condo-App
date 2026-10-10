@@ -92,7 +92,7 @@ export default async function ViolationRulesPage({
         />
 
         {allRules.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={BookOpenCheck}
               title={`No rules for ${selected.name} yet`}

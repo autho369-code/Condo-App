@@ -143,10 +143,10 @@ export default async function AccountingPage() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-2xl border border-gray-200/70 bg-white px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]"
+                className="rounded-2xl border border-line bg-white px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]"
               >
                 <div className="text-sm font-medium text-gray-950">{link.label}</div>
-                <div className="mt-1 text-xs text-gray-500">{link.description}</div>
+                <div className="mt-1 text-[13px] text-gray-500">{link.description}</div>
               </Link>
             ))}
           </div>
@@ -154,14 +154,14 @@ export default async function AccountingPage() {
 
         {agingBuckets && Object.keys(agingBuckets).length > 0 && (
           <Surface padded={false}>
-            <div className="border-b border-gray-100 px-5 py-4">
+            <div className="border-b border-line px-5 py-4">
               <SectionTitle
                 title="AR aging summary"
                 description="Outstanding receivables by aging bucket."
                 className="mb-0"
               />
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-line">
               {(['current', '1_30', '31_60', '61_90', '90_plus'] as const).map((bucket) => {
                 const amount = agingBuckets[bucket] ?? 0;
                 if (amount === 0) return null;

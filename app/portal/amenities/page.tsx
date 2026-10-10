@@ -207,10 +207,10 @@ export default async function OwnerAmenitiesPage({
   const past = reservations.filter((r) => new Date(r.end_time).getTime() < now)
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Amenities</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Amenities</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Browse bookable amenities and request a reservation. Management reviews each request.
         </p>
       </div>
@@ -233,16 +233,16 @@ export default async function OwnerAmenitiesPage({
 
       {/* Request form */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.06em] text-gray-500">Request a reservation</h2>
+        <h2 className="text-[13px] font-semibold text-gray-700">Request a reservation</h2>
         {amenities.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 text-sm text-gray-600 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-6 text-sm text-gray-600 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             No bookable amenities are available for your community yet. Check back later or contact your management team.
           </div>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
             <form action={requestReservation} className="space-y-5">
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">Amenity</span>
+                <span className="text-[13.5px] font-medium text-gray-700">Amenity</span>
                 <select
                   name="amenity_id"
                   required
@@ -262,52 +262,52 @@ export default async function OwnerAmenitiesPage({
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <label className="block">
-                  <span className="text-sm font-medium text-gray-700">Date</span>
+                  <span className="text-[13.5px] font-medium text-gray-700">Date</span>
                   <input
                     type="date"
                     name="date"
                     required
-                    className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+                    className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-medium text-gray-700">Start</span>
+                  <span className="text-[13.5px] font-medium text-gray-700">Start</span>
                   <input
                     type="time"
                     name="start_time"
                     required
-                    className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+                    className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-medium text-gray-700">End</span>
+                  <span className="text-[13.5px] font-medium text-gray-700">End</span>
                   <input
                     type="time"
                     name="end_time"
                     required
-                    className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+                    className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   />
                 </label>
               </div>
 
               <label className="block max-w-[200px]">
-                <span className="text-sm font-medium text-gray-700">Party size</span>
+                <span className="text-[13.5px] font-medium text-gray-700">Party size</span>
                 <input
                   type="number"
                   name="party_size"
                   min={1}
                   placeholder="Optional"
-                  className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+                  className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
               </label>
 
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">Notes</span>
+                <span className="text-[13.5px] font-medium text-gray-700">Notes</span>
                 <textarea
                   name="notes"
                   rows={3}
                   placeholder="Anything management should know (event type, guests, setup needs)…"
-                  className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+                  className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
               </label>
 
@@ -323,9 +323,9 @@ export default async function OwnerAmenitiesPage({
 
       {/* My reservations */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.06em] text-gray-500">My reservations</h2>
+        <h2 className="text-[13px] font-semibold text-gray-700">My reservations</h2>
         {reservations.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-6 text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             You have no reservations yet.
           </div>
         ) : (
@@ -350,8 +350,8 @@ function ReservationList({
 }) {
   if (rows.length === 0) return null
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-      <div className="border-b border-gray-100 bg-gray-50/60 px-5 py-2.5 text-[11px] font-medium uppercase tracking-wide text-gray-500">
+    <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="border-b border-gray-100 bg-gray-50/60 px-5 py-2.5 text-[12.5px] font-medium uppercase tracking-wide text-gray-500">
         {title}
       </div>
       <ul className="divide-y divide-gray-50">

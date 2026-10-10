@@ -99,7 +99,7 @@ export default async function LedgerPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Account ledger</h1>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Account ledger</h1>
         <LedgerActions
           ownerName={me.profile?.full_name ?? me.email ?? 'Owner'}
           companyName={me.portfolio?.company_name ?? 'Your management company'}

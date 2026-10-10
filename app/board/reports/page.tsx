@@ -39,21 +39,21 @@ export default async function BoardReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Reports</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Board-level reports and summaries for your association</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Reports</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Board-level reports and summaries for your association</p>
       </div>
 
-      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="border-b border-gray-100 px-5 py-3">
-          <h2 className="text-sm font-semibold text-gray-950">Monthly board packages</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Financial statements published by your management company.</p>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Monthly board packages</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Financial statements published by your management company.</p>
         </div>
         {packagesError ? (
           <div className="p-5"><Alert tone="danger" title="Board packages could not be loaded">{packagesError.message}</Alert></div>
         ) : (packages ?? []).length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-gray-500">No board packages have been published yet.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-line">
             {(packages ?? []).map((p: any) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
                 <div className="flex min-w-0 items-start gap-2.5">
@@ -62,7 +62,7 @@ export default async function BoardReportsPage() {
                     {links.has(p.id)
                       ? <a href={links.get(p.id)} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-900 hover:underline">{p.file_name}</a>
                       : <span className="text-sm font-medium text-gray-900">{p.file_name}</span>}
-                    <div className="text-xs text-gray-500">{nameById.get(p.entity_id) ? `${nameById.get(p.entity_id)} · ` : ''}{p.description}</div>
+                    <div className="text-[13px] text-gray-500">{nameById.get(p.entity_id) ? `${nameById.get(p.entity_id)} · ` : ''}{p.description}</div>
                   </div>
                 </div>
                 <span className="text-xs tabular-nums text-gray-500">Published {date(p.uploaded_at)}</span>
@@ -77,7 +77,7 @@ export default async function BoardReportsPage() {
           <Link
             key={r.label}
             href={r.href}
-            className="group rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]"
+            className="group rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]"
           >
             <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${r.bg}`}>
               <r.icon className={`h-5 w-5 ${r.color}`} />

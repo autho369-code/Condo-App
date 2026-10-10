@@ -75,7 +75,7 @@ export default async function LockboxBatchPage({
         />
 
         {ready.length > 0 && (
-          <form action={postLockboxBatch} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200/70 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <form action={postLockboxBatch} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <input type="hidden" name="batch_id" value={id} />
             <p className="text-sm text-gray-600">Check the matches below, then post. Unmatched and rejected checks are left for later.</p>
             <Button type="submit">Post {ready.length} matched check{ready.length === 1 ? '' : 's'}</Button>

@@ -77,8 +77,8 @@ export default async function NewServiceRequest({
       </div>
 
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Submit a service request</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Submit a service request</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Tell us what&apos;s going on. Your property manager reviews requests during business hours and
           dispatches a vendor when needed. For an active emergency — burst pipe, no heat in winter, fire, gas leak —
           <strong className="text-gray-700"> please also call your emergency maintenance line.</strong>
@@ -147,7 +147,7 @@ export default async function NewServiceRequest({
                   placeholder="Describe the problem — where in the unit, when it started, any sounds / leaks / smells, what you've already tried."
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
                 />
-                <p className="mt-1 text-xs text-gray-500">The more specific you are, the faster we can dispatch the right person.</p>
+                <p className="mt-1 text-[13px] text-gray-500">The more specific you are, the faster we can dispatch the right person.</p>
               </div>
 
               {/* --- Priority radio group --- */}
@@ -166,7 +166,7 @@ export default async function NewServiceRequest({
                       />
                       <div>
                         <div className="text-sm font-medium capitalize">{p.label}</div>
-                        <div className="text-xs text-gray-500">{p.hint}</div>
+                        <div className="text-[13px] text-gray-500">{p.hint}</div>
                       </div>
                     </label>
                   ))}
@@ -206,7 +206,7 @@ export default async function NewServiceRequest({
         </Card>
       )}
 
-      <p className="text-xs text-gray-400">
+      <p className="text-[13px] text-gray-500">
         Common emergencies: no heat below 55°F, no hot water, active water leak, sewage backup,
         gas smell, electrical arcing, broken lock on an exterior door. In those cases, also call
         the number on your welcome packet.

@@ -95,7 +95,7 @@ export function PortfolioAssistant({
   const empty = messages.length === 0;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-950">
@@ -103,7 +103,7 @@ export function PortfolioAssistant({
         </span>
         <div>
           <h2 className="text-sm font-semibold tracking-[-0.01em] text-gray-950">{title}</h2>
-          <p className="text-xs text-gray-500">{subtitle}</p>
+          <p className="text-[13px] text-gray-500">{subtitle}</p>
         </div>
         {scopeOptions && scopeOptions.length > 0 && (
           <label className="ml-auto flex items-center gap-2 text-xs font-medium text-gray-600">

@@ -2,7 +2,7 @@ import type * as React from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { MetricStrip } from '@/components/operations/metric-strip';
+import { Section } from '@/components/workspace/shell';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
 import { Alert, Badge } from '@/components/ui/shell';
@@ -157,12 +157,26 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     <Link href={href} className="font-medium text-gray-500 underline-offset-4 transition-colors hover:text-gray-900 hover:underline">{label}</Link>
   );
 
+  const overdue = activitiesOverdue.count ?? 0;
+  const financeAccess = !!(me.is_finance_staff || me.is_platform_operator);
+  // The same create pages the command palette offers this user.
+  const quickActions = [
+    { label: 'New work order', href: '/work-orders/new' },
+    { label: 'New violation', href: '/violations/new' },
+    ...(financeAccess ? [{ label: 'Homeowner receipt', href: '/receipts/new' }, { label: 'New bill', href: '/bills/new' }] : []),
+    { label: 'New homeowner', href: '/owners/new' },
+    { label: 'New vendor', href: '/vendors/new' },
+    { label: 'Schedule meeting', href: '/meetings/new' },
+    { label: 'New letter', href: '/letters/new' },
+  ];
+
   return (
     <DataWorkspace
       title={activeAssoc ? `${activeAssoc.name} dashboard` : 'Dashboard'}
+      description={`What needs attention today, ${date(todayDate)}.`}
       actions={
-        <form action="/dashboard" method="get" className="flex items-center gap-2">
-          <Select name="assoc" defaultValue={assoc} className="min-w-44" aria-label="View by association">
+        <form action="/dashboard" method="get" className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <Select name="assoc" defaultValue={assoc} className="min-w-0 flex-1 sm:w-56 sm:flex-none" aria-label="View by association">
             <option value="">All associations</option>
             {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </Select>
@@ -178,96 +192,107 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <Alert tone="warning" title="Some figures are incomplete">Too many rows to load for: {truncated.join(', ')}. Pick one association to see complete figures.</Alert>
         )}
 
-        <DashboardSection title="Online payments">
-          <SubHeading>Last 30 days</SubHeading>
-          <MetricStrip
-            metrics={[
-              { label: 'Collected online', value: paymentTotal > 0 ? `${pct(onlineTotal, paymentTotal)}%` : '—', sublabel: paymentTotal > 0 ? tileLink(receiptsHref, 'View receipts') : 'No receipts in the last 30 days' },
-              { label: 'Units paying online', value: unitsPaid.size > 0 ? `${pct(unitsPaidOnline.size, unitsPaid.size)}%` : '—', sublabel: unitsPaid.size > 0 ? <>{unitsPaidOnline.size} of {unitsPaid.size} units that paid</> : 'No units paid in the last 30 days' },
-            ]}
-          />
-          {manualCount > 0 && (
-            <div className="mt-3">
-              <Alert tone="info" title={`${manualCount} receipt${manualCount === 1 ? '' : 's'} entered by hand this week`}>
-                Owners who pay in the portal post automatically. <Link href={activationsHref} className="underline">Invite owners to the portal</Link>.
-              </Alert>
-            </div>
-          )}
-
-          <SubHeading className="mt-6">Owner portal adoption</SubHeading>
-          {ownerList.length === 0 ? (
-            <p className="text-sm text-gray-500">No current homeowners{activeAssoc ? ' in this association' : ''}.</p>
-          ) : (
-            <MetricStrip
-              metrics={[
-                { label: 'Activated', value: `${pct(activated, ownerList.length)}%`, sublabel: <>{activated} owner{activated === 1 ? '' : 's'} · {tileLink(`/owners/activations?status=active${assocQs}`, 'View homeowners')}</> },
-                { label: 'Not activated', value: `${pct(notActivated, ownerList.length)}%`, sublabel: <>{notActivated} owner{notActivated === 1 ? '' : 's'} · {tileLink(activationsHref, 'Send activation emails')}</> },
-                { label: 'No email', value: `${pct(noEmail, ownerList.length)}%`, sublabel: <>{noEmail} owner{noEmail === 1 ? '' : 's'} · {tileLink(`/owners/activations?status=no_email${assocQs}`, 'View homeowners')}</> },
-              ]}
-            />
-          )}
-        </DashboardSection>
-
-        <DashboardSection title="Notifications">
-          <SubHeading>Activities</SubHeading>
-          <MetricStrip
-            metrics={[
-              { label: 'Due in the next 7 days', value: activitiesDue.count ?? 0, sublabel: tileLink('/automation-center', 'Open tasks') },
-              { label: 'Overdue', value: <span className={(activitiesOverdue.count ?? 0) > 0 ? 'text-red-700' : undefined}>{activitiesOverdue.count ?? 0}</span>, sublabel: tileLink('/automation-center', 'Open tasks') },
-            ]}
-          />
-
-          <SubHeading className="mt-6">Bills</SubHeading>
-          <MetricStrip metrics={[{ label: 'Pending approval', value: billsPending.count ?? 0, sublabel: tileLink(`/bills?status=pending_approval${assocParam}`, 'Review bills') }]} />
-
-          <SubHeading className="mt-6">Purchase orders</SubHeading>
-          <MetricStrip
-            metrics={[
-              { label: 'Drafts to submit', value: poDrafts.count ?? 0, sublabel: tileLink(`/purchase-orders?status=draft${assocParam}`, 'Review drafts') },
-              { label: 'Awaiting board approval', value: poAwaiting.count ?? 0, sublabel: tileLink(`/purchase-orders?status=pending_approval${assocParam}`, 'Review') },
-            ]}
-          />
-
-          <div className="mt-6 mb-3 flex items-center justify-between gap-3">
-            <h3 className="text-[13px] font-semibold text-gray-700">Notifications feed</h3>
-            <Link href="/reminders" className="text-[13px] font-medium text-gray-500 underline-offset-4 hover:text-gray-900 hover:underline">Choose notifications</Link>
+        <section aria-labelledby="attention-heading">
+          <h2 id="attention-heading" className="mb-3 font-display text-[17px] font-semibold tracking-[-0.015em] text-ink">Needs attention</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <AttentionCard label="Overdue activities" count={activitiesOverdue.error ? null : overdue} tone={overdue > 0 ? 'danger' : 'calm'} href="/automation-center" cta="Open tasks" />
+            <AttentionCard label="Due in the next 7 days" count={activitiesDue.error ? null : activitiesDue.count ?? 0} href="/automation-center" cta="Open tasks" />
+            <AttentionCard label="Bills pending approval" count={billsPending.error ? null : billsPending.count ?? 0} tone={(billsPending.count ?? 0) > 0 ? 'warning' : 'calm'} href={`/bills?status=pending_approval${assocParam}`} cta="Review bills" />
+            <AttentionCard label="Purchase-order drafts to submit" count={poDrafts.error ? null : poDrafts.count ?? 0} href={`/purchase-orders?status=draft${assocParam}`} cta="Review drafts" />
+            <AttentionCard label="Awaiting board approval" count={poAwaiting.error ? null : poAwaiting.count ?? 0} href={`/purchase-orders?status=pending_approval${assocParam}`} cta="Review" />
           </div>
-          {feed.length === 0 ? (
-            <div className="rounded-xl border border-gray-200/70 px-5 py-8 text-center text-sm text-gray-500">No new notifications.</div>
-          ) : (
-            <ul className="max-h-[28rem] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200/70">
-              {feed.map((item) => (
-                <li key={item.key}>
-                  <Link href={item.href} className="flex min-h-[44px] flex-col gap-1 px-4 py-3 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-gray-950">{item.title}</div>
-                      <div className="mt-0.5 truncate text-xs text-gray-500">{item.detail}</div>
-                    </div>
-                    <span className="shrink-0"><Badge tone={item.kind === 'Service request' ? 'open' : item.kind === 'Delinquent accounts' ? 'danger' : 'pending'}>{item.kind}</Badge></span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className="mt-2 text-xs text-gray-400">Open service requests from the last 30 days, then alerts due as of {date(todayDate)}.</p>
-        </DashboardSection>
+        </section>
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+          <Section
+            title="Notifications feed"
+            subtitle={`Open service requests from the last 30 days, then alerts due as of ${date(todayDate)}.`}
+            actions={<Link href="/reminders" className="inline-flex min-h-10 items-center text-[13.5px] font-medium text-gray-600 underline-offset-4 hover:text-gray-950 hover:underline">Choose notifications</Link>}
+          >
+            {feed.length === 0 ? (
+              <p className="px-5 py-10 text-center text-sm text-gray-500">{serviceRequests.error ? 'Service requests could not load.' : 'No new notifications.'}</p>
+            ) : (
+              <ul className="max-h-[32rem] divide-y divide-line overflow-y-auto">
+                {feed.map((item) => (
+                  <li key={item.key}>
+                    <Link href={item.href} className="flex min-h-[52px] flex-col gap-1.5 px-5 py-3.5 hover:bg-gray-50/70 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-ink">{item.title}</div>
+                        <div className="mt-0.5 text-[13px] text-gray-500">{item.detail}</div>
+                      </div>
+                      <span className="shrink-0"><Badge tone={item.kind === 'Service request' ? 'open' : item.kind === 'Delinquent accounts' ? 'danger' : 'pending'}>{item.kind}</Badge></span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+
+          <div className="space-y-6">
+            <Section title="Quick actions">
+              <ul className="grid grid-cols-1 gap-1 p-2 sm:grid-cols-2 xl:grid-cols-1">
+                {quickActions.map((action) => (
+                  <li key={action.href}>
+                    <Link href={action.href} className="flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-ink">
+                      {action.label}<span aria-hidden="true" className="text-gray-400">›</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+
+            <Section title="Online payments" subtitle="Last 30 days" padded>
+              <dl className="grid grid-cols-2 gap-4">
+                <Figure label="Collected online" value={paymentTotal > 0 ? `${pct(onlineTotal, paymentTotal)}%` : '—'} sub={paymentTotal > 0 ? tileLink(receiptsHref, 'View receipts') : 'No receipts in the last 30 days'} />
+                <Figure label="Units paying online" value={unitsPaid.size > 0 ? `${pct(unitsPaidOnline.size, unitsPaid.size)}%` : '—'} sub={unitsPaid.size > 0 ? <>{unitsPaidOnline.size} of {unitsPaid.size} units that paid</> : 'No units paid in the last 30 days'} />
+              </dl>
+              {manualCount > 0 && (
+                <div className="mt-4">
+                  <Alert tone="info" title={`${manualCount} receipt${manualCount === 1 ? '' : 's'} entered by hand this week`}>
+                    Owners who pay in the portal post automatically. <Link href={activationsHref} className="underline">Invite owners to the portal</Link>.
+                  </Alert>
+                </div>
+              )}
+            </Section>
+
+            <Section title="Owner portal adoption" padded>
+              {ownerList.length === 0 ? (
+                <p className="text-sm text-gray-500">No current homeowners{activeAssoc ? ' in this association' : ''}.</p>
+              ) : (
+                <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:grid-cols-1">
+                  <Figure label="Activated" value={`${pct(activated, ownerList.length)}%`} sub={<>{activated} owner{activated === 1 ? '' : 's'} · {tileLink(`/owners/activations?status=active${assocQs}`, 'View homeowners')}</>} />
+                  <Figure label="Not activated" value={`${pct(notActivated, ownerList.length)}%`} sub={<>{notActivated} owner{notActivated === 1 ? '' : 's'} · {tileLink(activationsHref, 'Send activation emails')}</>} />
+                  <Figure label="No email" value={`${pct(noEmail, ownerList.length)}%`} sub={<>{noEmail} owner{noEmail === 1 ? '' : 's'} · {tileLink(`/owners/activations?status=no_email${assocQs}`, 'View homeowners')}</>} />
+                </dl>
+              )}
+            </Section>
+          </div>
+        </div>
       </div>
     </DataWorkspace>
   );
 }
 
-function DashboardSection({ title, children }: { title: string; children: React.ReactNode }) {
+/** A count that needs attention, opening the list it counts. A failed count shows a dash, never 0. */
+function AttentionCard({ label, count, href, cta, tone = 'calm' }: { label: string; count: number | null; href: string; cta: string; tone?: 'calm' | 'warning' | 'danger' }) {
+  const ink = count == null ? 'text-gray-400' : tone === 'danger' ? 'text-red-700' : tone === 'warning' ? 'text-amber-700' : 'text-ink';
   return (
-    <details open className="group rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-      <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-2 border-b border-gray-100 px-5 py-3 text-[15px] font-semibold tracking-[-0.01em] text-gray-950 [&::-webkit-details-marker]:hidden">
-        <span aria-hidden className="text-gray-400 transition-transform group-open:rotate-90">›</span>
-        {title}
-      </summary>
-      <div className="p-5">{children}</div>
-    </details>
+    <Link href={href} className="group flex min-h-[112px] flex-col justify-between rounded-2xl border border-line bg-white px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-gray-300 hover:bg-gray-50/60">
+      <div className="text-[13.5px] font-medium leading-5 text-gray-600">{label}</div>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <span className={`font-display text-[30px] font-semibold leading-none tabular-nums tracking-[-0.02em] ${ink}`}>{count == null ? '—' : count}</span>
+        <span className="text-[13px] font-medium text-gray-500 group-hover:text-ink">{cta} ›</span>
+      </div>
+    </Link>
   );
 }
 
-function SubHeading({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <h3 className={`mb-3 text-[13px] font-semibold text-gray-700 ${className}`}>{children}</h3>;
+function Figure({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[13px] font-medium text-gray-500">{label}</dt>
+      <dd className="mt-1 font-display text-[24px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</dd>
+      {sub && <dd className="mt-1 text-[13px] leading-5 text-gray-500">{sub}</dd>}
+    </div>
+  );
 }

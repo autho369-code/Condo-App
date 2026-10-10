@@ -63,7 +63,7 @@ export default async function ChargeCategoriesPage() {
                 </TD>
                 <TD>
                   {c.is_system
-                    ? <span className="text-xs text-gray-500">seeded</span>
+                    ? <span className="text-[13px] text-gray-500">seeded</span>
                     : <span className="text-xs text-emerald-700">custom</span>}
                 </TD>
               </TR>
@@ -71,7 +71,7 @@ export default async function ChargeCategoriesPage() {
           </tbody>
         </Table>
       ) : (
-        <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <EmptyState
             icon={Tags}
             title="No charge categories yet"

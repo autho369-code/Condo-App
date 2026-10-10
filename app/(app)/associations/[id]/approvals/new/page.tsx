@@ -164,13 +164,13 @@ export default async function NewApprovalPage({
       <form action={createApproval as any} className="max-w-3xl space-y-5">
         <Section title="Details" padded>
           <FormRow label="Name" required>
-            <input type="text" name="name" required className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+            <input type="text" name="name" required className="h-10 w-full max-w-md rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
 
           <FormRow label="Amount">
             <div className="flex items-center gap-1.5">
               <span className="text-gray-500">$</span>
-              <input type="number" step="0.01" min="0" name="amount" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+              <input type="number" step="0.01" min="0" name="amount" className="h-10 w-44 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
             </div>
           </FormRow>
 
@@ -179,7 +179,7 @@ export default async function NewApprovalPage({
           </FormRow>
 
           <FormRow label="Due Date" required>
-            <input type="date" name="due_date" required defaultValue={defaultDueDateValue} className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+            <input type="date" name="due_date" required defaultValue={defaultDueDateValue} className="h-10 w-44 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
 
           <FormRow label="Board Members" required>

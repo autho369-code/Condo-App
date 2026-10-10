@@ -39,7 +39,7 @@ export default async function TemplatesPage() {
       </Alert>
 
       {Object.keys(grouped).length === 0 ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <EmptyState
             icon={LayoutTemplate}
             title="No templates yet"
@@ -56,11 +56,11 @@ export default async function TemplatesPage() {
                   <Link
                     key={t.id}
                     href={`/maintenance/new?template=${t.id}`}
-                    className="group flex items-center justify-between rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]"
+                    className="group flex items-center justify-between rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]"
                   >
                     <div>
                       <div className="font-medium text-gray-900">{t.name}</div>
-                      {t.description && <div className="mt-1 text-xs text-gray-500">{t.description}</div>}
+                      {t.description && <div className="mt-1 text-[13px] text-gray-500">{t.description}</div>}
                     </div>
                     <span className="text-sm font-medium text-gray-400 opacity-0 transition-opacity group-hover:opacity-100">+ Add</span>
                   </Link>

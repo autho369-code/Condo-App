@@ -51,10 +51,10 @@ export default async function OwnerWorkOrderDetail({ params, searchParams }: { p
 
       {sp.error && <Alert tone="danger" title="Could not post message:">{sp.error}</Alert>}
 
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{wo.title}</h1>
+            <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{wo.title}</h1>
             <div className="mt-1 text-sm capitalize text-gray-500">Unit {wo.units?.unit_number} — {wo.category?.replace('_',' ') ?? 'General'}</div>
           </div>
           <Badge status={wo.status} />

@@ -62,7 +62,7 @@ export default async function VendorPerformancePage() {
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <Stars value={r.score} />
                   <span className="truncate text-gray-900">{r.work_order_title ?? 'Work order'}</span>
-                  <span className="text-xs text-gray-500">{date(r.created_at)}</span>
+                  <span className="text-[13px] text-gray-500">{date(r.created_at)}</span>
                 </div>
                 {r.comment && <p className="mt-1 text-sm text-gray-600">{r.comment}</p>}
               </li>

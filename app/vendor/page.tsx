@@ -153,7 +153,7 @@ export default async function VendorDashboard() {
           <div className="flex items-start gap-3">
             <ShieldAlert className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" />
             <div className="text-[13px] leading-5 text-gray-600">
-              No compliance documents on file yet{severalRecords ? ` for ${emptyRecords.map((r) => vendorAssociationLabel(r)).join(', ')}` : ''}. Keeping your insurance and license dates current helps you stay eligible for assignments.{' '}
+              No compliance documents on file yet{severalRecords ? ` for ${[...new Set(emptyRecords.map((r) => vendorAssociationLabel(r)))].join(', ')}` : ''}. Keeping your insurance and license dates current helps you stay eligible for assignments.{' '}
               <Link href={complianceHref(emptyRecords.map((r) => r.id).slice(0, 1))} className="font-medium text-blue-600 hover:text-blue-800">Add them now</Link>.
             </div>
           </div>

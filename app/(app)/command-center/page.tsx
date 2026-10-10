@@ -25,7 +25,7 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 async function runMatching() {
   'use server'
@@ -56,9 +56,9 @@ function Tile({ label, value, sub, icon: Icon, tone }: { label: string; value: R
     <div className={`${card} px-4 py-3.5`}>
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
           <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${tone === 'danger' ? 'text-red-700' : tone === 'warning' ? 'text-amber-700' : tone === 'success' ? 'text-emerald-700' : 'text-gray-950'}`}>{value}</div>
-          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -287,8 +287,8 @@ export default async function FinancialCommandCenterPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Financial Command Center</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Financial Command Center</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
             Collections, settlements, and reconciliation across the portfolio — the ledger is the source of truth; Stripe and the bank feed confirm it
           </p>
         </div>
@@ -338,9 +338,9 @@ export default async function FinancialCommandCenterPage({
 
       {/* ── AI Financial Health ───────────────────────── */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Financial Health</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Computed live from collections, payment history, and the posted ledger — deterministic rules, no fabricated numbers</p>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Financial Health</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Computed live from collections, payment history, and the posted ledger — deterministic rules, no fabricated numbers</p>
         </div>
         <ul className="space-y-2.5 px-5 py-4">
           {healthStatements.map((s, i) => (
@@ -354,9 +354,9 @@ export default async function FinancialCommandCenterPage({
 
       {/* ── Exception queue ───────────────────────────── */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Exception Queue</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Everything that needs a human — unmatched deposits, mismatched payouts, returns, chargebacks, refunds</p>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Exception Queue</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Everything that needs a human — unmatched deposits, mismatched payouts, returns, chargebacks, refunds</p>
         </div>
         {exceptions.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-gray-500">Nothing needs attention — all money movement is matched.</p>
@@ -377,19 +377,19 @@ export default async function FinancialCommandCenterPage({
 
       {/* ── Online payments (30d) ─────────────────────── */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Online Payments (30 days)</h2>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Online Payments (30 days)</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Owner</th>
-                <th className="px-5 py-2.5 text-left font-medium">Unit</th>
-                <th className="px-5 py-2.5 text-left font-medium">Method</th>
-                <th className="px-5 py-2.5 text-left font-medium">Status</th>
-                <th className="px-5 py-2.5 text-left font-medium">When</th>
-                <th className="px-5 py-2.5 text-right font-medium">Amount</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Owner</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Unit</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Method</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">When</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -397,18 +397,18 @@ export default async function FinancialCommandCenterPage({
                 <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-gray-500">{stripeOn ? 'No online payments yet.' : 'Online payments appear here once Stripe is enabled.'}</td></tr>
               ) : (
                 (intents ?? []).map((i: any) => (
-                  <tr key={i.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-5 py-3">
+                  <tr key={i.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                    <td className="px-5 py-3.5">
                       <Link href={`/command-center/payments/${i.id}`} className="font-medium text-gray-900 hover:underline">{i.owners?.full_name ?? '—'}</Link>
                     </td>
                     <td className="px-5 py-3 tabular-nums text-gray-700">{i.units?.unit_number ?? '—'}</td>
                     <td className="px-5 py-3 text-[13px] uppercase text-gray-700">{i.method ?? '—'}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-3.5">
                       <StatusChip tone={i.status === 'succeeded' ? 'success' : ['failed', 'returned', 'chargeback'].includes(i.status) ? 'danger' : i.status === 'processing' ? 'info' : 'neutral'}>
                         {i.status}
                       </StatusChip>
                     </td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(i.created_at)}</td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{date(i.created_at)}</td>
                     <td className="px-5 py-3 text-right font-medium tabular-nums text-gray-950">{money(Number(i.amount))}</td>
                   </tr>
                 ))
@@ -420,20 +420,20 @@ export default async function FinancialCommandCenterPage({
 
       {/* ── Payout batches ────────────────────────────── */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Stripe Payouts → Bank</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Each payout is matched against the online payments it settles and the Plaid bank-feed deposit</p>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Stripe Payouts → Bank</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Each payout is matched against the online payments it settles and the Plaid bank-feed deposit</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Payout</th>
-                <th className="px-5 py-2.5 text-left font-medium">Arrival</th>
-                <th className="px-5 py-2.5 text-right font-medium">Amount</th>
-                <th className="px-5 py-2.5 text-right font-medium">Expected</th>
-                <th className="px-5 py-2.5 text-left font-medium">Match</th>
-                <th className="px-5 py-2.5 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Payout</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Arrival</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Amount</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Expected</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Match</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -441,13 +441,13 @@ export default async function FinancialCommandCenterPage({
                 <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-gray-500">No processor payouts yet.</td></tr>
               ) : (
                 (payouts ?? []).map((p: any) => (
-                  <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={p.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="px-5 py-3 font-mono text-xs text-gray-700">{p.processor_payout_id}</td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(p.arrival_date)}</td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{date(p.arrival_date)}</td>
                     <td className="px-5 py-3 text-right font-medium tabular-nums text-gray-950">{money(Number(p.amount))}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-gray-700">{p.expected_amount != null ? money(Number(p.expected_amount)) : '—'}</td>
+                    <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{p.expected_amount != null ? money(Number(p.expected_amount)) : '—'}</td>
                     <td className="px-5 py-3 text-[13px] capitalize text-gray-700">{(p.match_method ?? '—').replace(/_/g, ' ')}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-3.5">
                       <StatusChip tone={p.status === 'reconciled' ? 'success' : p.status === 'needs_review' || p.status === 'failed' ? 'danger' : 'info'}>
                         {p.status.replace(/_/g, ' ')}
                       </StatusChip>

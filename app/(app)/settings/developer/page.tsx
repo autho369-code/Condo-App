@@ -163,7 +163,7 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
                 const active = !key.revoked_at && !expired;
                 return (
                   <TR key={key.id}>
-                    <TD><span className="block font-medium text-gray-950">{key.name}</span><code className="text-xs text-gray-500">{key.prefix}...</code></TD>
+                    <TD><span className="block font-medium text-gray-950">{key.name}</span><code className="text-[13px] text-gray-500">{key.prefix}...</code></TD>
                     <TD><div className="flex max-w-sm flex-wrap gap-1">{(key.scopes ?? []).map((scope: string) => <StatusChip key={scope}>{scope}</StatusChip>)}</div></TD>
                     <TD>{(calls30.get(key.id) ?? 0).toLocaleString()} calls in 30 days<span className="block text-xs text-gray-500">{Number(key.use_count ?? 0).toLocaleString()} all time · last used {key.last_used_at ? date(key.last_used_at) : 'never'}</span></TD>
                     <TD>{key.expires_at ? date(key.expires_at) : 'No expiration'}</TD>
@@ -173,7 +173,7 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
                         <form action={revokeDeveloperApiKey.bind(null, key.id)}>
                           <PendingSubmit size="sm" variant="danger" pendingLabel="Revoking…" confirm="Revoke this API key? Anything using it stops working immediately.">Revoke</PendingSubmit>
                         </form>
-                      ) : <span className="text-xs text-gray-400">Unavailable</span>}
+                      ) : <span className="text-[13px] text-gray-500">Unavailable</span>}
                     </TD>
                   </TR>
                 );

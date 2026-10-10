@@ -1,4 +1,4 @@
-import Sidebar from '@/components/nav/sidebar'
+import RoleShell from '@/components/nav/role-shell'
 import { boardModules } from '@/lib/navigation/role-modules'
 import { requireBoard } from '@/lib/auth/me'
 import { createClient } from '@/lib/supabase/server'
@@ -32,16 +32,15 @@ export default async function BoardLayout({ children }: { children: React.ReactN
     : boardModules
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar
-        portfolioName={associationName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? NEUTRAL_COMPANY_NAME}
-        userEmail={me.email ?? undefined}
-        modules={modules}
-        subtitle="Board portal"
-      />
-      <main className="h-screen min-w-0 flex-1 overflow-y-auto bg-[#f6f7f9] pt-12 lg:pt-0">
-        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-8">{children}</div>
-      </main>
-    </div>
+    <RoleShell
+      portfolioName={associationName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? NEUTRAL_COMPANY_NAME}
+      userEmail={me.email ?? undefined}
+      modules={modules}
+      subtitle="Board portal"
+      brandColor={me.portfolio?.brand_color ?? null}
+      width="portal"
+    >
+      {children}
+    </RoleShell>
   )
 }

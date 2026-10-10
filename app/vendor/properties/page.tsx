@@ -62,7 +62,7 @@ export default async function VendorPropertiesPage() {
                   <Building2 className="h-5 w-5 text-gray-400" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-[15px] font-semibold text-gray-950">{a.name}</h2>
+                  <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{a.name}</h2>
                   <p className="mt-0.5 text-[13px] text-gray-500">
                     {[a.address, a.address_line_2, [a.city, a.state].filter(Boolean).join(', '), a.zip].filter(Boolean).join(' · ')}
                   </p>
@@ -70,13 +70,13 @@ export default async function VendorPropertiesPage() {
                   <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
                     {(a.maintenance_contact_name || a.site_manager) && (
                       <div>
-                        <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">On-site Contact</dt>
+                        <dt className="text-[13px] font-medium text-gray-500">On-site Contact</dt>
                         <dd className="mt-0.5 text-sm text-gray-900">{a.maintenance_contact_name ?? a.site_manager}</dd>
                       </div>
                     )}
                     {(a.maintenance_contact_phone || a.maintenance_phone || a.site_manager_phone) && (
                       <div>
-                        <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Phone</dt>
+                        <dt className="text-[13px] font-medium text-gray-500">Phone</dt>
                         <dd className="mt-0.5">
                           <a href={`tel:${a.maintenance_contact_phone ?? a.maintenance_phone ?? a.site_manager_phone}`} className="inline-flex items-center gap-1.5 text-sm text-gray-900 hover:underline">
                             <Phone className="h-3.5 w-3.5 text-gray-400" /> {a.maintenance_contact_phone ?? a.maintenance_phone ?? a.site_manager_phone}
@@ -86,7 +86,7 @@ export default async function VendorPropertiesPage() {
                     )}
                     {a.maintenance_contact_email && (
                       <div>
-                        <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Email</dt>
+                        <dt className="text-[13px] font-medium text-gray-500">Email</dt>
                         <dd className="mt-0.5">
                           <a href={`mailto:${a.maintenance_contact_email}`} className="inline-flex items-center gap-1.5 text-sm text-gray-900 hover:underline">
                             <Mail className="h-3.5 w-3.5 text-gray-400" /> {a.maintenance_contact_email}
@@ -95,7 +95,7 @@ export default async function VendorPropertiesPage() {
                       </div>
                     )}
                     <div>
-                      <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Unit Entry</dt>
+                      <dt className="text-[13px] font-medium text-gray-500">Unit Entry</dt>
                       <dd className="mt-0.5 inline-flex items-center gap-1.5 text-sm text-gray-900">
                         <KeyRound className="h-3.5 w-3.5 text-gray-400" />
                         {a.unit_entry_pre_authorized ? 'Pre-authorized by association' : 'Coordinate entry with the manager'}
@@ -105,7 +105,7 @@ export default async function VendorPropertiesPage() {
 
                   {a.maintenance_notes && (
                     <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
-                      <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Access & Site Notes</div>
+                      <div className="text-[13px] font-medium text-gray-500">Access & Site Notes</div>
                       <p className="mt-1 whitespace-pre-wrap text-[13px] leading-5 text-gray-700">{a.maintenance_notes}</p>
                     </div>
                   )}

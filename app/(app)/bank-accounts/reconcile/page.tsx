@@ -264,7 +264,7 @@ export default async function BankReconciliationPage({
             />
 
             {/* Bank Account Info Bar */}
-            <div className="flex flex-wrap gap-4 rounded-2xl border border-gray-200/70 bg-white px-4 py-3 text-sm shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="flex flex-wrap gap-4 rounded-2xl border border-line bg-white px-4 py-3 text-sm shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <div>
                 <span className="text-gray-500">Account: </span>
                 <span className="font-medium text-gray-900">{selectedAccount.name}</span>
@@ -324,10 +324,10 @@ export default async function BankReconciliationPage({
               <Surface padded={false} className="p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-950">
+                    <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">
                       Reconciliation — {date(recentReconciliation.statement_date, 'long')}
                     </h3>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-[13px] text-gray-500">
                       Statement balance: {money(recentReconciliation.statement_balance)}
                       {' · '}
                       Status:{' '}
@@ -459,28 +459,28 @@ export default async function BankReconciliationPage({
             {/* Summary footer */}
             {recentReconciliation && displayItems.length > 0 && (
               <Surface padded={false} className="p-4">
-                <h3 className="text-sm font-semibold text-gray-950">Reconciliation summary</h3>
+                <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Reconciliation summary</h3>
                 <div className="mt-3 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
                   <div>
-                    <div className="text-xs text-gray-500">Statement balance</div>
+                    <div className="text-[13px] text-gray-500">Statement balance</div>
                     <div className="font-medium tabular-nums">{money(statementBalance)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500">Book balance</div>
+                    <div className="text-[13px] text-gray-500">Book balance</div>
                     <div className="font-medium tabular-nums">{money(bookBalance)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500">Less: outstanding{bankOnlyCleared !== 0 ? ' · plus bank-only' : ''}</div>
+                    <div className="text-[13px] text-gray-500">Less: outstanding{bankOnlyCleared !== 0 ? ' · plus bank-only' : ''}</div>
                     <div className="font-medium tabular-nums text-amber-700">({money(outstandingAmount)}){bankOnlyCleared !== 0 ? ` + ${money(bankOnlyCleared)}` : ''}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500">Adjusted book balance</div>
+                    <div className="text-[13px] text-gray-500">Adjusted book balance</div>
                     <div className="font-medium tabular-nums">{money(adjustedBookBalance)}</div>
                   </div>
                   <div className="col-span-2 sm:col-span-4">
                     <div className="mt-2 border-t border-gray-200 pt-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">Difference:</span>
+                        <span className="text-[13px] text-gray-500">Difference:</span>
                         <span
                           className={`text-lg font-semibold tabular-nums ${
                             Math.abs(adjustedBookBalance - statementBalance) < 0.01

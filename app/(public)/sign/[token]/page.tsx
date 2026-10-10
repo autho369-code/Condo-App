@@ -32,8 +32,8 @@ export default async function SignPage({
   const sp = await searchParams;
   const invalid = (
     <Shell>
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <h1 className="text-xl font-semibold text-gray-950">This signing link isn&apos;t valid</h1>
+      <div className="rounded-2xl border border-line bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">This signing link isn&apos;t valid</h1>
         <p className="mt-2 text-sm text-gray-500">It may have been replaced by a newer email, or the request was cancelled. Contact the sender for a new link.</p>
       </div>
     </Shell>
@@ -74,7 +74,7 @@ export default async function SignPage({
       <div className="space-y-5">
         <div>
           <div className="text-[12px] font-medium uppercase tracking-[0.08em] text-gray-400">{[r.company, r.association].filter(Boolean).join(' · ')}</div>
-          <h1 className="mt-1 text-[24px] font-semibold tracking-[-0.02em] text-gray-950">{r.title}</h1>
+          <h1 className="mt-1 break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{r.title}</h1>
           <p className="mt-1 text-sm text-gray-500">Requested of {me.name}{me.role_label ? `, ${me.role_label}` : ''}</p>
         </div>
 
@@ -85,9 +85,9 @@ export default async function SignPage({
         {r.status === 'declined' && <Alert tone="warning">This request was declined and is closed.</Alert>}
         {blocked === 'expired' && <Alert tone="warning">This request expired on {fmt(r.expires_at)}. Ask the sender for a new one.</Alert>}
         {blocked === 'waiting' && <Alert tone="info">Another signer must sign before you. You&apos;ll get an email when it&apos;s your turn.</Alert>}
-        {r.message && <div className="rounded-xl border border-gray-200/70 bg-white px-4 py-3 text-sm text-gray-700">{r.message}</div>}
+        {r.message && <div className="rounded-xl border border-line bg-white px-4 py-3 text-sm text-gray-700">{r.message}</div>}
 
-        <section className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-3">
             <span className="flex items-center gap-2 text-sm font-semibold text-gray-900"><FileText className="h-4 w-4 text-gray-400" />Document</span>
             {pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium text-gray-600 hover:text-gray-950">Open PDF</a>}
@@ -99,10 +99,10 @@ export default async function SignPage({
           ) : (
             <p className="px-5 py-6 text-sm text-gray-500">The document could not be loaded. Contact the sender.</p>
           )}
-          <div className="border-t border-gray-100 px-5 py-2 text-[11px] text-gray-400">Fingerprint (SHA-256): <span className="font-mono break-all">{r.document_sha256}</span></div>
+          <div className="border-t border-gray-100 px-5 py-2 text-[12.5px] text-gray-400">Fingerprint (SHA-256): <span className="font-mono break-all">{r.document_sha256}</span></div>
         </section>
 
-        <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <h2 className="text-sm font-semibold text-gray-900">Signers</h2>
           <ul className="mt-2 divide-y divide-gray-100">
             {(signers ?? []).map((sg: any, i: number) => (
@@ -115,13 +115,13 @@ export default async function SignPage({
         </section>
 
         {me.status === 'signed' && (
-          <div className="flex items-center gap-2 rounded-2xl border border-gray-200/70 bg-white p-5 text-sm text-gray-700">
+          <div className="flex items-center gap-2 rounded-2xl border border-line bg-white p-5 text-sm text-gray-700">
             <CheckCircle2 className="h-5 w-5 text-gray-900" />You signed as “{me.signature_name}” on {fmt(me.signed_at)}.
           </div>
         )}
 
         {canSign && (
-          <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <form action={signDocument} className="space-y-4">
               <input type="hidden" name="token" value={token} />
               <div className="rounded-xl bg-gray-50 p-4 text-[13px] leading-5 text-gray-600">

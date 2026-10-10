@@ -34,7 +34,7 @@ function companyStatus(portfolio: any, sub: any): { label: string; tone: Tone } 
 }
 
 function healthBadge(score: number | null | undefined) {
-  if (score === null || score === undefined) return <span className="text-xs text-gray-400">—</span>;
+  if (score === null || score === undefined) return <span className="text-[13px] text-gray-500">—</span>;
   const tone: Tone = score >= 80 ? 'success' : score >= 50 ? 'warning' : 'danger';
   return <StatusChip tone={tone}>{score}%</StatusChip>;
 }
@@ -128,7 +128,7 @@ export default async function CompaniesPage({
 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-950">Management Companies</h1>
+          <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">Management Companies</h1>
           <p className="mt-1 text-sm text-gray-500">
             Platform oversight across every company, their subscriptions, doors, and health.
           </p>
@@ -139,7 +139,7 @@ export default async function CompaniesPage({
       <Card id="new-company">
         <CardHeader>
           <CardTitle>New Company</CardTitle>
-          <p className="text-xs text-gray-500">
+          <p className="text-[13px] text-gray-500">
             Creates the company, the company-admin account, a secure invitation link, and queues the welcome email.
           </p>
         </CardHeader>
@@ -248,7 +248,7 @@ export default async function CompaniesPage({
                       {admin ? (
                         <div>
                           <div className="text-sm text-gray-900">{admin.full_name}</div>
-                          <div className="text-xs text-gray-500">{admin.email}</div>
+                          <div className="text-[13px] text-gray-500">{admin.email}</div>
                         </div>
                       ) : (
                         <span className="text-xs italic text-gray-400">No admin</span>
@@ -309,7 +309,7 @@ export default async function CompaniesPage({
             )}
           </tbody>
         </Table>
-        <p className="text-xs text-gray-400">
+        <p className="text-[13px] text-gray-500">
           Delete performs a soft archive: logins are disabled, while association data, billing records, and audit logs are preserved.
           Plan changes, additional admin invites, and password resets live on each company&apos;s detail page.
         </p>

@@ -128,34 +128,38 @@ export default async function CompanyAdminManagersPage({
     }
   })
 
+  // Doors across the associations managers cover, each association counted
+  // once (several managers can share one; summing per manager counted it twice).
+  const coveredAssocIds = new Set<string>((managers ?? []).flatMap((mgr: any) => scopeByManager.get(mgr.id)?.associationIds ?? []))
+  const doorsManaged = [...coveredAssocIds].reduce((sum, aid) => sum + (unitCountByAssoc.get(aid) ?? 0), 0)
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Managers</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">Staff and managers managing associations in your portfolio</p>
-        </div>
-        <form action={inviteManager} className="w-full max-w-md rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="flex items-center gap-2">
-            <Input name="email" type="email" required placeholder="manager@email.com" className="h-9 flex-1" aria-label="Manager email" />
+      <div>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Managers</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Staff and managers managing associations in your portfolio</p>
+      </div>
+      <form action={inviteManager} className="max-w-2xl rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <h2 className="mb-3 font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Invite a manager</h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input name="email" type="email" required placeholder="manager@email.com" className="flex-1" aria-label="Manager email" />
             <PendingSubmit pendingLabel="Inviting…"><UserPlus className="h-4 w-4" /> Invite</PendingSubmit>
           </div>
           {(portfolioAssocs ?? []).length > 0 && (
             <div className="mt-3">
-              <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Properties this manager can access</div>
+              <div className="mb-1.5 text-[13px] font-semibold text-gray-700">Properties this manager can access</div>
               <div className="max-h-40 space-y-1 overflow-y-auto">
                 {(portfolioAssocs ?? []).map((a: any) => (
-                  <label key={a.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px] text-gray-700 hover:bg-gray-50">
-                    <input type="checkbox" name="association_ids" value={a.id} className="h-3.5 w-3.5 rounded border-gray-300" />
+                  <label key={a.id} className="flex min-h-10 items-center gap-2.5 rounded-md px-1.5 text-sm text-gray-700 hover:bg-gray-50">
+                    <input type="checkbox" name="association_ids" value={a.id} className="h-4 w-4 rounded border-gray-300" />
                     <span className="truncate">{a.name}</span>
                   </label>
                 ))}
               </div>
-              <p className="mt-1.5 text-[11px] leading-4 text-gray-400">Leave all unchecked for full portfolio access.</p>
+              <p className="mt-1.5 text-[13px] leading-5 text-gray-500">Leave all unchecked for full portfolio access.</p>
             </div>
           )}
-        </form>
-      </div>
+      </form>
 
       {sp.invited && <Alert tone="success" title="Invitation sent">{`Invited ${sp.invited} as a Property Manager. They'll get an email with a link to set their password.`}</Alert>}
       {sp.error && <Alert tone="danger" title="Could not invite manager">{sp.error}</Alert>}
@@ -164,30 +168,30 @@ export default async function CompanyAdminManagersPage({
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           { label: 'Total Managers', value: rows.length },
-          { label: 'Total Doors Managed', value: rows.reduce((s: number, r: any) => s + r.totalDoors, 0).toLocaleString() },
+          { label: 'Doors Managed', value: doorsManaged.toLocaleString() },
           { label: 'Open Work Orders', value: rows.reduce((s: number, r: any) => s + r.openWorkOrders, 0) },
           { label: 'Overdue Work Orders', value: rows.reduce((s: number, r: any) => s + r.overdueWorkOrders, 0), warn: true },
         ].map((item) => (
-          <div key={item.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
+          <div key={item.label} className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="text-[13px] font-medium leading-5 text-gray-500">{item.label}</div>
             <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${item.warn ? 'text-amber-700' : 'text-gray-950'}`}>{item.value}</div>
           </div>
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+          <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
             <tr>
-              <th className="px-4 py-2.5 text-left font-medium">Manager</th>
-              <th className="px-4 py-2.5 text-left font-medium">Contact</th>
-              <th className="px-4 py-2.5 text-right font-medium">Assoc</th>
-              <th className="px-4 py-2.5 text-right font-medium">Doors</th>
-              <th className="px-4 py-2.5 text-right font-medium">Open WO</th>
-              <th className="px-4 py-2.5 text-right font-medium">Overdue WO</th>
-              <th className="px-4 py-2.5 text-right font-medium">Violations</th>
-              <th className="px-4 py-2.5 text-left font-medium">Last Login</th>
-              <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Manager</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Contact</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Assoc</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Doors</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Open WO</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Overdue WO</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Violations</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Last Login</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -195,20 +199,20 @@ export default async function CompanyAdminManagersPage({
               <tr><td colSpan={9} className="px-4 py-12 text-center text-sm text-gray-500">No managers found in your portfolio.</td></tr>
             ) : (
               rows.map((row: any) => (
-                <tr key={row.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                  <td className="px-4 py-3">
+                <tr key={row.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                  <td className="px-4 py-3.5">
                     <Link href={`/company-admin/managers/${row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
                     <div className="mt-0.5 text-xs capitalize text-gray-500">{row.role.replace('_', ' ')}</div>
                     {row.disabledAt && <div className="mt-0.5 text-xs font-medium text-red-700">Login disabled</div>}
                   </td>
-                  <td className="px-4 py-3 text-[13px] text-gray-700">{row.email}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.associationCount}{row.fullAccess && <div className="text-[11px] text-gray-500">All</div>}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.totalDoors.toLocaleString()}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-700">{row.email}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{row.associationCount}{row.fullAccess && <div className="text-[12.5px] text-gray-500">All</div>}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{row.totalDoors.toLocaleString()}</td>
                   <td className={`px-4 py-3 text-right tabular-nums ${row.openWorkOrders > 0 ? 'font-medium text-amber-700' : 'text-gray-700'}`}>{row.openWorkOrders}</td>
                   <td className={`px-4 py-3 text-right tabular-nums ${row.overdueWorkOrders > 0 ? 'font-semibold text-red-700' : 'text-gray-700'}`}>{row.overdueWorkOrders}</td>
                   <td className={`px-4 py-3 text-right tabular-nums ${row.openViolations > 0 ? 'font-medium text-red-700' : 'text-gray-700'}`}>{row.openViolations}</td>
-                  <td className="px-4 py-3 text-[13px] tabular-nums text-gray-700">{date(row.lastLogin)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5 text-sm tabular-nums text-gray-700">{date(row.lastLogin)}</td>
+                  <td className="px-4 py-3.5">
                     <div className="flex items-center justify-end gap-1">
                       <Link href={`/company-admin/managers/${row.id}`} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950" title="View Profile"><Eye className="h-4 w-4" /></Link>
                       <Link href={`/settings#staff-${row.id}`} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950" title="Reset Password"><KeyRound className="h-4 w-4" /></Link>

@@ -22,7 +22,7 @@ import { vendorAssociationLabel } from '@/lib/vendors/options'
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 const OPEN_WO_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress']
 
 type Insight = {
@@ -207,7 +207,7 @@ export default async function AICommandCenterPage() {
   const sevStyles = {
     critical: 'border-red-200 bg-red-50/60',
     warning: 'border-amber-200 bg-amber-50/60',
-    info: 'border-gray-200/70 bg-white',
+    info: 'border-line bg-white',
   } as const
   const sevIcon = {
     critical: 'text-red-600',
@@ -222,7 +222,7 @@ export default async function AICommandCenterPage() {
           <Sparkles className="h-4.5 w-4.5 text-white" />
         </div>
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">AI Command Center</h1>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">AI Command Center</h1>
           <p className="mt-0.5 text-sm leading-6 text-gray-500">
             Live portfolio intelligence — {counts.critical} critical · {counts.warning} warnings · {counts.info} advisories
           </p>
@@ -236,7 +236,7 @@ export default async function AICommandCenterPage() {
       {insights.length === 0 && loadErrors.length === 0 ? (
         <div className={`${card} px-5 py-14 text-center`}>
           <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-emerald-500" />
-          <div className="text-sm font-semibold text-gray-950">All clear</div>
+          <div className="text-[14.5px] font-semibold text-ink">All clear</div>
           <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
             No portfolio risks detected right now. Insights appear here when emergencies open, managers fall behind,
             credentials expire, violations trend up, spend spikes, or receivables age.
@@ -253,7 +253,7 @@ export default async function AICommandCenterPage() {
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-gray-950">{ins.title}</div>
+                    <div className="text-[14.5px] font-semibold text-ink">{ins.title}</div>
                     <p className="mt-0.5 text-[13px] leading-5 text-gray-600">{ins.detail}</p>
                   </div>
                 </div>

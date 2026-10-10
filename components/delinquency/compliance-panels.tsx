@@ -43,7 +43,7 @@ export function JurisdictionPanel({
   ].filter(Boolean) as string[];
 
   return (
-    <details className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <details className="rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <span className="flex items-center gap-2 font-semibold text-gray-950"><Scale className="h-4 w-4 text-gray-400" />{associationName}</span>
         <span className="text-[13px] text-gray-500">{profile?.state_name ?? 'Default'} protections · {requirements.length} gates</span>
@@ -127,7 +127,7 @@ export function ReferralReadiness({
       {readiness.warnings.map((w) => <Alert key={w} tone="info">{w}</Alert>)}
       <div className="grid gap-3 lg:grid-cols-2">
         {needsPlan && (
-          <form action={recordPaymentPlanOffer} className="space-y-2 rounded-xl border border-gray-200/70 p-3">
+          <form action={recordPaymentPlanOffer} className="space-y-2 rounded-xl border border-line p-3">
             <input type="hidden" name="case_id" value={caseId} />
             <div className="text-sm font-medium text-gray-900">Record payment-plan offer</div>
             <div className="grid grid-cols-2 gap-2">
@@ -139,7 +139,7 @@ export function ReferralReadiness({
           </form>
         )}
         {needsBoard && (
-          <form action={recordBoardReferralVote} className="space-y-2 rounded-xl border border-gray-200/70 p-3">
+          <form action={recordBoardReferralVote} className="space-y-2 rounded-xl border border-line p-3">
             <input type="hidden" name="case_id" value={caseId} />
             <div className="text-sm font-medium text-gray-900">Record board referral vote</div>
             <div className="grid grid-cols-3 gap-2">

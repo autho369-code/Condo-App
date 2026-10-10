@@ -107,14 +107,14 @@ export default async function OwnerDashboard() {
   const recentPayments: any[] = payRes.data ?? []
   const emergencies: { title: string; created_at: string }[] = ((emRes.data ?? []) as { title: string; created_at: string }[]).slice(0, 3)
 
-  const card = 'rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+  const card = 'rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm text-gray-500">Welcome back</p>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">{me.profile?.full_name ?? 'Owner'}</h1>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">{me.profile?.full_name ?? 'Owner'}</h1>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/portal/ledger">
@@ -153,12 +153,12 @@ export default async function OwnerDashboard() {
         ].map(s => {
           const inner = (
             <>
-              <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
+              <div className="text-[13px] font-medium leading-5 text-gray-500">{s.label}</div>
               <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${s.color}`}>{s.value}</div>
-              {s.hint && <div className="mt-1 text-[11px] font-medium text-gray-500">{s.hint} →</div>}
+              {s.hint && <div className="mt-1 text-[12.5px] font-medium text-gray-500">{s.hint} →</div>}
             </>
           )
-          const cls = 'rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+          const cls = 'rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
           return s.href
             ? <Link key={s.label} href={s.href} className={cls + ' block transition hover:border-gray-300 hover:bg-gray-50/60'}>{inner}</Link>
             : <div key={s.label} className={cls}>{inner}</div>
@@ -178,10 +178,10 @@ export default async function OwnerDashboard() {
           <Link key={a.label} href={a.href} className={
             a.primary
               ? 'flex flex-col items-center gap-2 rounded-2xl border border-gray-950 bg-gray-950 p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:bg-gray-800'
-              : 'flex flex-col items-center gap-2 rounded-2xl border border-gray-200/70 bg-white p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300 hover:bg-gray-50/60'
+              : 'flex flex-col items-center gap-2 rounded-2xl border border-line bg-white p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300 hover:bg-gray-50/60'
           }>
-            <a.icon className={a.primary ? 'h-6 w-6 text-white/80' : 'h-6 w-6 text-gray-400'} />
-            <span className={a.primary ? 'text-xs font-semibold text-white' : 'text-xs font-medium text-gray-700'}>{a.label}</span>
+            <a.icon className={a.primary ? 'h-6 w-6 text-white/80' : 'h-6 w-6 text-accent'} />
+            <span className={a.primary ? 'text-[13.5px] font-semibold text-white' : 'text-[13.5px] font-medium text-gray-800'}>{a.label}</span>
           </Link>
         ))}
       </div>
@@ -191,7 +191,7 @@ export default async function OwnerDashboard() {
         {/* Work Orders */}
         <div className={card}>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-950">Recent Work Orders</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Recent Work Orders</h2>
             <Link href="/portal/work-orders" className="text-sm font-medium text-gray-500 hover:text-gray-950 hover:underline">View all</Link>
           </div>
           {workOrders.length === 0 ? (
@@ -211,7 +211,7 @@ export default async function OwnerDashboard() {
         {/* Violations */}
         <div className={card}>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-950">Violations</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Violations</h2>
             <Link href="/portal/violations" className="text-sm font-medium text-gray-500 hover:text-gray-950 hover:underline">View all</Link>
           </div>
           {violations.length === 0 ? (
@@ -222,7 +222,7 @@ export default async function OwnerDashboard() {
                 <Link key={v.id} href={`/portal/violations/${v.id}`} className="-mx-3 flex items-center justify-between gap-3 rounded-xl border-b border-gray-50 px-3 py-2 last:border-0 hover:bg-gray-50/60">
                   <div className="min-w-0">
                     <div className="truncate text-sm text-gray-900">{v.title}</div>
-                    <div className="text-xs text-gray-500">{date(v.date_observed)}</div>
+                    <div className="text-[13px] text-gray-500">{date(v.date_observed)}</div>
                   </div>
                   <Badge status={v.status} />
                 </Link>
@@ -234,7 +234,7 @@ export default async function OwnerDashboard() {
         {/* Calendar */}
         <div className={card}>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-950">Upcoming Events</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Upcoming Events</h2>
             <Link href="/portal/calendar" className="text-sm font-medium text-gray-500 hover:text-gray-950 hover:underline">View calendar</Link>
           </div>
           {events.length === 0 ? (
@@ -246,7 +246,7 @@ export default async function OwnerDashboard() {
                   <Calendar className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400" />
                   <div>
                     <div className="text-sm text-gray-900">{e.title}</div>
-                    <div className="text-xs text-gray-500">{date(e.start_datetime)} {e.location ? `— ${e.location}` : ''}</div>
+                    <div className="text-[13px] text-gray-500">{date(e.start_datetime)} {e.location ? `— ${e.location}` : ''}</div>
                   </div>
                 </div>
               ))}
@@ -257,7 +257,7 @@ export default async function OwnerDashboard() {
         {/* Announcements */}
         <div className={card}>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-950">Announcements</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Announcements</h2>
             <Link href="/portal/communications" className="text-sm font-medium text-gray-500 hover:text-gray-950 hover:underline">View all</Link>
           </div>
           {announcements.length === 0 ? (
@@ -269,7 +269,7 @@ export default async function OwnerDashboard() {
                   <div className="text-sm text-gray-900">{a.subject}</div>
                   {/* Stored as HTML; shown as a plain-text preview, never as markup. */}
                   {a.preview && <p className="mt-0.5 line-clamp-2 break-words text-xs leading-5 text-gray-600">{a.preview}</p>}
-                  <div className="text-xs text-gray-500">{date(a.created_at)}</div>
+                  <div className="text-[13px] text-gray-500">{date(a.created_at)}</div>
                 </div>
               ))}
             </div>
@@ -279,7 +279,7 @@ export default async function OwnerDashboard() {
         {/* Recent payments */}
         <div className={card}>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-950">Recent Payments</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Recent Payments</h2>
             <Link href="/portal/ledger" className="text-sm font-medium text-gray-500 hover:text-gray-950 hover:underline">Full ledger</Link>
           </div>
           {recentPayments.length === 0 ? (

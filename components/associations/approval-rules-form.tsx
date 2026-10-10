@@ -84,7 +84,7 @@ export function ApprovalRulesForm({
 
         {canEdit && <Button type="submit">Save approval rules</Button>}
       </fieldset>
-      {!canEdit && <p className="text-xs text-gray-400">Only full-access staff can change approval rules.</p>}
+      {!canEdit && <p className="text-[13px] text-gray-500">Only full-access staff can change approval rules.</p>}
     </form>
   );
 }

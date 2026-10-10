@@ -120,7 +120,7 @@ export default async function ProjectsPage({
                   <TD>
                     <Link href={`/projects/${project.id}`} className="block text-gray-900">
                       <div className="font-medium">{project.name}</div>
-                      {project.work_order_count !== null && <div className="text-xs text-gray-500">{project.work_order_count} linked work order{project.work_order_count === 1 ? '' : 's'}</div>}
+                      {project.work_order_count !== null && <div className="text-[13px] text-gray-500">{project.work_order_count} linked work order{project.work_order_count === 1 ? '' : 's'}</div>}
                     </Link>
                   </TD>
                   <TD className="text-sm text-gray-700">{project.associations?.name ?? '—'}</TD>
@@ -133,7 +133,7 @@ export default async function ProjectsPage({
             </tbody>
           </Table>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState icon={FolderKanban} title="No capital projects match this view" description="Create a project to coordinate its budget, milestones, approvals, and work orders." />
           </div>
         )}

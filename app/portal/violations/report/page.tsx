@@ -137,8 +137,8 @@ export default async function ReportConcernPage({
       </div>
 
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Report a concern</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Report a concern</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           See a possible rule violation or a community concern? Send it to your property
           manager. They&apos;ll review it and open a formal violation if needed.
         </p>
@@ -151,16 +151,16 @@ export default async function ReportConcernPage({
       )}
 
       {unitOptions.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 text-sm text-gray-600 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white p-6 text-sm text-gray-600 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           You don&apos;t have a unit on file yet. Contact your property manager so they can link
           your account to your unit.
         </div>
       ) : (
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
           <form action={reportConcern} className="space-y-5">
             <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <div>
-              <span className="text-sm font-medium text-gray-700">Unit</span>
+              <span className="text-[13.5px] font-medium text-gray-700">Unit</span>
               {unitOptions.length === 1 ? (
                 <>
                   <input type="hidden" name="unit_id" value={unitOptions[0].unit_id ?? ''} />
@@ -183,7 +183,7 @@ export default async function ReportConcernPage({
             </div>
 
             <label className="block">
-              <span className="text-sm font-medium text-gray-700">Type</span>
+              <span className="text-[13.5px] font-medium text-gray-700">Type</span>
               <select
                 name="violation_type"
                 defaultValue="other"
@@ -196,24 +196,24 @@ export default async function ReportConcernPage({
             </label>
 
             <label className="block">
-              <span className="text-sm font-medium text-gray-700">Title</span>
+              <span className="text-[13.5px] font-medium text-gray-700">Title</span>
               <input
                 name="title"
                 required
                 placeholder="e.g. Unleashed dog in courtyard"
-                className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+                className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </label>
 
             <label className="block">
-              <span className="text-sm font-medium text-gray-700">What happened?</span>
+              <span className="text-[13.5px] font-medium text-gray-700">What happened?</span>
               <textarea
                 name="description"
                 required
                 minLength={10}
                 rows={5}
                 placeholder="Describe the concern — what, where, and when. Be specific so your manager can follow up."
-                className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+                className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </label>
 
@@ -225,7 +225,7 @@ export default async function ReportConcernPage({
         </div>
       )}
 
-      <p className="text-xs text-gray-400">
+      <p className="text-[13px] text-gray-500">
         This goes to your management team for review — it is not a formal violation notice.
         For an active emergency or safety threat, call your emergency line.
       </p>

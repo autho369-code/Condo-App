@@ -11,7 +11,7 @@ import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 function StatCard({
   label,
@@ -28,9 +28,9 @@ function StatCard({
     <div className={`${card} px-4 py-3.5`}>
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
-          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
-          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
+          <div className="mt-1.5 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
+          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -41,7 +41,7 @@ function StatCard({
 }
 
 function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-500">{children}</th>
+  return <th className="whitespace-nowrap px-4 py-3 text-left text-[12.5px] font-medium text-gray-500">{children}</th>
 }
 
 function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -125,8 +125,8 @@ export default async function CommunicationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Communications</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Communications</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Communication volume monitoring for {me.portfolio?.company_name ?? me.portfolio?.name ?? 'your portfolio'}
         </p>
         {tableEmpty && (
@@ -151,8 +151,8 @@ export default async function CommunicationsPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* By Association */}
         <div className={card}>
-          <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-950">By Association</h2>
+          <div className="border-b border-line px-5 py-4">
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">By Association</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -174,7 +174,7 @@ export default async function CommunicationsPage() {
                   </tr>
                 ) : (
                   assocCommList.map((a) => (
-                    <tr key={a.name} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <tr key={a.name} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                       <Td className="font-medium text-gray-900">{a.name}</Td>
                       <Td className="tabular-nums text-gray-700">{a.emails > 0 ? a.emails : '—'}</Td>
                       <Td className="tabular-nums text-gray-700">{a.sms > 0 ? a.sms : '—'}</Td>
@@ -190,8 +190,8 @@ export default async function CommunicationsPage() {
 
         {/* By Manager */}
         <div className={card}>
-          <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-950">By Manager</h2>
+          <div className="border-b border-line px-5 py-4">
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">By Manager</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -213,7 +213,7 @@ export default async function CommunicationsPage() {
                   </tr>
                 ) : (
                   mgrCommList.map((m) => (
-                    <tr key={m.name} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <tr key={m.name} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                       <Td className="font-medium text-gray-900">{m.name}</Td>
                       <Td className="tabular-nums text-gray-700">{m.emails > 0 ? m.emails : '—'}</Td>
                       <Td className="tabular-nums text-gray-700">{m.sms > 0 ? m.sms : '—'}</Td>
@@ -231,8 +231,8 @@ export default async function CommunicationsPage() {
       {/* ── Recent Activity Feed ─────────────────────── */}
       {monthComms.length > 0 && (
         <div className={card}>
-          <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-950">Recent Communications</h2>
+          <div className="border-b border-line px-5 py-4">
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Recent Communications</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -248,7 +248,7 @@ export default async function CommunicationsPage() {
               </thead>
               <tbody>
                 {monthComms.slice(0, 50).map((c: any) => (
-                  <tr key={c.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={c.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <Td className="whitespace-nowrap tabular-nums text-gray-700">
                       {c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: displayTimeZone() }) : '—'}
                     </Td>

@@ -25,20 +25,20 @@ export default async function OwnerMeetingsPage() {
   const all = meetings ?? []
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Meeting Minutes</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Approved minutes from your association&apos;s meetings</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Meeting Minutes</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Approved minutes from your association&apos;s meetings</p>
       </div>
 
       {all.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <p className="text-sm text-gray-500">No meeting minutes published yet.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {all.map((m: any) => (
-            <div key={m.id} className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
+            <div key={m.id} className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h2 className="text-base font-semibold leading-tight text-gray-950">{m.title}</h2>
@@ -51,20 +51,20 @@ export default async function OwnerMeetingsPage() {
 
               {m.ai_summary ? (
                 <div className="mt-4">
-                  <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Summary</div>
+                  <div className="text-[13px] font-medium text-gray-500">Summary</div>
                   <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{m.ai_summary}</p>
                 </div>
               ) : null}
 
               {m.agenda ? (
                 <div className="mt-4">
-                  <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Agenda</div>
+                  <div className="text-[13px] font-medium text-gray-500">Agenda</div>
                   <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{m.agenda}</p>
                 </div>
               ) : null}
 
               <div className="mt-4">
-                <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Minutes</div>
+                <div className="text-[13px] font-medium text-gray-500">Minutes</div>
                 <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{m.minutes}</p>
               </div>
             </div>

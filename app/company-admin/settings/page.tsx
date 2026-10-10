@@ -8,7 +8,7 @@ import { Building2, Palette, Save } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 const inputCls = 'mt-1 block h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 placeholder:text-gray-400 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
 
 export default async function SettingsPage({
@@ -53,7 +53,7 @@ export default async function SettingsPage({
   }) {
     return (
       <label className="block">
-        <span className="text-xs font-medium text-gray-500">{label}</span>
+        <span className="text-[13px] font-medium text-gray-500">{label}</span>
         <input
           type={type}
           name={name}
@@ -68,8 +68,8 @@ export default async function SettingsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Settings</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Settings</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Manage company settings for {me.portfolio?.company_name ?? me.portfolio?.name ?? 'your portfolio'}
         </p>
       </div>
@@ -83,7 +83,7 @@ export default async function SettingsPage({
         <div className={card}>
           <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
             <Building2 className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-950">Company Profile</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Company Profile</h2>
           </div>
           <div className="space-y-4 p-5">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -96,7 +96,7 @@ export default async function SettingsPage({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.logo_url} alt="Current company logo" className="h-full w-full object-contain" />
                 ) : (
-                  <span className="text-[11px] font-medium text-gray-400">No logo</span>
+                  <span className="text-[12.5px] font-medium text-gray-400">No logo</span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
@@ -118,11 +118,11 @@ export default async function SettingsPage({
         <div className={card}>
           <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
             <Palette className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-950">Branding</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Branding</h2>
           </div>
           <div className="space-y-4 p-5">
             <label className="block">
-              <span className="text-xs font-medium text-gray-500">Brand Color</span>
+              <span className="text-[13px] font-medium text-gray-500">Brand Color</span>
               <div className="mt-1 flex items-center gap-3">
                 <input
                   type="color"

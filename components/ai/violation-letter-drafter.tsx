@@ -54,10 +54,10 @@ export function ViolationLetterDrafter({ violationId }: { violationId: string })
   }
 
   return (
-    <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-gray-950">Violation letter</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Violation letter</h2>
           <p className="mt-1 text-sm text-gray-500">
             Generate a draft notice letter to the homeowner using AI.
           </p>

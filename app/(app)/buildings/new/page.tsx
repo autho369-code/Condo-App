@@ -212,7 +212,7 @@ export default async function NewBuildingPage({
 // ============================================================================
 
 function Card({ children }: { children: React.ReactNode }) {
-  return <section className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">{children}</section>;
+  return <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">{children}</section>;
 }
 function CardTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="border-b border-gray-100 px-5 py-3 text-sm font-semibold text-gray-900">{children}</h2>;
@@ -234,7 +234,7 @@ function Row({
         {label}
         {required && <span className="ml-1 text-red-500">*</span>}
         {help && (
-          <span title={help} className="ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-gray-300 text-[10px] font-semibold text-white">
+          <span title={help} className="ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-gray-300 text-[12px] font-semibold text-white">
             ?
           </span>
         )}

@@ -142,7 +142,7 @@ export function LinkBankClient({ configured }: { configured: boolean }) {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
               <Landmark className="h-6 w-6" />
             </div>
-            <h2 className="text-[15px] font-semibold text-gray-950">Bank connections are not enabled</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Bank connections are not enabled</h2>
             <p className="mt-1 text-sm leading-6 text-gray-500">
               Online bank linking is unavailable until the banking-provider setup is finished. You can still
               maintain bank accounts and reconcile transactions manually.
@@ -200,7 +200,7 @@ export function LinkBankClient({ configured }: { configured: boolean }) {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
               <CheckCircle2 className="h-6 w-6" />
             </div>
-            <h2 className="text-[15px] font-semibold text-gray-950">Bank connected</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Bank connected</h2>
             <p className="mt-1 text-sm text-gray-500">
               {institutionName || 'Your bank'} has been linked. Transactions will begin syncing.
             </p>
@@ -216,7 +216,7 @@ export function LinkBankClient({ configured }: { configured: boolean }) {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600">
               <XCircle className="h-6 w-6" />
             </div>
-            <h2 className="text-[15px] font-semibold text-gray-950">Connection failed</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Connection failed</h2>
             <p className="mt-1 text-sm text-red-700">{error || 'An unknown error occurred.'}</p>
             <Button variant="secondary" className="mt-5" onClick={() => setStep('select')}>Try again</Button>
           </Surface>

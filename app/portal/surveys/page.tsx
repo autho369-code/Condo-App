@@ -25,10 +25,10 @@ export default async function OwnerSurveysPage({ searchParams }: { searchParams:
   const list = (surveys ?? []) as any[];
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Surveys</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Questions from your association. Your answers go to your management team.</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Surveys</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Questions from your association. Your answers go to your management team.</p>
       </div>
 
       {(sp.error || error) && (
@@ -36,7 +36,7 @@ export default async function OwnerSurveysPage({ searchParams }: { searchParams:
       )}
 
       {list.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <p className="text-sm text-gray-500">There are no open surveys right now.</p>
         </div>
       ) : (
@@ -48,13 +48,13 @@ export default async function OwnerSurveysPage({ searchParams }: { searchParams:
               <Link
                 key={s.id}
                 href={`/portal/surveys/${s.id}`}
-                className="block rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:bg-gray-50"
+                className="block rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:bg-gray-50"
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <h2 className="text-base font-semibold text-gray-950">{s.name}</h2>
                     {s.description && <p className="mt-1 line-clamp-2 text-sm text-gray-600">{s.description}</p>}
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-[13px] text-gray-500">
                       {s.associations?.name ?? 'All associations'} · {count} question{count === 1 ? '' : 's'}
                     </p>
                   </div>

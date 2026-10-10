@@ -177,7 +177,7 @@ export default async function UnitTurnsPage({
                       <div className="font-medium text-gray-900">
                         {row.units?.unit_number ?? '—'}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-[13px] text-gray-500">
                         WO #{row.number ?? row.id.slice(0, 8)}
                       </div>
                     </TD>
@@ -224,7 +224,7 @@ export default async function UnitTurnsPage({
             </tbody>
           </Table>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={DoorOpen}
               title="No unit turns match the current filters"

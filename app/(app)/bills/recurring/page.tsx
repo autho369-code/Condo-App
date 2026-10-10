@@ -73,7 +73,7 @@ export default async function RecurringBillsPage({
           <Surface>
             <form action={postRecurringBills} className="flex flex-wrap items-end gap-3">
               <div>
-                <h2 className="text-sm font-semibold text-gray-950">Manually post bills</h2>
+                <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Manually post bills</h2>
                 <p className="mt-0.5 text-sm text-gray-600">Enter every recurring bill scheduled on or before this date now, instead of waiting for its date.</p>
               </div>
               <label className="ml-auto flex flex-col gap-1 text-xs font-medium text-gray-600">

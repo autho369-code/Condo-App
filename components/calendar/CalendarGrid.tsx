@@ -135,7 +135,7 @@ export default function CalendarGrid({ associations, initialAssocId, initialType
       <div className="flex flex-wrap gap-x-4 gap-y-1 border-b border-gray-100 bg-white px-5 py-2">
         {EVENT_TYPES.map((t) => {
           const c = EVENT_TYPE_COLORS[t.value as CalendarEventType] ?? EVENT_TYPE_COLORS.custom_event;
-          return <span key={t.value} className="inline-flex items-center gap-1.5 text-[11px] text-gray-500">
+          return <span key={t.value} className="inline-flex items-center gap-1.5 text-[12.5px] text-gray-500">
             <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: c.bg, border: `1px solid ${c.border}` }} />{t.label}
           </span>;
         })}

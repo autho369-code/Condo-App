@@ -105,8 +105,8 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Insurance</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">HO6 insurance certificate management</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Insurance</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">HO6 insurance certificate management</p>
       </div>
 
       <RecordSwitcher records={records} currentId={recordId} basePath="/portal/insurance" caption="Each association keeps its own insurance on file. Showing:" />
@@ -125,7 +125,7 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
       )}
 
       {/* Status card */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${hasInsurance ? (expired ? 'bg-red-100' : expiringSoon ? 'bg-amber-100' : 'bg-emerald-100') : 'bg-gray-100'}`}>
             <Shield className={`h-6 w-6 ${hasInsurance ? (expired ? 'text-red-600' : expiringSoon ? 'text-amber-600' : 'text-emerald-600') : 'text-gray-400'}`} />
@@ -151,8 +151,8 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
 
       {/* Reminder preferences for the current policy */}
       {current && (
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <h2 className="text-sm font-semibold text-gray-950">Expiration Reminders</h2>
+        <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Expiration Reminders</h2>
           <p className="mt-1 mb-4 text-sm text-gray-500">Email notices are sent 30 days and 15 days before the policy expires.</p>
           <form action={updateReminders} className="space-y-3">
             <input type="hidden" name="policy_id" value={current.id} />
@@ -172,9 +172,9 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
 
       {/* Policy history */}
       {policies.length > 1 && (
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
           <h2 className="mb-3 text-sm font-semibold text-gray-950">Previous Policies</h2>
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-line">
             {policies.slice(1).map((p) => (
               <li key={p.id} className="py-2 flex items-center justify-between text-sm">
                 <span className="text-gray-700">{p.insurance_company ?? 'Policy'}{p.policy_number ? ` · #${p.policy_number}` : ''}</span>
@@ -186,7 +186,7 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
       )}
 
       {/* Add policy form — certificate uploads browser→storage (large PDFs OK) */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
         <h2 className="mb-1 text-sm font-semibold text-gray-950">Add Insurance Policy</h2>
         <p className="mb-4 text-sm text-gray-500">Upload your policy document — it is saved to your association records.</p>
         <AddInsurancePolicyForm ownerId={recordId} returnQuery={recordQuery} />

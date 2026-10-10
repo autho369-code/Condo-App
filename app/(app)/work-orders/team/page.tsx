@@ -83,7 +83,7 @@ export default async function MaintenanceTeamPage({ searchParams }: { searchPara
         ]} />
 
         {board.members.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white">
+          <div className="rounded-2xl border border-line bg-white">
             <EmptyState icon={Users} title="No team activity yet"
               description="Assign work orders to a team member (In-house assignee on the work order) and log labor against them to see them here." />
           </div>
@@ -106,7 +106,7 @@ export default async function MaintenanceTeamPage({ searchParams }: { searchPara
                 <TR key={m.id}>
                   <TD>
                     <Link href={`/work-orders?assignee=${m.id}&tab=all`} className="font-medium text-gray-900 hover:underline">{m.name}</Link>
-                    {m.emergenciesCompleted > 0 ? <div className="mt-0.5 text-xs text-gray-500">{m.emergenciesCompleted} emergenc{m.emergenciesCompleted === 1 ? 'y' : 'ies'} handled</div> : null}
+                    {m.emergenciesCompleted > 0 ? <div className="mt-0.5 text-[13px] text-gray-500">{m.emergenciesCompleted} emergenc{m.emergenciesCompleted === 1 ? 'y' : 'ies'} handled</div> : null}
                   </TD>
                   <TD className="text-right tabular-nums">{m.open}</TD>
                   <TD className="text-right">{m.overdue > 0 ? <StatusChip tone="danger">{m.overdue}</StatusChip> : <span className="tabular-nums text-gray-400">0</span>}</TD>
@@ -122,12 +122,12 @@ export default async function MaintenanceTeamPage({ searchParams }: { searchPara
         )}
 
         {board.otherLabor.length > 0 ? (
-          <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <section className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="border-b border-gray-100 px-5 py-3">
               <h2 className="text-sm font-semibold text-gray-900">Other labor</h2>
-              <p className="mt-0.5 text-xs text-gray-500">Hours logged under a typed name rather than a team member.</p>
+              <p className="mt-0.5 text-[13px] text-gray-500">Hours logged under a typed name rather than a team member.</p>
             </div>
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-line">
               {board.otherLabor.map((o) => (
                 <li key={o.name} className="flex items-center justify-between px-5 py-2.5 text-sm">
                   <span className="text-gray-900">{o.name}</span>

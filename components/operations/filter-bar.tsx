@@ -20,7 +20,7 @@ export function FilterBar({
   return (
     <form
       action={action}
-      className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200/70 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-4"
+      className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-4"
     >
       {search && <div className="relative min-w-0 flex-1 basis-56">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />

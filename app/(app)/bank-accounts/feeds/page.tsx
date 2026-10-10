@@ -252,8 +252,8 @@ export default async function BankFeedsPage({
                     <TD className="whitespace-nowrap align-top">{date(txn.date)}</TD>
                     <TD className="align-top">
                       <div className="font-medium text-gray-900">{txn.name}</div>
-                      {txn.merchant_name && <div className="text-xs text-gray-500">{txn.merchant_name}</div>}
-                      <div className="text-xs text-gray-400">{txn.bank_accounts?.name}</div>
+                      {txn.merchant_name && <div className="text-[13px] text-gray-500">{txn.merchant_name}</div>}
+                      <div className="text-[13px] text-gray-500">{txn.bank_accounts?.name}</div>
                     </TD>
                     <TD className="text-right tabular-nums align-top">{Number(txn.amount) > 0 ? money(Number(txn.amount)) : ''}</TD>
                     <TD className="text-right tabular-nums align-top">{Number(txn.amount) < 0 ? money(-Number(txn.amount)) : ''}</TD>
@@ -329,7 +329,7 @@ export default async function BankFeedsPage({
             </tbody>
           </Table>
         ) : activeConnections.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={Landmark}
               title="No bank connections"
@@ -344,7 +344,7 @@ export default async function BankFeedsPage({
             />
           </div>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={Landmark}
               title="No transactions yet"

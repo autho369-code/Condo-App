@@ -22,12 +22,12 @@ function StatCard({
   icon: React.ElementType;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <div className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
-          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
-          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
+          <div className="mt-1.5 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
+          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -137,8 +137,8 @@ export default async function CommunicationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Communications</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide communication volume monitoring</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Communications</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Platform-wide communication volume monitoring</p>
       </div>
 
       {loadError && <Alert title="Some communication data could not be loaded">{loadError}</Alert>}
@@ -152,7 +152,7 @@ export default async function CommunicationsPage() {
       </div>
 
       {/* Monthly Trend Chart */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
         <h2 className="mb-4 text-sm font-semibold text-gray-950">6-Month Communication Trend</h2>
         <div className="flex h-48 items-end gap-3">
           {monthlyTrend.map((m) => (
@@ -168,7 +168,7 @@ export default async function CommunicationsPage() {
                   style={{ height: `${Math.max(((m.sms) / maxVol) * 100, 2)}%` }}
                 />
               </div>
-              <span className="text-xs text-gray-400">{m.month}</span>
+              <span className="text-[13px] text-gray-500">{m.month}</span>
             </div>
           ))}
         </div>
@@ -179,21 +179,21 @@ export default async function CommunicationsPage() {
       </div>
 
       {/* Communications By Company */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Communications by Company</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Monthly breakdown per company</p>
+      <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Communications by Company</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Monthly breakdown per company</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-4 py-2.5 text-left font-medium">Company</th>
-                <th className="px-4 py-2.5 text-right font-medium">Emails Sent</th>
-                <th className="px-4 py-2.5 text-right font-medium">Emails Failed</th>
-                <th className="px-4 py-2.5 text-right font-medium">SMS Sent</th>
-                <th className="px-4 py-2.5 text-right font-medium">SMS Failed</th>
-                <th className="px-4 py-2.5 text-right font-medium">Delivery Rate</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Company</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Emails Sent</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Emails Failed</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">SMS Sent</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">SMS Failed</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Delivery Rate</th>
               </tr>
             </thead>
             <tbody>
@@ -205,11 +205,11 @@ export default async function CommunicationsPage() {
                   const totalFailed = c.emailsFailed + c.smsFailed;
                   const rate = totalSent > 0 ? Math.round(((totalSent - totalFailed) / totalSent) * 100) : 100;
                   return (
-                    <tr key={c.name} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <tr key={c.name} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                       <td className="px-4 py-3 font-medium text-gray-900">{c.name}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-gray-700">{c.emailsSent || '—'}</td>
+                      <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{c.emailsSent || '—'}</td>
                       <td className={`px-4 py-3 text-right tabular-nums ${c.emailsFailed ? 'text-red-700' : 'text-gray-400'}`}>{c.emailsFailed || '—'}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-gray-700">{c.smsSent || '—'}</td>
+                      <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{c.smsSent || '—'}</td>
                       <td className={`px-4 py-3 text-right tabular-nums ${c.smsFailed ? 'text-red-700' : 'text-gray-400'}`}>{c.smsFailed || '—'}</td>
                       <td className="px-4 py-3 text-right tabular-nums">
                         <span className={`font-medium ${rate >= 95 ? 'text-emerald-700' : rate >= 80 ? 'text-amber-700' : 'text-red-700'}`}>
@@ -227,35 +227,35 @@ export default async function CommunicationsPage() {
 
       {/* Recent Communications */}
       {monthComms.length > 0 && (
-        <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-950">Recent Communications</h2>
+        <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="border-b border-line px-5 py-4">
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Recent Communications</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr>
-                  <th className="px-4 py-2.5 text-left font-medium">Date</th>
-                  <th className="px-4 py-2.5 text-left font-medium">Channel</th>
-                  <th className="px-4 py-2.5 text-left font-medium">Direction</th>
-                  <th className="px-4 py-2.5 text-left font-medium">Subject</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Recipients</th>
-                  <th className="px-4 py-2.5 text-left font-medium">Status</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Date</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Channel</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Direction</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Subject</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Recipients</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {monthComms.slice(0, 50).map((c: any) => (
-                  <tr key={c.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={c.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="whitespace-nowrap px-4 py-3 text-xs tabular-nums text-gray-500">
                       {c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: displayTimeZone() }) : '—'}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       <StatusChip tone={channelTone(c.channel)}>{c.channel ?? 'unknown'}</StatusChip>
                     </td>
                     <td className="px-4 py-3 text-[13px] capitalize text-gray-700">{c.direction ?? '—'}</td>
                     <td className="max-w-xs truncate px-4 py-3 text-[13px] text-gray-700">{c.subject ?? '—'}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-700">{c.recipient_count ?? 0}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{c.recipient_count ?? 0}</td>
+                    <td className="px-4 py-3.5">
                       <Badge status={c.status ?? 'unknown'} />
                     </td>
                   </tr>

@@ -72,7 +72,7 @@ export default async function CapitalReservesPage() {
                     <Link href={`/capital-reserves/${study.id}`} className="font-medium text-gray-950 transition-colors hover:text-blue-700">
                       {study.name}
                     </Link>
-                    <div className="mt-0.5 text-xs text-gray-500">Base year {study.base_year}</div>
+                    <div className="mt-0.5 text-[13px] text-gray-500">Base year {study.base_year}</div>
                   </TD>
                   <TD>{study.associations?.name ?? '—'}</TD>
                   <TD><StatusChip tone={study.status === 'approved' ? 'success' : study.status === 'board_review' ? 'info' : study.status === 'superseded' ? 'neutral' : 'warning'}>{String(study.status).replace(/_/g, ' ')}</StatusChip></TD>
@@ -86,7 +86,7 @@ export default async function CapitalReservesPage() {
             </tbody>
           </Table>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={PiggyBank}
               title="No component-level reserve studies yet"

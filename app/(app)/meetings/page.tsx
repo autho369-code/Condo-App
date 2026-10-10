@@ -168,11 +168,11 @@ export default function MeetingsPage() {
 
       {/* Table */}
       {loading ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white py-16 text-center text-sm text-gray-400 shadow-sm">
+        <div className="rounded-2xl border border-line bg-white py-16 text-center text-sm text-gray-400 shadow-sm">
           Loading meetings…
         </div>
       ) : meetings.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <EmptyState
             icon={CalendarDays}
             title="No meetings found"
@@ -204,7 +204,7 @@ export default function MeetingsPage() {
                     {m.title}
                   </Link>
                   {m.location && (
-                    <div className="mt-0.5 text-xs text-gray-500">{m.location}</div>
+                    <div className="mt-0.5 text-[13px] text-gray-500">{m.location}</div>
                   )}
                 </TD>
                 <TD>{m.associations?.name || '—'}</TD>
@@ -216,7 +216,7 @@ export default function MeetingsPage() {
                   </StatusChip>
                 </TD>
                 <TD>
-                  <span className="text-xs text-gray-400">—</span>
+                  <span className="text-[13px] text-gray-500">—</span>
                 </TD>
               </TR>
             ))}

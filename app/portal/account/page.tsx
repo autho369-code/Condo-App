@@ -35,8 +35,8 @@ export default async function OwnerAccountPage({ searchParams }: { searchParams:
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">My Account</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Your account details and occupancy information</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">My Account</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Your account details and occupancy information</p>
       </div>
 
       {recordsError && <Alert tone="danger">{recordsError}</Alert>}
@@ -44,8 +44,8 @@ export default async function OwnerAccountPage({ searchParams }: { searchParams:
       <RecordSwitcher records={records} currentId={recordId} basePath="/portal/account" caption="Each association keeps its own account details for you. Showing:" />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <h2 className="text-sm font-semibold text-gray-950">Personal Information</h2>
+        <div className="space-y-4 rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Personal Information</h2>
           {[
             ['Name', (o.full_name ?? `${o.first_name ?? ''} ${o.last_name ?? ''}`.trim()) || '—'],
             ['Email', o.email ?? me.email ?? '—'],
@@ -54,20 +54,20 @@ export default async function OwnerAccountPage({ searchParams }: { searchParams:
             ['Mailing Address', address],
           ].map(([l, v]) => (
             <div key={l as string}>
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{l}</div>
+              <div className="text-[13px] font-medium text-gray-500">{l}</div>
               <div className="mt-0.5 text-sm text-gray-900">{v}</div>
             </div>
           ))}
         </div>
 
-        <div className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <h2 className="text-sm font-semibold text-gray-950">Property Information</h2>
+        <div className="space-y-4 rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Property Information</h2>
           {[
             ['Association', assocInfo?.name ?? '—'],
             ['Property Address', propAddress],
           ].map(([l, v]) => (
             <div key={l as string}>
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{l}</div>
+              <div className="text-[13px] font-medium text-gray-500">{l}</div>
               <div className="mt-0.5 text-sm text-gray-900">{v}</div>
             </div>
           ))}
@@ -83,7 +83,7 @@ export default async function OwnerAccountPage({ searchParams }: { searchParams:
                 ['Dues Paid Through', occ.dues_paid_through ? new Date(occ.dues_paid_through).toLocaleDateString() : '—'],
               ].map(([l, v]) => (
                 <div key={l as string}>
-                  <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{l}</div>
+                  <div className="text-[13px] font-medium text-gray-500">{l}</div>
                   <div className="mt-0.5 text-sm text-gray-900">{v}</div>
                 </div>
               ))}

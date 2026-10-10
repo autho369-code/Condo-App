@@ -157,9 +157,9 @@ export default async function AssociationUnitsTab({
       }
       rail={rail}
     >
-      <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+          <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
             <tr>
               <th className="w-20 px-4 py-2 text-left font-semibold">Unit</th>
               <th className="px-4 py-2 text-left font-semibold">Owner</th>
@@ -173,10 +173,10 @@ export default async function AssociationUnitsTab({
               <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">No units in this association.</td></tr>
             ) : slice.map((r) => (
               <tr key={r.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
-                <td className="px-4 py-3">
+                <td className="px-4 py-3.5">
                   <Link href={`/units/${r.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{r.unit_number}</Link>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3.5">
                   {r.homeowners ? <span className="text-gray-700">{r.homeowners}</span> : <span className="text-gray-400">—</span>}
                 </td>
                 <td className="px-4 py-3 text-gray-700">{r.renter ?? '--'}</td>

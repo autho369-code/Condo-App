@@ -83,18 +83,18 @@ export default async function ResidentDashboard() {
       <div className="grid gap-5 lg:grid-cols-2">
         <Surface>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-[15px] font-semibold text-gray-950">Recent service requests</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Recent service requests</h2>
             <Link href="/resident/requests" className="text-xs font-medium text-gray-600 hover:text-gray-950">View all →</Link>
           </div>
           {allRequests.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">No service requests yet.</p>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-line">
               {allRequests.map((request: any) => (
                 <div key={request.id} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium text-gray-900">{request.description?.split('\n')[0]}</div>
-                    <div className="mt-0.5 text-xs text-gray-500">{request.number ?? request.id.slice(0, 8)} · {date(request.created_at)}</div>
+                    <div className="mt-0.5 text-[13px] text-gray-500">{request.number ?? request.id.slice(0, 8)} · {date(request.created_at)}</div>
                   </div>
                   <Badge status={request.status} />
                 </div>
@@ -105,19 +105,19 @@ export default async function ResidentDashboard() {
 
         <Surface>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-[15px] font-semibold text-gray-950">Community calendar</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Community calendar</h2>
             <Link href="/resident/calendar" className="text-xs font-medium text-gray-600 hover:text-gray-950">Full calendar →</Link>
           </div>
           {(events ?? []).length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">No upcoming events.</p>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-line">
               {(events ?? []).map((event: any) => (
                 <div key={event.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
                   <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                   <div>
                     <div className="text-sm font-medium text-gray-900">{event.title}</div>
-                    <div className="mt-0.5 text-xs text-gray-500">{date(event.start_datetime, 'long')}{event.location ? ` · ${event.location}` : ''}</div>
+                    <div className="mt-0.5 text-[13px] text-gray-500">{date(event.start_datetime, 'long')}{event.location ? ` · ${event.location}` : ''}</div>
                   </div>
                 </div>
               ))}
@@ -127,17 +127,17 @@ export default async function ResidentDashboard() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Link href="/resident/documents" className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300">
+        <Link href="/resident/documents" className="rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300">
           <FileText className="h-5 w-5 text-gray-500" />
           <div className="mt-3 text-sm font-semibold text-gray-950">Community documents</div>
           <div className="mt-1 text-xs leading-5 text-gray-500">Declarations, bylaws, rules, forms, and meeting records.</div>
         </Link>
-        <Link href="/resident/communications" className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300">
+        <Link href="/resident/communications" className="rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300">
           <MessageSquare className="h-5 w-5 text-gray-500" />
           <div className="mt-3 text-sm font-semibold text-gray-950">Contact management</div>
           <div className="mt-1 text-xs leading-5 text-gray-500">Send a secure message and read community announcements.</div>
         </Link>
-        <Link href="/resident/profile" className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300">
+        <Link href="/resident/profile" className="rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300">
           <ShieldCheck className="h-5 w-5 text-gray-500" />
           <div className="mt-3 text-sm font-semibold text-gray-950">Resident profile</div>
           <div className="mt-1 text-xs leading-5 text-gray-500">Keep contact, emergency, and insurance details current.</div>

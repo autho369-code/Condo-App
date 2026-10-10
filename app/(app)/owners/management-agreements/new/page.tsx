@@ -71,7 +71,7 @@ export default async function NewManagementAgreementPage({ searchParams }: { sea
       description="Create an owner and association management agreement with fee schedule and delivery method."
       actions={<Link href="/owners"><Button variant="secondary">Back to owners</Button></Link>}
     >
-      <form action={handleSubmit} className="max-w-4xl space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={handleSubmit} className="max-w-4xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create agreement">{sp.error}</Alert>}
         <div className="grid gap-4 md:grid-cols-2">
           <div>

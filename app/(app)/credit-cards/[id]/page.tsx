@@ -148,14 +148,14 @@ export default async function CreditCardPage({
                   <TD className="whitespace-nowrap text-gray-700">{date(c.charge_date)}</TD>
                   <TD>
                     <div className="font-medium text-gray-900">{c.payee}</div>
-                    {(c.reference || c.description) && <div className="text-xs text-gray-500">{[c.reference, c.description].filter(Boolean).join(' · ')}</div>}
+                    {(c.reference || c.description) && <div className="text-[13px] text-gray-500">{[c.reference, c.description].filter(Boolean).join(' · ')}</div>}
                   </TD>
                   <TD className="text-sm text-gray-700">{c.gl_accounts ? `${c.gl_accounts.number} ${c.gl_accounts.name}` : '—'}</TD>
                   <TD className="text-sm text-gray-700">{c.associations?.name ?? '—'}</TD>
                   <TD className="text-right tabular-nums">{money(c.amount)}</TD>
                   <TD>
                     {c.voided_at ? (
-                      <div><StatusChip tone="neutral">Void</StatusChip>{c.void_reason && <div className="mt-1 text-xs text-gray-500">{c.void_reason}</div>}</div>
+                      <div><StatusChip tone="neutral">Void</StatusChip>{c.void_reason && <div className="mt-1 text-[13px] text-gray-500">{c.void_reason}</div>}</div>
                     ) : (
                       <form action={voidCreditCardCharge} className="flex items-center gap-2">
                         <input type="hidden" name="card_id" value={card.id} />

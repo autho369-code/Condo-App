@@ -76,7 +76,7 @@ export default async function CalendarEventPage({
         </div>
 
         {!canceled && (
-          <form action={updateCalendarEvent} className="space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <form action={updateCalendarEvent} className="space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <input type="hidden" name="event_id" value={event.id} />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
@@ -114,7 +114,7 @@ export default async function CalendarEventPage({
                 <textarea id="internal_notes" name="internal_notes" rows={3} defaultValue={internalNotes} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
               </div>
             </div>
-            <p className="text-xs text-gray-500">Times are in the association&apos;s time zone ({zone}). Scheduled reminders move with the start time.</p>
+            <p className="text-[13px] text-gray-500">Times are in the association&apos;s time zone ({zone}). Scheduled reminders move with the start time.</p>
             <div className="flex justify-end border-t border-gray-100 pt-5">
               <Button type="submit">Save changes</Button>
             </div>
@@ -122,7 +122,7 @@ export default async function CalendarEventPage({
         )}
 
         {!canceled && (
-          <form action={cancelCalendarEvent} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <form action={cancelCalendarEvent} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <input type="hidden" name="event_id" value={event.id} />
             <p className="text-sm text-gray-600">Cancel this event and its pending reminders.</p>
             <PendingSubmit variant="secondary" pendingLabel="Cancelling…" confirm="Cancel this event and its pending reminders?">Cancel event</PendingSubmit>

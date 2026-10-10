@@ -115,7 +115,7 @@ export function VendorImportSection({ associations, importVendors }: { associati
           <Label htmlFor="appfolio-vendor-file">Vendor Directory CSV</Label>
           <Input id="appfolio-vendor-file" type="file" accept=".csv,text/csv" onChange={onFile} className="h-auto py-2" />
         </div>
-        {fileName && vendors && <p className="text-xs text-gray-500">{fileName}</p>}
+        {fileName && vendors && <p className="text-[13px] text-gray-500">{fileName}</p>}
       </Surface>
 
       {error && <Alert tone="danger">{error}</Alert>}
@@ -145,7 +145,7 @@ export function VendorImportSection({ associations, importVendors }: { associati
                 <TR key={v.row}>
                   <TD>
                     <div className="font-medium text-gray-900">{v.name}</div>
-                    {v.contact_name && <div className="text-xs text-gray-500">{v.contact_name}</div>}
+                    {v.contact_name && <div className="text-[13px] text-gray-500">{v.contact_name}</div>}
                   </TD>
                   <TD className="whitespace-nowrap">{v.phones[0]?.number ?? '—'}{v.phones.length > 1 ? ` +${v.phones.length - 1}` : ''}</TD>
                   <TD>{v.emails[0] ?? '—'}{v.emails.length > 1 ? ` +${v.emails.length - 1}` : ''}</TD>
@@ -158,7 +158,7 @@ export function VendorImportSection({ associations, importVendors }: { associati
             </tbody>
           </Table>
           {vendors.length > PREVIEW_ROWS && (
-            <p className="text-xs text-gray-500">Showing the first {PREVIEW_ROWS} of {vendors.length} vendors. All of them are imported.</p>
+            <p className="text-[13px] text-gray-500">Showing the first {PREVIEW_ROWS} of {vendors.length} vendors. All of them are imported.</p>
           )}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">

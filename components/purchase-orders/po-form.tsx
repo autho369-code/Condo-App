@@ -106,7 +106,7 @@ export function PurchaseOrderForm({
   );
 
   return (
-    <form action={action} className="space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <form action={action} className="space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       {error && <Alert tone="danger" title="Could not save purchase order:">{error}</Alert>}
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
       <input type="hidden" name="lines" value={serialized} />
@@ -152,7 +152,7 @@ export function PurchaseOrderForm({
         </div>
         <div className="space-y-3">
           {lines.map((l, i) => (
-            <div key={l.key} className="grid grid-cols-2 gap-3 rounded-xl border border-gray-200/70 p-3 sm:grid-cols-[1fr_90px_120px_1fr_40px] sm:items-end">
+            <div key={l.key} className="grid grid-cols-2 gap-3 rounded-xl border border-line p-3 sm:grid-cols-[1fr_90px_120px_1fr_40px] sm:items-end">
               <Field label={i === 0 ? 'Description' : undefined} className="col-span-2 sm:col-span-1">
                 <Input
                   aria-label="Line description"

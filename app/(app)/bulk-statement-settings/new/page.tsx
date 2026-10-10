@@ -65,7 +65,7 @@ export default async function BulkStatementSettingsPage({
                         <input type="checkbox" name="association_ids" value={a.id} className="h-4 w-4" />
                         <span className="text-gray-900">{a.name}</span>
                         {(a.address || a.city) && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-[13px] text-gray-500">
                             — {[a.address, [a.city, a.state].filter(Boolean).join(', ')].filter(Boolean).join(' ')}
                           </span>
                         )}
@@ -73,7 +73,7 @@ export default async function BulkStatementSettingsPage({
                     ))}
                   </div>
                 )}
-                <p className="text-xs text-gray-500">By default, all properties and associations will be updated.</p>
+                <p className="text-[13px] text-gray-500">By default, all properties and associations will be updated.</p>
               </div>
             </Row>
 
@@ -154,7 +154,7 @@ export default async function BulkStatementSettingsPage({
 }
 
 function Card({ children }: { children: React.ReactNode }) {
-  return <section className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">{children}</section>;
+  return <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">{children}</section>;
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -184,7 +184,7 @@ function CheckboxRow({
         {help && (
           <span
             title={help}
-            className="ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-gray-300 text-[10px] font-semibold text-white"
+            className="ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-gray-300 text-[12px] font-semibold text-white"
             aria-label={help}
           >
             ?

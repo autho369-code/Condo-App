@@ -2,4 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens (docs/DESIGN_SYSTEM.md). One set for all six roles.
+   --brand is the management company's own color: set per workspace by the
+   role shells (components/nav/role-shell.tsx) from its brand_color, with
+   --brand-ink the readable text color on top of it. */
+:root {
+  --canvas: #f4f6f8;
+  --surface: #ffffff;
+  --line: #e3e7ed;
+  --ink: #0e1116;
+  --muted: #5b6472;
+  --brand: #10b981;
+  --brand-ink: #ffffff;
+}
+
 body { @apply bg-gray-50 text-gray-900; }

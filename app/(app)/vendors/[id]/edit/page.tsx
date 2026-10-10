@@ -20,7 +20,7 @@ const label = (v: string) => v.replace(/_/g, ' ');
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="border-t border-gray-100 pt-5">
-      <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">{title}</div>
+      <div className="mb-3 text-[13px] font-semibold text-gray-700">{title}</div>
       {children}
     </section>
   );
@@ -88,14 +88,14 @@ export default async function EditVendorPage({
     >
       {sp.error && <Alert className="mb-6 max-w-5xl" title="Could not save vendor:">{sp.error}</Alert>}
 
-      <form action={updateVendorRecord} className="max-w-5xl space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={updateVendorRecord} className="max-w-5xl space-y-6 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <input type="hidden" name="vendor_id" value={id} />
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
             <p className="mb-1.5 text-sm font-medium text-gray-700">Association</p>
             <p className="text-sm text-gray-900">{v.is_management_company ? 'Management company (all associations)' : (v.associations?.name ?? '—')}</p>
-            <p className="mt-1 text-xs text-gray-500">A vendor stays with its association. For another association, add the company there as its own vendor.</p>
+            <p className="mt-1 text-[13px] text-gray-500">A vendor stays with its association. For another association, add the company there as its own vendor.</p>
           </div>
           <div className="md:col-span-2">
             <Label htmlFor="name">Vendor name <span className="text-red-500">*</span></Label>
@@ -120,7 +120,7 @@ export default async function EditVendorPage({
             <div className="md:col-span-3">
               <Label htmlFor="emails">Emails</Label>
               <Input id="emails" name="emails" defaultValue={emails.join(', ')} placeholder="one@example.com, two@example.com" />
-              <p className="mt-1 text-xs text-gray-500">Separate several addresses with commas. The first is used for portal invitations.</p>
+              <p className="mt-1 text-[13px] text-gray-500">Separate several addresses with commas. The first is used for portal invitations.</p>
             </div>
             <div><Label htmlFor="phone_landline">Phone (landline)</Label><Input id="phone_landline" name="phone_landline" type="tel" defaultValue={phone('landline')} /></div>
             <div><Label htmlFor="phone_mobile">Phone (mobile)</Label><Input id="phone_mobile" name="phone_mobile" type="tel" defaultValue={phone('mobile')} /></div>
@@ -159,7 +159,7 @@ export default async function EditVendorPage({
               <select id="check_consolidation" name="check_consolidation" defaultValue={v.check_consolidation ?? 'single_check'} className={SELECT}>
                 {CHECK_CONSOLIDATION.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
-              <p className="mt-1 text-xs text-gray-500">Saved as a preference only. Checks are written one per bill; bills are not combined onto a single check.</p>
+              <p className="mt-1 text-[13px] text-gray-500">Saved as a preference only. Checks are written one per bill; bills are not combined onto a single check.</p>
             </div>
             <div>
               <Label htmlFor="check_stub_breakdown">Check stub breakdown</Label>
@@ -179,7 +179,7 @@ export default async function EditVendorPage({
             <div>
               <Label htmlFor="work_order_adjustment">Work order adjustment (%)</Label>
               <Input id="work_order_adjustment" name="work_order_adjustment" type="number" step="0.01" min={0} max={100} defaultValue={Number(v.work_order_adjustment ?? 0)} />
-              <p className="mt-1 text-xs text-gray-500">Percentage discount applied to this vendor&apos;s work order costs (0–100).</p>
+              <p className="mt-1 text-[13px] text-gray-500">Percentage discount applied to this vendor&apos;s work order costs (0–100).</p>
             </div>
             <Check name="hold_payments" defaultChecked={!!v.hold_payments} title="Hold payments" hint="Bills stay unpaid until you clear this." />
             <Check name="email_echeck_receipt" defaultChecked={v.email_echeck_receipt !== false} title="Email eCheck receipt" hint="Send the vendor a receipt when an electronic payment goes out." />

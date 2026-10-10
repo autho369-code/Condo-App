@@ -60,8 +60,8 @@ export default async function ViolationsOversightPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Violations Oversight</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">Track all violations across your portfolio</p>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Violations Oversight</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Track all violations across your portfolio</p>
         </div>
       </div>
 
@@ -76,11 +76,11 @@ export default async function ViolationsOversightPage() {
         ].map((item) => {
           const Icon = item.icon
           return (
-            <div key={item.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div key={item.label} className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
-                  <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{item.value}</div>
+                  <div className="text-[13px] font-medium text-gray-500">{item.label}</div>
+                  <div className="mt-1.5 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{item.value}</div>
                 </div>
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
                   <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -92,20 +92,20 @@ export default async function ViolationsOversightPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+          <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
             <tr>
-              <th className="px-4 py-2.5 text-left font-medium">Association</th>
-              <th className="px-4 py-2.5 text-left font-medium">Unit</th>
-              <th className="px-4 py-2.5 text-left font-medium">Owner</th>
-              <th className="px-4 py-2.5 text-left font-medium">Type</th>
-              <th className="px-4 py-2.5 text-left font-medium">Status</th>
-              <th className="px-4 py-2.5 text-left font-medium">Date Observed</th>
-              <th className="px-4 py-2.5 text-right font-medium">Days Open</th>
-              <th className="px-4 py-2.5 text-left font-medium">Hearing</th>
-              <th className="px-4 py-2.5 text-right font-medium">Fine</th>
-              <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Association</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Unit</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Owner</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Type</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Status</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Date Observed</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Days Open</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Hearing</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Fine</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -113,21 +113,21 @@ export default async function ViolationsOversightPage() {
               <tr><td colSpan={10} className="px-4 py-12 text-center text-sm text-gray-500">No violations found.</td></tr>
             ) : (
               violations.map((v: any) => (
-                <tr key={v.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                <tr key={v.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                   <td className="px-4 py-3 font-medium text-gray-900">{v.associations?.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-[13px] text-gray-700">{v.units?.unit_number ?? '—'}</td>
-                  <td className="px-4 py-3 text-[13px] text-gray-700">{v.owners?.full_name ?? '—'}</td>
-                  <td className="px-4 py-3 text-[13px] text-gray-700">{v.violation_type ?? v.title ?? '—'}</td>
-                  <td className="px-4 py-3"><Badge status={v.status ?? '—'} /></td>
-                  <td className="px-4 py-3 text-[13px] tabular-nums text-gray-700">{date(v.date_observed)}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-700">{v.units?.unit_number ?? '—'}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-700">{v.owners?.full_name ?? '—'}</td>
+                  <td className="px-4 py-3.5 text-sm text-gray-700">{v.violation_type ?? v.title ?? '—'}</td>
+                  <td className="px-4 py-3.5"><Badge status={v.status ?? '—'} /></td>
+                  <td className="px-4 py-3.5 text-sm tabular-nums text-gray-700">{date(v.date_observed)}</td>
                   <td className={`px-4 py-3 text-right tabular-nums ${daysOpen(v.created_at) > 30 ? 'font-semibold text-red-700' : 'text-gray-700'}`}>
                     {daysOpen(v.created_at)}
                   </td>
-                  <td className="px-4 py-3 text-[13px] tabular-nums text-gray-700">{v.hearing_date ? date(v.hearing_date) : '—'}</td>
+                  <td className="px-4 py-3.5 text-sm tabular-nums text-gray-700">{v.hearing_date ? date(v.hearing_date) : '—'}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-gray-900">
                     {v.fine_amount ? money(v.fine_amount) : <span className="text-gray-400">—</span>}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <div className="flex items-center justify-end gap-1">
                       <Link href={`/violations/${v.id}`} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950" title="View">
                         <Eye className="h-4 w-4" />
@@ -141,7 +141,7 @@ export default async function ViolationsOversightPage() {
         </table>
       </div>
 
-      <div className="text-xs text-gray-500">Showing {violations.length} violations across all associations</div>
+      <div className="text-[13px] text-gray-500">Showing {violations.length} violations across all associations</div>
     </div>
   )
 }

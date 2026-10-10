@@ -65,7 +65,7 @@ export default async function SignatureRequestPage({
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <div>
           <Section title="Signers" subtitle={r.sequential ? 'Signing in order' : 'Any order'}>
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-line">
               {(signers ?? []).map((s: any) => (
                 <li key={s.id} className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
@@ -93,7 +93,7 @@ export default async function SignatureRequestPage({
             {r.document_kind === 'text'
               ? <div className="max-h-[50vh] overflow-y-auto whitespace-pre-wrap px-5 py-4 text-[14px] leading-7 text-gray-800">{r.body_text}</div>
               : pdfUrl ? <iframe src={pdfUrl} title={r.title} className="h-[60vh] w-full" /> : <p className="px-5 py-4 text-sm text-gray-500">The file could not be loaded.</p>}
-            <div className="border-t border-gray-100 px-5 py-2 text-[11px] text-gray-400">SHA-256 <span className="break-all font-mono">{r.document_sha256}</span></div>
+            <div className="border-t border-gray-100 px-5 py-2 text-[12.5px] text-gray-400">SHA-256 <span className="break-all font-mono">{r.document_sha256}</span></div>
           </Section>
         </div>
 

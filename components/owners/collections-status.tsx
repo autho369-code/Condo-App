@@ -46,7 +46,7 @@ export function OwnerCollectionStatus({
   return (
     <div id="collections" className="border-t border-gray-100 px-5 py-4">
       <h3 className="text-sm font-semibold text-gray-900">Collections &amp; payment rules</h3>
-      <p className="mt-0.5 text-xs text-gray-500">These flags are enforced: they restrict how this homeowner can pay. Changes are logged.</p>
+      <p className="mt-0.5 text-[13px] text-gray-500">These flags are enforced: they restrict how this homeowner can pay. Changes are logged.</p>
       <ul className="mt-3 space-y-4">
         {owned.map((o) => {
           const occNotes = notes.filter((n) => n.occupancy_id === o.id);
@@ -99,9 +99,9 @@ export function OwnerCollectionStatus({
               )}
 
               <div className="mt-3 border-t border-gray-100 pt-3">
-                <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Delinquency notes</div>
+                <div className="text-[13px] font-semibold text-gray-700">Delinquency notes</div>
                 {occNotes.length === 0 ? (
-                  <p className="mt-1 text-xs text-gray-500">No delinquency notes.</p>
+                  <p className="mt-1 text-[13px] text-gray-500">No delinquency notes.</p>
                 ) : (
                   <ul className="mt-2 space-y-2">
                     {occNotes.map((n) => (

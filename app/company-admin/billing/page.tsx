@@ -9,7 +9,7 @@ import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 export default async function BillingPage() {
   const me = await requirePortfolioAdmin()
@@ -64,8 +64,8 @@ export default async function BillingPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Billing &amp; Doors</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Billing &amp; Doors</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
             Manage your subscription, monitor door usage for {me.portfolio?.company_name ?? me.portfolio?.name ?? 'your portfolio'}
           </p>
         </div>
@@ -82,7 +82,7 @@ export default async function BillingPage() {
               <CreditCard className="h-5 w-5 text-gray-400" />
             </div>
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Current Plan</div>
+              <div className="text-[13px] font-medium text-gray-500">Current Plan</div>
               <div className="text-xl font-semibold text-gray-950">{tierName}</div>
             </div>
           </div>
@@ -119,7 +119,7 @@ export default async function BillingPage() {
               <DoorOpen className="h-5 w-5 text-gray-400" />
             </div>
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Active Doors</div>
+              <div className="text-[13px] font-medium text-gray-500">Active Doors</div>
               <div className="text-xl font-semibold tabular-nums text-gray-950">{activeDoors.toLocaleString()} <span className="text-sm font-normal text-gray-500">/ {doorsLimit.toLocaleString()} limit</span></div>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default async function BillingPage() {
               <Receipt className="h-5 w-5 text-gray-400" />
             </div>
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Current Month</div>
+              <div className="text-[13px] font-medium text-gray-500">Current Month</div>
               <div className="text-xl font-semibold tabular-nums text-gray-950">{money(projectedTotal)}</div>
             </div>
           </div>
@@ -194,7 +194,7 @@ export default async function BillingPage() {
       <div className={`${card} p-6`}>
         <div className="mb-4 flex items-center gap-3">
           <TrendingUp className="h-5 w-5 text-gray-400" />
-          <h2 className="text-sm font-semibold text-gray-950">Projected Next Invoice</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Projected Next Invoice</h2>
         </div>
         <div className="text-3xl font-semibold tabular-nums text-gray-950">{money(projectedTotal)}</div>
         <div className="mt-1 text-sm text-gray-500">
@@ -206,7 +206,7 @@ export default async function BillingPage() {
       <div className={`${card} p-6`}>
         <div className="mb-4 flex items-center gap-3">
           <CreditCard className="h-5 w-5 text-gray-400" />
-          <h2 className="text-sm font-semibold text-gray-950">Billing &amp; Payment</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Billing &amp; Payment</h2>
         </div>
         <div className="text-sm text-gray-600">
           Invoices are issued by Portier369. To arrange payment, contact{' '}
@@ -220,20 +220,20 @@ export default async function BillingPage() {
 
       {/* Invoice History */}
       <div className={card}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">Invoice History</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Recent invoices for your portfolio</p>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Invoice History</h2>
+            <p className="mt-0.5 text-[13px] text-gray-500">Recent invoices for your portfolio</p>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-4 py-2.5 text-left font-medium">Invoice #</th>
-                <th className="px-4 py-2.5 text-left font-medium">Period</th>
-                <th className="px-4 py-2.5 text-right font-medium">Amount</th>
-                <th className="px-4 py-2.5 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Invoice #</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Period</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Amount</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -247,9 +247,9 @@ export default async function BillingPage() {
                 </tr>
               ) : (
                 (invoices ?? []).map((inv: any) => (
-                  <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-4 py-3 text-[13px] tabular-nums text-gray-700">{inv.number ?? `INV-${inv.id?.slice(0, 8)}`}</td>
-                    <td className="px-4 py-3 text-[13px] tabular-nums text-gray-700">
+                  <tr key={inv.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                    <td className="px-4 py-3.5 text-sm tabular-nums text-gray-700">{inv.number ?? `INV-${inv.id?.slice(0, 8)}`}</td>
+                    <td className="px-4 py-3.5 text-sm tabular-nums text-gray-700">
                       {inv.period_start && inv.period_end
                         ? `${date(inv.period_start)} – ${date(inv.period_end)}`
                         : '—'}
@@ -257,7 +257,7 @@ export default async function BillingPage() {
                     <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-950">
                       {money(Number(inv.total_cents ?? 0) / 100)}
                     </td>
-                    <td className="px-4 py-3"><Badge status={inv.status ?? '—'} /></td>
+                    <td className="px-4 py-3.5"><Badge status={inv.status ?? '—'} /></td>
                   </tr>
                 ))
               )}

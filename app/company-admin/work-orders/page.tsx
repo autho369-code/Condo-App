@@ -86,8 +86,8 @@ export default async function WorkOrdersOversightPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Work Orders Oversight</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">Monitor all work orders across your portfolio</p>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Work Orders Oversight</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Monitor all work orders across your portfolio</p>
         </div>
       </div>
 
@@ -103,11 +103,11 @@ export default async function WorkOrdersOversightPage({
         ].map((item) => {
           const Icon = item.icon
           return (
-            <div key={item.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div key={item.label} className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
-                  <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{item.value}</div>
+                  <div className="text-[13px] font-medium leading-5 text-gray-500">{item.label}</div>
+                  <div className="mt-1.5 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{item.value}</div>
                 </div>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
                   <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -119,15 +119,15 @@ export default async function WorkOrdersOversightPage({
       </div>
 
       {/* Filters */}
-      <form action="/company-admin/work-orders" method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <label className="text-xs font-medium text-gray-500">
+      <form action="/company-admin/work-orders" method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <label className="text-[13px] font-medium text-gray-500">
           Association
           <select name="association" defaultValue={sp.association ?? ''} className={selectCls}>
             <option value="">All Associations</option>
             {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </label>
-        <label className="text-xs font-medium text-gray-500">
+        <label className="text-[13px] font-medium text-gray-500">
           Priority
           <select name="priority" defaultValue={sp.priority ?? ''} className={selectCls}>
             <option value="">All</option>
@@ -137,7 +137,7 @@ export default async function WorkOrdersOversightPage({
             <option value="low">Low</option>
           </select>
         </label>
-        <label className="text-xs font-medium text-gray-500">
+        <label className="text-[13px] font-medium text-gray-500">
           Status
           <select name="status" defaultValue={sp.status ?? ''} className={selectCls}>
             <option value="">All</option>
@@ -156,19 +156,19 @@ export default async function WorkOrdersOversightPage({
       </form>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+          <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
             <tr>
-              <th className="px-4 py-2.5 text-left font-medium">#</th>
-              <th className="px-4 py-2.5 text-left font-medium">Association</th>
-              <th className="px-4 py-2.5 text-left font-medium">Title</th>
-              <th className="px-4 py-2.5 text-left font-medium">Priority</th>
-              <th className="px-4 py-2.5 text-left font-medium">Status</th>
-              <th className="px-4 py-2.5 text-left font-medium">Created</th>
-              <th className="px-4 py-2.5 text-right font-medium">Days Open</th>
-              <th className="px-4 py-2.5 text-left font-medium">Overdue</th>
-              <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">#</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Association</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Title</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Priority</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Status</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Created</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Days Open</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Overdue</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -179,27 +179,27 @@ export default async function WorkOrdersOversightPage({
                 const isOverdue = wo.scheduled_date && wo.scheduled_date < today && isOpen(wo)
                 const assocName = wo.associations?.name ?? '—'
                 return (
-                  <tr key={wo.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={wo.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="px-4 py-3 text-[13px] tabular-nums text-gray-500">{wo.number ?? `WO-${wo.id?.slice(0, 8)}`}</td>
-                    <td className="px-4 py-3 text-[13px] text-gray-700">{assocName}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5 text-sm text-gray-700">{assocName}</td>
+                    <td className="px-4 py-3.5">
                       <div className="font-medium text-gray-900">{wo.title ?? 'Untitled'}</div>
                       {wo.category && <div className="mt-0.5 text-xs capitalize text-gray-500">{wo.category}</div>}
                     </td>
-                    <td className="px-4 py-3"><StatusChip tone={priorityTone(wo.priority)}>{wo.priority ?? '—'}</StatusChip></td>
-                    <td className="px-4 py-3"><Badge status={wo.status ?? '—'} /></td>
-                    <td className="px-4 py-3 text-[13px] tabular-nums text-gray-700">{date(wo.created_at)}</td>
+                    <td className="px-4 py-3.5"><StatusChip tone={priorityTone(wo.priority)}>{wo.priority ?? '—'}</StatusChip></td>
+                    <td className="px-4 py-3.5"><Badge status={wo.status ?? '—'} /></td>
+                    <td className="px-4 py-3.5 text-sm tabular-nums text-gray-700">{date(wo.created_at)}</td>
                     <td className={`px-4 py-3 text-right tabular-nums ${daysOpen(wo.created_at) > 30 ? 'font-semibold text-red-700' : 'text-gray-700'}`}>
                       {daysOpen(wo.created_at)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       {isOverdue ? (
                         <StatusChip tone="danger">Overdue</StatusChip>
                       ) : (
-                        <span className="text-xs text-gray-400">—</span>
+                        <span className="text-[13px] text-gray-500">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={`/work-orders/${wo.id}`} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950" title="View">
                           <Eye className="h-4 w-4" />
@@ -214,7 +214,7 @@ export default async function WorkOrdersOversightPage({
         </table>
       </div>
 
-      <div className="text-xs text-gray-500">
+      <div className="text-[13px] text-gray-500">
         Showing {(workOrders ?? []).length} of {wos.length} work orders
         {sp.association && ` for selected association`}
         {sp.priority && ` • Priority: ${sp.priority}`}

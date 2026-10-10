@@ -239,7 +239,7 @@ export default async function PurchaseOrderDetailPage({
           {request && (
             <Section title="Board vote" subtitle={`${request.votes_for} for · ${request.votes_against} against · ${request.votes_abstain} abstain — ${request.required_votes} needed`}>
               {(decisions ?? []).length > 0 ? (
-                <ul className="divide-y divide-gray-100">
+                <ul className="divide-y divide-line">
                   {(decisions ?? []).map((d: any) => (
                     <li key={d.id} className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
@@ -250,7 +250,7 @@ export default async function PurchaseOrderDetailPage({
                         <StatusChip tone={d.decision === 'approve' ? 'success' : d.decision === 'reject' ? 'danger' : 'neutral'}>
                           {d.decision === 'approve' ? 'Approved' : d.decision === 'reject' ? 'Rejected' : 'Abstained'}
                         </StatusChip>
-                        <span className="text-xs text-gray-400">{formatDateTime(d.decided_at)}</span>
+                        <span className="text-[13px] text-gray-500">{formatDateTime(d.decided_at)}</span>
                       </div>
                     </li>
                   ))}
@@ -290,7 +290,7 @@ export default async function PurchaseOrderDetailPage({
                   <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-gray-300" />
                   <div>
                     <div className="text-sm text-gray-900">{t.label}</div>
-                    <div className="text-xs text-gray-400">{formatDateTime(t.at)}</div>
+                    <div className="text-[13px] text-gray-500">{formatDateTime(t.at)}</div>
                   </div>
                 </li>
               ))}

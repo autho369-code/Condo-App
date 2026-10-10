@@ -159,7 +159,7 @@ export function CommandPalette({ pages, actions }: { pages: PaletteLink[]; actio
         role="dialog"
         aria-modal="true"
         aria-label="Search"
-        className="w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_24px_64px_-16px_rgba(16,24,40,0.35)]"
+        className="w-full max-w-xl overflow-hidden rounded-2xl border border-line bg-white shadow-[0_24px_64px_-16px_rgba(16,24,40,0.35)]"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 border-b border-gray-100 px-4">
@@ -178,7 +178,7 @@ export function CommandPalette({ pages, actions }: { pages: PaletteLink[]; actio
             aria-autocomplete="list"
             maxLength={80}
           />
-          <kbd className="hidden shrink-0 rounded-md border border-gray-200 px-1.5 py-0.5 text-[11px] text-gray-400 sm:block">Esc</kbd>
+          <kbd className="hidden shrink-0 rounded-md border border-gray-200 px-1.5 py-0.5 text-[12.5px] text-gray-400 sm:block">Esc</kbd>
         </div>
 
         <div ref={listRef} id="command-palette-list" role="listbox" aria-label="Results" className="max-h-[60vh] overflow-y-auto py-2">
@@ -188,7 +188,7 @@ export function CommandPalette({ pages, actions }: { pages: PaletteLink[]; actio
             const Icon = item.kind === 'action' ? Plus : item.kind === 'recent' ? Clock : item.kind === 'page' ? ArrowRight : FileText;
             return (
               <React.Fragment key={item.key}>
-                {header && <div className="px-4 pb-1 pt-3 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{header}</div>}
+                {header && <div className="px-4 pb-1 pt-3 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{header}</div>}
                 <div
                   id={`palette-item-${index}`}
                   data-index={index}
@@ -217,7 +217,7 @@ export function CommandPalette({ pages, actions }: { pages: PaletteLink[]; actio
           {loading && <div className="px-4 py-2 text-[12px] text-gray-400">Searching…</div>}
         </div>
 
-        <div className="hidden items-center gap-4 border-t border-gray-100 px-4 py-2 text-[11px] text-gray-400 sm:flex">
+        <div className="hidden items-center gap-4 border-t border-gray-100 px-4 py-2 text-[12.5px] text-gray-400 sm:flex">
           <span><kbd className="font-sans">↑↓</kbd> navigate</span>
           <span><kbd className="font-sans">↵</kbd> open</span>
           <span className="ml-auto"><kbd className="font-sans">Ctrl K</kbd> or <kbd className="font-sans">/</kbd> anywhere</span>

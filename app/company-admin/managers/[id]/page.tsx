@@ -14,12 +14,12 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all'
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2">
-      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-[13px] text-gray-500">{label}</span>
       <span className="text-right text-sm text-gray-900">{value}</span>
     </div>
   )
@@ -144,7 +144,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
                 {(manager.full_name ?? manager.email ?? '?')[0].toUpperCase()}
               </div>
               <div>
-                <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{manager.full_name ?? manager.email}</h1>
+                <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{manager.full_name ?? manager.email}</h1>
                 <div className="mt-1 text-sm capitalize text-gray-500">{(manager.hoa_role ?? 'manager').replace('_', ' ')}</div>
                 {manager.disabled_at && <div className="mt-1 text-xs font-medium text-red-700">Login disabled</div>}
               </div>
@@ -163,7 +163,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
         </div>
         <div className="grid grid-cols-1 gap-0 divide-y divide-gray-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
           <div className="p-6">
-            <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Contact</div>
+            <div className="text-[13px] font-medium text-gray-500">Contact</div>
             <div className="mt-3 space-y-1">
               <InfoRow label="Email" value={manager.email ?? '—'} />
               <InfoRow label="Last Login" value={date(manager.last_login_at)} />
@@ -172,7 +172,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
             </div>
           </div>
           <div className="p-6">
-            <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Workload</div>
+            <div className="text-[13px] font-medium text-gray-500">Workload</div>
             <div className="mt-3 space-y-1">
               <InfoRow label="Associations" value={scope.fullAccess ? `All (${assocIds.length})` : assocIds.length} />
               <InfoRow label="Doors Managed" value={totalDoorsManaged.toLocaleString()} />
@@ -187,7 +187,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
       <div className={`${card} p-6`}>
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Workload Score</div>
+            <div className="text-[13px] font-medium text-gray-500">Workload Score</div>
             <div className="mt-1 text-lg text-gray-600">
               {openWorkOrders.length > 0 ? `${overdueWorkOrders.length} overdue / ${openWorkOrders.length} open` : 'No open work orders'}
             </div>
@@ -210,8 +210,8 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
         <input type="hidden" name="manager_id" value={id} />
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">Property Access</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Check the associations this manager can access. None checked = full portfolio access.</p>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Property Access</h2>
+            <p className="mt-0.5 text-[13px] text-gray-500">Check the associations this manager can access. None checked = full portfolio access.</p>
           </div>
           <PendingSubmit pendingLabel="Saving…">Save access</PendingSubmit>
         </div>
@@ -230,7 +230,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
                 />
                 <div className="min-w-0 flex-1">
                   <div className="font-medium text-gray-900">{assoc.name}</div>
-                  <div className="text-xs text-gray-500">{[assoc.city, assoc.state].filter(Boolean).join(', ') || '—'} · {assoc.unit_count ?? 0} units</div>
+                  <div className="text-[13px] text-gray-500">{[assoc.city, assoc.state].filter(Boolean).join(', ') || '—'} · {assoc.unit_count ?? 0} units</div>
                 </div>
               </label>
             ))
@@ -240,9 +240,9 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
 
       <div className={card}>
         <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Recent Activity</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Recent Activity</h2>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-line">
           {(recentActivity ?? []).length === 0 ? (
             <div className="px-6 py-8 text-center text-sm text-gray-500">No recent activity recorded.</div>
           ) : (
@@ -251,7 +251,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
                 <Activity className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400" />
                 <div className="min-w-0 flex-1">
                   <div className="text-sm text-gray-900">{act.action}</div>
-                  {act.details && <div className="mt-0.5 text-xs text-gray-500">{act.details}</div>}
+                  {act.details && <div className="mt-0.5 text-[13px] text-gray-500">{act.details}</div>}
                 </div>
                 <div className="flex-shrink-0 text-xs text-gray-400">{date(act.created_at)}</div>
               </div>

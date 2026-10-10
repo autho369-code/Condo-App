@@ -252,7 +252,7 @@ export default async function BankTransfersPage({
             </form>
           ) : table
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={ArrowLeftRight}
               title={
@@ -272,7 +272,7 @@ export default async function BankTransfersPage({
           </div>
         )}
         {matching > transfers.length && (
-          <p className="text-xs text-gray-500">Showing the latest {transfers.length} of {matching} transfers. Narrow with dates or an association to see older ones.</p>
+          <p className="text-[13px] text-gray-500">Showing the latest {transfers.length} of {matching} transfers. Narrow with dates or an association to see older ones.</p>
         )}
       </div>
     </DataWorkspace>

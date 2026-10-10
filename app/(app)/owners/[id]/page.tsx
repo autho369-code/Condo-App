@@ -474,7 +474,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
         {/* ── Quick Actions ── */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-xs font-medium uppercase tracking-[0.14em] text-gray-400">Quick actions</span>
+          <span className="mr-1 text-[13px] font-medium text-gray-500">Quick actions</span>
           <Link href={`/owners/${id}?view=statements`}>
             <Button variant="secondary" size="sm">View statements</Button>
           </Link>
@@ -497,7 +497,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                 immediately alongside their owner portal (one login, both portals).
               </p>
             ) : (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-line">
                 {(boardSeats ?? []).map((s: any) => (
                   <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
                     <div className="text-sm">
@@ -559,17 +559,17 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         <Section title="Owner Profile">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 px-5 py-4 text-sm">
             <div>
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Name</dt>
+              <dt className="text-[13px] text-gray-500">Name</dt>
               <dd className="mt-0.5 font-medium">{displayName}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Email</dt>
+              <dt className="text-[13px] text-gray-500">Email</dt>
               <dd className="mt-0.5">
                 {owner.email ? <a href={`mailto:${owner.email}`} className="text-blue-700 hover:underline">{owner.email}</a> : '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Phone</dt>
+              <dt className="text-[13px] text-gray-500">Phone</dt>
               <dd className="mt-0.5">
                 {phones.length > 0
                   ? phones.map((p: any, i: number) => (
@@ -582,7 +582,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Properties Owned</dt>
+              <dt className="text-[13px] text-gray-500">Properties Owned</dt>
               <dd className="mt-0.5">
                 {currentOccs.length > 0
                   ? currentOccs.map((o: any) => (
@@ -590,14 +590,14 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                         <Link href={`/units/${o.units?.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">
                           {o.units?.buildings?.associations?.name ?? 'Association'} — Unit {o.units?.unit_number ?? '—'}
                         </Link>
-                        {o.is_primary && <span className="ml-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">primary</span>}
+                        {o.is_primary && <span className="ml-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-[12px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">primary</span>}
                       </div>
                     ))
                   : '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Ownership Share</dt>
+              <dt className="text-[13px] text-gray-500">Ownership Share</dt>
               <dd className="mt-0.5">
                 {currentOccs.length > 0
                   ? currentOccs.map((o: any) => (
@@ -607,7 +607,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Portal Status</dt>
+              <dt className="text-[13px] text-gray-500">Portal Status</dt>
               <dd className="mt-0.5">
                 {owner.portal_activated
                   ? <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">Active</span>
@@ -618,13 +618,13 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Mailing Address</dt>
+              <dt className="text-[13px] text-gray-500">Mailing Address</dt>
               <dd className="mt-0.5">
                 {[owner.address_street, owner.address_city, owner.address_state, owner.address_zip].filter(Boolean).join(', ') || '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Preferred Comm</dt>
+              <dt className="text-[13px] text-gray-500">Preferred Comm</dt>
               <dd className="mt-0.5 capitalize">{owner.preferred_comm ?? '—'}</dd>
             </div>
           </dl>
@@ -634,11 +634,11 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         <div id="statements" className="scroll-mt-4" />
         <Section
           title="Owner Statements"
-          right={<span className="text-xs text-gray-500">{currentYear} YTD</span>}
+          right={<span className="text-[13px] text-gray-500">{currentYear} YTD</span>}
         >
           {monthlyStatements.length > 0 ? (
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr>
                   <th className="px-4 py-2 text-left font-semibold">Month</th>
                   <th className="px-4 py-2 text-right font-semibold">Charges</th>
@@ -682,11 +682,11 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         {/* ── Distribution & Payment History ── */}
         <Section
           title="Distribution & Payment History"
-          right={<span className="text-xs text-gray-500">{(distributionHistory ?? []).length} entries</span>}
+          right={<span className="text-[13px] text-gray-500">{(distributionHistory ?? []).length} entries</span>}
         >
           {distributionHistory.length > 0 ? (
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr>
                   <th className="px-4 py-2 text-left font-semibold">Date</th>
                   <th className="px-4 py-2 text-right font-semibold">Amount</th>
@@ -719,12 +719,12 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
         {/* ── Units Owned / Occupied ── */}
         <Section title="Units owned / occupied"
-          right={<span className="text-xs text-gray-500">{currentOccs.length} current · {pastOccs.length} past</span>}>
+          right={<span className="text-[13px] text-gray-500">{currentOccs.length} current · {pastOccs.length} past</span>}>
           {(occs ?? []).length === 0 ? (
             <p className="px-5 py-6 text-center text-sm text-gray-500">Not yet linked to any units. Use the form below.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr>
                   <th className="px-4 py-2 text-left font-semibold">Unit</th>
                   <th className="px-4 py-2 text-left font-semibold">Association</th>
@@ -740,14 +740,14 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                   <tr key={o.id} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-2">
                       <Link href={`/units/${o.units?.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">Unit {o.units?.unit_number ?? '—'}</Link>
-                      {o.is_primary && <span className="ml-2 rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">primary</span>}
+                      {o.is_primary && <span className="ml-2 rounded-full bg-blue-50 px-1.5 py-0.5 text-[12px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">primary</span>}
                     </td>
                     <td className="px-4 py-2 text-gray-700">{o.units?.buildings?.associations?.name ?? '—'}</td>
                     <td className="px-4 py-2 text-sm capitalize">{o.occupancy_type}</td>
                     <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-600">{date(o.move_in_date)}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{o.dues_amount ? money(o.dues_amount) : '—'}</td>
                     <td className="px-4 py-2">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ring-1 ring-inset ${
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[12.5px] font-medium capitalize ring-1 ring-inset ${
                         o.status === 'current' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/15' :
                         o.status === 'future'  ? 'bg-blue-50 text-blue-700 ring-blue-600/15'  :
                         'bg-gray-100 text-gray-500 ring-gray-500/15'
@@ -841,7 +841,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
           {currentOccs.length === 0 ? (
             <p className="px-5 py-6 text-center text-sm text-gray-500">Link this owner to a unit first to track occupancy.</p>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-line">
               {currentOccs.map((o: any) => {
                 const unitId = o.units?.id;
                 const unitTenants = activeTenantsByUnit.get(unitId) ?? [];
@@ -862,11 +862,11 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
                     {/* Active tenants */}
                     {unitTenants.map((t: any) => (
-                      <div key={t.id} className="mt-3 rounded-xl border border-gray-200/70 bg-gray-50/60 p-4">
+                      <div key={t.id} className="mt-3 rounded-xl border border-line bg-gray-50/60 p-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <div className="text-sm font-semibold text-gray-950">{t.first_name} {t.last_name}</div>
-                            <div className="mt-0.5 text-xs text-gray-500">
+                            <div className="mt-0.5 text-[13px] text-gray-500">
                               {t.phone ? <a href={`tel:${t.phone}`} className="text-blue-700 hover:underline">{t.phone}</a> : 'No phone'}
                               {' · '}
                               {t.email ? <a href={`mailto:${t.email}`} className="text-blue-700 hover:underline">{t.email}</a> : 'No email'}
@@ -875,7 +875,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                               <StatusChip tone={t.portal_activated ? 'success' : t.auth_user_id ? 'warning' : 'neutral'}>
                                 {t.portal_activated ? 'Resident portal active' : t.auth_user_id ? 'Portal disabled' : 'Not invited'}
                               </StatusChip>
-                              <span className="text-[11px] text-gray-500">Nonfinancial resident access</span>
+                              <span className="text-[12.5px] text-gray-500">Nonfinancial resident access</span>
                             </div>
                           </div>
                           <div className="flex flex-wrap items-center justify-end gap-1">
@@ -906,15 +906,15 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                         </div>
                         <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm md:grid-cols-4">
                           <div>
-                            <dt className="text-xs uppercase tracking-wider text-gray-500">Lease start</dt>
+                            <dt className="text-[13px] text-gray-500">Lease start</dt>
                             <dd className="mt-0.5 tabular-nums">{t.lease_start ? date(t.lease_start) : '—'}</dd>
                           </div>
                           <div>
-                            <dt className="text-xs uppercase tracking-wider text-gray-500">Lease end</dt>
+                            <dt className="text-[13px] text-gray-500">Lease end</dt>
                             <dd className="mt-0.5 tabular-nums">{t.lease_end ? date(t.lease_end) : '—'}</dd>
                           </div>
                           <div>
-                            <dt className="text-xs uppercase tracking-wider text-gray-500">Lease</dt>
+                            <dt className="text-[13px] text-gray-500">Lease</dt>
                             <dd className="mt-0.5">
                               {t.lease_document_url && signedUrlByPath.get(t.lease_document_url)
                                 ? <a href={signedUrlByPath.get(t.lease_document_url)} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">View lease</a>
@@ -922,7 +922,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                             </dd>
                           </div>
                           <div>
-                            <dt className="text-xs uppercase tracking-wider text-gray-500">Tenant insurance</dt>
+                            <dt className="text-[13px] text-gray-500">Tenant insurance</dt>
                             <dd className="mt-0.5">
                               {t.insurance_document_url && signedUrlByPath.get(t.insurance_document_url)
                                 ? <a href={signedUrlByPath.get(t.insurance_document_url)} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">View policy</a>
@@ -930,7 +930,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                             </dd>
                           </div>
                           <div className="col-span-2">
-                            <dt className="text-xs uppercase tracking-wider text-gray-500">Tenant emergency contact</dt>
+                            <dt className="text-[13px] text-gray-500">Tenant emergency contact</dt>
                             <dd className="mt-0.5">
                               {t.emergency_contact_name ?? '—'}
                               {t.emergency_contact_phone ? <> · <a href={`tel:${t.emergency_contact_phone}`} className="text-blue-700 hover:underline">{t.emergency_contact_phone}</a></> : null}
@@ -938,7 +938,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                           </div>
                           {t.notes && (
                             <div className="col-span-2">
-                              <dt className="text-xs uppercase tracking-wider text-gray-500">Notes</dt>
+                              <dt className="text-[13px] text-gray-500">Notes</dt>
                               <dd className="mt-0.5 whitespace-pre-wrap text-gray-700">{t.notes}</dd>
                             </div>
                           )}
@@ -1090,13 +1090,13 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         <Section title="Contact">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 px-5 py-4 text-sm">
             <div>
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Email</dt>
+              <dt className="text-[13px] text-gray-500">Email</dt>
               <dd className="mt-0.5">
                 {owner.email ? <a href={`mailto:${owner.email}`} className="text-blue-700 hover:underline">{owner.email}</a> : '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Phone</dt>
+              <dt className="text-[13px] text-gray-500">Phone</dt>
               <dd className="mt-0.5">
                 {phones.length > 0
                   ? phones.map((p: any, i: number) => (
@@ -1109,22 +1109,22 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               </dd>
             </div>
             <div className="col-span-2">
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Mailing address</dt>
+              <dt className="text-[13px] text-gray-500">Mailing address</dt>
               <dd className="mt-0.5">
                 {[owner.address_street, owner.address_city, owner.address_state, owner.address_zip].filter(Boolean).join(', ') || '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Preferred comm</dt>
+              <dt className="text-[13px] text-gray-500">Preferred comm</dt>
               <dd className="mt-0.5 capitalize">{owner.preferred_comm ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Added</dt>
+              <dt className="text-[13px] text-gray-500">Added</dt>
               <dd className="mt-0.5">{date(owner.created_at)}</dd>
             </div>
             {owner.notes && (
               <div className="col-span-2">
-                <dt className="text-xs uppercase tracking-wider text-gray-500">Notes</dt>
+                <dt className="text-[13px] text-gray-500">Notes</dt>
                 <dd className="mt-0.5 whitespace-pre-wrap">{owner.notes}</dd>
               </div>
             )}
@@ -1190,8 +1190,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
           <details className="group px-5 py-4">
             <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-950">
               {finDetails ? 'Edit details' : 'Add details'}
-              {finDetails?.hold_payments && <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/15">Payments on hold</span>}
-              {finDetails?.send_1099 && <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">1099 enabled</span>}
+              {finDetails?.hold_payments && <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[12.5px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/15">Payments on hold</span>}
+              {finDetails?.send_1099 && <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[12.5px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">1099 enabled</span>}
             </summary>
             <form action={saveOwnerFinancialDetails.bind(null, id, owner.portfolio_id)} className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="md:col-span-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">Federal tax</div>
@@ -1202,7 +1202,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               <div>
                 <Label htmlFor="taxpayer_id">Taxpayer ID (SSN/EIN)</Label>
                 <Input id="taxpayer_id" name="taxpayer_id" placeholder={maskTail(finDetails?.taxpayer_id) ?? 'Not on file'} autoComplete="off" />
-                <p className="mt-1 text-xs text-gray-500">Leave blank to keep the stored value.</p>
+                <p className="mt-1 text-[13px] text-gray-500">Leave blank to keep the stored value.</p>
               </div>
               <div>
                 <Label htmlFor="tax_form_account_number">Tax form account number</Label>
@@ -1210,7 +1210,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               </div>
               <div>
                 <Label htmlFor="sending_preference_1099">1099 sending preference</Label>
-                <select id="sending_preference_1099" name="sending_preference_1099" defaultValue={finDetails?.sending_preference_1099 ?? 'paper'} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">
+                <select id="sending_preference_1099" name="sending_preference_1099" defaultValue={finDetails?.sending_preference_1099 ?? 'paper'} className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                   <option value="paper">Paper</option>
                   <option value="electronic">Electronic</option>
                 </select>
@@ -1238,7 +1238,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               <div className="md:col-span-2 mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">Accounting preferences</div>
               <div>
                 <Label htmlFor="check_consolidation">Check consolidation</Label>
-                <select id="check_consolidation" name="check_consolidation" defaultValue={finDetails?.check_consolidation ?? 'single_check'} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">
+                <select id="check_consolidation" name="check_consolidation" defaultValue={finDetails?.check_consolidation ?? 'single_check'} className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                   <option value="single_check">All payables on a single check</option>
                   <option value="separate_checks">Separate check per payable</option>
                 </select>
@@ -1267,7 +1267,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Section title={`Service requests (${srs?.length ?? 0})`}>
             {srs && srs.length > 0 ? (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-line">
                 {srs.map((s: any) => (
                   <li key={s.id} className="px-4 py-2 text-sm">
                     <div className="flex items-center justify-between">
@@ -1279,7 +1279,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                       }`}>{s.status}</span>
                     </div>
                     <div className="truncate text-xs text-gray-500">{(s.description ?? '').split('\n')[0]}</div>
-                    <div className="text-xs text-gray-400">Unit {s.units?.unit_number} · {date(s.created_at)}</div>
+                    <div className="text-[13px] text-gray-500">Unit {s.units?.unit_number} · {date(s.created_at)}</div>
                   </li>
                 ))}
               </ul>
@@ -1288,14 +1288,14 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
           <Section title={`Violations (${violations?.length ?? 0})`}>
             {violations && violations.length > 0 ? (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-line">
                 {violations.map((v: any) => (
                   <li key={v.id} className="px-4 py-2 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{v.title}</span>
                       {v.fine_amount != null && <span className="text-xs tabular-nums text-gray-700">{money(v.fine_amount)}</span>}
                     </div>
-                    <div className="text-xs text-gray-500">{v.associations?.name} · {date(v.date_observed)}</div>
+                    <div className="text-[13px] text-gray-500">{v.associations?.name} · {date(v.date_observed)}</div>
                   </li>
                 ))}
               </ul>
@@ -1307,7 +1307,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
             right={<Link href="/insurance" className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline">All policies</Link>}
           >
             {ho6Policies && ho6Policies.length > 0 ? (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-line">
                 {ho6Policies.map((pol: any) => {
                   const expired = pol.expiration_date && pol.expiration_date < todayStr;
                   return (
@@ -1316,7 +1316,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                         <span className="font-medium">{pol.insurance_company ?? 'Policy'}{pol.policy_number ? ` · ${pol.policy_number}` : ''}</span>
                         <StatusChip tone={expired ? 'danger' : 'success'}>{expired ? 'Expired' : 'Active'}</StatusChip>
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-[13px] text-gray-500">
                         {pol.coverage_amount != null ? `${money(pol.coverage_amount)} coverage · ` : ''}
                         {pol.expiration_date ? `Expires ${date(pol.expiration_date)}` : 'No expiration on file'}
                       </div>
@@ -1332,7 +1332,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
             right={<Link href="/parking" className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline">Parking</Link>}
           >
             {((ownerVehicles?.length ?? 0) + (parkingRows?.length ?? 0)) > 0 ? (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-line">
                 {(ownerVehicles ?? []).map((v: any) => (
                   <li key={v.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
                     <div>
@@ -1354,7 +1354,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                       </span>
                       {v.license_plate && <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-700">{v.license_plate}</span>}
                     </div>
-                    <div className="text-xs text-gray-500">Parking space {v.parking_spaces?.label ?? '—'}</div>
+                    <div className="text-[13px] text-gray-500">Parking space {v.parking_spaces?.label ?? '—'}</div>
                   </li>
                 ))}
               </ul>
@@ -1380,14 +1380,14 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
             right={<Link href={`/owners/management-agreements?owner=${id}`} className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline">New agreement</Link>}
           >
             {mgmtAgreements && mgmtAgreements.length > 0 ? (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-line">
                 {mgmtAgreements.map((ag: any) => (
                   <li key={ag.id} className="px-4 py-2 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{ag.name ?? 'Management agreement'}</span>
                       <StatusChip tone={ag.status === 'active' ? 'success' : 'neutral'}>{ag.status ?? '—'}</StatusChip>
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-[13px] text-gray-500">
                       {ag.start_date ? date(ag.start_date) : '—'} — {ag.end_date ? date(ag.end_date) : 'ongoing'}
                     </div>
                   </li>
@@ -1397,7 +1397,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
           </Section>
 
           <Section title={`Attachments (${attachments?.length ?? 0})`}>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-line">
               {(attachments ?? []).map((a: any) => (
                 <div key={a.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
                   <div className="min-w-0">
@@ -1406,7 +1406,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                     ) : (
                       <span className="block truncate font-medium text-gray-900">{a.file_name}</span>
                     )}
-                    <div className="text-xs text-gray-500">
+                    <div className="text-[13px] text-gray-500">
                       {a.size_bytes != null ? `${Math.max(1, Math.round(a.size_bytes / 1024))} KB · ` : ''}{date(a.created_at)}
                     </div>
                   </div>
@@ -1429,12 +1429,12 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
           <Section title="Audit log">
             {auditRows && auditRows.length > 0 ? (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-line">
                 {auditRows.map((r: any, i: number) => (
                   <li key={i} className="px-4 py-2 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="font-medium capitalize">{String(r.action).replace(/[:_]/g, ' ')}</span>
-                      <span className="text-xs text-gray-400">{date(r.created_at)}</span>
+                      <span className="text-[13px] text-gray-500">{date(r.created_at)}</span>
                     </div>
                     <div className="truncate text-xs text-gray-500">
                       {r.actor_email ?? 'system'}
@@ -1455,7 +1455,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                   {owner.portal_activated ? 'Active' : 'Not active'}
                 </StatusChip>
                 {owner.portal_login_last_at && (
-                  <span className="text-xs text-gray-400">Last login {date(owner.portal_login_last_at)}</span>
+                  <span className="text-[13px] text-gray-500">Last login {date(owner.portal_login_last_at)}</span>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -1489,7 +1489,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                   </form>
                 )}
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-[13px] text-gray-500">
                 Unlink login when the wrong person is linked to this record, or the record changed hands; changing the email does not remove the record&apos;s own sign-in.
                 Disabling blocks this portfolio&apos;s owner portal without globally banning the person&apos;s shared sign-in identity. The owner record and history are kept.
                 The reset email goes to {owner.email ?? 'the owner’s email on file'}.
@@ -1506,7 +1506,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
 function Section({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
         <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
         {right}

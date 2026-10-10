@@ -60,10 +60,10 @@ function AttentionList({
   return (
     <section className="border-b border-gray-100 bg-white px-3 py-3" aria-labelledby={headingId}>
       <div className="mb-2 flex items-center justify-between gap-2 px-1">
-        <h3 id={headingId} className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-500">
+        <h3 id={headingId} className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-700">
           <AlertTriangle className="h-3 w-3 text-amber-500" /> Needs attention
         </h3>
-        <span className="text-[10px] text-gray-400">Current</span>
+        <span className="text-[12px] text-gray-500">Current</span>
       </div>
       <ul className="space-y-1">
         {items.map((item) => (
@@ -124,13 +124,13 @@ function ActionRow({
             : 'min-h-10 min-w-0 flex-1 px-3 py-2.5 focus-visible:rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-400'}
         >
           <span className="flex items-center justify-between gap-2">
-            <span className={item.primary ? 'text-[13px] font-semibold text-white' : 'text-[13px] font-medium text-gray-800'}>{item.label}</span>
+            <span className={item.primary ? 'text-[14px] font-semibold text-white' : 'text-[14px] font-medium text-gray-800'}>{item.label}</span>
             {item.primary
               ? <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-gray-300" />
               : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-gray-500" />}
           </span>
           {item.description ? (
-            <span className={item.primary ? 'mt-1 block text-[11px] leading-4 text-gray-300' : 'mt-1 block text-[11px] leading-4 text-gray-500'}>
+            <span className={item.primary ? 'mt-1 block text-[12.5px] leading-[18px] text-gray-300' : 'mt-1 block text-[12.5px] leading-[18px] text-gray-500'}>
               {item.description}
             </span>
           ) : null}
@@ -170,11 +170,11 @@ function SectionBlock({
       <div className="mb-2 flex items-center justify-between gap-2 px-1">
         <h3
           id={`${idPrefix}-${section.tab}-${section.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
-          className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400"
+          className="text-[13px] font-semibold text-gray-700"
         >
           {section.title}
         </h3>
-        <span className="text-[10px] tabular-nums text-gray-300">{section.links.length}</span>
+        <span className="text-[12px] tabular-nums text-gray-400">{section.links.length}</span>
       </div>
       <ul className="space-y-1">
         {section.links.map((item) => (
@@ -222,7 +222,7 @@ function ActionCenterBody({
       <div className="px-6 py-12 text-center">
         <Search className="mx-auto h-5 w-5 text-gray-300" />
         <p className="mt-3 text-sm font-medium text-gray-700">No matching actions</p>
-        <p className="mt-1 text-xs leading-5 text-gray-400">Try a workflow, report, or task name.</p>
+        <p className="mt-1 text-[13px] leading-5 text-gray-500">Try a workflow, report, or task name.</p>
       </div>
     );
   }
@@ -379,12 +379,12 @@ function TasksRailInner({ isStaff = false, isFinanceStaff = false, isAdmin = fal
                 aria-pressed={selectedTab === tab}
                 onClick={() => setActiveTab(tab)}
                 className={selectedTab === tab
-                  ? 'flex h-8 items-center justify-center gap-1.5 rounded-md bg-white px-2 text-[11px] font-semibold text-gray-900 shadow-sm'
-                  : 'flex h-8 items-center justify-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-gray-500 hover:text-gray-800'}
+                  ? 'flex h-9 items-center justify-center gap-1.5 rounded-md bg-white px-2 text-[13px] font-semibold text-gray-900 shadow-sm'
+                  : 'flex h-9 items-center justify-center gap-1.5 rounded-md px-2 text-[13px] font-medium text-gray-600 hover:text-gray-900'}
               >
                 <Icon className="h-3.5 w-3.5" />
                 {TAB_META[tab].label}
-                <span className="tabular-nums text-[10px] text-gray-400">{count}</span>
+                <span className="tabular-nums text-[12px] text-gray-400">{count}</span>
               </button>
             );
           })}
@@ -392,7 +392,7 @@ function TasksRailInner({ isStaff = false, isFinanceStaff = false, isAdmin = fal
       </div>
       {selectedTab === 'work' && pinned.length > 0 && !query ? (
         <div className="border-b border-gray-100 bg-amber-50/40 px-3 py-3">
-          <div className="mb-2 flex items-center gap-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+          <div className="mb-2 flex items-center gap-1.5 px-1 text-[13px] font-semibold text-amber-800">
             <Pin className="h-3 w-3 fill-current" /> Pinned shortcuts
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -401,7 +401,7 @@ function TasksRailInner({ isStaff = false, isFinanceStaff = false, isAdmin = fal
                 key={item.href}
                 href={item.href}
                 onClick={() => setSheetOpen(false)}
-                className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-medium text-amber-900 shadow-sm hover:border-amber-300"
+                className="rounded-full border border-amber-200 bg-white px-3 py-1 text-[12.5px] font-medium text-amber-900 shadow-sm hover:border-amber-300"
               >
                 {item.label}
               </Link>
@@ -432,7 +432,7 @@ function TasksRailInner({ isStaff = false, isFinanceStaff = false, isAdmin = fal
           {desktopOpen ? (
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-950"><Sparkles className="h-3.5 w-3.5" /> Action Center</div>
-              <div className="truncate text-[10px] text-gray-400">{panel.label}</div>
+              <div className="truncate text-[12px] text-gray-500">{panel.label}</div>
             </div>
           ) : null}
           <button
@@ -448,7 +448,7 @@ function TasksRailInner({ isStaff = false, isFinanceStaff = false, isAdmin = fal
         {desktopOpen ? body('desktop-action-center', desktopSearchRef) : (
           <button type="button" onClick={toggleDesktop} className="mt-3 flex flex-col items-center gap-2 py-3 text-gray-400 hover:text-gray-800" aria-label="Expand Action Center">
             <Sparkles className="h-4 w-4" />
-            <span className="[writing-mode:vertical-rl] text-[10px] font-semibold uppercase tracking-[0.12em]">Actions</span>
+            <span className="[writing-mode:vertical-rl] text-[12px] font-semibold tracking-[0.04em]">Actions</span>
           </button>
         )}
       </aside>
@@ -473,7 +473,7 @@ function TasksRailInner({ isStaff = false, isFinanceStaff = false, isAdmin = fal
             <div className="flex h-14 flex-shrink-0 items-center justify-between border-b border-gray-100 px-4">
               <div>
                 <div className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-950"><Sparkles className="h-3.5 w-3.5" /> Action Center</div>
-                <div className="text-[10px] text-gray-400">{panel.label}</div>
+                <div className="text-[12px] text-gray-500">{panel.label}</div>
               </div>
               <button
                 type="button"

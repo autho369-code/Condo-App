@@ -51,8 +51,8 @@ export default async function NewArchitecturalRequest() {
       </div>
 
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Submit an architectural request</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Submit an architectural request</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Most exterior changes need approval before work begins. Describe what you&apos;d like to do and attach
           your plans, quotes, and photos — the board or architectural committee will review and may ask
           follow-up questions right in the request&apos;s discussion thread.

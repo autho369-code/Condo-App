@@ -110,7 +110,7 @@ function GroupCard({ group, associations, importWorkOrders }: { group: AppfolioW
   return (
     <Surface className="space-y-4">
       <div>
-        <h3 className="text-[15px] font-semibold text-gray-950">{group.name || 'Work orders'}</h3>
+        <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{group.name || 'Work orders'}</h3>
         {group.address && <p className="mt-0.5 text-sm text-gray-500">{group.address}</p>}
         <div className="mt-2 flex flex-wrap gap-2">
           <Badge tone="info" className="normal-case">{plural(count, 'work order')}</Badge>
@@ -151,7 +151,7 @@ function GroupCard({ group, associations, importWorkOrders }: { group: AppfolioW
               </TD>
               <TD className="whitespace-nowrap">
                 <Badge status={w.status} />
-                {w.appfolio_status && <div className="mt-0.5 text-xs text-gray-500">In the file: {w.appfolio_status}</div>}
+                {w.appfolio_status && <div className="mt-0.5 text-[13px] text-gray-500">In the file: {w.appfolio_status}</div>}
               </TD>
               <TD className="whitespace-nowrap capitalize">{w.priority}</TD>
               <TD className="whitespace-nowrap">{w.unit ?? '—'}</TD>
@@ -162,7 +162,7 @@ function GroupCard({ group, associations, importWorkOrders }: { group: AppfolioW
         </tbody>
       </Table>
       {count > PREVIEW_ROWS && (
-        <p className="text-xs text-gray-500">Showing the first {PREVIEW_ROWS} of {count.toLocaleString()} work orders.</p>
+        <p className="text-[13px] text-gray-500">Showing the first {PREVIEW_ROWS} of {count.toLocaleString()} work orders.</p>
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -233,7 +233,7 @@ export function WorkOrderImportSection({ associations, importWorkOrders }: Props
           <Label htmlFor={inputId}>Work Order CSV</Label>
           <Input id={inputId} type="file" accept=".csv,text/csv" onChange={onFile} className="h-auto py-2" />
         </div>
-        {fileName && !error && groups && <p className="text-xs text-gray-500">{fileName}</p>}
+        {fileName && !error && groups && <p className="text-[13px] text-gray-500">{fileName}</p>}
       </Surface>
 
       {error && <Alert tone="danger">{error}</Alert>}

@@ -17,12 +17,12 @@ export default async function NewTemplatePage({
 
   return (
     <div className="mx-auto h-full max-w-3xl overflow-y-auto px-8 py-6">
-      <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <div className="mb-4 text-[13px] font-semibold text-gray-700">
         <Link href="/sms" className="transition-colors hover:text-gray-700">SMS</Link> / <Link href="/sms/templates" className="transition-colors hover:text-gray-700">Templates</Link> / New
       </div>
       <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h1 className="text-xl font-semibold text-gray-900">New Message Template</h1>
+          <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">New Message Template</h1>
           <Link href="/sms/templates" className="text-gray-400 hover:text-gray-600" aria-label="Close">&times;</Link>
         </div>
 

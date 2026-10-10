@@ -39,14 +39,14 @@ export function AddressesCard({
     <Card id="addresses">
       <CardHeader>
         <CardTitle>Web address &amp; email</CardTitle>
-        <p className="text-xs text-gray-500">
+        <p className="text-[13px] text-gray-500">
           Where your owners, board members and vendors sign in, and the address your email comes from. To set up
           or change these, send a <Link href="/company-admin/platform-requests" className="font-medium text-gray-900 underline-offset-4 hover:underline">platform request</Link>.
         </p>
       </CardHeader>
       <CardBody className="space-y-6">
         <section className="space-y-1">
-          <h3 className="text-sm font-semibold text-gray-950">Workspace address</h3>
+          <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Workspace address</h3>
           {slug ? (
             <a href={tenantWorkspaceUrl(slug, '/login')} className="break-all text-sm text-blue-700 underline-offset-4 hover:underline">
               {slug}.{apexDomain()}
@@ -57,9 +57,9 @@ export function AddressesCard({
         </section>
 
         <section className="space-y-2">
-          <h3 className="text-sm font-semibold text-gray-950">Custom domain</h3>
+          <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Custom domain</h3>
           {customDomain ? (
-            <Suspense fallback={<p className="text-xs text-gray-500">Checking {customDomain}…</p>}>
+            <Suspense fallback={<p className="text-[13px] text-gray-500">Checking {customDomain}…</p>}>
               <CustomDomainStatus domain={customDomain} />
             </Suspense>
           ) : (
@@ -68,14 +68,14 @@ export function AddressesCard({
         </section>
 
         <section className="space-y-2">
-          <h3 className="text-sm font-semibold text-gray-950">Email sender</h3>
+          <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Email sender</h3>
           {senderError && <Alert title="The email sender could not be loaded">{senderError}</Alert>}
           {sender ? (
             <>
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 {status && <StatusChip tone={status.tone}>{status.label}</StatusChip>}
                 {!sender.enabled && <StatusChip tone="neutral">Switched off</StatusChip>}
-                <span className="text-xs text-gray-500">
+                <span className="text-[13px] text-gray-500">
                   {sending
                     ? `Your email is sent from ${sending}.`
                     : !sender.enabled

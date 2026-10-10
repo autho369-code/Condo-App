@@ -193,7 +193,7 @@ function RecipientOption({
       <input type="radio" name="recipient_type" value={value} defaultChecked={defaultChecked} className="mt-1" />
       <div className="flex-1 text-sm">
         <div className="font-medium text-gray-900">{label}</div>
-        <div className="text-xs text-gray-500">
+        <div className="text-[13px] text-gray-500">
           {count == null ? 'Choose an association to see the count' : `${count} recipient${count === 1 ? '' : 's'} with email on file`}
         </div>
       </div>

@@ -36,12 +36,12 @@ export default async function NewCalendarEventPage({
     <div className="mx-auto h-full max-w-5xl overflow-y-auto px-8 py-6">
       <div className="mb-6 flex items-start justify-between gap-6">
         <div>
-          <nav className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <nav className="mb-2 text-[13px] font-semibold text-gray-700">
             <Link href="/calendar" className="transition-colors hover:text-gray-700">Calendar</Link>
             <span className="mx-2">/</span>
             New Event
           </nav>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Create association calendar event</h1>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Create association calendar event</h1>
           <p className="mt-1 max-w-2xl text-sm text-gray-500">
             Schedule the event once, then generate reminders, owner notices, vendor confirmations, and follow-up work from the same record.
           </p>
@@ -61,7 +61,7 @@ export default async function NewCalendarEventPage({
         <input type="hidden" name="calendar_scope" value={sp.scope === 'annual' ? 'annual' : 'daily'} />
 
         <div className="space-y-6">
-          <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <h2 className="text-sm font-semibold text-gray-900">Event details</h2>
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
@@ -126,7 +126,7 @@ export default async function NewCalendarEventPage({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <h2 className="text-sm font-semibold text-gray-900">Notice and internal instructions</h2>
             <div className="mt-4 space-y-4">
               <div>
@@ -153,7 +153,7 @@ export default async function NewCalendarEventPage({
         </div>
 
         <aside className="space-y-6">
-          <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <h2 className="text-sm font-semibold text-gray-900">Default reminders</h2>
             <div className="mt-3 space-y-2">
               {/* Tells the action the reminder choices were shown, so unticking them all means "none". */}
@@ -169,7 +169,7 @@ export default async function NewCalendarEventPage({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <h2 className="text-sm font-semibold text-gray-900">Automation actions</h2>
             <div className="mt-3 space-y-2">
               {REMINDER_ACTIONS.map((action) => (
@@ -185,7 +185,7 @@ export default async function NewCalendarEventPage({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <h2 className="text-sm font-semibold text-gray-900">Recipient groups</h2>
             <div className="mt-3 space-y-2">
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="recipient_management" defaultChecked /> Management office</label>

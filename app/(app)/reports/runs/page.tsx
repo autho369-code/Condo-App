@@ -33,7 +33,7 @@ export default async function ReportRunsHistory() {
       }
       rail={
         <>
-          <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">Summary</div>
+          <div className="mb-4 text-[13px] font-semibold text-gray-700">Summary</div>
           <ul className="space-y-2 text-sm">
             <li className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
               <span className="text-gray-600">Succeeded</span>
@@ -63,7 +63,7 @@ export default async function ReportRunsHistory() {
         {runs && runs.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr>
                   <th className="px-5 py-2 text-left font-semibold">Report</th>
                   <th className="px-4 py-2 text-left font-semibold">Format</th>

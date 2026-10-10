@@ -363,7 +363,7 @@ export default async function ViolationsPage({
         {filtered.length > 0 ? (
           <form action={bulkViolationAction} className="space-y-3">
           <input type="hidden" name="back" value={backHref} />
-          <div className="flex flex-col gap-2 rounded-2xl border border-gray-200/70 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:flex-row sm:items-center">
             <span className="text-[13px] text-gray-500">With selected:</span>
             <select name="bulk_action" defaultValue="advance" aria-label="Bulk action" className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="advance">Record next follow-up step</option>
@@ -407,7 +407,7 @@ export default async function ViolationsPage({
                     <TD className="text-sm text-gray-700">{v.associations?.name ?? '—'}</TD>
                     <TD className="whitespace-nowrap text-sm text-gray-700">
                       {v.units?.unit_number ?? '—'}
-                      {v.owners?.full_name && <div className="text-xs text-gray-500">{v.owners.full_name}</div>}
+                      {v.owners?.full_name && <div className="text-[13px] text-gray-500">{v.owners.full_name}</div>}
                     </TD>
                     <TD className="max-w-[14rem] text-sm text-gray-600">{ruleLabel(v.house_rules)}</TD>
                     <TD>
@@ -432,7 +432,7 @@ export default async function ViolationsPage({
           </Table>
           </form>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={ShieldAlert}
               title="No violations match the current filters"

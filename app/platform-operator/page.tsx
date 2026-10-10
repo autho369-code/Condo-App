@@ -33,12 +33,12 @@ function StatCard({
   icon: React.ElementType;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <div className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
-          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
-          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
+          <div className="mt-1.5 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
+          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -85,8 +85,8 @@ export default async function PlatformOperatorOverview({ searchParams }: { searc
       {pageError && <Alert tone="danger" title="Not allowed">{pageError}</Alert>}
       {loadError && <Alert tone="danger" title="Some platform figures could not be loaded">{loadError}</Alert>}
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Platform Operator</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide administration and monitoring dashboard</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Platform Operator</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Platform-wide administration and monitoring dashboard</p>
       </div>
 
       {/* Stats */}
@@ -99,9 +99,9 @@ export default async function PlatformOperatorOverview({ searchParams }: { searc
       </div>
 
       {/* Quick Links */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Quick Navigation</h2>
+      <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Quick Navigation</h2>
         </div>
         <div className="grid grid-cols-1 gap-1 p-4 sm:grid-cols-2 lg:grid-cols-4">
           {quickLinks.map((link) => (
@@ -113,7 +113,7 @@ export default async function PlatformOperatorOverview({ searchParams }: { searc
               <link.icon className="mt-0.5 h-5 w-5 text-gray-400 group-hover:text-gray-950" />
               <div>
                 <div className="text-sm font-medium text-gray-900 group-hover:text-gray-950">{link.label}</div>
-                <div className="text-xs text-gray-500">{link.description}</div>
+                <div className="text-[13px] text-gray-500">{link.description}</div>
               </div>
               <ArrowRight className="ml-auto mt-0.5 h-4 w-4 text-gray-300 group-hover:text-gray-950" />
             </Link>

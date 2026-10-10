@@ -117,7 +117,7 @@ export default async function AssociationDocumentsTab({
           <p className="mb-4 text-sm text-gray-500">
             Every association needs these on file. They are shared with the board and owners by default; change that per file below.
           </p>
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-line">
             {OPERATING_DOCS.map((o) => {
               const doc = latestByType.get(o.type);
               return (
@@ -137,7 +137,7 @@ export default async function AssociationDocumentsTab({
                           {doc.uploaded_at ? ` · ${date(doc.uploaded_at)}` : ''} · {SHARE_LABEL[(doc.share_scope ?? 'owners') as ShareScope]}
                         </div>
                       ) : (
-                        <div className="text-xs text-gray-400">{o.required ? 'Missing — required for every association' : 'Not on file'}</div>
+                        <div className="text-[13px] text-gray-500">{o.required ? 'Missing — required for every association' : 'Not on file'}</div>
                       )}
                     </div>
                   </div>
@@ -167,11 +167,11 @@ export default async function AssociationDocumentsTab({
           {shown.length === 0 ? (
             <EmptyState icon={FolderOpen} title={active ? 'This folder is empty' : 'No documents yet'} description="Upload a file below." />
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-line">
               {shown.map((d) => {
                 const scope = (d.share_scope ?? 'owners') as ShareScope;
                 return (
-                  <li key={d.id} className="px-5 py-3">
+                  <li key={d.id} className="px-5 py-3.5">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex min-w-0 items-start gap-2.5">
                         <FileText className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400" />
@@ -181,7 +181,7 @@ export default async function AssociationDocumentsTab({
                           ) : (
                             <span className="block truncate text-sm font-medium text-gray-900">{d.file_name}</span>
                           )}
-                          <div className="text-xs text-gray-500">
+                          <div className="text-[13px] text-gray-500">
                             {d.folder ?? 'Unfiled'} · {(d.doc_type ?? 'document').replace(/_/g, ' ')}{d.uploaded_at ? ` · ${date(d.uploaded_at)}` : ''}
                           </div>
                           {d.description && <div className="mt-0.5 text-xs text-gray-600">{d.description}</div>}
@@ -243,7 +243,7 @@ export default async function AssociationDocumentsTab({
           </form>
         </Section>
 
-        <p className="text-xs text-gray-400">
+        <p className="text-[13px] text-gray-500">
           Letters generated for specific owners are saved here as management-only. Templates live in{' '}
           <Link href="/documents" className="font-medium text-gray-500 hover:text-gray-950 hover:underline">Documents</Link>.
         </p>

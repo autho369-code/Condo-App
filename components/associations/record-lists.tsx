@@ -24,7 +24,7 @@ export function UpcomingActivities({ events, associationId }: { events: any[]; a
   return (
     <Section title="Upcoming activities" actions={<Link href={`/calendar/new?assoc=${associationId}`} className="text-[13px] font-medium text-gray-500 hover:text-gray-900">Add activity</Link>}>
       {events.length ? (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-line">
           {events.map((e) => (
             <li key={e.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
               <span className="text-gray-900">{e.title}</span>
@@ -42,7 +42,7 @@ export function InsuranceList({ policies, associationId, back }: Common & { poli
   return (
     <Section title="Association insurance" subtitle="Master, D&O, fidelity, umbrella and other association policies. Owner HO-6 policies live on each owner.">
       {policies.length ? (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-line">
           {policies.map((p) => {
             const exp = p.expiration_date ? new Date(`${p.expiration_date}T00:00:00`).getTime() : null;
             return (
@@ -89,7 +89,7 @@ export function AdditionalFees({ fees, glAccounts, associationId, back }: Common
   return (
     <Section title="Additional management fees" subtitle="Fees billed to the association on top of the base management fee, e.g. a percentage of late fees collected.">
       {fees.length ? (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-line">
           {fees.map((f) => (
             <li key={f.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
               <span className="text-gray-900">{f.label}<span className="text-gray-500"> · {f.percentage != null ? `${Number(f.percentage)}%` : money(f.amount)}{f.gl_account_id ? ` of ${gl.get(f.gl_account_id) ?? 'GL'}` : ''}{f.suppress ? ' · suppressed' : ''}</span></span>
@@ -118,7 +118,7 @@ export function KeysList({ keys, associationId, back }: Common & { keys: any[] }
   return (
     <Section title="Keys">
       {keys.length ? (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-line">
           {keys.map((k) => (
             <li key={k.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
               <span className="text-gray-900">{k.label}<span className="text-gray-500">{k.key_number ? ` · #${k.key_number}` : ''}{k.held_by ? ` · held by ${k.held_by}` : ''}</span></span>
@@ -145,7 +145,7 @@ export function NotesList({ notes, associationId, back }: Common & { notes: any[
   return (
     <Section title="Notes">
       {notes.length ? (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-line">
           {notes.map((n) => (
             <li key={n.id} className="flex items-start justify-between gap-3 px-5 py-3 text-sm">
               <div className="min-w-0">
@@ -175,7 +175,7 @@ export function LinkedRecords({ banks, assets, associationId }: { banks: any[]; 
     <div className="grid gap-6 lg:grid-cols-2">
       <Section title="Bank accounts" actions={<Link href="/bank-accounts/new" className="text-[13px] font-medium text-gray-500 hover:text-gray-900">Add</Link>}>
         {banks.length ? (
-          <ul className="divide-y divide-gray-100">{banks.map((b) => (
+          <ul className="divide-y divide-line">{banks.map((b) => (
             <li key={b.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
               <Link href={`/bank-accounts/${b.id}`} className="text-gray-900 hover:text-gray-600">{b.name}</Link>
               <span className="text-[12px] capitalize text-gray-500">{(b.purpose ?? b.fund_type ?? 'operating').toString().replace(/_/g, ' ')}{b.last_reconciliation_date ? ` · reconciled ${date(b.last_reconciliation_date)}` : ''}</span>
@@ -185,7 +185,7 @@ export function LinkedRecords({ banks, assets, associationId }: { banks: any[]; 
       </Section>
       <Section title="Fixed assets" actions={<Link href={`/fixed-assets/new?association_id=${associationId}`} className="text-[13px] font-medium text-gray-500 hover:text-gray-900">Add</Link>}>
         {assets.length ? (
-          <ul className="divide-y divide-gray-100">{assets.map((a) => (
+          <ul className="divide-y divide-line">{assets.map((a) => (
             <li key={a.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
               <span className="text-gray-900">{a.name}</span>
               <span className="text-[12px] text-gray-500">{a.purchase_price != null ? money(a.purchase_price) : ''}{a.purchase_date ? ` · ${date(a.purchase_date)}` : ''}</span>
@@ -209,7 +209,7 @@ export function AuditLog({ events }: { events: any[] }) {
   return (
     <Section title="Audit log" subtitle="Changes to this association’s settings and controls.">
       {events.length ? (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-line">
           {events.map((e) => {
             // Staff-only settings log just the changed field names (no values).
             const fields: string[] = Array.isArray(e.changes?.fields) ? e.changes.fields : Object.keys(e.changes?.after ?? {});

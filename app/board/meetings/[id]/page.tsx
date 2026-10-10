@@ -93,7 +93,7 @@ const statusBadge = (s: string) => {
   return m[s] ?? 'bg-gray-100 text-gray-600 ring-gray-500/15'
 }
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 export default function MeetingDetailClient() {
   const params = useParams()
@@ -347,8 +347,8 @@ export default function MeetingDetailClient() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">{meeting.title}</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">{meeting.title}</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
             {meeting.associations?.name && `${meeting.associations.name} — `}
             {typeLabel[meeting.meeting_type] ?? meeting.meeting_type}
           </p>
@@ -376,7 +376,7 @@ export default function MeetingDetailClient() {
           { icon: Clock, label: 'Created', value: date(meeting.created_at, 'long') },
         ].map((c: any) => (
           <div key={c.label} className={`${card} px-4 py-3.5`}>
-            <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
+            <div className="flex items-center gap-2 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">
               <c.icon className="h-3.5 w-3.5 text-gray-400" />
               {c.label}
             </div>
@@ -391,12 +391,12 @@ export default function MeetingDetailClient() {
           {/* Financial Snapshot */}
           {financials && (
             <div className={`${card} overflow-hidden`}>
-              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-950">
                   <FileText className="h-4 w-4 text-gray-400" />
                   Financial Snapshot
                 </h2>
-                <span className="text-xs text-gray-400">As of {date(financials.generated_at, 'long')}</span>
+                <span className="text-[13px] text-gray-500">As of {date(financials.generated_at, 'long')}</span>
               </div>
               <div className="grid grid-cols-2 gap-px bg-gray-100 sm:grid-cols-4">
                 {[
@@ -410,7 +410,7 @@ export default function MeetingDetailClient() {
                   { label: 'Generated', value: date(financials.generated_at, 'short'), cls: 'text-gray-700' },
                 ].map((s: any) => (
                   <div key={s.label} className="bg-white px-4 py-3">
-                    <div className="text-xs text-gray-500">{s.label}</div>
+                    <div className="text-[13px] text-gray-500">{s.label}</div>
                     <div className={`mt-0.5 text-sm font-semibold tabular-nums ${s.cls}`}>{s.value}</div>
                   </div>
                 ))}
@@ -420,30 +420,30 @@ export default function MeetingDetailClient() {
 
           {/* Agenda */}
           <div className={`${card} overflow-hidden`}>
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-950">
                 <FileText className="h-4 w-4 text-gray-400" />
                 Agenda
               </h2>
-              <span className="text-xs text-gray-400">{agendaItems.length} item{agendaItems.length !== 1 ? 's' : ''}</span>
+              <span className="text-[13px] text-gray-500">{agendaItems.length} item{agendaItems.length !== 1 ? 's' : ''}</span>
             </div>
 
             {agendaItems.length === 0 ? (
               <div className="px-5 py-12 text-center text-sm text-gray-500">No agenda items yet.</div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-line">
                 {agendaItems.map((item: AgendaItem, idx: number) => (
                   <div key={item.id} className="flex items-start gap-3 px-5 py-3 hover:bg-gray-50/60">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-gray-400">{idx + 1}.</span>
                         <span className="text-sm font-medium text-gray-900">{item.title}</span>
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium capitalize text-gray-600 ring-1 ring-inset ring-gray-500/15">
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[12.5px] font-medium capitalize text-gray-600 ring-1 ring-inset ring-gray-500/15">
                           {categoryLabel[item.category] ?? item.category}
                         </span>
                       </div>
                       {item.description && (
-                        <p className="mt-1 text-xs text-gray-500">{item.description}</p>
+                        <p className="mt-1 text-[13px] text-gray-500">{item.description}</p>
                       )}
                       <div className="mt-1.5 flex items-center gap-3 text-xs text-gray-400">
                         {item.duration_minutes && <span>{item.duration_minutes} min</span>}
@@ -459,19 +459,19 @@ export default function MeetingDetailClient() {
 
           {/* Follow-up actions (board read-only) */}
           <div className={`${card} overflow-hidden`}>
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-              <h2 className="text-sm font-semibold text-gray-950">Follow-up Actions</h2>
-              <span className="text-xs text-gray-400">{actionItems.length} action{actionItems.length !== 1 ? 's' : ''}</span>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+              <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Follow-up Actions</h2>
+              <span className="text-[13px] text-gray-500">{actionItems.length} action{actionItems.length !== 1 ? 's' : ''}</span>
             </div>
             {actionItems.length === 0 ? (
               <div className="px-5 py-10 text-center text-sm text-gray-500">No follow-up actions have been recorded.</div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-line">
                 {actionItems.map((item: MeetingActionItem) => (
-                  <div key={item.id} className="px-5 py-3">
+                  <div key={item.id} className="px-5 py-3.5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-sm font-medium text-gray-900">{item.title}</span>
-                      <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium capitalize text-gray-600 ring-1 ring-inset ring-gray-500/15">
+                      <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[12.5px] font-medium capitalize text-gray-600 ring-1 ring-inset ring-gray-500/15">
                         {item.status.replace(/_/g, ' ')}
                       </span>
                     </div>
@@ -490,14 +490,14 @@ export default function MeetingDetailClient() {
         <div className="space-y-4">
           {/* Documents */}
           <div className={`${card} overflow-hidden`}>
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-950">
                 <Paperclip className="h-4 w-4 text-gray-400" />
                 Documents
               </h2>
-              <span className="text-xs text-gray-400">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
+              <span className="text-[13px] text-gray-500">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-line">
               {documents.length === 0 ? (
                 <div className="px-5 py-8 text-center text-sm text-gray-500">
                   No documents have been attached.
@@ -529,8 +529,8 @@ export default function MeetingDetailClient() {
           {/* Meeting Minutes */}
           {meeting.minutes && (
             <div className={`${card} overflow-hidden`}>
-              <div className="border-b border-gray-100 px-5 py-4">
-                <h2 className="text-sm font-semibold text-gray-950">Minutes</h2>
+              <div className="border-b border-line px-5 py-4">
+                <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Minutes</h2>
               </div>
               <div className="px-5 py-4">
                 <p className="whitespace-pre-wrap text-sm text-gray-700">{meeting.minutes}</p>

@@ -308,7 +308,7 @@ async function TrialBalanceView({
         <Section title="Trial Balance" subtitle={`${accounts.length} accounts as of ${date(period.to)}`}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr>
                   <th className="px-5 py-2 text-left font-semibold">Account #</th>
                   <th className="px-4 py-2 text-left font-semibold">Name</th>
@@ -414,7 +414,7 @@ async function BalanceSheetView({
     <Section key={title} title={title} subtitle={`${items.length} accounts`}>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+          <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
             <tr>
               <th className="px-5 py-2 text-left font-semibold">Account</th>
               <th className="px-5 py-2 text-right font-semibold">Balance</th>
@@ -481,9 +481,9 @@ async function BalanceSheetView({
         <Section title="Balance Check">
           <div className="px-5 py-4">
             <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="text-center"><div className="text-xs text-gray-500">Assets</div><div className="font-semibold text-gray-900">{money(totalAssets)}</div></div>
-              <div className="text-center"><div className="text-xs text-gray-500">Liabilities + Equity</div><div className="font-semibold text-gray-900">{money(totalLE)}</div></div>
-              <div className="text-center"><div className="text-xs text-gray-500">Difference</div>
+              <div className="text-center"><div className="text-[13px] text-gray-500">Assets</div><div className="font-semibold text-gray-900">{money(totalAssets)}</div></div>
+              <div className="text-center"><div className="text-[13px] text-gray-500">Liabilities + Equity</div><div className="font-semibold text-gray-900">{money(totalLE)}</div></div>
+              <div className="text-center"><div className="text-[13px] text-gray-500">Difference</div>
                 <div className={`font-semibold ${Math.abs(totalAssets - totalLE) < 0.01 ? 'text-green-700' : 'text-red-600'}`}>
                   {Math.abs(totalAssets - totalLE) < 0.01 ? '\u2714 Balanced' : money(totalAssets - totalLE)}
                 </div>
@@ -566,7 +566,7 @@ async function IncomeStatementView({
       <Section key={label} title={label} subtitle={`${items.length} accounts`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
                 <th className="px-5 py-2 text-left font-semibold">Account</th>
                 <th className="px-5 py-2 text-right font-semibold">Amount</th>
@@ -638,7 +638,7 @@ async function IncomeStatementView({
           <div className="px-5 py-4">
             <div className="flex items-center justify-between text-sm">
               <div>
-                <div className="text-xs text-gray-500">Total Revenue - Total Expenses</div>
+                <div className="text-[13px] text-gray-500">Total Revenue - Total Expenses</div>
               </div>
               <div className={`text-lg font-bold tabular-nums ${netIncome >= 0 ? 'text-green-700' : 'text-red-600'}`}>
                 {money(netIncome)}
@@ -774,7 +774,7 @@ async function CashFlowView(ctx: ReportContext) {
         <Section title="Bank Account Balances" subtitle={`${bAccounts.length} accounts`}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr>
                   <th className="px-5 py-2 text-left font-semibold">Account</th>
                   <th className="px-4 py-2 text-left font-semibold">Bank</th>
@@ -811,7 +811,7 @@ async function CashFlowView(ctx: ReportContext) {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                   <tr>
                     <th className="px-5 py-2 text-left font-semibold">Date</th>
                     <th className="px-4 py-2 text-left font-semibold">Reference</th>
@@ -964,7 +964,7 @@ async function GeneralLedgerView(ctx: ReportContext) {
       <div className="space-y-4">
         {linesTruncated && <TruncatedNotice what="journal lines" />}
         {selectedAccount && (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <span className="text-gray-600">
               Drill-down: <span className="font-medium text-gray-900">{accounts[0] ? `${accounts[0].number} — ${accounts[0].name}` : 'selected account'}</span>
               {selectedAssociation && <> · {associations.find((a: any) => a.id === selectedAssociation)?.name ?? 'association'}</>}
@@ -1004,7 +1004,7 @@ async function GeneralLedgerView(ctx: ReportContext) {
               >
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                    <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                       <tr>
                         <th className="px-5 py-2 text-left font-semibold w-28">Date</th>
                         <th className="px-4 py-2 text-left font-semibold">Description</th>
@@ -1028,7 +1028,7 @@ async function GeneralLedgerView(ctx: ReportContext) {
                             <td className="whitespace-nowrap px-5 py-2 text-xs text-gray-600">{date(entry?.entry_date)}</td>
                             <td className="max-w-md px-4 py-2">
                               <div className="text-gray-900">{entry?.description ?? l.memo ?? '\u2014'}</div>
-                              {entry?.memo && <div className="text-xs text-gray-500">{entry.memo}</div>}
+                              {entry?.memo && <div className="text-[13px] text-gray-500">{entry.memo}</div>}
                             </td>
                             <td className="px-4 py-2 font-mono text-xs text-gray-500">{entry?.reference_number ?? '\u2014'}</td>
                             <td className="px-4 py-2 text-right tabular-nums text-gray-700">{l.debit_amount > 0 ? money(l.debit_amount) : ''}</td>
@@ -1135,7 +1135,7 @@ async function ARAgingView(ctx: ReportContext) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr>
                   <th className="px-5 py-2 text-left font-semibold">Unit</th>
                   <th className="px-4 py-2 text-left font-semibold">Description</th>
@@ -1151,7 +1151,7 @@ async function ARAgingView(ctx: ReportContext) {
                   <tr key={r.charge_id} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-5 py-2">
                       <div className="font-medium text-gray-900">Unit {r.unit_number}</div>
-                      <div className="text-xs text-gray-500">{r.association_name}</div>
+                      <div className="text-[13px] text-gray-500">{r.association_name}</div>
                     </td>
                     <td className="px-4 py-2 text-gray-700">{r.description}</td>
                     <td className="whitespace-nowrap px-4 py-2 text-gray-600">{date(r.due_date)}</td>
@@ -1287,7 +1287,7 @@ async function Owner1099View(ctx: ReportContext & { detail: boolean }) {
           <Section title="Paid owner payables" subtitle={`${payables.length} rows`}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                   <tr>
                     <th className="px-5 py-2 text-left font-semibold">Date</th>
                     <th className="px-4 py-2 text-left font-semibold">Owner</th>
@@ -1297,7 +1297,7 @@ async function Owner1099View(ctx: ReportContext & { detail: boolean }) {
                     <th className="px-4 py-2 text-right font-semibold">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-line">
                   {payables.map((p: any) => {
                     const fin = flagged.find((f: any) => f.owner_id === p.owner_id);
                     return (
@@ -1322,7 +1322,7 @@ async function Owner1099View(ctx: ReportContext & { detail: boolean }) {
           <Section title="1099 summary by owner" subtitle={`${flagged.length} owners`}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                   <tr>
                     <th className="px-5 py-2 text-left font-semibold">Owner</th>
                     <th className="px-4 py-2 text-left font-semibold">Taxpayer name</th>
@@ -1332,7 +1332,7 @@ async function Owner1099View(ctx: ReportContext & { detail: boolean }) {
                     <th className="px-4 py-2 text-right font-semibold">Paid (period)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-line">
                   {flagged.map((f: any) => {
                     const paid = paidByOwner.get(f.owner_id) ?? { total: 0, count: 0 };
                     return (
@@ -1427,7 +1427,7 @@ async function VehicleInfoView({
         <Section title="Vehicles" subtitle={`${rows.length} assignments`}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr>
                   <th className="px-5 py-2 text-left font-semibold">Owner / occupant</th>
                   <th className="px-4 py-2 text-left font-semibold">Association</th>
@@ -1438,7 +1438,7 @@ async function VehicleInfoView({
                   <th className="px-4 py-2 text-left font-semibold">Insurance</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {rows.map((r: any) => (
                   <tr key={r.id}>
                     <td className="px-5 py-2 font-medium text-gray-900">
@@ -1546,7 +1546,7 @@ async function LoanStatementView(ctx: ReportContext) {
       <Section title="Loans" subtitle={`${loans.length} records`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
                 <th className="px-5 py-2 text-left font-semibold">Lender</th>
                 <th className={thCls}>Association</th>
@@ -1560,7 +1560,7 @@ async function LoanStatementView(ctx: ReportContext) {
                 <th className={thCls}>Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {loans.map((l: any) => (
                 <tr key={l.id}>
                   <td className="px-5 py-2 font-medium text-gray-900">{l.lender}</td>
@@ -1617,7 +1617,7 @@ async function ReserveFundView(ctx: ReportContext) {
       <Section title="Reserve fund by association" subtitle={`${rows.length} configured`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
                 <th className="px-5 py-2 text-left font-semibold">Association</th>
                 <th className={thRight}>Reserve balance</th>
@@ -1629,7 +1629,7 @@ async function ReserveFundView(ctx: ReportContext) {
                 <th className={thCls}>Next due</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {rows.map((r: any) => {
                 const bal = balanceByAssoc.get(r.association_id) ?? 0;
                 const pct = r.target_amount ? Math.round((bal / Number(r.target_amount)) * 100) : null;
@@ -1688,7 +1688,7 @@ async function FundBalanceView(ctx: ReportContext & { trustOnly: boolean }) {
           <Section key={fund} title={fund.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} subtitle={`${accts.length} accounts · ${money(sub)}`}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                   <tr>
                     <th className="px-5 py-2 text-left font-semibold">Account</th>
                     <th className={thCls}>Bank</th>
@@ -1696,7 +1696,7 @@ async function FundBalanceView(ctx: ReportContext & { trustOnly: boolean }) {
                     <th className={thRight}>Balance</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-line">
                   {accts.map((b: any) => (
                     <tr key={b.id}>
                       <td className="px-5 py-2 font-medium text-gray-900">{b.name}</td>
@@ -1768,7 +1768,7 @@ async function TrustDetailView(ctx: ReportContext) {
       <Section title="Trust account activity" subtitle={`${lines.length} entries`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
                 <th className="px-5 py-2 text-left font-semibold">Date</th>
                 <th className={thCls}>Account</th>
@@ -1777,7 +1777,7 @@ async function TrustDetailView(ctx: ReportContext) {
                 <th className={thRight}>Credit</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {lines.slice(0, 200).map((l: any) => (
                 <tr key={l.id}>
                   <td className="px-5 py-2 tabular-nums">{date(l.journal_entries?.entry_date)}</td>
@@ -1823,7 +1823,7 @@ async function ManagementFeeSummaryView(ctx: ReportContext) {
       <Section title="Fee summary" subtitle={`${rows.length} rows`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
                 <th className="px-5 py-2 text-left font-semibold">Month</th>
                 <th className={thCls}>Association</th>
@@ -1834,7 +1834,7 @@ async function ManagementFeeSummaryView(ctx: ReportContext) {
                 <th className={thRight}>Avg / door</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {rows.map((r: any) => (
                 <tr key={r.id}>
                   <td className="px-5 py-2 tabular-nums">{String(r.month).slice(0, 7)}</td>
@@ -1892,7 +1892,7 @@ async function OwnerPrepaidView(ctx: ReportContext) {
       <Section title="Prepaid balances" subtitle={`${rows.length} units`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
                 <th className="px-5 py-2 text-left font-semibold">Owner</th>
                 <th className={thCls}>Association</th>
@@ -1900,7 +1900,7 @@ async function OwnerPrepaidView(ctx: ReportContext) {
                 <th className={thRight}>Prepaid credit</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {rows.map((r) => (
                 <tr key={r.unitId}>
                   <td className="px-5 py-2 font-medium text-gray-900">
@@ -2008,10 +2008,10 @@ async function MaintenanceResponseView(ctx: ReportContext) {
       <Section title="By association" subtitle={`${byAssociation.length} associations`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr><th className="px-5 py-2 text-left font-semibold">Association</th>{metricHead}</tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {byAssociation.map((r) => (
                 <tr key={r.id || 'none'}>
                   <td className="px-5 py-2 font-medium text-gray-900">{r.id ? <Link href={`/associations/${r.id}`} className="hover:underline">{r.name}</Link> : r.name}</td>
@@ -2029,10 +2029,10 @@ async function MaintenanceResponseView(ctx: ReportContext) {
         <Section title="By priority">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr><th className="px-5 py-2 text-left font-semibold">Priority</th>{metricHead}</tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {byPriority.map(({ p, m }) => (
                   <tr key={p}><td className="px-5 py-2 font-medium capitalize text-gray-900">{p}</td>{metricCells(m)}</tr>
                 ))}
@@ -2044,10 +2044,10 @@ async function MaintenanceResponseView(ctx: ReportContext) {
       <Section title="Open work orders by age" subtitle="Every open work order today, whatever the period">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr><th className="px-5 py-2 text-left font-semibold">Age</th><th className={thRight}>Open work orders</th></tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {aging.map((b) => (
                 <tr key={b.bucket}><td className="px-5 py-2 text-gray-900">{b.bucket}</td><td className="px-4 py-2 text-right tabular-nums">{b.count}</td></tr>
               ))}
@@ -2143,10 +2143,10 @@ async function InspectionComplianceView(ctx: ReportContext) {
       <Section title="By association" subtitle={`${byAssociation.length} associations`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr><th className="px-5 py-2 text-left font-semibold">Association</th>{head}</tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {byAssociation.map((r) => (
                 <tr key={r.id || 'none'}>
                   <td className="px-5 py-2 font-medium text-gray-900">{r.id ? <Link href={`/associations/${r.id}`} className="hover:underline">{r.name}</Link> : r.name}</td>
@@ -2164,10 +2164,10 @@ async function InspectionComplianceView(ctx: ReportContext) {
         <Section title="By inspection type">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr><th className="px-5 py-2 text-left font-semibold">Type</th>{head}</tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {byType.map(({ t, m }) => (
                   <tr key={t || 'none'}><td className="px-5 py-2 font-medium text-gray-900">{typeLabel(t || null)}</td>{cells(m)}</tr>
                 ))}
@@ -2180,10 +2180,10 @@ async function InspectionComplianceView(ctx: ReportContext) {
         <Section title="Findings by severity">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                 <tr><th className="px-5 py-2 text-left font-semibold">Severity</th><th className={thRight}>Findings</th><th className={thRight}>Still open</th></tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {severities.map((s) => (
                   <tr key={s.severity}><td className="px-5 py-2 text-gray-900">{typeLabel(s.severity)}</td><td className="px-4 py-2 text-right tabular-nums">{s.total}</td><td className="px-4 py-2 text-right tabular-nums">{s.open}</td></tr>
                 ))}
@@ -2226,7 +2226,7 @@ function QueuedReportView(ctx: ReportContext) {
             Available formats:
             <span className="ml-2 inline-flex gap-1">
               {supportedReportOutputFormats(def.output_formats).map((f) => (
-                <span key={f} className="rounded border border-gray-300 bg-gray-50 px-1.5 py-0.5 text-[11px] text-gray-700">{reportFormatLabel(f)}</span>
+                <span key={f} className="rounded border border-gray-300 bg-gray-50 px-1.5 py-0.5 text-[12.5px] text-gray-700">{reportFormatLabel(f)}</span>
               ))}
             </span>
           </p>
@@ -2240,7 +2240,7 @@ function QueuedReportView(ctx: ReportContext) {
           </p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
                 <th className="px-5 py-2 text-left font-semibold">Created</th>
                 <th className="px-4 py-2 text-left font-semibold">Format</th>
@@ -2288,7 +2288,7 @@ function SaveCustomReportFields({ defaultName, formAction }: { defaultName: stri
         />
         <Button type="submit" variant="secondary" formAction={formAction}>Save</Button>
       </div>
-      <p className="text-[11px] text-gray-500">Saves the period, scope and association set here, for everyone in your company.</p>
+      <p className="text-[12.5px] text-gray-500">Saves the period, scope and association set here, for everyone in your company.</p>
     </div>
   );
 }
@@ -2374,7 +2374,7 @@ async function ReportRightRail({
           Schedule this report
         </Link>
       </div>
-      <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <div className="mb-4 text-[13px] font-semibold text-gray-700">
         {isLive ? 'Live report' : 'Run this report'}
       </div>
 
@@ -2416,7 +2416,7 @@ async function ReportRightRail({
         {!isLive && unitSupported && (
           <div className="grid grid-cols-1 gap-2">
             <div>
-              <label className="mb-0.5 block text-[11px] text-gray-500">Unit{unitRequired ? ' (required)' : ''}</label>
+              <label className="mb-0.5 block text-[12.5px] text-gray-500">Unit{unitRequired ? ' (required)' : ''}</label>
               <select
                 name="param_unit_id"
                 defaultValue=""
@@ -2455,7 +2455,7 @@ async function ReportRightRail({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="mb-0.5 block text-[11px] text-gray-500">From</label>
+              <label className="mb-0.5 block text-[12.5px] text-gray-500">From</label>
               <input
                 type="date"
                 name="param_date_from"
@@ -2464,7 +2464,7 @@ async function ReportRightRail({
               />
             </div>
             <div>
-              <label className="mb-0.5 block text-[11px] text-gray-500">To</label>
+              <label className="mb-0.5 block text-[12.5px] text-gray-500">To</label>
               <input
                 type="date"
                 name="param_date_to"
@@ -2473,7 +2473,7 @@ async function ReportRightRail({
               />
             </div>
           </div>
-          <p className="mt-1 text-[11px] text-gray-500">
+          <p className="mt-1 text-[12.5px] text-gray-500">
             {period.label}: {period.from} &rarr; {period.to}
           </p>
         </div>
@@ -2516,7 +2516,7 @@ async function ReportRightRail({
 
       {lastSuccess && (
         <div className="mt-6">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Latest output</div>
+          <div className="mb-2 text-[13px] font-semibold text-gray-700">Latest output</div>
           <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-3 text-xs">
             <div className="font-mono uppercase text-gray-500">{lastSuccess.output_format}</div>
             <div className="mt-1 text-gray-700">{date(lastSuccess.created_at)}</div>
@@ -2532,9 +2532,9 @@ async function ReportRightRail({
       )}
 
       <div className="mt-6">
-        <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Recent runs</div>
+        <div className="mb-2 text-[13px] font-semibold text-gray-700">Recent runs</div>
         {runs.length === 0 ? (
-          <p className="text-xs text-gray-500">No runs yet.</p>
+          <p className="text-[13px] text-gray-500">No runs yet.</p>
         ) : (
           <ul className="space-y-1">
             {runs.slice(0, 5).map((r: any) => (
@@ -2561,7 +2561,7 @@ function RunPill({ status }: { status: string }) {
     failed:    'bg-red-50 text-red-700 ring-red-600/15',
     cancelled: 'bg-gray-100 text-gray-400 ring-gray-500/15 line-through',
   };
-  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ring-1 ring-inset ${m[status] ?? m.queued}`}>{status}</span>;
+  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-medium capitalize ring-1 ring-inset ${m[status] ?? m.queued}`}>{status}</span>;
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -72,11 +72,11 @@ export default async function RemindersPage({ searchParams }: { searchParams: Pr
                       </label>
                       {dueNow > 0 && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">{dueNow} due now</span>}
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">{t.description}</p>
+                    <p className="mt-1 text-[13px] text-gray-500">{t.description}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Input name={`lead_${t.key}`} type="number" min={0} defaultValue={leadDays} className="w-20" />
-                    <span className="text-xs text-gray-500">{t.leadLabel}</span>
+                    <span className="text-[13px] text-gray-500">{t.leadLabel}</span>
                   </div>
                 </div>
               );

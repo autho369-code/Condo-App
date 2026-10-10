@@ -70,7 +70,7 @@ export default async function OwnerArchitecturalDetail({
         <CardBody>
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{req.title}</h1>
+              <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{req.title}</h1>
               <div className="mt-1 text-sm text-gray-500">
                 {CATEGORY_LABEL[req.category] ?? 'Other'} — Unit {req.units?.unit_number ?? '—'} · Submitted {date(req.created_at)}
               </div>
@@ -81,8 +81,8 @@ export default async function OwnerArchitecturalDetail({
           <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{req.description}</p>
 
           {req.decision_notes && (
-            <div className="mt-4 rounded-xl border border-gray-200/70 bg-gray-50 p-3.5">
-              <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Decision notes</div>
+            <div className="mt-4 rounded-xl border border-line bg-gray-50 p-3.5">
+              <div className="text-[13px] font-medium text-gray-500">Decision notes</div>
               <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{req.decision_notes}</p>
             </div>
           )}

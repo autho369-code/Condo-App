@@ -12,8 +12,8 @@ import { cn } from '@/lib/utils';
 /** Full-bleed page surface. Wrap every page body in this. */
 export function PageShell({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className="min-h-full bg-[#f6f7f9]">
-      <div className={cn('mx-auto max-w-[1400px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7', className)}>
+    <div className="min-h-full bg-canvas">
+      <div className={cn('mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8', className)}>
         {children}
       </div>
     </div>
@@ -35,17 +35,17 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn('mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between', className)}>
-      <div className="min-w-0">
+    <div className={cn('mb-7 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between', className)}>
+      <div className="min-w-0 md:flex-1 md:basis-[22rem]">
         {eyebrow && (
-          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">{eyebrow}</div>
+          <div className="mb-1.5 text-[13px] font-medium text-gray-500">{eyebrow}</div>
         )}
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">
           {title}
         </h1>
-        {description && <p className="mt-1.5 max-w-2xl text-sm leading-6 text-gray-500">{description}</p>}
+        {description && <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">{description}</p>}
       </div>
-      {actions && <div className="flex flex-shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
@@ -53,7 +53,7 @@ export function PageHeader({
 /** Breadcrumb trail. Pass [{label, href?}]. Last item renders as current. */
 export function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
   return (
-    <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-1.5 text-[12px] text-gray-400">
+    <nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-1.5 text-[13px] text-gray-500">
       {items.map((it, i) => (
         <React.Fragment key={i}>
           {it.href && i < items.length - 1 ? (
@@ -83,7 +83,7 @@ export function Surface({
   return (
     <div
       className={cn(
-        'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_1px_3px_rgba(16,24,40,0.04)]',
+        'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]',
         padded && 'p-5 sm:p-6',
         className,
       )}
@@ -108,8 +108,8 @@ export function SectionTitle({
   return (
     <div className={cn('mb-4 flex items-start justify-between gap-4', className)}>
       <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-gray-950">{title}</h2>
-        {description && <p className="mt-0.5 text-[13px] leading-5 text-gray-500">{description}</p>}
+        <h2 className="font-display text-[17px] font-semibold tracking-[-0.015em] text-ink">{title}</h2>
+        {description && <p className="mt-1 text-sm leading-5 text-gray-500">{description}</p>}
       </div>
       {actions && <div className="flex flex-shrink-0 items-center gap-2">{actions}</div>}
     </div>
@@ -160,11 +160,12 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ring-1 ring-inset',
+        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12.5px] font-medium capitalize ring-1 ring-inset',
         TONE_STYLES[t],
         className,
       )}
     >
+      <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-80" />
       {label}
     </span>
   );
@@ -199,9 +200,9 @@ export function Metric({
   return (
     <Surface padded={false} className="overflow-hidden p-4">
       {accent && <div className={cn('mb-3 h-1 w-8 rounded-full', bar[accent])} />}
-      <div className="text-[12px] font-medium text-gray-500">{label}</div>
-      <div className="mt-1 text-[26px] font-semibold tabular-nums tracking-[-0.02em] text-gray-950">{value}</div>
-      {sub && <div className="mt-1 text-[12px] text-gray-400">{sub}</div>}
+      <div className="text-[13px] font-medium text-gray-500">{label}</div>
+      <div className="mt-1 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
+      {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
     </Surface>
   );
 }
@@ -226,8 +227,8 @@ export function EmptyState({
           <Icon className="h-6 w-6" />
         </div>
       )}
-      <h3 className="text-[15px] font-semibold text-gray-900">{title}</h3>
-      {description && <p className="mt-1 max-w-sm text-[13px] leading-5 text-gray-500">{description}</p>}
+      <h3 className="font-display text-[17px] font-semibold text-ink">{title}</h3>
+      {description && <p className="mt-1.5 max-w-md text-sm leading-6 text-gray-500">{description}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
   );
@@ -253,7 +254,7 @@ export function Alert({
     info: 'border-blue-200 bg-blue-50 text-blue-800',
   };
   return (
-    <div role="alert" className={cn('rounded-xl border px-4 py-3 text-[13px] leading-5', styles[tone], className)}>
+    <div role="alert" className={cn('rounded-xl border px-4 py-3 text-sm leading-6', styles[tone], className)}>
       {title && <span className="font-semibold">{title} </span>}
       {children}
     </div>

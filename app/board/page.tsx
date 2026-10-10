@@ -15,7 +15,7 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 function StatCard({
   label,
@@ -36,9 +36,9 @@ function StatCard({
     <div className={`${card} px-4 py-3.5 ${href ? 'transition-colors hover:bg-gray-50/70' : ''}`}>
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
           <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${tone === 'danger' ? 'text-red-700' : tone === 'warning' ? 'text-amber-700' : tone === 'success' ? 'text-emerald-700' : 'text-gray-950'}`}>{value}</div>
-          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -59,7 +59,7 @@ export default async function BoardDashboardPage() {
   if (ids.length === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Board Dashboard</h1>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Board Dashboard</h1>
         <div className={`${card} p-12 text-center`}>
           <AlertTriangle className="mx-auto h-10 w-10 text-gray-300" />
           <p className="mt-3 text-sm text-gray-500">No associations assigned to your board membership.</p>
@@ -117,8 +117,8 @@ export default async function BoardDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Board Dashboard</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Financial overview for {assocNames || 'your association'}</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Board Dashboard</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Financial overview for {assocNames || 'your association'}</p>
       </div>
 
       {loadErrors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
@@ -133,8 +133,8 @@ export default async function BoardDashboardPage() {
       </div>
 
       <div className={card}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Upcoming Meetings</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Upcoming Meetings</h2>
           <Link href="/board/meetings" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
             All meetings <ArrowRight className="h-3 w-3" />
           </Link>

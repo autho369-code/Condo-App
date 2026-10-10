@@ -93,7 +93,7 @@ export function MaintenanceAttachments({
                 </a>
                 <div className="border-t border-gray-200 bg-white px-2.5 py-1.5">
                   <div className="truncate text-xs font-medium text-gray-800" title={item.file_name}>{item.file_name}</div>
-                  <div className="text-[11px] text-gray-500">{ROLE_LABEL[item.uploader_role] ?? ''} · {new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                  <div className="text-[12.5px] text-gray-500">{ROLE_LABEL[item.uploader_role] ?? ''} · {new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                 </div>
                 {removable ? (
                   <button type="button" onClick={() => remove(item.id)} disabled={busy} aria-label={`Remove ${item.file_name}`}
@@ -116,7 +116,7 @@ export function MaintenanceAttachments({
           <input id={`maint-files-${parentId}`} ref={input} type="file" multiple className="sr-only" disabled={busy}
             accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
             onChange={(e) => upload(Array.from(e.target.files ?? []))} />
-          <p className="text-xs text-gray-400">Photos (JPG, PNG, HEIC, WebP) or PDFs · up to 20 MB each · 12 per record</p>
+          <p className="text-[13px] text-gray-500">Photos (JPG, PNG, HEIC, WebP) or PDFs · up to 20 MB each · 12 per record</p>
         </>
       ) : null}
     </div>

@@ -144,7 +144,7 @@ export default function EditTemplatePage() {
     return (
       <div className="flex h-full bg-gray-50">
         <main className="min-w-0 flex-1 overflow-y-auto px-8 py-6">
-          <div className="rounded-2xl border border-gray-200/70 bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <p className="text-sm text-gray-500">Template not found. It may have been deleted or archived.</p>
             <Link href="/documents?tab=templates" className="mt-3 inline-block text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
               Back to templates →
@@ -160,7 +160,7 @@ export default function EditTemplatePage() {
       <main className="min-w-0 flex-1 overflow-y-auto px-8 py-6">
         <div className="mb-6 flex items-start justify-between gap-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-950">Edit Template</h1>
+            <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">Edit Template</h1>
             <p className="mt-1 max-w-3xl text-sm text-gray-500">
               Update this document template. Changes apply to future documents only — previously generated documents keep their original content.
             </p>
@@ -178,7 +178,7 @@ export default function EditTemplatePage() {
           )}
 
           {/* Basic info */}
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-xs font-medium text-gray-700">
                 Template Name *
@@ -186,7 +186,7 @@ export default function EditTemplatePage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   placeholder="e.g., Standard Violation Notice"
                 />
               </label>
@@ -196,7 +196,7 @@ export default function EditTemplatePage() {
                 <select
                   value={letterType}
                   onChange={(e) => setLetterType(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 >
                   {LETTER_TYPES.map((lt) => (
                     <option key={lt.value} value={lt.value}>{lt.label}</option>
@@ -211,7 +211,7 @@ export default function EditTemplatePage() {
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="e.g., Notice of Violation — {{violation_title}}"
               />
             </label>
@@ -228,7 +228,7 @@ export default function EditTemplatePage() {
           </div>
 
           {/* Merge variables */}
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
             <h2 className="mb-4 text-sm font-semibold text-gray-950">Merge Variables</h2>
             <p className="text-xs text-gray-500 mb-4">
               Variables are placeholders like{' '}
@@ -258,7 +258,7 @@ export default function EditTemplatePage() {
                 {mergeVariables.map((v) => (
                   <span
                     key={v}
-                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15"
+                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[12.5px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15"
                   >
                     {'{{'}
                     {v}
@@ -273,20 +273,20 @@ export default function EditTemplatePage() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400">No merge variables added yet.</p>
+              <p className="text-[13px] text-gray-500">No merge variables added yet.</p>
             )}
           </div>
 
           {/* Body editor */}
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-950">Template Body</h2>
+              <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Template Body</h2>
               <div className="flex gap-1">
                 {mergeVariables.map((v) => (
                   <button
                     key={v}
                     onClick={() => insertVariable(v)}
-                    className="rounded-lg border border-gray-200 px-1.5 py-0.5 text-[10px] text-gray-500 transition-colors hover:border-gray-300 hover:bg-gray-100"
+                    className="rounded-lg border border-gray-200 px-1.5 py-0.5 text-[12px] text-gray-500 transition-colors hover:border-gray-300 hover:bg-gray-100"
                     title="Insert variable"
                   >
                     {'{{'}

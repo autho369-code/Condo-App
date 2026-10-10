@@ -12,7 +12,7 @@ import { todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 function Gauge({ value }: { value: number }) {
   const rotation = (value / 100) * 180 - 90
@@ -28,7 +28,7 @@ function Gauge({ value }: { value: number }) {
       </svg>
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
         <div className="text-3xl font-semibold tabular-nums text-gray-950">{value}%</div>
-        <div className="text-xs text-gray-500">Overall Health</div>
+        <div className="text-[13px] text-gray-500">Overall Health</div>
       </div>
     </div>
   )
@@ -140,8 +140,8 @@ export default async function PortfolioHealthPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Portfolio Health</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Real-time health monitoring across all associations</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Portfolio Health</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Real-time health monitoring across all associations</p>
       </div>
 
       {loadErrors.length > 0 && <Alert tone="danger" title="Some data could not be loaded; scores below may be incomplete.">{loadErrors.join(' · ')}</Alert>}
@@ -157,7 +157,7 @@ export default async function PortfolioHealthPage() {
             <Link key={c.label} href={c.href} className={`${card} p-5 transition-colors hover:border-gray-300`}>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70"><Icon className="h-5 w-5 text-gray-400" /></div>
-                <div><div className="text-2xl font-semibold tabular-nums text-gray-950">{c.count}</div><div className="text-xs text-gray-500">{c.label}</div></div>
+                <div><div className="text-2xl font-semibold tabular-nums text-gray-950">{c.count}</div><div className="text-[13px] text-gray-500">{c.label}</div></div>
               </div>
               <div className="mt-3 text-xs text-gray-500">{c.note}</div>
             </Link>
@@ -166,8 +166,8 @@ export default async function PortfolioHealthPage() {
       </div>
 
       <div className={`${card} p-6`}>
-        <h2 className="text-sm font-semibold text-gray-950">Health Score Factors</h2>
-        <p className="mt-1 text-xs text-gray-500">Each association starts at 100; every open item deducts points (minimum 0).</p>
+        <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Health Score Factors</h2>
+        <p className="mt-1 text-[13px] text-gray-500">Each association starts at 100; every open item deducts points (minimum 0).</p>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: 'Open work order', points: HEALTH_DEDUCTIONS.open },
@@ -175,7 +175,7 @@ export default async function PortfolioHealthPage() {
             { label: 'Emergency work order (extra)', points: HEALTH_DEDUCTIONS.emergency },
             { label: 'Open violation', points: HEALTH_DEDUCTIONS.violations },
           ].map((factor) => (
-            <div key={factor.label} className="flex items-center justify-between rounded-xl border border-gray-200/70 bg-gray-50/60 px-4 py-3">
+            <div key={factor.label} className="flex items-center justify-between rounded-xl border border-line bg-gray-50/60 px-4 py-3">
               <span className="text-sm text-gray-600">{factor.label}</span>
               <span className="text-sm font-medium tabular-nums text-gray-950">−{factor.points}</span>
             </div>
@@ -185,11 +185,11 @@ export default async function PortfolioHealthPage() {
 
       <div className={card}>
         <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Association Health Status</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Association Health Status</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
                 <th className="px-6 py-2.5 text-left font-medium">Association</th>
                 <th className="px-6 py-2.5 text-left font-medium">Location</th>
@@ -208,7 +208,7 @@ export default async function PortfolioHealthPage() {
               ) : (
                 healthRows.sort((a: any, b: any) => { const order: Record<string, number> = { critical: 0, warning: 1, healthy: 2 }; return order[a.status] - order[b.status] })
                   .map((row: any, i: number, sorted: any[]) => (
-                    <tr key={row.id} id={i === 0 || sorted[i - 1].status !== row.status ? row.status : undefined} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <tr key={row.id} id={i === 0 || sorted[i - 1].status !== row.status ? row.status : undefined} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                       <td className="px-6 py-3">
                         <Link href={`/associations/${row.slug ?? row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
                       </td>

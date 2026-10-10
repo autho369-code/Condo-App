@@ -114,7 +114,7 @@ export default async function MaintenanceCommunicationsPage({
                     <TD className="text-xs font-semibold uppercase text-gray-600">{msg.channel}</TD>
                     <TD>
                       <div className="capitalize text-gray-900">{String(msg.recipient_group ?? 'vendor').replaceAll('_', ' ')}</div>
-                      <div className="text-xs text-gray-500">{msg.recipient_email ?? msg.recipient_phone ?? '—'}</div>
+                      <div className="text-[13px] text-gray-500">{msg.recipient_email ?? msg.recipient_phone ?? '—'}</div>
                     </TD>
                     <TD className="max-w-xl">
                       <div className="font-medium text-gray-900">{msg.subject ?? 'No subject'}</div>
@@ -126,7 +126,7 @@ export default async function MaintenanceCommunicationsPage({
               </tbody>
             </Table>
           ) : (
-            <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <EmptyState
                 icon={MessageSquare}
                 title="No maintenance communications yet"

@@ -78,13 +78,13 @@ export default async function ConversationPage({
       rail={
         <div className="space-y-5 text-sm">
           <div>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">{owner ? 'Owner' : 'Tenant'}</div>
+            <div className="mb-2 text-[13px] font-semibold text-gray-700">{owner ? 'Owner' : 'Tenant'}</div>
             {t.owner_id ? <Link href={`/owners/${t.owner_id}`} className="font-medium text-gray-900 hover:underline">{name}</Link> : <div className="font-medium text-gray-900">{name}</div>}
             {one<any>(t.units)?.unit_number ? <div className="text-gray-500">Unit {one<any>(t.units).unit_number}</div> : null}
             {email ? <a href={`mailto:${email}`} className="block truncate text-gray-600 hover:underline">{email}</a> : <div className="text-amber-700">No email on file — they’ll only see replies in the portal.</div>}
           </div>
           <div>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Assigned to</div>
+            <div className="mb-2 text-[13px] font-semibold text-gray-700">Assigned to</div>
             <form action={assignConversation.bind(null, id)} className="flex gap-2">
               <select name="assigned_to" defaultValue={t.assigned_to ?? ''} aria-label="Assigned to"
                 className="h-10 min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">

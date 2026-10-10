@@ -52,7 +52,7 @@ export default async function PropertyGroupsPage({
         />
 
         {allGroups.length === 0 && !canEdit && (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState icon={FolderTree} title="No property groups yet" description="A company admin can create groups here." />
           </div>
         )}
@@ -82,7 +82,7 @@ export default async function PropertyGroupsPage({
                             <label key={a.id} className="flex min-h-10 items-center gap-2 text-sm text-gray-700">
                               <input type="checkbox" name="association_ids" value={a.id} defaultChecked={a.property_group_id === g.id} className="h-4 w-4 rounded border-gray-300" />
                               <span className="truncate">{a.name}</span>
-                              {elsewhere && <span className="shrink-0 text-[11px] text-gray-400">in {elsewhere}</span>}
+                              {elsewhere && <span className="shrink-0 text-[12.5px] text-gray-400">in {elsewhere}</span>}
                             </label>
                           );
                         })}

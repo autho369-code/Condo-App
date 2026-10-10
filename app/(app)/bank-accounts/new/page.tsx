@@ -56,7 +56,7 @@ export default async function NewBankAccountPage({
               </Select>
             </Field>
           </div>
-          <p className="text-xs text-gray-500">Routing and account numbers are stored for operations but masked everywhere after save.</p>
+          <p className="text-[13px] text-gray-500">Routing and account numbers are stored for operations but masked everywhere after save.</p>
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Routing number"><Input name="routing_number" inputMode="numeric" placeholder="9-digit ABA" /></Field>
             <Field label="Account number"><Input name="account_number" inputMode="numeric" /></Field>
@@ -117,9 +117,9 @@ export default async function NewBankAccountPage({
 
 function FormSection({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-      <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
-      <p className="mt-1 text-xs text-gray-500">{description}</p>
+    <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+      <p className="mt-1 text-[13px] text-gray-500">{description}</p>
       <div className="mt-4 space-y-4">{children}</div>
     </section>
   );

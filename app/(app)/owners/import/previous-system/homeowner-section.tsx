@@ -78,7 +78,7 @@ function GroupCard({ group, associations, importHomeowners }: { group: AppfolioH
   return (
     <Surface className="space-y-4">
       <div>
-        <h3 className="text-[15px] font-semibold text-gray-950">{group.name || 'Homeowners'}</h3>
+        <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{group.name || 'Homeowners'}</h3>
         {group.address && <p className="mt-0.5 text-sm text-gray-500">{group.address}</p>}
         <div className="mt-2 flex flex-wrap gap-2">
           <Badge tone="info">{plural(owners.length, 'homeowner')}</Badge>
@@ -120,7 +120,7 @@ function GroupCard({ group, associations, importHomeowners }: { group: AppfolioH
                 <TD className="font-medium text-gray-900">{h.unit_number}</TD>
                 <TD>
                   <div className="text-gray-900">{h.name.display}</div>
-                  {h.name.raw !== h.name.display && <div className="text-xs text-gray-500">In the file: {h.name.raw}</div>}
+                  {h.name.raw !== h.name.display && <div className="text-[13px] text-gray-500">In the file: {h.name.raw}</div>}
                   <div className="mt-1 flex flex-wrap gap-1">
                     {h.name.is_company && <Badge tone="info" className="normal-case">Company or trust</Badge>}
                     {h.name.notes.map((n) => <Badge key={n} tone="inactive" className="normal-case">{n}</Badge>)}
@@ -129,7 +129,7 @@ function GroupCard({ group, associations, importHomeowners }: { group: AppfolioH
                 </TD>
                 <TD>
                   <div>{h.emails[0] ?? '—'}{h.emails.length > 1 ? ` +${h.emails.length - 1}` : ''}</div>
-                  {h.phones && <div className="text-xs text-gray-500">{h.phones}</div>}
+                  {h.phones && <div className="text-[13px] text-gray-500">{h.phones}</div>}
                 </TD>
                 <TD className="text-right tabular-nums">{h.ownership_pct ?? '—'}</TD>
                 <TD className="text-right tabular-nums">{h.dues !== null ? usd(h.dues) : '—'}</TD>
@@ -205,7 +205,7 @@ export function HomeownerImportSection({ associations, importHomeowners }: Props
           <Label htmlFor={fileId}>Homeowner Directory CSV</Label>
           <Input id={fileId} type="file" accept=".csv,text/csv" onChange={onFile} className="h-auto py-2" />
         </div>
-        {fileName && !error && groups && <p className="text-xs text-gray-500">{fileName}</p>}
+        {fileName && !error && groups && <p className="text-[13px] text-gray-500">{fileName}</p>}
       </Surface>
 
       {error && <Alert tone="danger">{error}</Alert>}

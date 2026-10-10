@@ -69,7 +69,7 @@ export default async function NewChargePage({ searchParams }: { searchParams: Pr
       description="Post a one-time charge to a unit — assessments, fees, fines, or other line items."
       actions={<Link href="/charges"><Button variant="secondary">Back to receivables</Button></Link>}
     >
-      <form action={createCharge} className="max-w-2xl space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={createCharge} className="max-w-2xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not post charge">{sp.error}</Alert>}
         {sp.posted === '1' && <Alert tone="success" title="Charge posted">The charge was added to the unit&apos;s ledger.</Alert>}
         <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />

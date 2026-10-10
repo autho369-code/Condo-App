@@ -51,9 +51,9 @@ export function SendStatementsForm({ associations }: { associations: Association
 
   if (result) {
     return (
-      <div className="max-w-4xl rounded-2xl border border-gray-200/70 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="max-w-4xl rounded-2xl border border-line bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-2xl text-emerald-600">&#10003;</div>
-        <h3 className="text-[15px] font-semibold text-gray-950">{result.sent > 0 ? 'Statements sent' : 'Statements generated'}</h3>
+        <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{result.sent > 0 ? 'Statements sent' : 'Statements generated'}</h3>
         <p className="mt-1 text-sm text-gray-500">
           Statement batch created for {associations.find((a) => a.id === assocId)?.name}.
           {deliveryChannel === 'email' && ` ${result.sent ?? 0} emailed to homeowners.`}
@@ -73,9 +73,9 @@ export function SendStatementsForm({ associations }: { associations: Association
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <h3 className="text-sm font-semibold text-gray-950">Statement Generation</h3>
-        <p className="text-xs text-gray-500">Statements are generated for all current owners in the selected association. Each statement includes current charges, past-due amounts, and payment history for the selected period.</p>
+      <div className="space-y-4 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Statement Generation</h3>
+        <p className="text-[13px] text-gray-500">Statements are generated for all current owners in the selected association. Each statement includes current charges, past-due amounts, and payment history for the selected period.</p>
 
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-600">Association *</label>
@@ -108,7 +108,7 @@ export function SendStatementsForm({ associations }: { associations: Association
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-600">Delivery</label>
           <p className="mt-1 text-sm text-gray-700">Email to each homeowner on file</p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-[13px] text-gray-500">
             Printed and portal statements are not available yet. Homeowners without an email address are listed after sending so you can follow up.
           </p>
         </div>

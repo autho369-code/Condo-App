@@ -218,28 +218,28 @@ function ReservationTable({
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+        <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
           <tr>
-            <th className="px-5 py-2.5 text-left font-medium">Amenity</th>
-            <th className="px-5 py-2.5 text-left font-medium">Association</th>
-            <th className="px-5 py-2.5 text-left font-medium">Requested by</th>
-            <th className="px-5 py-2.5 text-left font-medium">When</th>
+            <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Amenity</th>
+            <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Association</th>
+            <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Requested by</th>
+            <th className="whitespace-nowrap px-5 py-3 text-left font-medium">When</th>
             <th className="px-5 py-2.5 text-center font-medium">Status</th>
-            <th className="px-5 py-2.5 text-right font-medium">Action</th>
+            <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Action</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.id} className="border-b border-gray-50 last:border-0 align-top">
               <td className="px-5 py-3 font-medium text-gray-900">{r.association_amenities?.name ?? '—'}</td>
-              <td className="px-5 py-3 text-[13px] text-gray-700">{r.associations?.name ?? '—'}</td>
-              <td className="px-5 py-3 text-[13px] text-gray-700">
+              <td className="px-5 py-3.5 text-sm text-gray-700">{r.associations?.name ?? '—'}</td>
+              <td className="px-5 py-3.5 text-sm text-gray-700">
                 {r.reserved_for_name ?? '—'}
                 {r.units?.unit_number ? <span className="text-gray-400"> · Unit {r.units.unit_number}</span> : null}
                 {r.party_size ? <div className="text-[12px] text-gray-400">Party of {r.party_size}</div> : null}
                 {r.notes ? <div className="mt-0.5 max-w-xs text-[12px] text-gray-500">{r.notes}</div> : null}
               </td>
-              <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{fmtRange(r.start_time, r.end_time, r.associations?.timezone || 'America/Chicago')}</td>
+              <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{fmtRange(r.start_time, r.end_time, r.associations?.timezone || 'America/Chicago')}</td>
               <td className="px-5 py-3 text-center"><Badge status={r.status} /></td>
               <td className="px-5 py-3 text-right">
                 {mode === 'pending' ? (

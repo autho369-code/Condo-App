@@ -109,7 +109,7 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
       description="Create a maintenance or repair work order for a unit or common area."
       actions={<Link href="/work-orders"><Button variant="secondary">Back to work orders</Button></Link>}
     >
-      <form action={createWorkOrder} className="max-w-4xl space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={createWorkOrder} className="max-w-4xl space-y-6 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create work order">{sp.error}</Alert>}
         <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
 

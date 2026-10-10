@@ -54,7 +54,7 @@ export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
     <div className="flex h-full flex-col">
       <div className="border-b border-gray-200 px-4 py-3">
         <h2 className="text-base font-semibold text-gray-900">Reports</h2>
-        <p className="mt-0.5 text-xs text-gray-500">{items.length} available</p>
+        <p className="mt-0.5 text-[13px] text-gray-500">{items.length} available</p>
       </div>
 
       <div className="border-b border-gray-100 px-3 py-2">
@@ -79,7 +79,7 @@ export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
           ].join(' ')}
         >
           <span>Run history</span>
-          <span className="text-xs text-gray-400">↗</span>
+          <span className="text-[13px] text-gray-500">↗</span>
         </Link>
 
         {CATEGORY_ORDER.filter((c) => grouped.has(c)).map((cat) => (
@@ -105,7 +105,7 @@ export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
                       {r.isLive && (
                         <span
                           className={[
-                            'ml-2 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                            'ml-2 shrink-0 rounded px-1.5 py-0.5 text-[12px] font-semibold uppercase tracking-wide',
                             isActive ? 'bg-white/20 text-white' : 'bg-green-100 text-green-700',
                           ].join(' ')}
                         >

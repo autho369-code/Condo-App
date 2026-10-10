@@ -115,7 +115,7 @@ export default async function PricingMetricsPage({ searchParams }: { searchParam
               ))}
             </tbody>
           </Table>
-          <p className="text-xs text-gray-500">Based on each current occupancy&apos;s move-out date; units with no move-out date stay occupied.</p>
+          <p className="text-[13px] text-gray-500">Based on each current occupancy&apos;s move-out date; units with no move-out date stay occupied.</p>
         </section>
 
         <section className="space-y-3">

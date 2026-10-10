@@ -34,7 +34,7 @@ function ComplianceBadges({ vendor }: { vendor: any }) {
   const [ty, tm, td] = today.split('-').map(Number);
   const soonYmd = new Date(Date.UTC(ty, tm - 1, td + 30)).toISOString().slice(0, 10);
 
-  if (expirations.length === 0) return <span className="text-xs text-gray-400">—</span>;
+  if (expirations.length === 0) return <span className="text-[13px] text-gray-500">—</span>;
 
   return (
     <div className="flex flex-wrap gap-1">
@@ -44,7 +44,7 @@ function ComplianceBadges({ vendor }: { vendor: any }) {
         const expired = ymd < today;
         const expiring = ymd <= soonYmd && !expired;
         return (
-          <span key={e.label} className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${expired ? 'bg-red-50 text-red-700 ring-red-600/15' : expiring ? 'bg-amber-50 text-amber-700 ring-amber-600/15' : 'bg-gray-100 text-gray-600 ring-gray-500/15'}`}>
+          <span key={e.label} className={`rounded-full px-1.5 py-0.5 text-[12.5px] font-medium ring-1 ring-inset ${expired ? 'bg-red-50 text-red-700 ring-red-600/15' : expiring ? 'bg-amber-50 text-amber-700 ring-amber-600/15' : 'bg-gray-100 text-gray-600 ring-gray-500/15'}`}>
             {e.label}: {new Date(`${ymd}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })}
           </span>
         );
@@ -222,13 +222,13 @@ export default async function VendorsPage({
                 return <TR key={vendor.id} className="hover:bg-gray-50">
                   <TD>
                     <Link href={`/vendors/${vendor.id}`} className="font-medium text-gray-950 hover:underline">{vendor.name}</Link>
-                    <div className="mt-1 text-xs text-gray-500">{vendor.vendor_type?.replace(/_/g, ' ') ?? 'general'}</div>
+                    <div className="mt-1 text-[13px] text-gray-500">{vendor.vendor_type?.replace(/_/g, ' ') ?? 'general'}</div>
                     {(vendor.emails?.length > 0 || vendor.phone_numbers?.length > 0) && (
                       <div className="mt-1 space-y-0.5">
-                        {vendor.emails?.map((e: string) => <div key={e} className="text-xs text-gray-500">{e}</div>)}
+                        {vendor.emails?.map((e: string) => <div key={e} className="text-[13px] text-gray-500">{e}</div>)}
                         {vendor.phone_numbers?.map((p: any, i: number) => (typeof p === 'string'
-                          ? <div key={`${p}-${i}`} className="text-xs text-gray-500">{p}</div>
-                          : <div key={`${p?.number}-${i}`} className="text-xs text-gray-500">{p?.type ? `${p.type}: ` : ''}{p?.number}</div>))}
+                          ? <div key={`${p}-${i}`} className="text-[13px] text-gray-500">{p}</div>
+                          : <div key={`${p?.number}-${i}`} className="text-[13px] text-gray-500">{p?.type ? `${p.type}: ` : ''}{p?.number}</div>))}
                       </div>
                     )}
                   </TD>
@@ -242,7 +242,7 @@ export default async function VendorsPage({
                       {vendor.is_auto_pay && <StatusChip tone="info">Auto-pay</StatusChip>}
                       {vendor.hold_payments && <StatusChip tone="danger">Hold</StatusChip>}
                     </div>
-                    <div className="mt-1 text-xs text-gray-500">{vendor.payment_terms ?? 'No terms'}</div>
+                    <div className="mt-1 text-[13px] text-gray-500">{vendor.payment_terms ?? 'No terms'}</div>
                   </TD>
                   <TD>
                     <div className="flex flex-wrap gap-1">

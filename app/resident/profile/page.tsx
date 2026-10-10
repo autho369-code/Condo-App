@@ -48,20 +48,20 @@ export default async function ResidentProfilePage({
       {banner.error ? <Alert>{banner.error}</Alert> : null}
 
       <Surface>
-        <h2 className="text-[15px] font-semibold text-gray-950">Resident and unit</h2>
+        <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Resident and unit</h2>
         <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
-          <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Resident</dt><dd className="mt-1 text-gray-900">{tenant ? `${tenant.first_name} ${tenant.last_name}` : me.profile?.full_name}</dd></div>
-          <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Email</dt><dd className="mt-1 text-gray-900">{tenant?.email ?? me.email}</dd></div>
-          <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Community</dt><dd className="mt-1 text-gray-900">{association?.name ?? '—'}</dd></div>
-          <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Home</dt><dd className="mt-1 text-gray-900">{building?.name ? `${building.name} · ` : ''}Unit {unit?.unit_number ?? '—'}</dd></div>
-          <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Lease term</dt><dd className="mt-1 text-gray-900">{tenant?.lease_start ? date(tenant.lease_start) : 'Not provided'} – {tenant?.lease_end ? date(tenant.lease_end) : 'Open-ended'}</dd></div>
-          <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Lease document</dt><dd className="mt-1">{tenant?.lease_document_url && links.get(tenant.lease_document_url) ? <a href={links.get(tenant.lease_document_url)} target="_blank" rel="noopener noreferrer" className="font-medium text-gray-800 hover:underline">View lease →</a> : <span className="text-gray-500">Not on file</span>}</dd></div>
+          <div><dt className="text-[13px] font-medium text-gray-500">Resident</dt><dd className="mt-1 text-gray-900">{tenant ? `${tenant.first_name} ${tenant.last_name}` : me.profile?.full_name}</dd></div>
+          <div><dt className="text-[13px] font-medium text-gray-500">Email</dt><dd className="mt-1 text-gray-900">{tenant?.email ?? me.email}</dd></div>
+          <div><dt className="text-[13px] font-medium text-gray-500">Community</dt><dd className="mt-1 text-gray-900">{association?.name ?? '—'}</dd></div>
+          <div><dt className="text-[13px] font-medium text-gray-500">Home</dt><dd className="mt-1 text-gray-900">{building?.name ? `${building.name} · ` : ''}Unit {unit?.unit_number ?? '—'}</dd></div>
+          <div><dt className="text-[13px] font-medium text-gray-500">Lease term</dt><dd className="mt-1 text-gray-900">{tenant?.lease_start ? date(tenant.lease_start) : 'Not provided'} – {tenant?.lease_end ? date(tenant.lease_end) : 'Open-ended'}</dd></div>
+          <div><dt className="text-[13px] font-medium text-gray-500">Lease document</dt><dd className="mt-1">{tenant?.lease_document_url && links.get(tenant.lease_document_url) ? <a href={links.get(tenant.lease_document_url)} target="_blank" rel="noopener noreferrer" className="font-medium text-gray-800 hover:underline">View lease →</a> : <span className="text-gray-500">Not on file</span>}</dd></div>
         </dl>
         <p className="mt-4 rounded-xl bg-gray-50 p-3 text-xs leading-5 text-gray-500">Name, email, unit, and lease assignments are managed by your property management team. Contact management to correct them.</p>
       </Surface>
 
       <Surface>
-        <h2 className="text-[15px] font-semibold text-gray-950">Contact and emergency information</h2>
+        <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Contact and emergency information</h2>
         <form action={updateResidentProfile as any} className="mt-4 space-y-4">
           <input type="hidden" name="tenant_id" value={tenant?.id ?? ''} />
           <div><Label htmlFor="phone">Phone</Label><Input id="phone" name="phone" type="tel" maxLength={50} defaultValue={tenant?.phone ?? ''} /></div>
@@ -78,7 +78,7 @@ export default async function ResidentProfilePage({
       </Surface>
 
       <Surface>
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-[15px] font-semibold text-gray-950">Renter insurance document</h2><p className="mt-1 text-xs leading-5 text-gray-500">Upload proof of current coverage directly to your private association record.</p></div>{tenant?.insurance_document_url && links.get(tenant.insurance_document_url) ? <a href={links.get(tenant.insurance_document_url)} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-gray-700 hover:underline">View current document →</a> : null}</div>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Renter insurance document</h2><p className="mt-1 text-xs leading-5 text-gray-500">Upload proof of current coverage directly to your private association record.</p></div>{tenant?.insurance_document_url && links.get(tenant.insurance_document_url) ? <a href={links.get(tenant.insurance_document_url)} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-gray-700 hover:underline">View current document →</a> : null}</div>
         {tenant?.id ? <ResidentInsuranceUploadForm tenantId={tenant.id} policyNumber={tenant.insurance_policy_number} expirationDate={tenant.insurance_expiration} /> : null}
       </Surface>
     </div>

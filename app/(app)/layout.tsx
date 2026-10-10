@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import Sidebar from '@/components/nav/sidebar';
+import { brandStyle } from '@/lib/ui/brand';
 import TasksRail from '@/components/workspace/tasks-rail';
 import ActionCenterShell from '@/components/workspace/action-center-shell';
 import { hasPortfolioAdminAccess, requireAuth, roleHome } from '@/lib/auth/me';
@@ -87,9 +88,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen" style={brandStyle(brandColor)}>
       <Sidebar portfolioName={displayName} logoUrl={logoUrl} brandColor={brandColor} userEmail={me.email ?? undefined} modules={modules} showRecordSearch />
-      <main className="h-screen min-w-0 flex-1 overflow-y-auto pt-12 lg:pt-0">
+      <main className="h-screen min-w-0 flex-1 overflow-y-auto bg-canvas pt-14 lg:pt-0">
+        <div aria-hidden="true" className="h-[3px] bg-accent print:hidden" />
         {children}
       </main>
       <CommandPalette pages={pages} actions={paletteActions} />

@@ -238,7 +238,7 @@ export default async function ReserveStudyDetailPage({
             <div className="rounded-xl border border-dashed border-gray-300 px-6 py-10 text-center">
               <AlertTriangle className="mx-auto h-8 w-8 text-gray-300" />
               <p className="mt-3 text-sm font-semibold text-gray-900">Add the first capital component</p>
-              <p className="mt-1 text-xs text-gray-500">Start with the largest structural or mechanical replacement obligation.</p>
+              <p className="mt-1 text-[13px] text-gray-500">Start with the largest structural or mechanical replacement obligation.</p>
             </div>
           )}
 
@@ -292,10 +292,10 @@ export default async function ReserveStudyDetailPage({
         <Surface>
           <SectionTitle title="Study record" />
           <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-            <div><dt className="text-xs text-gray-500">Prepared by</dt><dd className="mt-1 font-medium text-gray-950">{study.prepared_by || 'Not recorded'}</dd></div>
-            <div><dt className="text-xs text-gray-500">Funding policy</dt><dd className="mt-1 font-medium text-gray-950">{categoryLabel(study.funding_goal)}</dd></div>
-            <div><dt className="text-xs text-gray-500">Inflation</dt><dd className="mt-1 font-medium tabular-nums text-gray-950">{study.annual_inflation_rate}%</dd></div>
-            <div><dt className="text-xs text-gray-500">Approved</dt><dd className="mt-1 font-medium text-gray-950">{study.approved_at ? date(study.approved_at) : 'Not approved'}</dd></div>
+            <div><dt className="text-[13px] text-gray-500">Prepared by</dt><dd className="mt-1 font-medium text-gray-950">{study.prepared_by || 'Not recorded'}</dd></div>
+            <div><dt className="text-[13px] text-gray-500">Funding policy</dt><dd className="mt-1 font-medium text-gray-950">{categoryLabel(study.funding_goal)}</dd></div>
+            <div><dt className="text-[13px] text-gray-500">Inflation</dt><dd className="mt-1 font-medium tabular-nums text-gray-950">{study.annual_inflation_rate}%</dd></div>
+            <div><dt className="text-[13px] text-gray-500">Approved</dt><dd className="mt-1 font-medium text-gray-950">{study.approved_at ? date(study.approved_at) : 'Not approved'}</dd></div>
           </dl>
           {study.notes && <p className="mt-5 border-t border-gray-100 pt-4 text-sm leading-6 text-gray-600">{study.notes}</p>}
           <div className="mt-5 flex items-center gap-2 text-xs text-gray-500"><Clock3 className="h-4 w-4" /> Last updated {date(study.updated_at)}{study.status === 'approved' && <><CheckCircle2 className="ml-2 h-4 w-4 text-emerald-600" /> Approved plan</>}</div>

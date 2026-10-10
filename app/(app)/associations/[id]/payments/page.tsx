@@ -13,7 +13,7 @@ import { sameHostCompanyUrl } from '@/lib/tenant/request-url';
 
 export const dynamic = 'force-dynamic';
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
+const card = 'rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
 
 function canManageAssociationStripe(me: {
   is_platform_operator: boolean;
@@ -223,7 +223,7 @@ export default async function AssociationPaymentsTab({
   return (
     <div>
       <div className="mb-4">
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">{assoc.name}</h1>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">{assoc.name}</h1>
         <p className="mt-1 text-sm text-gray-500">Online payments — this association&apos;s own Stripe account and bank</p>
       </div>
       <AssociationTabs associationId={assocParam} active="payments" />
@@ -248,7 +248,7 @@ export default async function AssociationPaymentsTab({
                 <CreditCard className="h-5 w-5 text-gray-400" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-gray-950">Association Stripe Account</h2>
+                <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Association Stripe Account</h2>
                 <p className="mt-0.5 max-w-md text-[13px] leading-5 text-gray-500">
                   Each association has its own Stripe account settling to its own bank — owner payments never mix with
                   any other association&apos;s funds.
@@ -262,27 +262,27 @@ export default async function AssociationPaymentsTab({
 
           <dl className="mt-5 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Stripe Account</dt>
+              <dt className="text-[13px] font-medium text-gray-500">Stripe Account</dt>
               <dd className="mt-0.5 font-mono text-xs text-gray-900">{assoc.stripe_account_id ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Charges Enabled</dt>
+              <dt className="text-[13px] font-medium text-gray-500">Charges Enabled</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_charges_enabled ? 'Yes' : 'No'}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Payouts Enabled</dt>
+              <dt className="text-[13px] font-medium text-gray-500">Payouts Enabled</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_payouts_enabled ? 'Yes' : 'No'}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Details Submitted</dt>
+              <dt className="text-[13px] font-medium text-gray-500">Details Submitted</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_details_submitted ? 'Yes' : 'No'}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Onboarded</dt>
+              <dt className="text-[13px] font-medium text-gray-500">Onboarded</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_onboarded_at ? date(assoc.stripe_onboarded_at) : '—'}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Last Stripe Check</dt>
+              <dt className="text-[13px] font-medium text-gray-500">Last Stripe Check</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_last_status_at ? date(assoc.stripe_last_status_at) : 'Never'}</dd>
             </div>
           </dl>
@@ -326,7 +326,7 @@ export default async function AssociationPaymentsTab({
         {sp.allocation_saved && <Alert tone="success" title="Allocation order saved">New payments now apply to charges in this order.</Alert>}
 
         <div className={card}>
-          <h2 className="text-sm font-semibold text-gray-950">Payment Allocation Policy</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Payment Allocation Policy</h2>
           <p className="mt-1 max-w-lg text-[13px] leading-5 text-gray-500">
             When an owner pays without picking a specific charge, the payment applies to open charges in this order
             (oldest first within each class). Every association can set its own policy.
@@ -360,14 +360,14 @@ export default async function AssociationPaymentsTab({
         </div>
 
         <div className={card}>
-          <h2 className="text-sm font-semibold text-gray-950">Offline Instructions (always shown to owners)</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Offline Instructions (always shown to owners)</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Checks payable to</dt>
+              <dt className="text-[13px] font-medium text-gray-500">Checks payable to</dt>
               <dd className="mt-0.5 text-gray-900">{assoc.remit_payee ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Mail to</dt>
+              <dt className="text-[13px] font-medium text-gray-500">Mail to</dt>
               <dd className="mt-0.5 whitespace-pre-line text-gray-900">{assoc.remit_address ?? '—'}</dd>
             </div>
           </dl>

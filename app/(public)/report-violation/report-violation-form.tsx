@@ -127,7 +127,7 @@ export default function ReportViolationForm({ associations, rules, assocId, subm
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
       <header>
-        <h1 className="text-2xl font-semibold text-gray-900">Violation Report</h1>
+        <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">Violation Report</h1>
         <p className="mt-1 text-sm text-gray-500">
           Per the Illinois Condominium Property Act. For emergencies, call 911.
         </p>

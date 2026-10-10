@@ -111,8 +111,8 @@ export default async function UsersPage({
 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Users</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Users</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
             Manage all user profiles across every portfolio in the platform.
           </p>
         </div>
@@ -197,7 +197,7 @@ export default async function UsersPage({
                     {user.portfolio_id ? portfolioMap.get(user.portfolio_id) || '—' : '—'}
                   </TD>
                   <TD>{userStatusBadge(user)}</TD>
-                  <TD className="text-xs text-gray-500">{date(user.last_login_at)}</TD>
+                  <TD className="text-[13px] text-gray-500">{date(user.last_login_at)}</TD>
                   <TD>
                     {user.mfa_enrolled_at ? (
                       <Badge className="bg-green-50 text-green-700 ring-green-200">Enabled</Badge>
@@ -217,7 +217,7 @@ export default async function UsersPage({
                           </Button>
                         </form>
                         {vendorUserIds.has(user.id) ? (
-                          <span className="text-xs text-gray-400">Role managed in Vendors</span>
+                          <span className="text-[13px] text-gray-500">Role managed in Vendors</span>
                         ) : (
                           <form action={changeUserRole as any} className="inline-flex items-center gap-1">
                             <input type="hidden" name="user_id" value={user.id} />
@@ -236,7 +236,7 @@ export default async function UsersPage({
                         )}
                       </div>
                     ) : (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-[13px] text-gray-500">
                         {platformOperatorIds.has(user.id) ? 'Managed in Operators' : 'Read only'}
                       </span>
                     )}

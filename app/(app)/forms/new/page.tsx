@@ -14,7 +14,7 @@ export default async function NewFormTemplatePage({ searchParams }: { searchPara
 
   return (
     <DataWorkspace title="New form" description="Upload a form homeowners can download from the owner portal, or keep it for staff use." actions={<Link href="/forms"><Button variant="secondary">Back to forms</Button></Link>}>
-      <form action={saveFormTemplate} className="max-w-2xl space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={saveFormTemplate} className="max-w-2xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create form:">{sp.error}</Alert>}
         <FormTemplateFields />
         <div className="flex items-center gap-3 border-t border-gray-100 pt-5">

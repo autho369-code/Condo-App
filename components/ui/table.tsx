@@ -5,22 +5,22 @@ import * as React from 'react';
 
 export function Table({ className, ...p }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <table className={cn('w-full text-sm', className)} {...p} />
     </div>
   );
 }
 export function THead(p: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500" {...p} />;
+  return <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500" {...p} />;
 }
 export function TR({ className, ...p }: React.HTMLAttributes<HTMLTableRowElement>) {
-  return <tr className={cn('border-b border-gray-50 last:border-0 hover:bg-gray-50/60', className)} {...p} />;
+  return <tr className={cn('border-b border-line/70 last:border-0 hover:bg-gray-50/70', className)} {...p} />;
 }
 export function TH({ className, ...p }: React.ThHTMLAttributes<HTMLTableCellElement>) {
-  return <th className={cn('px-4 py-2.5 text-left font-medium', className)} {...p} />;
+  return <th className={cn('whitespace-nowrap px-4 py-3 text-left font-medium', className)} {...p} />;
 }
 export function TD({ className, ...p }: React.TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn('px-4 py-3 align-middle text-[13px] text-gray-700', className)} {...p} />;
+  return <td className={cn('px-4 py-3.5 align-middle text-sm text-gray-700', className)} {...p} />;
 }
 
 /* ── DataTable: declarative list table with empty state ──────────────── */
@@ -48,7 +48,7 @@ export function DataTable<T extends Record<string, any>>({
 }) {
   if (!rows.length && empty) {
     return (
-      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {empty}
       </div>
     );
@@ -71,7 +71,7 @@ export function DataTable<T extends Record<string, any>>({
               {columns.map((c) => (
                 <TD key={c.key} className={cn(c.align && alignCls[c.align], c.className)}>
                   {href ? (
-                    <a href={href} className="block -mx-4 -my-3 px-4 py-3">
+                    <a href={href} className="block -mx-4 -my-3.5 px-4 py-3.5">
                       {c.render ? c.render(row) : row[c.key]}
                     </a>
                   ) : c.render ? c.render(row) : row[c.key]}

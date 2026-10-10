@@ -114,7 +114,7 @@ export function BudgetWorksheet({
     return (
       <>
         <tr className="border-b border-gray-100 bg-gray-50/60">
-          <td className="sticky left-0 z-10 bg-gray-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">{title}</td>
+          <td className="sticky left-0 z-10 bg-gray-50 px-4 py-2 text-[12.5px] font-semibold uppercase tracking-wide text-gray-500">{title}</td>
           <td colSpan={14} />
         </tr>
         {list.length === 0 && (
@@ -185,7 +185,7 @@ export function BudgetWorksheet({
   return (
     <div className="space-y-3">
       {!readOnly && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200/70 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] lg:flex-row lg:flex-wrap lg:items-end">
+        <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] lg:flex-row lg:flex-wrap lg:items-end">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[12px] font-medium text-gray-500">Start from</span>
             <Button type="button" size="sm" variant="secondary" onClick={() => fill('prior_budget')}>FY{fiscalYear - 1} budget</Button>
@@ -223,9 +223,9 @@ export function BudgetWorksheet({
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm" style={{ minWidth: 1500 }}>
-          <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+          <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
             <tr>
               <th className="sticky left-0 z-10 bg-gray-50 px-4 py-2.5 text-left font-medium">GL account</th>
               <th className="px-2 py-2.5 text-right font-medium">FY{fiscalYear}</th>
@@ -244,7 +244,7 @@ export function BudgetWorksheet({
       </div>
 
       {!readOnly && (
-        <form action={saveBudgetWorksheet} className="sticky bottom-0 flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200/70 bg-white/95 p-3 backdrop-blur">
+        <form action={saveBudgetWorksheet} className="sticky bottom-0 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-white/95 p-3 backdrop-blur">
           <input type="hidden" name="association_id" value={associationId} />
           <input type="hidden" name="association_ref" value={associationRef} />
           <input type="hidden" name="fiscal_year" value={fiscalYear} />

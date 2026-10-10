@@ -246,7 +246,7 @@ export default async function PurchaseOrdersPage({
             </tbody>
           </Table>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={FileSpreadsheet}
               title={q || filter !== 'all' ? 'No purchase orders match this filter' : 'No purchase orders yet'}

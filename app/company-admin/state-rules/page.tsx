@@ -124,7 +124,7 @@ export default async function StateRulesPage({ searchParams }: { searchParams: P
             <form action={saveStateRule} className="mt-4 space-y-5">
               <input type="hidden" name="state_code" value={selected} />
               <div>
-                <h3 className="text-sm font-semibold text-gray-950">Collections</h3>
+                <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Collections</h3>
                 <p className="mt-0.5 text-[13px] text-gray-500">Checked before an owner account can be referred to counsel.</p>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Field label="Notice days before referral" required><Input name="pre_referral_notice_days" type="number" min="0" max="180" required defaultValue={draft.pre_referral_notice_days} /></Field>
@@ -159,7 +159,7 @@ export default async function StateRulesPage({ searchParams }: { searchParams: P
 
           <div className="space-y-4">
             <Surface>
-              <h3 className="text-sm font-semibold text-gray-950">Associations in {stateName(selected)}</h3>
+              <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Associations in {stateName(selected)}</h3>
               {selectedAssociations.length ? (
                 <ul className="mt-2 space-y-1 text-[13px] text-gray-700">{selectedAssociations.map((name) => <li key={name}>{name}</li>)}</ul>
               ) : <p className="mt-2 text-[13px] text-gray-500">None yet.</p>}
@@ -173,7 +173,7 @@ export default async function StateRulesPage({ searchParams }: { searchParams: P
             </Surface>
             {existing && (
               <Surface>
-                <h3 className="text-sm font-semibold text-gray-950">Current collection gates</h3>
+                <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Current collection gates</h3>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-gray-700">{collectionRequirements(existing).map((r) => <li key={r}>{r}</li>)}</ul>
                 <form action={deleteStateRule} className="mt-4 border-t border-gray-100 pt-4">
                   <input type="hidden" name="state_code" value={selected} />

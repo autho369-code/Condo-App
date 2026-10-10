@@ -75,7 +75,7 @@ export default function NavList({
     <div className="flex h-full flex-col">
       <div className="border-b border-gray-200 px-4 py-3">
         <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
+        {subtitle && <p className="mt-0.5 text-[13px] text-gray-500">{subtitle}</p>}
       </div>
 
       {topActions && (
@@ -161,7 +161,7 @@ function Row({ item, active, pinned = false }: { item: NavItem; active: boolean;
           {item.badge && (
             <span
               className={[
-                'rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                'rounded px-1.5 py-0.5 text-[12px] font-semibold uppercase tracking-wide',
                 active ? 'bg-white/20 text-white' : BADGE_TONE[item.badge.tone ?? 'neutral'],
               ].join(' ')}
             >

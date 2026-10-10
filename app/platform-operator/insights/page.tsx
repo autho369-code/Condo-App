@@ -29,7 +29,7 @@ export const dynamic = 'force-dynamic'
 
 const STAFF_ROLES = ['manager', 'company_admin']
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 type Insight = {
   severity: 'critical' | 'warning' | 'info'
@@ -233,7 +233,7 @@ export default async function PlatformInsightsPage() {
   const sevStyles = {
     critical: 'border-red-200 bg-red-50/60',
     warning: 'border-amber-200 bg-amber-50/60',
-    info: 'border-gray-200/70 bg-white',
+    info: 'border-line bg-white',
   } as const
   const sevIcon = { critical: 'text-red-600', warning: 'text-amber-600', info: 'text-gray-400' } as const
 
@@ -253,7 +253,7 @@ export default async function PlatformInsightsPage() {
           <Sparkles className="h-4.5 w-4.5 text-white" />
         </div>
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Platform Intelligence</h1>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Platform Intelligence</h1>
           <p className="mt-0.5 text-sm leading-6 text-gray-500">
             Executive briefing across every company — {counts.critical} critical · {counts.warning} warnings · {counts.info} advisories
           </p>
@@ -264,7 +264,7 @@ export default async function PlatformInsightsPage() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         {metrics.map((m) => (
           <div key={m.label} className={`${card} px-4 py-3.5`}>
-            <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{m.label}</div>
+            <div className="text-[13px] font-medium leading-5 text-gray-500">{m.label}</div>
             <div className="mt-1.5 truncate text-xl font-semibold tabular-nums text-gray-950">{m.value}</div>
           </div>
         ))}

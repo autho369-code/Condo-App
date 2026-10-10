@@ -103,7 +103,7 @@ export default async function OwnerPacketsPage({
         {sp.error && <Alert tone="danger" title="Could not save">{sp.error}</Alert>}
 
         {selectedOwner && (
-          <section className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
               <h2 className="text-sm font-semibold text-gray-900">Packet settings — {selectedOwner.full_name}</h2>
               <Link href="/owners/packets" className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline">Close</Link>
@@ -171,19 +171,19 @@ export default async function OwnerPacketsPage({
               const latest = ownerRequests[0];
               return (
                 <TR key={owner.id} className="hover:bg-gray-50">
-                  <TD><Link href={`/owners/${owner.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{owner.full_name}</Link><div className="mt-1 text-xs text-gray-500">{owner.email}</div></TD>
+                  <TD><Link href={`/owners/${owner.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{owner.full_name}</Link><div className="mt-1 text-[13px] text-gray-500">{owner.email}</div></TD>
                   <TD><StatusChip tone={owner.portal_activated ? 'success' : 'warning'}>{owner.portal_activated ? 'Ready' : 'Activate first'}</StatusChip></TD>
                   <TD>
                     {config ? (
                       <>
                         <StatusChip tone="info">{FREQ_LABELS[config.frequency] ?? config.frequency} · {DELIVERY_LABELS[config.delivery] ?? config.delivery}</StatusChip>
-                        <div className="mt-1 text-xs text-gray-500">{config.statement_template === 'enhanced' ? 'Enhanced statement' : 'Standard statement'}</div>
+                        <div className="mt-1 text-[13px] text-gray-500">{config.statement_template === 'enhanced' ? 'Enhanced statement' : 'Standard statement'}</div>
                       </>
                     ) : (
                       <StatusChip tone="neutral">Not configured</StatusChip>
                     )}
                   </TD>
-                  <TD><div className="text-gray-900">{latest?.name ?? 'No packet activity'}</div><div className="mt-1 text-xs text-gray-500">{date(latest?.requested_at)}</div></TD>
+                  <TD><div className="text-gray-900">{latest?.name ?? 'No packet activity'}</div><div className="mt-1 text-[13px] text-gray-500">{date(latest?.requested_at)}</div></TD>
                   <TD>
                     <div className="flex flex-wrap gap-2 text-sm font-medium">
                       <Link href={`/owners/packets?owner=${owner.id}`} className="text-gray-600 transition-colors hover:text-gray-950">Configure</Link>

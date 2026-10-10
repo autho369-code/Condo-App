@@ -11,7 +11,7 @@ import { Megaphone } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 const RETURN = '/platform-operator/announcements'
 
 async function sendAnnouncement(formData: FormData) {
@@ -126,8 +126,8 @@ export default async function AnnouncementsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Platform Announcements</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Platform Announcements</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Broadcast maintenance notices, release notes, and product updates to your customers — delivered by email
         </p>
       </div>
@@ -140,7 +140,7 @@ export default async function AnnouncementsPage({
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-950">
             <Megaphone className="h-4.5 w-4.5 text-white" />
           </div>
-          <h2 className="text-sm font-semibold text-gray-950">New Announcement</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">New Announcement</h2>
         </div>
         <form action={sendAnnouncement as any} className="space-y-4">
           <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
@@ -174,7 +174,7 @@ export default async function AnnouncementsPage({
               required
               rows={6}
               placeholder="What your customers need to know…"
-              className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+              className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
           <PendingSubmit className="gap-2" pendingLabel="Queuing…" confirm="Email this announcement to every matching customer now?"><Megaphone className="h-4 w-4" /> Queue announcement</PendingSubmit>
@@ -182,17 +182,17 @@ export default async function AnnouncementsPage({
       </div>
 
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Recent Announcements</h2>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Recent Announcements</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Subject</th>
-                <th className="px-5 py-2.5 text-left font-medium">Recipient</th>
-                <th className="px-5 py-2.5 text-left font-medium">Status</th>
-                <th className="px-5 py-2.5 text-left font-medium">When</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Subject</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Recipient</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">When</th>
               </tr>
             </thead>
             <tbody>
@@ -200,11 +200,11 @@ export default async function AnnouncementsPage({
                 <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-500">No platform announcements sent yet.</td></tr>
               ) : (
                 (recent ?? []).map((r: any, i: number) => (
-                  <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={i} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="max-w-sm truncate px-5 py-3 font-medium text-gray-900">{r.subject}</td>
-                    <td className="px-5 py-3 text-[13px] text-gray-700">{r.to_email}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-700">{r.to_email}</td>
                     <td className="px-5 py-3 text-[13px] capitalize text-gray-700">{r.status}</td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(r.created_at)}</td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{date(r.created_at)}</td>
                   </tr>
                 ))
               )}

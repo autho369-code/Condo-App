@@ -30,7 +30,7 @@ export function EmailDomainCard({
     <Card id="email-domain">
       <CardHeader>
         <CardTitle>Email sender domain</CardTitle>
-        <p className="text-xs text-gray-500">
+        <p className="text-[13px] text-gray-500">
           Send the company&rsquo;s email (notices, statements, invitations) from its own domain instead of {EMAIL_FROM}.
           Mail keeps going out from {EMAIL_FROM} until the domain is verified, and falls back to it if the domain stops verifying.
         </p>
@@ -76,7 +76,7 @@ export function EmailDomainCard({
             <div className="flex flex-wrap items-center gap-2 text-sm">
               {status && <StatusChip tone={status.tone}>{status.label}</StatusChip>}
               {!row.enabled && <StatusChip tone="neutral">Switched off</StatusChip>}
-              <span className="text-xs text-gray-500">
+              <span className="text-[13px] text-gray-500">
                 {sending ? `Company mail is sent from ${sending}.` : `Company mail is sent from ${EMAIL_FROM} for now.`}
                 {row.last_checked_at ? ` Last checked ${date(row.last_checked_at)}.` : ''}
               </span>

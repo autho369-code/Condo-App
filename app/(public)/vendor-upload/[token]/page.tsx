@@ -18,7 +18,7 @@ export const metadata: Metadata = { title: 'Upload requested document', robots: 
 function Shell({ children }: { children: React.ReactNode }) {
   return <div className="mx-auto max-w-xl px-4 py-8 sm:py-12">{children}</div>;
 }
-const card = 'rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
+const card = 'rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
 
 export default async function VendorUploadPage({
   params,
@@ -32,7 +32,7 @@ export default async function VendorUploadPage({
   const invalid = (
     <Shell>
       <div className={`${card} text-center`}>
-        <h1 className="text-xl font-semibold text-gray-950">This upload link isn&apos;t valid</h1>
+        <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">This upload link isn&apos;t valid</h1>
         <p className="mt-2 text-sm text-gray-500">It may have expired or been replaced by a newer email. Ask the property manager to send a new link.</p>
       </div>
     </Shell>
@@ -58,7 +58,7 @@ export default async function VendorUploadPage({
       <div className="space-y-5">
         <div>
           <div className="text-[12px] font-medium uppercase tracking-[0.08em] text-gray-400">{r.company_name}</div>
-          <h1 className="mt-1 text-[24px] font-semibold tracking-[-0.02em] text-gray-950">{label}</h1>
+          <h1 className="mt-1 break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{label}</h1>
           <p className="mt-1 text-sm text-gray-500">Requested from {r.vendor_name}{r.due_date ? ` · please send by ${r.due_date}` : ''}</p>
         </div>
 
@@ -80,7 +80,7 @@ export default async function VendorUploadPage({
               </Field>
             )}
             <Button type="submit" className="w-full sm:w-auto"><Upload className="h-4 w-4" /> Send document</Button>
-            <p className="text-xs text-gray-400">The file goes only to {r.company_name}. This link works only for this request.</p>
+            <p className="text-[13px] text-gray-500">The file goes only to {r.company_name}. This link works only for this request.</p>
           </form>
         ) : !sp.done ? (
           <div className={`${card} text-sm text-gray-600`}>

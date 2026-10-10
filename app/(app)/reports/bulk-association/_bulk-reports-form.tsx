@@ -62,9 +62,9 @@ export function BulkReportsForm({
 
   if (result) {
     return (
-      <div className="max-w-4xl rounded-2xl border border-gray-200/70 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="max-w-4xl rounded-2xl border border-line bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-2xl text-emerald-600">&#10003;</div>
-        <h3 className="text-[15px] font-semibold text-gray-950">Reports queued</h3>
+        <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Reports queued</h3>
         <p className="mt-1 text-sm text-gray-500">
           {result.count} report{result.count !== 1 ? 's' : ''} queued across {selectedAssocs.size} association{selectedAssocs.size !== 1 ? 's' : ''}
           ({selectedReports.size} report type{selectedReports.size !== 1 ? 's' : ''}).
@@ -80,11 +80,11 @@ export function BulkReportsForm({
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-gray-950">1. Select Reports</h3>
-            <p className="mt-0.5 text-xs text-gray-500">Choose which reports to generate</p>
+            <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">1. Select Reports</h3>
+            <p className="mt-0.5 text-[13px] text-gray-500">Choose which reports to generate</p>
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={selectAllReports} className="text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Select all</button>
@@ -101,7 +101,7 @@ export function BulkReportsForm({
                     className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600" />
                   <div>
                     <span className="font-medium text-gray-900">{r.name}</span>
-                    <p className="text-xs text-gray-500">{r.description}</p>
+                    <p className="text-[13px] text-gray-500">{r.description}</p>
                   </div>
                 </label>
               ))}
@@ -111,11 +111,11 @@ export function BulkReportsForm({
         <p className="mt-3 text-xs text-gray-500">{selectedReports.size} report{selectedReports.size !== 1 ? 's' : ''} selected</p>
       </div>
 
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-gray-950">2. Select Associations</h3>
-            <p className="mt-0.5 text-xs text-gray-500">Reports will be generated for each selected association</p>
+            <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">2. Select Associations</h3>
+            <p className="mt-0.5 text-[13px] text-gray-500">Reports will be generated for each selected association</p>
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={selectAllAssocs} className="text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Select all</button>
@@ -134,8 +134,8 @@ export function BulkReportsForm({
         <p className="mt-3 text-xs text-gray-500">{selectedAssocs.size} association{selectedAssocs.size !== 1 ? 's' : ''} selected</p>
       </div>
 
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] space-y-4">
-        <h3 className="text-sm font-semibold text-gray-950">3. Options</h3>
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] space-y-4">
+        <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">3. Options</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-600">Date Range Start</label>

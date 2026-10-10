@@ -67,15 +67,15 @@ export function OwnerCommunicationHistory({ emails, letters }: { emails: OwnerEm
   const sent = emails.filter((e) => e.status === 'sent').length;
 
   return (
-    <section id="communications" className="scroll-mt-20 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <section id="communications" className="scroll-mt-20 overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-3">
         <h2 className="text-sm font-semibold text-gray-900">Emails &amp; letters ({rows.length})</h2>
-        {sent > 0 && <span className="text-xs text-gray-500">{opened} of {sent} emails opened</span>}
+        {sent > 0 && <span className="text-[13px] text-gray-500">{opened} of {sent} emails opened</span>}
       </div>
       {rows.length === 0 ? (
         <p className="px-5 py-6 text-center text-sm text-gray-500">Nothing has been emailed or mailed to this homeowner yet.</p>
       ) : (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-line">
           {rows.slice(0, 100).map((r) => {
             if (r.kind === 'email') {
               const st = emailState(r.e);
@@ -83,7 +83,7 @@ export function OwnerCommunicationHistory({ emails, letters }: { emails: OwnerEm
                 <li key={`e-${r.e.id}`} className="flex flex-wrap items-start justify-between gap-2 px-5 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-gray-900">{r.e.subject}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-[13px] text-gray-500">
                       Email to {r.e.to_email} · {date(r.at)}
                       {r.e.last_opened_at ? ` · last opened ${date(r.e.last_opened_at)}` : ''}
                       {r.e.clicked_at ? ' · link clicked' : ''}
@@ -101,7 +101,7 @@ export function OwnerCommunicationHistory({ emails, letters }: { emails: OwnerEm
               <li key={`l-${r.l.id}`} className="flex flex-wrap items-start justify-between gap-2 px-5 py-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-gray-900">{r.l.description ?? 'Mailed letter'}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-[13px] text-gray-500">
                     {r.l.mail_class ? `${r.l.mail_class.replace(/_/g, ' ')} letter` : 'Letter'} · {date(r.at)}
                     {r.l.expected_delivery_date && !r.l.delivered_at ? ` · expected ${date(r.l.expected_delivery_date)}` : ''}
                     {r.l.delivered_at ? ` · delivered ${date(r.l.delivered_at)}` : ''}

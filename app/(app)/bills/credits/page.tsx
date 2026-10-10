@@ -120,7 +120,7 @@ export default async function VendorCreditsPage({
                     <TD className="whitespace-nowrap text-gray-700">{date(c.credit_date)}</TD>
                     <TD>
                       <div className="font-medium text-gray-900">{c.vendors?.name ?? '—'}</div>
-                      {(c.reference || c.memo) && <div className="text-xs text-gray-500">{[c.reference, c.memo].filter(Boolean).join(' · ')}</div>}
+                      {(c.reference || c.memo) && <div className="text-[13px] text-gray-500">{[c.reference, c.memo].filter(Boolean).join(' · ')}</div>}
                     </TD>
                     <TD className="text-sm text-gray-700">{c.associations?.name ?? '—'}</TD>
                     <TD className="text-sm text-gray-700">{c.gl_accounts ? `${c.gl_accounts.number} ${c.gl_accounts.name}` : '—'}</TD>
@@ -128,11 +128,11 @@ export default async function VendorCreditsPage({
                     <TD className="text-right tabular-nums">{money(left)}</TD>
                     <TD>
                       {left <= 0.005 ? (
-                        <span className="text-xs text-gray-500">Fully applied</span>
+                        <span className="text-[13px] text-gray-500">Fully applied</span>
                       ) : c.credit_date > today ? (
-                        <span className="text-xs text-gray-500">Can be applied from {date(c.credit_date)}</span>
+                        <span className="text-[13px] text-gray-500">Can be applied from {date(c.credit_date)}</span>
                       ) : candidates.length === 0 ? (
-                        <span className="text-xs text-gray-500">No approved unpaid bills from this vendor for this association</span>
+                        <span className="text-[13px] text-gray-500">No approved unpaid bills from this vendor for this association</span>
                       ) : (
                         <form action={applyVendorCredit} className="flex flex-wrap items-center gap-2">
                           <input type="hidden" name="credit_id" value={c.id} />

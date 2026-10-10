@@ -104,13 +104,13 @@ export default async function YearEndPage({
                   <TD><PackageStatus status={p.status} /></TD>
                   <TD className="text-sm text-gray-600">{date(p.generated_at)}</TD>
                   <TD className="text-sm text-gray-600">{p.finalized_at ? date(p.finalized_at) : '—'}</TD>
-                  <TD className="font-mono text-[11px] text-gray-400">{p.snapshot_sha256.slice(0, 12)}…</TD>
+                  <TD className="font-mono text-[12.5px] text-gray-400">{p.snapshot_sha256.slice(0, 12)}…</TD>
                 </TR>
               ))}
             </tbody>
           </Table>
         ) : (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState icon={CalendarCheck} title="No year-end packages yet" description="Choose an association and fiscal year above to review the close checklist and prepare the first package." />
           </div>
         )}

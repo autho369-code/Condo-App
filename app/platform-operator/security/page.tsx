@@ -8,7 +8,7 @@ import { ShieldCheck, UserX, KeyRound, Eye } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 // Action strings exactly as the code writes them to audit_logs.
 const SENSITIVE_ACTIONS = [
@@ -58,8 +58,8 @@ export default async function SecurityCenterPage() {
     <div className="space-y-6">
       {loadError && <Alert title="Some security data could not be loaded">{loadError}</Alert>}
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Security Center</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Security Center</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Sensitive account activity, impersonation history, MFA posture, and API keys across the platform
         </p>
       </div>
@@ -77,7 +77,7 @@ export default async function SecurityCenterPage() {
             <div key={item.label} className={`${card} px-4 py-3.5`}>
               <div className="flex items-start justify-between">
                 <div className="min-w-0">
-                  <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
+                  <div className="text-[13px] font-medium leading-5 text-gray-500">{item.label}</div>
                   <div className="mt-1.5 truncate text-xl font-semibold tabular-nums text-gray-950">{item.value}</div>
                 </div>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
@@ -91,19 +91,19 @@ export default async function SecurityCenterPage() {
 
       {/* ── Impersonation log ─────────────────────────── */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Recent Sign-in Activity</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Password sign-in attempts only — invitation and recovery-link sessions are not shown</p>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Recent Sign-in Activity</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Password sign-in attempts only — invitation and recovery-link sessions are not shown</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Account</th>
-                <th className="px-5 py-2.5 text-left font-medium">Result</th>
-                <th className="px-5 py-2.5 text-left font-medium">Reason</th>
-                <th className="px-5 py-2.5 text-left font-medium">IP</th>
-                <th className="px-5 py-2.5 text-left font-medium">When</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Account</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Result</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Reason</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">IP</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">When</th>
               </tr>
             </thead>
             <tbody>
@@ -111,12 +111,12 @@ export default async function SecurityCenterPage() {
                 <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">No Portier369 sign-in activity recorded in the last 30 days.</td></tr>
               ) : (
                 (loginAttempts ?? []).map((attempt: any) => (
-                  <tr key={attempt.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={attempt.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="px-5 py-3 font-medium text-gray-900">{attempt.email ?? 'Unknown account'}</td>
-                    <td className="px-5 py-3"><StatusChip tone={attempt.success ? 'success' : 'danger'}>{attempt.success ? 'Successful' : 'Denied'}</StatusChip></td>
-                    <td className="px-5 py-3 text-[13px] text-gray-700">{attempt.failure_reason?.replace(/_/g, ' ') ?? '—'}</td>
+                    <td className="px-5 py-3.5"><StatusChip tone={attempt.success ? 'success' : 'danger'}>{attempt.success ? 'Successful' : 'Denied'}</StatusChip></td>
+                    <td className="px-5 py-3.5 text-sm text-gray-700">{attempt.failure_reason?.replace(/_/g, ' ') ?? '—'}</td>
                     <td className="px-5 py-3 text-[13px] tabular-nums text-gray-500">{attempt.ip_address ?? '—'}</td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(attempt.at)}</td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{date(attempt.at)}</td>
                   </tr>
                 ))
               )}
@@ -126,20 +126,20 @@ export default async function SecurityCenterPage() {
       </div>
 
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Impersonation History</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Every operator support session, permanently logged</p>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Impersonation History</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Every operator support session, permanently logged</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Operator</th>
-                <th className="px-5 py-2.5 text-left font-medium">Impersonated</th>
-                <th className="px-5 py-2.5 text-left font-medium">Reason</th>
-                <th className="px-5 py-2.5 text-left font-medium">Started</th>
-                <th className="px-5 py-2.5 text-left font-medium">Ended</th>
-                <th className="px-5 py-2.5 text-left font-medium">IP</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Operator</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Impersonated</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Reason</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Started</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Ended</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">IP</th>
               </tr>
             </thead>
             <tbody>
@@ -147,12 +147,12 @@ export default async function SecurityCenterPage() {
                 <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-gray-500">No impersonation sessions recorded.</td></tr>
               ) : (
                 (impersonations ?? []).map((s: any) => (
-                  <tr key={s.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={s.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="px-5 py-3 font-medium text-gray-900">{s.operator_email}</td>
-                    <td className="px-5 py-3 text-[13px] text-gray-700">{s.impersonated_email}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-700">{s.impersonated_email}</td>
                     <td className="max-w-xs truncate px-5 py-3 text-[13px] text-gray-700">{s.reason ?? '—'}</td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(s.started_at)}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{date(s.started_at)}</td>
+                    <td className="px-5 py-3.5">
                       {s.ended_at
                         ? <span className="text-[13px] tabular-nums text-gray-700">{date(s.ended_at)}</span>
                         : <StatusChip tone="warning">Active</StatusChip>}
@@ -168,10 +168,10 @@ export default async function SecurityCenterPage() {
 
       {/* ── Sensitive account activity ────────────────── */}
       <div className={card}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">Sensitive Account Activity (30 days)</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Password resets, suspensions, role and plan changes</p>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Sensitive Account Activity (30 days)</h2>
+            <p className="mt-0.5 text-[13px] text-gray-500">Password resets, suspensions, role and plan changes</p>
           </div>
           <Link href="/platform-operator/audit-logs" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
             Full audit log <Eye className="h-3 w-3" />
@@ -179,12 +179,12 @@ export default async function SecurityCenterPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Action</th>
-                <th className="px-5 py-2.5 text-left font-medium">Actor</th>
-                <th className="px-5 py-2.5 text-left font-medium">IP</th>
-                <th className="px-5 py-2.5 text-left font-medium">When</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Action</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Actor</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">IP</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">When</th>
               </tr>
             </thead>
             <tbody>
@@ -192,11 +192,11 @@ export default async function SecurityCenterPage() {
                 <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-500">No sensitive account activity in the last 30 days.</td></tr>
               ) : (
                 (sensitiveEvents ?? []).map((e: any) => (
-                  <tr key={e.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-5 py-3"><StatusChip tone={['user_deleted', 'company_suspended', 'password_set'].includes(e.action) ? 'danger' : 'info'}>{(e.action ?? '').replace(/_/g, ' ')}</StatusChip></td>
-                    <td className="px-5 py-3 text-[13px] text-gray-700">{e.actor_email ?? '—'}</td>
+                  <tr key={e.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                    <td className="px-5 py-3.5"><StatusChip tone={['user_deleted', 'company_suspended', 'password_set'].includes(e.action) ? 'danger' : 'info'}>{(e.action ?? '').replace(/_/g, ' ')}</StatusChip></td>
+                    <td className="px-5 py-3.5 text-sm text-gray-700">{e.actor_email ?? '—'}</td>
                     <td className="px-5 py-3 text-[13px] tabular-nums text-gray-500">{e.ip_address ?? '—'}</td>
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(e.created_at)}</td>
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{date(e.created_at)}</td>
                   </tr>
                 ))
               )}
@@ -207,28 +207,28 @@ export default async function SecurityCenterPage() {
 
       {/* ── MFA & password posture per company ────────── */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Security Posture by Company</h2>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Security Posture by Company</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Company</th>
-                <th className="px-5 py-2.5 text-left font-medium">MFA (Staff)</th>
-                <th className="px-5 py-2.5 text-left font-medium">MFA (Admins)</th>
-                <th className="px-5 py-2.5 text-right font-medium">Min Password</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Company</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">MFA (Staff)</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">MFA (Admins)</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Min Password</th>
               </tr>
             </thead>
             <tbody>
               {(portfolios ?? []).map((p: any) => (
-                <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                  <td className="px-5 py-3">
+                <tr key={p.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                  <td className="px-5 py-3.5">
                     <Link href={`/platform-operator/companies/${p.id}`} className="font-medium text-gray-900 hover:underline">{p.company_name ?? '—'}</Link>
                   </td>
-                  <td className="px-5 py-3"><StatusChip tone={p.require_mfa_for_staff ? 'success' : 'neutral'}>{p.require_mfa_for_staff ? 'Required' : 'Optional'}</StatusChip></td>
-                  <td className="px-5 py-3"><StatusChip tone={p.require_mfa_for_admins ? 'success' : 'neutral'}>{p.require_mfa_for_admins ? 'Required' : 'Optional'}</StatusChip></td>
-                  <td className="px-5 py-3 text-right tabular-nums text-gray-700">{p.password_min_length ?? '—'}</td>
+                  <td className="px-5 py-3.5"><StatusChip tone={p.require_mfa_for_staff ? 'success' : 'neutral'}>{p.require_mfa_for_staff ? 'Required' : 'Optional'}</StatusChip></td>
+                  <td className="px-5 py-3.5"><StatusChip tone={p.require_mfa_for_admins ? 'success' : 'neutral'}>{p.require_mfa_for_admins ? 'Required' : 'Optional'}</StatusChip></td>
+                  <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{p.password_min_length ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -238,18 +238,18 @@ export default async function SecurityCenterPage() {
 
       {/* ── API keys ──────────────────────────────────── */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">API Keys</h2>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">API Keys</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Key</th>
-                <th className="px-5 py-2.5 text-left font-medium">Company</th>
-                <th className="px-5 py-2.5 text-left font-medium">Last Used</th>
-                <th className="px-5 py-2.5 text-left font-medium">Expires</th>
-                <th className="px-5 py-2.5 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Key</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Company</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Last Used</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Expires</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -259,15 +259,15 @@ export default async function SecurityCenterPage() {
                 (apiKeys ?? []).map((k: any) => {
                   const expired = k.expires_at && k.expires_at < today
                   return (
-                    <tr key={k.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                      <td className="px-5 py-3">
+                    <tr key={k.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                      <td className="px-5 py-3.5">
                         <div className="font-medium text-gray-900">{k.name}</div>
                         <div className="font-mono text-xs text-gray-500">{k.prefix}…</div>
                       </td>
-                      <td className="px-5 py-3 text-[13px] text-gray-700">{k.portfolios?.company_name ?? '—'}</td>
-                      <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{k.last_used_at ? date(k.last_used_at) : 'Never'}</td>
-                      <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{k.expires_at ? date(k.expires_at) : '—'}</td>
-                      <td className="px-5 py-3">
+                      <td className="px-5 py-3.5 text-sm text-gray-700">{k.portfolios?.company_name ?? '—'}</td>
+                      <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{k.last_used_at ? date(k.last_used_at) : 'Never'}</td>
+                      <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{k.expires_at ? date(k.expires_at) : '—'}</td>
+                      <td className="px-5 py-3.5">
                         <StatusChip tone={k.revoked_at ? 'neutral' : expired ? 'danger' : 'success'}>
                           {k.revoked_at ? 'Revoked' : expired ? 'Expired' : 'Active'}
                         </StatusChip>
