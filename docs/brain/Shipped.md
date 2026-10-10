@@ -4,6 +4,16 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-10
+- #272 (merged, b5dde4a7; no migration): opening balances step on the import
+  page. Under the trial balance tie-out (one association), a confirm-first
+  "Post opening balances" posts one entry dated the as-of date with each
+  account's difference, through import_journal_entry_batch; prior years'
+  retained earnings by account id to an account the tie-out pairs. Refuses:
+  all associations, non-accrual (user confirms when the export does not
+  say), all-time with a prior-years line, unreadable or malformed lines,
+  accounts missing/hidden/shared by number, ledger-only balances, and a
+  second opening entry at any date. Server recomputes under both import
+  locks; posts the compared snapshot only.
 - #271 (merged, 4f0f197f; no migration): trial balance tie-out counts the
   ledger's prior years' retained-earnings account (name says prior/previous
   or is exactly "Retained Earnings"; any other wording keeps its own row)

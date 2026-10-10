@@ -1,9 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (open PR #272: opening balances step on the import page; Randolph Station imported and ties out with no flags; next: vendor details, then Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (after #272 merged; no open PR; next: vendor details for Randolph Station, then Stripe pilot).
 
 ## Open PR
-- #272 (branch claude/serene-wozniak-hvgpxf): opening balances step on the import
+- None.
+
+## Where things stand
+- #272 merged (b5dde4a7): opening balances step on the import
   page. Under the trial balance tie-out (one association), "Post opening
   balances" posts one entry dated the as-of date with each account's
   difference (file minus ledger), prior years' retained earnings to the
@@ -16,8 +19,6 @@ Back to [[Home]]. Updated 2026-10-10 (open PR #272: opening balances step on the
   migration.
   Tests in gl-actions.test.ts. Randolph Station already ties out, so it
   would post nothing there.
-
-## Where things stand
 - #271 merged (4f0f197f): trial balance tie-out counts
   a ledger retained-earnings account the file does not list (equity; name
   says prior/previous or is exactly "Retained Earnings"; see Decisions) on the file's "Calculated
@@ -289,7 +290,8 @@ Back to [[Home]]. Updated 2026-10-10 (open PR #272: opening balances step on the
 ## Next gaps (pick up here, top first)
 0. Randolph Station is fully imported and tied out. Left: the 8 added
    vendors need contact, tax and insurance details. The opening balances
-   step is in the open PR.
+   step shipped (#272); the next association uses it (CSV exports do not
+   state the basis: tick the accrual box).
    Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
