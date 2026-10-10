@@ -296,7 +296,7 @@ Back to [[Home]]. Updated 2026-10-10 (after #272 merged; no open PR; next: vendo
    step shipped (#272); the next association uses it (CSV exports do not
    state the basis: tick the accrual box).
    Then: Stripe live for one
-   pilot association (Mirsad's account setup), Illinois rule pack.
+   pilot association (Mirsad's account setup).
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
    step would be per-request identity caching (riskier, measure first).
 1. Run a third overseer + security-reviewer audit for new gaps.
