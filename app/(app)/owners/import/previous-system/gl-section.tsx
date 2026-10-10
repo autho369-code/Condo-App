@@ -234,6 +234,21 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
   const [posting, setPosting] = React.useState(false);
   const [opening, setOpening] = React.useState<OpeningBalancesResult | null>(null);
   const [unreadable, setUnreadable] = React.useState<string[]>([]);
+  // The exact inputs the shown result was computed from: posting sends these,
+  // never whatever the controls hold now. A newer comparison wins over an older one.
+  const [compared, setCompared] = React.useState<{
+    associationId: string; asOf: string; rows: TieOutInputRow[]; incomeBasis: 'fiscal_year' | 'all_time';
+    priorYearsTotal: number | null; hasUnreadable: boolean;
+  } | null>(null);
+  const requestId = React.useRef(0);
+  // Any change to the inputs drops the shown result and any comparison still running.
+  function invalidate() {
+    requestId.current += 1;
+    setResult(null);
+    setCompared(null);
+    setConfirming(false);
+    setBusy(false);
+  }
   const [accrualConfirmed, setAccrualConfirmed] = React.useState(false);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -246,7 +261,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
     setPriorYears({});
     setChecks([]);
     setError(null);
-    setResult(null);
+    invalidate();
     setRetainedNumber('');
     setOpening(null);
     setConfirming(false);
@@ -283,7 +298,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
 
   function onGroup(value: string) {
     setGroup(value);
-    setResult(null);
+    invalidate();
     // Always replace the selection: an unmatched property needs a fresh choice, never the
     // previous property's association.
     setAssociationId(suggestAssociation(value, associations));
@@ -308,44 +323,50 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
 
   const inputRows = () => selected.map((r) => ({ number: r.number, name: r.name, ending: r.ending }));
 
-  async function run(keepOpening = false) {
+  async function run(keepOpening = false, input = {
+    associationId, asOf, rows: inputRows(), incomeBasis, priorYearsTotal, hasUnreadable,
+  }) {
+    const id = ++requestId.current;
     setBusy(true);
     setError(null);
     setResult(null);
+    setCompared(null);
     setConfirming(false);
     if (!keepOpening) { setOpening(null); setRetainedNumber(''); }
     try {
       const res = await tieOutTrialBalance(
-        associationId,
-        asOf,
-        inputRows(),
-        { incomeBasis, priorYearsRetainedEarnings: priorYearsTotal },
+        input.associationId,
+        input.asOf,
+        input.rows,
+        { incomeBasis: input.incomeBasis, priorYearsRetainedEarnings: input.priorYearsTotal },
       );
+      if (id !== requestId.current) return; // a newer comparison or a change replaced this one
       if (res.error) setError(res.error);
-      else setResult(res);
+      else { setResult(res); setCompared(input); }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The comparison failed. Try again.');
     } finally {
-      setBusy(false);
+      if (id === requestId.current) setBusy(false);
     }
   }
 
   async function postOpening() {
-    if (!postOpeningBalances) return;
+    if (!postOpeningBalances || !compared) return;
+    const input = compared;
     setPosting(true);
     setOpening(null);
     try {
-      const res = await postOpeningBalances(associationId, asOf, inputRows(), {
-        incomeBasis,
-        priorYearsRetainedEarnings: priorYearsTotal,
+      const res = await postOpeningBalances(input.associationId, input.asOf, input.rows, {
+        incomeBasis: input.incomeBasis,
+        priorYearsRetainedEarnings: input.priorYearsTotal,
         retainedEarningsNumber: retainedNumber ? Number(retainedNumber) : null,
         basis: basis ?? (accrualConfirmed ? 'accrual' : undefined),
-        unreadableRows: hasUnreadable,
+        unreadableRows: input.hasUnreadable,
       });
       setOpening(res);
       setConfirming(false);
       // Show the ledger as it is now: after posting, every account matches.
-      if (res.ok && (res.lines ?? 0) > 0) await run(true);
+      if (res.ok && (res.lines ?? 0) > 0) await run(true, input);
     } catch (err) {
       setOpening({ ok: false, message: err instanceof Error ? err.message : 'The opening balances could not be posted. Try again.' });
     } finally {
@@ -370,7 +391,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
   // Lines of this property (every property when combined) whose amount could not be read.
   const hasUnreadable = combined ? unreadable.length > 0 : unreadable.includes(group);
   const basisOk = basis === 'accrual' || (basis === undefined && accrualConfirmed);
-  const showOpening = Boolean(postOpeningBalances && result && t && !combined && openingLines > 0);
+  const showOpening = Boolean(postOpeningBalances && result && compared && t && !combined && openingLines > 0);
 
   return (
     <div className="space-y-5">
@@ -395,17 +416,17 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
               </Field>
             )}
             <Field label="Compare with" htmlFor="appfolio-tb-assoc" required>
-              <Select id="appfolio-tb-assoc" required value={associationId} onChange={(e) => { setAssociationId(e.target.value); setResult(null); }}>
+              <Select id="appfolio-tb-assoc" required value={associationId} onChange={(e) => { setAssociationId(e.target.value); invalidate(); }}>
                 <option value="">Select an association</option>
                 {associations.length > 1 && <option value={TIE_OUT_ALL_ASSOCIATIONS}>All associations combined</option>}
                 {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </Select>
             </Field>
             <Field label="As of" htmlFor="appfolio-tb-asof" required>
-              <Input id="appfolio-tb-asof" type="date" required value={asOf} onChange={(e) => { setAsOf(e.target.value); setResult(null); }} />
+              <Input id="appfolio-tb-asof" type="date" required value={asOf} onChange={(e) => { setAsOf(e.target.value); invalidate(); }} />
             </Field>
             <Field label="Income and expense accounts" htmlFor="appfolio-tb-income" className="sm:col-span-2">
-              <Select id="appfolio-tb-income" value={incomeBasis} onChange={(e) => { setIncomeBasis(e.target.value as 'fiscal_year' | 'all_time'); setResult(null); }}>
+              <Select id="appfolio-tb-income" value={incomeBasis} onChange={(e) => { setIncomeBasis(e.target.value as 'fiscal_year' | 'all_time'); invalidate(); }}>
                 <option value="fiscal_year">Fiscal year to date (prior years closed to retained earnings in the file)</option>
                 <option value="all_time">All time</option>
               </Select>

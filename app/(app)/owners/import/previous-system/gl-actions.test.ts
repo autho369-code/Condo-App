@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Trial balance tie-out: the file's "Calculated Prior Years Retained Earnings"
@@ -256,6 +258,16 @@ describe('opening balances from the trial balance', () => {
     expect((await post({ basis: undefined })).message).toContain('Confirm the trial balance is on the accrual basis');
     expect((await post({ unreadableRows: true })).message).toContain('could not be read');
     expect(state.rpcs).toEqual([]);
+  });
+
+  it('posts exactly the inputs the shown comparison was made from', () => {
+    // A slower, older comparison never replaces a newer one, and posting sends the
+    // compared snapshot rather than what the controls hold now.
+    const section = readFileSync(resolve(process.cwd(), 'app/(app)/owners/import/previous-system/gl-section.tsx'), 'utf8');
+    expect(section).toContain('if (id !== requestId.current) return;');
+    expect(section).toContain('await postOpeningBalances(input.associationId, input.asOf, input.rows, {');
+    expect(section).toContain('setAssociationId(e.target.value); invalidate();');
+    expect(section).toContain('setAsOf(e.target.value); invalidate();');
   });
 });
 
