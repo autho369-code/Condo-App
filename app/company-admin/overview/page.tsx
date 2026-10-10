@@ -196,7 +196,7 @@ export default async function OverviewPage() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
         <StatCard label="Total Associations" value={totalAssociations} icon={Building2} />
         <StatCard label="Total Units (Doors)" value={totalDoors.toLocaleString()} icon={DoorOpen} />
-        <StatCard label="Total Managers" value={activeManagers ?? 0} icon={Users} />
+        <StatCard label="Managers &amp; admins" value={activeManagers ?? 0} icon={Users} />
         <StatCard label="Active Owners" value={activeOwners ?? 0} icon={UserCheck} />
         <StatCard label="Open Work Orders" value={openWorkOrders} sub={`${overdueWorkOrders} overdue`} icon={Wrench} tone={overdueWorkOrders > 0 ? 'warning' : undefined} />
         <StatCard label="Open Violations" value={openViolations} icon={AlertTriangle} />
