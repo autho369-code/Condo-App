@@ -155,7 +155,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
           className="mt-1.5 flex h-9 w-full items-center justify-between rounded-lg px-2.5 text-[13px] text-[#a1a1aa] transition-colors hover:bg-white/[0.05] hover:text-[#f4f4f5]"
         >
           <span>Search records</span>
-          <kbd className="rounded border border-white/[0.1] px-1.5 font-sans text-[11px] text-[#8a8a93]">Ctrl K</kbd>
+          <kbd className="rounded border border-white/[0.1] px-1.5 font-sans text-[12.5px] text-[#8a8a93]">Ctrl K</kbd>
         </button>}
       </div>
 
@@ -222,7 +222,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
           return (
             <div key={s.label}>
               {showGroup ? (
-                <div className={`px-5 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#71717a] ${index === 0 ? 'pt-1' : 'pt-5'}`}>
+                <div className={`px-5 pb-1.5 text-[12.5px] font-semibold uppercase tracking-[0.08em] text-[#71717a] ${index === 0 ? 'pt-1' : 'pt-5'}`}>
                   {s.group}
                 </div>
               ) : null}

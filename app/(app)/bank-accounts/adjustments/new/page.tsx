@@ -112,7 +112,7 @@ export default async function NewBankAdjustmentPage({
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-[11px] uppercase tracking-wide text-gray-500">
+              <thead className="text-left text-[12.5px] uppercase tracking-wide text-gray-500">
                 <tr><th className="py-2 pr-4 font-medium">Date</th><th className="py-2 pr-4 font-medium">Account</th><th className="py-2 pr-4 font-medium">Description</th><th className="py-2 text-right font-medium">Amount</th></tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

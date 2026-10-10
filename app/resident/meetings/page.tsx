@@ -31,9 +31,9 @@ export default async function ResidentMeetingsPage() {
                 </div>
                 <div className="flex items-center gap-2"><span className="text-xs text-gray-500">{date(meeting.start_time, 'long')}</span><Badge status={meeting.status} /></div>
               </div>
-              {meeting.ai_summary ? <section className="mt-4"><div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">Summary</div><p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{meeting.ai_summary}</p></section> : null}
-              {meeting.agenda ? <section className="mt-4"><div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">Agenda</div><p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{meeting.agenda}</p></section> : null}
-              {meeting.minutes ? <section className="mt-4"><div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">Minutes</div><p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{meeting.minutes}</p></section> : null}
+              {meeting.ai_summary ? <section className="mt-4"><div className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400">Summary</div><p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{meeting.ai_summary}</p></section> : null}
+              {meeting.agenda ? <section className="mt-4"><div className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400">Agenda</div><p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{meeting.agenda}</p></section> : null}
+              {meeting.minutes ? <section className="mt-4"><div className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400">Minutes</div><p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{meeting.minutes}</p></section> : null}
             </Surface>
           ))}
         </div>

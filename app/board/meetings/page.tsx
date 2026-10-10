@@ -41,7 +41,7 @@ export default async function BoardMeetingsPage() {
   const past = all.filter((m: any) => !isUpcoming(m.start_time) || m.status === 'completed')
 
   const card = 'overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
-  const thead = 'border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500'
+  const thead = 'border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500'
   const row = 'border-b border-gray-50 last:border-0 hover:bg-gray-50/60'
 
   return (
@@ -61,7 +61,7 @@ export default async function BoardMeetingsPage() {
           { label: 'Cancelled', value: all.filter((m: any) => m.status === 'cancelled').length },
         ].map((s: any) => (
           <div key={s.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
+            <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
             <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{s.value}</div>
           </div>
         ))}

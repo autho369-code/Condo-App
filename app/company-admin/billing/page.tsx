@@ -82,7 +82,7 @@ export default async function BillingPage() {
               <CreditCard className="h-5 w-5 text-gray-400" />
             </div>
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Current Plan</div>
+              <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Current Plan</div>
               <div className="text-xl font-semibold text-gray-950">{tierName}</div>
             </div>
           </div>
@@ -119,7 +119,7 @@ export default async function BillingPage() {
               <DoorOpen className="h-5 w-5 text-gray-400" />
             </div>
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Active Doors</div>
+              <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Active Doors</div>
               <div className="text-xl font-semibold tabular-nums text-gray-950">{activeDoors.toLocaleString()} <span className="text-sm font-normal text-gray-500">/ {doorsLimit.toLocaleString()} limit</span></div>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default async function BillingPage() {
               <Receipt className="h-5 w-5 text-gray-400" />
             </div>
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Current Month</div>
+              <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Current Month</div>
               <div className="text-xl font-semibold tabular-nums text-gray-950">{money(projectedTotal)}</div>
             </div>
           </div>
@@ -228,7 +228,7 @@ export default async function BillingPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-4 py-2.5 text-left font-medium">Invoice #</th>
                 <th className="px-4 py-2.5 text-left font-medium">Period</th>

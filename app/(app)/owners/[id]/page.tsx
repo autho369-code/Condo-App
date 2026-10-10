@@ -588,7 +588,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                         <Link href={`/units/${o.units?.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">
                           {o.units?.buildings?.associations?.name ?? 'Association'} — Unit {o.units?.unit_number ?? '—'}
                         </Link>
-                        {o.is_primary && <span className="ml-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">primary</span>}
+                        {o.is_primary && <span className="ml-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-[12px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">primary</span>}
                       </div>
                     ))
                   : '—'}
@@ -738,14 +738,14 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                   <tr key={o.id} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-2">
                       <Link href={`/units/${o.units?.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">Unit {o.units?.unit_number ?? '—'}</Link>
-                      {o.is_primary && <span className="ml-2 rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">primary</span>}
+                      {o.is_primary && <span className="ml-2 rounded-full bg-blue-50 px-1.5 py-0.5 text-[12px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">primary</span>}
                     </td>
                     <td className="px-4 py-2 text-gray-700">{o.units?.buildings?.associations?.name ?? '—'}</td>
                     <td className="px-4 py-2 text-sm capitalize">{o.occupancy_type}</td>
                     <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-600">{date(o.move_in_date)}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{o.dues_amount ? money(o.dues_amount) : '—'}</td>
                     <td className="px-4 py-2">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ring-1 ring-inset ${
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[12.5px] font-medium capitalize ring-1 ring-inset ${
                         o.status === 'current' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/15' :
                         o.status === 'future'  ? 'bg-blue-50 text-blue-700 ring-blue-600/15'  :
                         'bg-gray-100 text-gray-500 ring-gray-500/15'
@@ -873,7 +873,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                               <StatusChip tone={t.portal_activated ? 'success' : t.auth_user_id ? 'warning' : 'neutral'}>
                                 {t.portal_activated ? 'Resident portal active' : t.auth_user_id ? 'Portal disabled' : 'Not invited'}
                               </StatusChip>
-                              <span className="text-[11px] text-gray-500">Nonfinancial resident access</span>
+                              <span className="text-[12.5px] text-gray-500">Nonfinancial resident access</span>
                             </div>
                           </div>
                           <div className="flex flex-wrap items-center justify-end gap-1">
@@ -1188,8 +1188,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
           <details className="group px-5 py-4">
             <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-950">
               {finDetails ? 'Edit details' : 'Add details'}
-              {finDetails?.hold_payments && <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/15">Payments on hold</span>}
-              {finDetails?.send_1099 && <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">1099 enabled</span>}
+              {finDetails?.hold_payments && <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[12.5px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/15">Payments on hold</span>}
+              {finDetails?.send_1099 && <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[12.5px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">1099 enabled</span>}
             </summary>
             <form action={saveOwnerFinancialDetails.bind(null, id, owner.portfolio_id)} className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="md:col-span-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">Federal tax</div>

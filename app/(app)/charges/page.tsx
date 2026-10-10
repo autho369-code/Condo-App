@@ -761,7 +761,7 @@ function formatBucket(bucket: string): string {
 function SummaryCard({ label, value }: { label: string; value: string | number }) {
   return (
     <Surface padded={false} className="px-4 py-3">
-      <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+      <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
       <div className="mt-1 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
     </Surface>
   );

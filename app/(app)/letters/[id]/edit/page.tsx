@@ -134,9 +134,9 @@ export default function EditLetterPage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Edit template</h1>
         <div className="flex items-center gap-2">
           {active ? (
-            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/15">Active</span>
+            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[12.5px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/15">Active</span>
           ) : (
-            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500 ring-1 ring-inset ring-gray-500/15">Inactive</span>
+            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[12.5px] font-medium text-gray-500 ring-1 ring-inset ring-gray-500/15">Inactive</span>
           )}
         </div>
       </div>

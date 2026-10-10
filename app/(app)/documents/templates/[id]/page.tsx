@@ -98,7 +98,7 @@ export default async function TemplateDetailPage({
               {varKeys.map((v: string) => (
                 <span
                   key={v}
-                  className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15"
+                  className="rounded-full bg-blue-50 px-2 py-0.5 text-[12.5px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15"
                 >
                   {'{{'}
                   {v}

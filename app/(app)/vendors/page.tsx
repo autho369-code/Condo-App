@@ -44,7 +44,7 @@ function ComplianceBadges({ vendor }: { vendor: any }) {
         const expired = ymd < today;
         const expiring = ymd <= soonYmd && !expired;
         return (
-          <span key={e.label} className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${expired ? 'bg-red-50 text-red-700 ring-red-600/15' : expiring ? 'bg-amber-50 text-amber-700 ring-amber-600/15' : 'bg-gray-100 text-gray-600 ring-gray-500/15'}`}>
+          <span key={e.label} className={`rounded-full px-1.5 py-0.5 text-[12.5px] font-medium ring-1 ring-inset ${expired ? 'bg-red-50 text-red-700 ring-red-600/15' : expiring ? 'bg-amber-50 text-amber-700 ring-amber-600/15' : 'bg-gray-100 text-gray-600 ring-gray-500/15'}`}>
             {e.label}: {new Date(`${ymd}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })}
           </span>
         );

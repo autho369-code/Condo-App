@@ -37,7 +37,7 @@ export function AssociationCalendar({ items, timeZone = 'America/Chicago' }: { i
               return (
                 <div key={item.key} className="flex items-start gap-4 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300">
                   <div className="w-14 flex-shrink-0 text-center">
-                    <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
+                    <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">
                       {d.toLocaleDateString('en-US', { weekday: 'short', timeZone })}
                     </div>
                     <div className="text-2xl font-semibold tabular-nums text-blue-600">

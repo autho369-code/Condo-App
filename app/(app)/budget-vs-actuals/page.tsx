@@ -228,7 +228,7 @@ function ProgressCard({
   const pct = budget > 0 ? Math.min((actual / budget) * 100, 100) : 0;
   return (
     <Surface padded={false} className="p-4">
-      <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+      <div className="mb-3 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-gray-500">Budget</span>
@@ -264,7 +264,7 @@ function ReportSection({ title, income = false, rows, months }: { title: string;
   return (
     <>
       <div className="border-b border-gray-100 bg-gray-50/60 px-5 py-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{title}</span>
+        <span className="text-[12.5px] font-semibold uppercase tracking-wide text-gray-500">{title}</span>
       </div>
       {rows.map((row: any) => (
         <div key={row.budget_line_id ?? row.gl_account_id} className="border-b border-gray-100 last:border-0">
@@ -323,7 +323,7 @@ function ReportSection({ title, income = false, rows, months }: { title: string;
             </div>
             <div className="mt-1 flex justify-between">
               {MONTHS.map((m) => (
-                <span key={m} className="flex-1 text-center text-[9px] text-gray-400">{m}</span>
+                <span key={m} className="flex-1 text-center text-[11.5px] text-gray-400">{m}</span>
               ))}
             </div>
             {/* Legend */}

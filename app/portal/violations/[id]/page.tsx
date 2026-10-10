@@ -108,7 +108,7 @@ export default async function OwnerViolationDetail({
                 const tile = (
                   <>
                     <ImageIcon className="h-8 w-8 text-gray-400" />
-                    <span className="mt-1 w-full truncate px-2 text-center text-[11px] text-gray-500">{href ? a.name : 'Unavailable'}</span>
+                    <span className="mt-1 w-full truncate px-2 text-center text-[12.5px] text-gray-500">{href ? a.name : 'Unavailable'}</span>
                   </>
                 )
                 return href ? (

@@ -23,7 +23,7 @@ function StatCard({
     <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
           <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
           {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
         </div>
@@ -50,7 +50,7 @@ function HealthBadge({ status }: { status: string }) {
 }
 
 const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
-const theadCls = 'border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500';
+const theadCls = 'border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500';
 const trowCls = 'border-b border-gray-50 last:border-0 hover:bg-gray-50/60';
 
 export default async function AssociationHealthPage() {

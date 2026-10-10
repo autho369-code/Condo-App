@@ -70,7 +70,7 @@ export default async function VendorPaymentsPage({ searchParams }: { searchParam
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+              <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-5 py-2.5 text-left font-medium">Bill</th>
                   <th className="px-5 py-2.5 text-left font-medium">Association</th>

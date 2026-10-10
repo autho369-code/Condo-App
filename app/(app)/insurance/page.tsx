@@ -27,7 +27,7 @@ function ReminderToggle({ policyId, field, on, label }: { policyId: string; fiel
         type="submit"
         title={`${label} reminder emails are ${on ? 'on' : 'off'} — click to turn ${on ? 'off' : 'on'}`}
         className={
-          'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition ' +
+          'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[12.5px] font-medium transition ' +
           (on
             ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
             : 'border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100')

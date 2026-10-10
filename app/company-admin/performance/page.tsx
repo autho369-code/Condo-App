@@ -210,12 +210,12 @@ export default async function ManagerPerformancePage() {
                 </StatusChip>
               </div>
               <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
-                <div><dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Properties</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{p.properties}</dd></div>
-                <div><dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Units</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{p.doors.toLocaleString()}</dd></div>
-                <div><dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Open Requests</dt><dd className={`mt-0.5 font-semibold tabular-nums ${p.openRequests > 0 ? 'text-amber-700' : 'text-gray-950'}`}>{p.openRequests}</dd></div>
-                <div><dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Avg Resolution</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{fmtDays(p.avgResolutionDays)}</dd></div>
-                <div><dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Closed (90d)</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{p.closed90d}</dd></div>
-                <div><dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Overdue</dt><dd className={`mt-0.5 font-semibold tabular-nums ${p.overdue > 0 ? 'text-red-700' : 'text-gray-950'}`}>{p.overdue}</dd></div>
+                <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Properties</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{p.properties}</dd></div>
+                <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Units</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{p.doors.toLocaleString()}</dd></div>
+                <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Open Requests</dt><dd className={`mt-0.5 font-semibold tabular-nums ${p.openRequests > 0 ? 'text-amber-700' : 'text-gray-950'}`}>{p.openRequests}</dd></div>
+                <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Avg Resolution</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{fmtDays(p.avgResolutionDays)}</dd></div>
+                <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Closed (90d)</dt><dd className="mt-0.5 font-semibold tabular-nums text-gray-950">{p.closed90d}</dd></div>
+                <div><dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Overdue</dt><dd className={`mt-0.5 font-semibold tabular-nums ${p.overdue > 0 ? 'text-red-700' : 'text-gray-950'}`}>{p.overdue}</dd></div>
               </dl>
             </div>
           ))
@@ -232,7 +232,7 @@ export default async function ManagerPerformancePage() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
                   <Icon className="h-4 w-4 text-gray-400" />
                 </div>
-                <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{r.label}</div>
+                <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{r.label}</div>
               </div>
               <ol className="mt-4 space-y-2.5">
                 {r.entries.length === 0 ? (
@@ -267,7 +267,7 @@ export default async function ManagerPerformancePage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-4 py-2.5 text-left font-medium">Manager</th>
                 <th className="px-4 py-2.5 text-right font-medium">Properties</th>

@@ -55,7 +55,7 @@ export function PanelLink({
       <li>
         <span className="block rounded border border-dashed border-amber-300 bg-amber-50 px-2 py-1.5 text-sm text-amber-900">
           {children}
-          <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-amber-700">Placeholder</span>
+          <span className="ml-2 text-[12px] font-semibold uppercase tracking-wide text-amber-700">Placeholder</span>
         </span>
       </li>
     );

@@ -376,7 +376,7 @@ export default function MeetingDetailClient() {
           { icon: Clock, label: 'Created', value: date(meeting.created_at, 'long') },
         ].map((c: any) => (
           <div key={c.label} className={`${card} px-4 py-3.5`}>
-            <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
+            <div className="flex items-center gap-2 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">
               <c.icon className="h-3.5 w-3.5 text-gray-400" />
               {c.label}
             </div>
@@ -438,7 +438,7 @@ export default function MeetingDetailClient() {
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-gray-400">{idx + 1}.</span>
                         <span className="text-sm font-medium text-gray-900">{item.title}</span>
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium capitalize text-gray-600 ring-1 ring-inset ring-gray-500/15">
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[12.5px] font-medium capitalize text-gray-600 ring-1 ring-inset ring-gray-500/15">
                           {categoryLabel[item.category] ?? item.category}
                         </span>
                       </div>
@@ -471,7 +471,7 @@ export default function MeetingDetailClient() {
                   <div key={item.id} className="px-5 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-sm font-medium text-gray-900">{item.title}</span>
-                      <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium capitalize text-gray-600 ring-1 ring-inset ring-gray-500/15">
+                      <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[12.5px] font-medium capitalize text-gray-600 ring-1 ring-inset ring-gray-500/15">
                         {item.status.replace(/_/g, ' ')}
                       </span>
                     </div>

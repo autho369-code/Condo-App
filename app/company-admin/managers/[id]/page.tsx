@@ -163,7 +163,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
         </div>
         <div className="grid grid-cols-1 gap-0 divide-y divide-gray-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
           <div className="p-6">
-            <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Contact</div>
+            <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Contact</div>
             <div className="mt-3 space-y-1">
               <InfoRow label="Email" value={manager.email ?? '—'} />
               <InfoRow label="Last Login" value={date(manager.last_login_at)} />
@@ -172,7 +172,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
             </div>
           </div>
           <div className="p-6">
-            <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Workload</div>
+            <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Workload</div>
             <div className="mt-3 space-y-1">
               <InfoRow label="Associations" value={scope.fullAccess ? `All (${assocIds.length})` : assocIds.length} />
               <InfoRow label="Doors Managed" value={totalDoorsManaged.toLocaleString()} />
@@ -187,7 +187,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
       <div className={`${card} p-6`}>
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Workload Score</div>
+            <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Workload Score</div>
             <div className="mt-1 text-lg text-gray-600">
               {openWorkOrders.length > 0 ? `${overdueWorkOrders.length} overdue / ${openWorkOrders.length} open` : 'No open work orders'}
             </div>

@@ -60,7 +60,7 @@ export default async function UnitGroupsTab({
                   {allUnits.map((u) => (
                     <label key={u.id} className="flex min-h-10 items-center gap-2 text-sm text-gray-700">
                       <input type="checkbox" name="unit_ids" value={u.id} defaultChecked={set.has(u.id)} className="h-4 w-4 rounded border-gray-300" />
-                      {u.unit_number}{u.buildings?.name ? <span className="text-[11px] text-gray-400">· {u.buildings.name}</span> : null}
+                      {u.unit_number}{u.buildings?.name ? <span className="text-[12.5px] text-gray-400">· {u.buildings.name}</span> : null}
                     </label>
                   ))}
                 </div>

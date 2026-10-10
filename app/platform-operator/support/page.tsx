@@ -31,7 +31,7 @@ function StatCard({
     <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
           <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
           {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
         </div>
@@ -162,7 +162,7 @@ export default async function SupportPage({
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-4 py-2.5 text-left font-medium">Company</th>
                 <th className="px-4 py-2.5 text-left font-medium">Type</th>
@@ -227,12 +227,12 @@ export default async function SupportPage({
                       <td colSpan={8} className="px-4 pb-4 pt-0">
                         <div className="grid gap-3 lg:grid-cols-2">
                           <div className="min-w-0">
-                            <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Request</div>
+                            <div className="text-[12.5px] font-medium uppercase tracking-wide text-gray-400">Request</div>
                             <p className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-5 text-gray-700">{req.description || 'No description provided.'}</p>
                           </div>
                           <form action={respondToRequest as any} className="min-w-0 space-y-2">
                             <input type="hidden" name="request_id" value={req.id} />
-                            <Label htmlFor={`response-${req.id}`} className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                            <Label htmlFor={`response-${req.id}`} className="text-[12.5px] font-medium uppercase tracking-wide text-gray-400">
                               {req.platform_response ? 'Response (visible to the company admin)' : 'Reply to the company admin'}
                             </Label>
                             <Textarea

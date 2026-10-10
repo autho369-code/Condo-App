@@ -28,7 +28,7 @@ function StatCard({
     <div className={`${card} px-4 py-3.5`}>
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
           <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
           {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
         </div>
@@ -41,7 +41,7 @@ function StatCard({
 }
 
 function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-500">{children}</th>
+  return <th className="px-4 py-2.5 text-left text-[12.5px] font-medium uppercase tracking-wide text-gray-500">{children}</th>
 }
 
 function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {

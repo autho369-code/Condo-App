@@ -351,7 +351,7 @@ function ReservationList({
   if (rows.length === 0) return null
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-      <div className="border-b border-gray-100 bg-gray-50/60 px-5 py-2.5 text-[11px] font-medium uppercase tracking-wide text-gray-500">
+      <div className="border-b border-gray-100 bg-gray-50/60 px-5 py-2.5 text-[12.5px] font-medium uppercase tracking-wide text-gray-500">
         {title}
       </div>
       <ul className="divide-y divide-gray-50">

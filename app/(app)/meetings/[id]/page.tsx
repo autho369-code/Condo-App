@@ -344,7 +344,7 @@ export default async function MeetingDetailPage({
                       <div>
                         <span className="font-medium text-gray-900">{attendee.attendee_name}</span>
                         {attendee.attendee_role && <span className="ml-2 text-xs capitalize text-gray-500">{attendee.attendee_role}</span>}
-                        {attendee.voting_eligible && <span className="ml-2 text-[11px] font-medium text-blue-700">Voting</span>}
+                        {attendee.voting_eligible && <span className="ml-2 text-[12.5px] font-medium text-blue-700">Voting</span>}
                         <div className="text-xs text-gray-400">{attendee.check_in_time ? `Checked in ${new Date(attendee.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: displayTimeZone() })}` : '—'}</div>
                       </div>
                       <form action={removeMeetingAttendee.bind(null, id, attendee.id)}><PendingSubmit variant="ghost" size="sm" pendingLabel="Removing…" confirm="Remove this attendee?">Remove</PendingSubmit></form>

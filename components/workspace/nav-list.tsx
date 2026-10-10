@@ -161,7 +161,7 @@ function Row({ item, active, pinned = false }: { item: NavItem; active: boolean;
           {item.badge && (
             <span
               className={[
-                'rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                'rounded px-1.5 py-0.5 text-[12px] font-semibold uppercase tracking-wide',
                 active ? 'bg-white/20 text-white' : BADGE_TONE[item.badge.tone ?? 'neutral'],
               ].join(' ')}
             >

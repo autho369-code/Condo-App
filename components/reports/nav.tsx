@@ -105,7 +105,7 @@ export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
                       {r.isLive && (
                         <span
                           className={[
-                            'ml-2 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                            'ml-2 shrink-0 rounded px-1.5 py-0.5 text-[12px] font-semibold uppercase tracking-wide',
                             isActive ? 'bg-white/20 text-white' : 'bg-green-100 text-green-700',
                           ].join(' ')}
                         >

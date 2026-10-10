@@ -262,27 +262,27 @@ export default async function AssociationPaymentsTab({
 
           <dl className="mt-5 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Stripe Account</dt>
+              <dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Stripe Account</dt>
               <dd className="mt-0.5 font-mono text-xs text-gray-900">{assoc.stripe_account_id ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Charges Enabled</dt>
+              <dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Charges Enabled</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_charges_enabled ? 'Yes' : 'No'}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Payouts Enabled</dt>
+              <dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Payouts Enabled</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_payouts_enabled ? 'Yes' : 'No'}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Details Submitted</dt>
+              <dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Details Submitted</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_details_submitted ? 'Yes' : 'No'}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Onboarded</dt>
+              <dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Onboarded</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_onboarded_at ? date(assoc.stripe_onboarded_at) : '—'}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Last Stripe Check</dt>
+              <dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Last Stripe Check</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_last_status_at ? date(assoc.stripe_last_status_at) : 'Never'}</dd>
             </div>
           </dl>
@@ -363,11 +363,11 @@ export default async function AssociationPaymentsTab({
           <h2 className="text-sm font-semibold text-gray-950">Offline Instructions (always shown to owners)</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Checks payable to</dt>
+              <dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Checks payable to</dt>
               <dd className="mt-0.5 text-gray-900">{assoc.remit_payee ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Mail to</dt>
+              <dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Mail to</dt>
               <dd className="mt-0.5 whitespace-pre-line text-gray-900">{assoc.remit_address ?? '—'}</dd>
             </div>
           </dl>

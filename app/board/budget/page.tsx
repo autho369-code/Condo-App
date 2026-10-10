@@ -132,7 +132,7 @@ export default async function BoardBudgetPage() {
                 { label: 'Variance %', value: ytdNetBudget !== 0 ? `${(((ytdNetActual - ytdNetBudget) / ytdNetBudget) * 100).toFixed(1)}%` : '—', cls: (ytdNetActual - ytdNetBudget) >= 0 ? 'text-emerald-700' : 'text-red-700' },
               ].map(s => (
                 <div key={s.label} className={`${card} px-4 py-3.5`}>
-                  <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
+                  <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
                   <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${s.cls}`}>{s.value}</div>
                 </div>
               ))}
@@ -141,7 +141,7 @@ export default async function BoardBudgetPage() {
             {/* YTD Income vs Expense */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className={`${card} p-4`}>
-                <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">YTD Income</div>
+                <div className="mb-3 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">YTD Income</div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Budget</span>
@@ -162,7 +162,7 @@ export default async function BoardBudgetPage() {
                 </div>
               </div>
               <div className={`${card} p-4`}>
-                <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">YTD Expenses</div>
+                <div className="mb-3 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">YTD Expenses</div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Budget</span>
@@ -192,7 +192,7 @@ export default async function BoardBudgetPage() {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                    <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+                    <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
                       <tr>
                         <th className="px-5 py-2 font-medium">GL Account</th>
                         <th className="px-5 py-2 text-right font-medium">Budget</th>

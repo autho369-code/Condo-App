@@ -95,7 +95,7 @@ export default async function AuditLogsPage({
 
       {/* Filters */}
       <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">
+        <div className="mb-3 flex items-center gap-2 text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400">
           <Filter className="h-3.5 w-3.5" /> Filters
         </div>
         <form className="flex flex-wrap items-center gap-3">
@@ -147,7 +147,7 @@ export default async function AuditLogsPage({
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">Date &amp; Time</th>
                 <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">User</th>

@@ -36,7 +36,7 @@ function StatCard({
     <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
           <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${valueClass}`}>{value}</div>
           {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
         </div>
@@ -383,7 +383,7 @@ export default async function BoardFinancialsPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-5 py-2.5 text-left font-medium">Date</th>
                 <th className="px-5 py-2.5 text-left font-medium">Description</th>

@@ -234,7 +234,7 @@ function Row({
         {label}
         {required && <span className="ml-1 text-red-500">*</span>}
         {help && (
-          <span title={help} className="ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-gray-300 text-[10px] font-semibold text-white">
+          <span title={help} className="ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-gray-300 text-[12px] font-semibold text-white">
             ?
           </span>
         )}

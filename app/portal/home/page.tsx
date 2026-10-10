@@ -12,7 +12,7 @@ const card = 'rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</dt>
+      <dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</dt>
       <dd className="mt-0.5 text-sm text-gray-900">{value ?? '—'}</dd>
     </div>
   )
@@ -149,7 +149,7 @@ export default async function MyHomePage() {
             {contacts.map((c) => (
               <div key={c.id}>
                 {contacts.length > 1 && c.association && (
-                  <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{c.association}</div>
+                  <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{c.association}</div>
                 )}
                 {c.name ? (
                   <p className="text-sm text-gray-900">

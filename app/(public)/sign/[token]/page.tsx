@@ -99,7 +99,7 @@ export default async function SignPage({
           ) : (
             <p className="px-5 py-6 text-sm text-gray-500">The document could not be loaded. Contact the sender.</p>
           )}
-          <div className="border-t border-gray-100 px-5 py-2 text-[11px] text-gray-400">Fingerprint (SHA-256): <span className="font-mono break-all">{r.document_sha256}</span></div>
+          <div className="border-t border-gray-100 px-5 py-2 text-[12.5px] text-gray-400">Fingerprint (SHA-256): <span className="font-mono break-all">{r.document_sha256}</span></div>
         </section>
 
         <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">

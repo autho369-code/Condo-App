@@ -67,7 +67,7 @@ function StatCard({
     <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
           <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
           {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
           {trend && (
@@ -119,14 +119,14 @@ function BarChart({
         const h = Math.max(4, (d.value / max) * height)
         return (
           <div key={i} className="group relative flex flex-1 flex-col items-center justify-end">
-            <div className="mb-1 text-[10px] font-medium text-gray-500 opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="mb-1 text-[12px] font-medium text-gray-500 opacity-0 transition-opacity group-hover:opacity-100">
               {valueLabel}{formatNumber(d.value)}
             </div>
             <div
               className="w-full rounded-t transition-colors hover:opacity-80"
               style={{ height: h, backgroundColor: barColor, minWidth: barWidth }}
             />
-            <div className="mt-1.5 text-[10px] text-gray-400 truncate w-full text-center">
+            <div className="mt-1.5 text-[12px] text-gray-400 truncate w-full text-center">
               {d.label}
             </div>
           </div>

@@ -51,7 +51,7 @@ function StatCard({
     <div className={`${card} px-4 py-3.5`}>
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
           <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${tone === 'danger' ? 'text-red-700' : tone === 'warning' ? 'text-amber-700' : 'text-gray-950'}`}>{value}</div>
           {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
         </div>
@@ -215,7 +215,7 @@ export default async function OverviewPage() {
 
       {/* ── Quick Actions ─────────────────────────────── */}
       <div className={`${card} p-5`}>
-        <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Quick Actions</div>
+        <div className="mb-3 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Quick Actions</div>
         <div className="flex flex-wrap gap-3">
           <QuickActionButton href="/company-admin/managers"><UserPlus className="h-4 w-4 text-gray-400" /> Invite Manager</QuickActionButton>
           <QuickActionButton href="/onboard"><PlusCircle className="h-4 w-4 text-gray-400" /> Add Association</QuickActionButton>
@@ -241,7 +241,7 @@ export default async function OverviewPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-5 py-2.5 text-left font-medium">Manager</th>
                 <th className="px-5 py-2.5 text-right font-medium">Properties</th>
@@ -278,7 +278,7 @@ export default async function OverviewPage() {
       {/* ── Health Distribution ───────────────────────── */}
       <div className="grid grid-cols-1 gap-4">
         <div className={`${card} p-5`}>
-          <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Health Score Distribution</div>
+          <div className="mb-4 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Health Score Distribution</div>
           {totalWithHealth > 0 ? (
             <div className="space-y-4">
               <div className="flex items-center justify-center gap-8">
@@ -335,7 +335,7 @@ export default async function OverviewPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-5 py-2.5 text-left font-medium">Association</th>
                 <th className="px-5 py-2.5 text-right font-medium">Units</th>

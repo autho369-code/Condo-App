@@ -58,14 +58,14 @@ export default async function YearEndPackagePage({
         {pkg.status === 'draft' && <Alert tone="info" className="mb-4 print:hidden">Draft — these figures reflect the books when the draft was prepared ({fmt(pkg.generated_at)}). Finalizing re-verifies nothing has changed since.</Alert>}
 
         <header className="mb-6 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)] print:rounded-none print:border-0 print:p-0 print:shadow-none">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400">Year-end financial package</div>
+          <div className="text-[12.5px] font-semibold uppercase tracking-[0.12em] text-gray-400">Year-end financial package</div>
           <h1 className="mt-1 text-[24px] font-semibold tracking-[-0.02em] text-gray-950">{assoc.legal_name || assoc.name || pkg.associations?.name}</h1>
           <p className="mt-1 text-sm text-gray-500">Fiscal year {s.fiscal_year} · {s.period_start} to {s.period_end}{assoc.tax_id ? ` · EIN ${assoc.tax_id}` : ''}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-gray-500">
             {pkg.status === 'finalized' ? <StatusChip tone="success">Finalized {fmt(pkg.finalized_at)}</StatusChip> : pkg.status === 'draft' ? <StatusChip tone="warning">Draft</StatusChip> : <StatusChip tone="neutral">Superseded</StatusChip>}
             <span>Prepared by {me.portfolio?.company_name ?? 'management'}</span>
           </div>
-          <div className="mt-3 break-all font-mono text-[11px] text-gray-400">SHA-256 {pkg.snapshot_sha256}</div>
+          <div className="mt-3 break-all font-mono text-[12.5px] text-gray-400">SHA-256 {pkg.snapshot_sha256}</div>
           {pkg.notes && <p className="mt-3 text-sm text-gray-600">{pkg.notes}</p>}
         </header>
 
@@ -100,7 +100,7 @@ export default async function YearEndPackagePage({
             )}
           </div>
         </div>
-        <p className="mt-6 text-[11px] leading-4 text-gray-400">
+        <p className="mt-6 text-[12.5px] leading-4 text-gray-400">
           Generated from the association&apos;s posted general ledger. The fingerprint above identifies this exact set of figures; any later change to the books produces a different package.
         </p>
       </div>

@@ -11,7 +11,7 @@ export function YearEndChecklist({ items }: { items: Item[] }) {
             {i.ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
           </span>
           <div className="min-w-0">
-            <div className="text-sm text-gray-900">{i.label}{!i.required && <span className="ml-2 text-[11px] text-gray-400">recommended</span>}</div>
+            <div className="text-sm text-gray-900">{i.label}{!i.required && <span className="ml-2 text-[12.5px] text-gray-400">recommended</span>}</div>
             <div className="text-[12px] text-gray-500">{i.detail}</div>
           </div>
         </li>

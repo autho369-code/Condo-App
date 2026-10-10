@@ -112,7 +112,7 @@ export default async function VendorSchedulePage() {
                 </div>
                 <div className="shrink-0 text-right">
                   <div className={`text-[13px] tabular-nums ${i.overdue ? 'font-semibold text-red-700' : 'text-gray-700'}`}>{date(i.when)}</div>
-                  {i.time && <div className="text-[11px] text-gray-400">{i.time}</div>}
+                  {i.time && <div className="text-[12.5px] text-gray-400">{i.time}</div>}
                   {i.status && <div className="mt-1"><Badge status={i.status} /></div>}
                 </div>
               </div>

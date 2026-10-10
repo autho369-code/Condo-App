@@ -54,7 +54,7 @@ export default async function OwnerAccountPage({ searchParams }: { searchParams:
             ['Mailing Address', address],
           ].map(([l, v]) => (
             <div key={l as string}>
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{l}</div>
+              <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{l}</div>
               <div className="mt-0.5 text-sm text-gray-900">{v}</div>
             </div>
           ))}
@@ -67,7 +67,7 @@ export default async function OwnerAccountPage({ searchParams }: { searchParams:
             ['Property Address', propAddress],
           ].map(([l, v]) => (
             <div key={l as string}>
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{l}</div>
+              <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{l}</div>
               <div className="mt-0.5 text-sm text-gray-900">{v}</div>
             </div>
           ))}
@@ -83,7 +83,7 @@ export default async function OwnerAccountPage({ searchParams }: { searchParams:
                 ['Dues Paid Through', occ.dues_paid_through ? new Date(occ.dues_paid_through).toLocaleDateString() : '—'],
               ].map(([l, v]) => (
                 <div key={l as string}>
-                  <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{l}</div>
+                  <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{l}</div>
                   <div className="mt-0.5 text-sm text-gray-900">{v}</div>
                 </div>
               ))}

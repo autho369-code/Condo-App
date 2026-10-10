@@ -2226,7 +2226,7 @@ function QueuedReportView(ctx: ReportContext) {
             Available formats:
             <span className="ml-2 inline-flex gap-1">
               {supportedReportOutputFormats(def.output_formats).map((f) => (
-                <span key={f} className="rounded border border-gray-300 bg-gray-50 px-1.5 py-0.5 text-[11px] text-gray-700">{reportFormatLabel(f)}</span>
+                <span key={f} className="rounded border border-gray-300 bg-gray-50 px-1.5 py-0.5 text-[12.5px] text-gray-700">{reportFormatLabel(f)}</span>
               ))}
             </span>
           </p>
@@ -2288,7 +2288,7 @@ function SaveCustomReportFields({ defaultName, formAction }: { defaultName: stri
         />
         <Button type="submit" variant="secondary" formAction={formAction}>Save</Button>
       </div>
-      <p className="text-[11px] text-gray-500">Saves the period, scope and association set here, for everyone in your company.</p>
+      <p className="text-[12.5px] text-gray-500">Saves the period, scope and association set here, for everyone in your company.</p>
     </div>
   );
 }
@@ -2416,7 +2416,7 @@ async function ReportRightRail({
         {!isLive && unitSupported && (
           <div className="grid grid-cols-1 gap-2">
             <div>
-              <label className="mb-0.5 block text-[11px] text-gray-500">Unit{unitRequired ? ' (required)' : ''}</label>
+              <label className="mb-0.5 block text-[12.5px] text-gray-500">Unit{unitRequired ? ' (required)' : ''}</label>
               <select
                 name="param_unit_id"
                 defaultValue=""
@@ -2455,7 +2455,7 @@ async function ReportRightRail({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="mb-0.5 block text-[11px] text-gray-500">From</label>
+              <label className="mb-0.5 block text-[12.5px] text-gray-500">From</label>
               <input
                 type="date"
                 name="param_date_from"
@@ -2464,7 +2464,7 @@ async function ReportRightRail({
               />
             </div>
             <div>
-              <label className="mb-0.5 block text-[11px] text-gray-500">To</label>
+              <label className="mb-0.5 block text-[12.5px] text-gray-500">To</label>
               <input
                 type="date"
                 name="param_date_to"
@@ -2473,7 +2473,7 @@ async function ReportRightRail({
               />
             </div>
           </div>
-          <p className="mt-1 text-[11px] text-gray-500">
+          <p className="mt-1 text-[12.5px] text-gray-500">
             {period.label}: {period.from} &rarr; {period.to}
           </p>
         </div>
@@ -2561,7 +2561,7 @@ function RunPill({ status }: { status: string }) {
     failed:    'bg-red-50 text-red-700 ring-red-600/15',
     cancelled: 'bg-gray-100 text-gray-400 ring-gray-500/15 line-through',
   };
-  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ring-1 ring-inset ${m[status] ?? m.queued}`}>{status}</span>;
+  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-medium capitalize ring-1 ring-inset ${m[status] ?? m.queued}`}>{status}</span>;
 }
 
 // ═══════════════════════════════════════════════════════════════

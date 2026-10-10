@@ -56,7 +56,7 @@ export default async function OwnerWorkOrdersPage() {
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-5 py-2.5 text-left font-medium">Request</th>
                 <th className="px-5 py-2.5 text-left font-medium">Unit</th>

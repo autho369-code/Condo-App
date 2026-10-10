@@ -54,7 +54,7 @@ export function ArcMessageThread({
             <li key={m.id} className="rounded-xl border border-gray-200/70 bg-white p-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <div className="mb-1.5 flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-900">{m.author_name ?? ROLE_LABEL[m.author_role] ?? 'User'}</span>
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${ROLE_BADGE[m.author_role] ?? ROLE_BADGE.staff}`}>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[12.5px] font-medium ring-1 ring-inset ${ROLE_BADGE[m.author_role] ?? ROLE_BADGE.staff}`}>
                   {ROLE_LABEL[m.author_role] ?? m.author_role}
                 </span>
                 <span className="ml-auto text-xs text-gray-400">{fmt(m.created_at)}</span>

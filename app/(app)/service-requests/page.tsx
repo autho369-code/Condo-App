@@ -204,12 +204,12 @@ export default async function ServiceRequestsPage({
                 return (
                   <TR key={request.id}>
                     <TD className="max-w-md">
-                      <div className="font-mono text-[11px] text-gray-400">#{request.number ?? request.id.slice(0, 8)}</div>
+                      <div className="font-mono text-[12.5px] text-gray-400">#{request.number ?? request.id.slice(0, 8)}</div>
                       <Link href={`/service-requests/${request.id}`} className="mt-1 line-clamp-2 font-medium leading-5 text-gray-900 hover:underline">{request.description}</Link>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <StatusChip tone={request.request_kind === 'admin' ? 'info' : 'neutral'}>{requestKindLabel(request.request_kind, request.admin_topic, request.category)}</StatusChip>
                         {isDuplicate(request) ? <StatusChip tone="warning">Possible duplicate</StatusChip> : null}
-                        <span className="text-[11px] capitalize text-gray-400">{String(request.source).replace(/_/g, ' ')}</span>
+                        <span className="text-[12.5px] capitalize text-gray-400">{String(request.source).replace(/_/g, ' ')}</span>
                       </div>
                     </TD>
                     <TD><div className="font-medium text-gray-900">{requestor}</div><div className="mt-0.5 text-xs text-gray-400">{tenant ? 'Tenant' : 'Owner'}</div></TD>

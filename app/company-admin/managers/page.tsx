@@ -142,7 +142,7 @@ export default async function CompanyAdminManagersPage({
           </div>
           {(portfolioAssocs ?? []).length > 0 && (
             <div className="mt-3">
-              <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Properties this manager can access</div>
+              <div className="mb-1.5 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Properties this manager can access</div>
               <div className="max-h-40 space-y-1 overflow-y-auto">
                 {(portfolioAssocs ?? []).map((a: any) => (
                   <label key={a.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px] text-gray-700 hover:bg-gray-50">
@@ -151,7 +151,7 @@ export default async function CompanyAdminManagersPage({
                   </label>
                 ))}
               </div>
-              <p className="mt-1.5 text-[11px] leading-4 text-gray-400">Leave all unchecked for full portfolio access.</p>
+              <p className="mt-1.5 text-[12.5px] leading-4 text-gray-400">Leave all unchecked for full portfolio access.</p>
             </div>
           )}
         </form>
@@ -169,7 +169,7 @@ export default async function CompanyAdminManagersPage({
           { label: 'Overdue Work Orders', value: rows.reduce((s: number, r: any) => s + r.overdueWorkOrders, 0), warn: true },
         ].map((item) => (
           <div key={item.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
+            <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
             <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${item.warn ? 'text-amber-700' : 'text-gray-950'}`}>{item.value}</div>
           </div>
         ))}
@@ -177,7 +177,7 @@ export default async function CompanyAdminManagersPage({
 
       <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+          <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-4 py-2.5 text-left font-medium">Manager</th>
               <th className="px-4 py-2.5 text-left font-medium">Contact</th>
@@ -202,7 +202,7 @@ export default async function CompanyAdminManagersPage({
                     {row.disabledAt && <div className="mt-0.5 text-xs font-medium text-red-700">Login disabled</div>}
                   </td>
                   <td className="px-4 py-3 text-[13px] text-gray-700">{row.email}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.associationCount}{row.fullAccess && <div className="text-[11px] text-gray-500">All</div>}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.associationCount}{row.fullAccess && <div className="text-[12.5px] text-gray-500">All</div>}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.totalDoors.toLocaleString()}</td>
                   <td className={`px-4 py-3 text-right tabular-nums ${row.openWorkOrders > 0 ? 'font-medium text-amber-700' : 'text-gray-700'}`}>{row.openWorkOrders}</td>
                   <td className={`px-4 py-3 text-right tabular-nums ${row.overdueWorkOrders > 0 ? 'font-semibold text-red-700' : 'text-gray-700'}`}>{row.overdueWorkOrders}</td>

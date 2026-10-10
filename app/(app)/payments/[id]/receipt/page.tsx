@@ -58,7 +58,7 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
             <div className="text-sm text-gray-500">on behalf of {assoc?.name ?? 'the association'}</div>
           </div>
           <div className="text-right">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">{p.method === 'credit' ? 'Credit memo' : 'Payment receipt'}</div>
+            <div className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400">{p.method === 'credit' ? 'Credit memo' : 'Payment receipt'}</div>
             <div className="mt-1 font-mono text-sm text-gray-900">#{receiptNo}</div>
             {p.reversed_at && <div className="mt-1 text-sm font-semibold uppercase tracking-[0.08em] text-red-700">Reversed</div>}
           </div>
@@ -78,7 +78,7 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
 
         {(applied ?? []).length > 0 && (
           <table className="mt-6 w-full text-sm">
-            <thead className="border-b border-gray-200 text-left text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-200 text-left text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr><th className="py-2 font-medium">Applied to</th><th className="py-2 font-medium">Due</th><th className="py-2 text-right font-medium">Amount</th></tr>
             </thead>
             <tbody>

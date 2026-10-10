@@ -51,7 +51,7 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
           { label: 'Hearings Scheduled', value: all.filter((v: any) => v.hearing_at || v.hearing_date).length },
         ].map(s => (
           <div key={s.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
+            <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
             <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{s.value}</div>
           </div>
         ))}
@@ -64,7 +64,7 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-5 py-2.5 text-left font-medium">Violation</th>
                 <th className="px-5 py-2.5 text-left font-medium">Unit</th>

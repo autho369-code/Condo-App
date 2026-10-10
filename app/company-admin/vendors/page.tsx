@@ -143,7 +143,7 @@ export default async function VendorsPage({
             <div key={item.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
+                  <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
                   <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{item.value}</div>
                   {item.sub && <div className="mt-1 text-xs text-gray-500">{item.sub}</div>}
                 </div>
@@ -171,7 +171,7 @@ export default async function VendorsPage({
       {/* Table */}
       <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+          <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-4 py-2.5 text-left font-medium">Vendor</th>
               <th className="px-4 py-2.5 text-left font-medium">Trade</th>

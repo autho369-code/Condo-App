@@ -258,7 +258,7 @@ export default function EditTemplatePage() {
                 {mergeVariables.map((v) => (
                   <span
                     key={v}
-                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15"
+                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[12.5px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15"
                   >
                     {'{{'}
                     {v}
@@ -286,7 +286,7 @@ export default function EditTemplatePage() {
                   <button
                     key={v}
                     onClick={() => insertVariable(v)}
-                    className="rounded-lg border border-gray-200 px-1.5 py-0.5 text-[10px] text-gray-500 transition-colors hover:border-gray-300 hover:bg-gray-100"
+                    className="rounded-lg border border-gray-200 px-1.5 py-0.5 text-[12px] text-gray-500 transition-colors hover:border-gray-300 hover:bg-gray-100"
                     title="Insert variable"
                   >
                     {'{{'}

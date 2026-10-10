@@ -119,7 +119,7 @@ export function CsvUploader({
               Expected columns:{' '}
               {expectedColumns.map((c, i) => (
                 <span key={c}>
-                  <code className="rounded bg-gray-100 px-1 py-0.5 text-[11px] text-gray-700">{c}</code>
+                  <code className="rounded bg-gray-100 px-1 py-0.5 text-[12.5px] text-gray-700">{c}</code>
                   {i < expectedColumns.length - 1 ? ' ' : ''}
                 </span>
               ))}

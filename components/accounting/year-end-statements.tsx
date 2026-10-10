@@ -12,7 +12,7 @@ function Table({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-const th = 'px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500';
+const th = 'px-4 py-2 text-left text-[12.5px] font-semibold uppercase tracking-wide text-gray-500';
 const td = 'px-4 py-1.5 text-[13px] text-gray-800';
 const num = 'px-4 py-1.5 text-right text-[13px] tabular-nums text-gray-900';
 const acct = (l: Line) => `${l.number ?? ''} ${l.name}`.trim();
@@ -95,7 +95,7 @@ export function YearEndStatements({ snapshot: s }: { snapshot: Snapshot }) {
           <table className="w-full">
             <tbody>{(s.bank_accounts ?? []).map((b: any, i: number) => (
               <tr key={i} className="border-t border-gray-100">
-                <td className={td}>{b.name}<div className="text-[11px] text-gray-400">{b.purpose ?? 'operating'} · reconciled through {b.reconciled_through ?? '—'}</div></td>
+                <td className={td}>{b.name}<div className="text-[12.5px] text-gray-400">{b.purpose ?? 'operating'} · reconciled through {b.reconciled_through ?? '—'}</div></td>
                 <td className={num}>{money(b.balance)}</td>
               </tr>
             ))}</tbody>

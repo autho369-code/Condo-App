@@ -138,7 +138,7 @@ export default async function PiperPage({ searchParams }: { searchParams: Promis
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
                   {k.pinned && <Pin className="h-3.5 w-3.5 flex-shrink-0 text-amber-500" />}
                   <span className={k.active ? '' : 'line-through text-gray-400'}>{k.title}</span>
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">{k.category}</span>
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[12.5px] text-gray-500">{k.category}</span>
                 </div>
                 <p className="mt-1 line-clamp-2 text-sm text-gray-500">{k.body}</p>
               </div>

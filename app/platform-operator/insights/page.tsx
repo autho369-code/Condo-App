@@ -264,7 +264,7 @@ export default async function PlatformInsightsPage() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         {metrics.map((m) => (
           <div key={m.label} className={`${card} px-4 py-3.5`}>
-            <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{m.label}</div>
+            <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{m.label}</div>
             <div className="mt-1.5 truncate text-xl font-semibold tabular-nums text-gray-950">{m.value}</div>
           </div>
         ))}

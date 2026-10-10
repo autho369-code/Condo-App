@@ -77,7 +77,7 @@ export default async function SecurityCenterPage() {
             <div key={item.label} className={`${card} px-4 py-3.5`}>
               <div className="flex items-start justify-between">
                 <div className="min-w-0">
-                  <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
+                  <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
                   <div className="mt-1.5 truncate text-xl font-semibold tabular-nums text-gray-950">{item.value}</div>
                 </div>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
@@ -97,7 +97,7 @@ export default async function SecurityCenterPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-5 py-2.5 text-left font-medium">Account</th>
                 <th className="px-5 py-2.5 text-left font-medium">Result</th>
@@ -132,7 +132,7 @@ export default async function SecurityCenterPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-5 py-2.5 text-left font-medium">Operator</th>
                 <th className="px-5 py-2.5 text-left font-medium">Impersonated</th>
@@ -179,7 +179,7 @@ export default async function SecurityCenterPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-5 py-2.5 text-left font-medium">Action</th>
                 <th className="px-5 py-2.5 text-left font-medium">Actor</th>
@@ -212,7 +212,7 @@ export default async function SecurityCenterPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-5 py-2.5 text-left font-medium">Company</th>
                 <th className="px-5 py-2.5 text-left font-medium">MFA (Staff)</th>
@@ -243,7 +243,7 @@ export default async function SecurityCenterPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-5 py-2.5 text-left font-medium">Key</th>
                 <th className="px-5 py-2.5 text-left font-medium">Company</th>

@@ -173,9 +173,9 @@ export default async function OwnerDashboard() {
         ].map(s => {
           const inner = (
             <>
-              <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
+              <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
               <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${s.color}`}>{s.value}</div>
-              {s.hint && <div className="mt-1 text-[11px] font-medium text-gray-500">{s.hint} →</div>}
+              {s.hint && <div className="mt-1 text-[12.5px] font-medium text-gray-500">{s.hint} →</div>}
             </>
           )
           const cls = 'rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'

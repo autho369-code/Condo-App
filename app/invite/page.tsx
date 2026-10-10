@@ -292,7 +292,7 @@ export default async function InvitePage({
           Create account
         </Button>
       </form>
-      <p className="mt-4 text-[11px] text-gray-400">Powered by <span className="font-medium text-gray-500">Portier369</span></p>
+      <p className="mt-4 text-[12.5px] text-gray-400">Powered by <span className="font-medium text-gray-500">Portier369</span></p>
     </Shell>
   );
 }

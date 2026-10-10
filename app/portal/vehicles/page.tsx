@@ -39,7 +39,7 @@ export default async function OwnerVehiclesPage() {
           <div key={item.label} className={`${card} px-4 py-3.5`}>
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
+                <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
                 <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{item.value}</div>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
@@ -53,7 +53,7 @@ export default async function OwnerVehiclesPage() {
       <div className={card}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-4 py-2.5 text-left font-medium">Vehicle</th>
                 <th className="px-4 py-2.5 text-left font-medium">Plate</th>

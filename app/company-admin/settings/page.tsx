@@ -96,7 +96,7 @@ export default async function SettingsPage({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.logo_url} alt="Current company logo" className="h-full w-full object-contain" />
                 ) : (
-                  <span className="text-[11px] font-medium text-gray-400">No logo</span>
+                  <span className="text-[12.5px] font-medium text-gray-400">No logo</span>
                 )}
               </div>
               <div className="min-w-0 flex-1">

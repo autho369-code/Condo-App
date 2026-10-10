@@ -232,7 +232,7 @@ export default async function VendorWorkOrderDetail({
                     <div className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-gray-300" />
                     <div className="min-w-0">
                       <div className="text-[13px] leading-5 text-gray-800">{u.note}</div>
-                      <div className="mt-0.5 flex items-center gap-2 text-[11px] text-gray-400">
+                      <div className="mt-0.5 flex items-center gap-2 text-[12.5px] text-gray-400">
                         {date(u.created_at)}
                         {u.new_status && <Badge status={u.new_status} />}
                       </div>

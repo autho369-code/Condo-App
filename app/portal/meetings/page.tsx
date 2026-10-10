@@ -51,20 +51,20 @@ export default async function OwnerMeetingsPage() {
 
               {m.ai_summary ? (
                 <div className="mt-4">
-                  <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Summary</div>
+                  <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Summary</div>
                   <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{m.ai_summary}</p>
                 </div>
               ) : null}
 
               {m.agenda ? (
                 <div className="mt-4">
-                  <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Agenda</div>
+                  <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Agenda</div>
                   <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{m.agenda}</p>
                 </div>
               ) : null}
 
               <div className="mt-4">
-                <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Minutes</div>
+                <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Minutes</div>
                 <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-gray-700">{m.minutes}</p>
               </div>
             </div>

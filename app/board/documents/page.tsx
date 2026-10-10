@@ -61,7 +61,7 @@ export default async function BoardDocumentsPage() {
           <div className="divide-y divide-gray-100">
             {docGroups.map((g) => (
               <div key={g.folder} className="px-5 py-3">
-                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">{g.folder}</div>
+                <div className="mb-1.5 text-[12.5px] font-semibold uppercase tracking-wide text-gray-500">{g.folder}</div>
                 <ul className="space-y-1.5">
                   {g.items.map((d: any) => (
                     <li key={d.id} className="flex flex-wrap items-center justify-between gap-2">

@@ -104,7 +104,7 @@ export default async function YearEndPage({
                   <TD><PackageStatus status={p.status} /></TD>
                   <TD className="text-sm text-gray-600">{date(p.generated_at)}</TD>
                   <TD className="text-sm text-gray-600">{p.finalized_at ? date(p.finalized_at) : '—'}</TD>
-                  <TD className="font-mono text-[11px] text-gray-400">{p.snapshot_sha256.slice(0, 12)}…</TD>
+                  <TD className="font-mono text-[12.5px] text-gray-400">{p.snapshot_sha256.slice(0, 12)}…</TD>
                 </TR>
               ))}
             </tbody>

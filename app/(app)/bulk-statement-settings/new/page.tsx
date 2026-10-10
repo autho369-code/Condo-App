@@ -184,7 +184,7 @@ function CheckboxRow({
         {help && (
           <span
             title={help}
-            className="ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-gray-300 text-[10px] font-semibold text-white"
+            className="ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-gray-300 text-[12px] font-semibold text-white"
             aria-label={help}
           >
             ?

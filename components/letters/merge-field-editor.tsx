@@ -154,7 +154,7 @@ export default function MergeFieldEditor({ value, onChange, placeholder, readOnl
                     <span className="font-medium text-gray-800">{field.label}</span>
                     <span className="ml-2 text-gray-400">{field.preview}</span>
                   </span>
-                  <span className="font-mono text-[10px] text-emerald-600">{`{{${field.key}}}`}</span>
+                  <span className="font-mono text-[12px] text-emerald-600">{`{{${field.key}}}`}</span>
                 </button>
               ))
             )}
@@ -218,7 +218,7 @@ function CategoryPill({ label, active, onClick }: { label: string; active: boole
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${active ? 'bg-emerald-100 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'}`}
+      className={`rounded-full px-2.5 py-0.5 text-[12.5px] font-medium transition ${active ? 'bg-emerald-100 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'}`}
     >
       {label}
     </button>

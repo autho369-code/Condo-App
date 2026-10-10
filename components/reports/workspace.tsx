@@ -105,7 +105,7 @@ export function Tile({
   };
   return (
     <div className="rounded-md border border-gray-200 bg-white px-4 py-3">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-gray-500">{label}</div>
+      <div className="text-[12.5px] font-medium uppercase tracking-wider text-gray-500">{label}</div>
       <div className={'mt-1 text-xl font-semibold tabular-nums ' + toneClasses[tone]}>{value}</div>
       {sub && <div className="mt-0.5 text-xs text-gray-500">{sub}</div>}
     </div>
