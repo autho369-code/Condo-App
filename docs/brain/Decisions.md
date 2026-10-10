@@ -16,6 +16,11 @@ Back to [[Home]]. Don't redo these.
   particular state and it should be visible to the property manager").
   `company_state_rules` (company admin edits, staff read) overrides the
   built-in `collection_jurisdiction_profiles`. Never build a single-state pack.
+- **Owner logins are cut off with "Unlink login", not by changing the
+  email** (Mirsad, 2026-10-10). An email change keeps revoking only added
+  logins whose own email no longer matches (typo fixes stay harmless).
+- **No confirm prompts on reason-required void/cancel forms** (Mirsad,
+  2026-10-10): the required reason is enough.
 - **Resale / estoppel certificate:** declined by Mirsad; build only if he asks.
 - **Old `/platform/*` URLs** redirect permanently to `/platform-operator`
   (`next.config.mjs`), 2026-10-07.

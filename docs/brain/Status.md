@@ -1,24 +1,22 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (after #275 merged; open PR: third-audit fixes; next: vendor details for Randolph Station, then Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (after #276 merged; open PR: unlink owner login; next: vendor details for Randolph Station, then Stripe pilot).
 
 ## Open PR
-- claude/audit-3-fixes: third audit (security-reviewer x3 + overseer over
-  #255-#275). Migrations 20261010020000 (operator_write_guard on
-  company_state_rules), 20261010030000 (association-documents storage read:
-  owners via current_resident_association_ids, so a turned-off / archived /
-  suspended owner login or an added record follows the table rule),
-  20261010040000 (link_vendor_on_invitation_accept: the accepting login's
-  email must be the invitation's, as for owners) all applied by Claude and
-  read back. App: open-balance imports refuse after the trial-balance
-  opening entry (it already includes them; lib/imports/opening-entry.ts);
-  the old CSV opening-balance import takes the receivables lock and skips
-  rows already posted; work-order re-import sets the vendor on imported work
-  orders still without one; Delinquencies shows each association's
-  company's state rules; Action Center links the previous-system import;
-  "Portier" removed from four in-app texts.
+- claude/unlink-owner-login: "Unlink login" button on the owner record
+  (Portal access): confirm-first, cuts off the record's own sign-in
+  (auth_user_id cleared, portal off) and every sign-in it was added to
+  (owner_portal_logins revoked), logged. Migration 20261010050000
+  (unlink_owner_logins, DEFINER: staff + can_manage_association +
+  operator_may_write) applied by Claude and read back; tested in a
+  rolled-back transaction (manager unlinks, audit row; non-staff 42501).
 
 ## Where things stand
+- #276 merged (2fea8502): third-audit fixes (operator guard on
+  company_state_rules, association-documents storage owner scope, vendor
+  invitation email check, opening-balance imports refuse after the opening
+  entry, work-order re-import links vendors, Action Center import link,
+  no platform name in four texts). Migrations 20261010020000-40000 applied.
 - #275 merged (ed76ad91): State Rules. Company admins record the rules
   their company follows in each state (`/company-admin/state-rules`):
   collection gates + plain-words summary, other state requirements,
@@ -319,11 +317,5 @@ Back to [[Home]]. Updated 2026-10-10 (after #275 merged; open PR: third-audit fi
    pilot association (Mirsad's account setup).
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
    step would be per-request identity caching (riskier, measure first).
-1. Mirsad decides: changing an owner record's email revokes its ADDED
-   logins (owner_portal_logins) but keeps the record's original login
-   (owners.auth_user_id), though the migration comment says the record "no
-   longer belongs to the login". Options: staff email change also clears
-   auth_user_id (owner must be invited again, also after a typo fix), or an
-   explicit "Unlink login" button. Found by the third audit (low).
-2. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
-   forms.
+1. Nothing else buildable without Mirsad: vendor details, Stripe pilot
+   setup. Optional: per-request identity caching (measure first).
