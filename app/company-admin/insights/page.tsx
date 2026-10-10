@@ -22,7 +22,7 @@ import { vendorAssociationLabel } from '@/lib/vendors/options'
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 const OPEN_WO_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress']
 
 type Insight = {
@@ -207,7 +207,7 @@ export default async function AICommandCenterPage() {
   const sevStyles = {
     critical: 'border-red-200 bg-red-50/60',
     warning: 'border-amber-200 bg-amber-50/60',
-    info: 'border-gray-200/70 bg-white',
+    info: 'border-line bg-white',
   } as const
   const sevIcon = {
     critical: 'text-red-600',

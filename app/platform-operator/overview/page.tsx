@@ -448,7 +448,7 @@ export default async function PlatformOperatorOverviewPage() {
       {/* ── Charts Row 1 ───────────────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Revenue Growth */}
-        <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
+        <div className="rounded-xl border border-line bg-white p-5">
           <h3 className="text-sm font-semibold text-gray-700">Revenue Growth — Last 6 Months</h3>
           <p className="mt-0.5 text-[13px] text-gray-500">Paid platform invoices collected by month</p>
           <div className="mt-4">
@@ -462,7 +462,7 @@ export default async function PlatformOperatorOverviewPage() {
         </div>
 
         {/* Company Growth */}
-        <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
+        <div className="rounded-xl border border-line bg-white p-5">
           <h3 className="text-sm font-semibold text-gray-700">Company Growth — Last 6 Months</h3>
           <p className="mt-0.5 text-[13px] text-gray-500">New portfolios created</p>
           <div className="mt-4">
@@ -479,7 +479,7 @@ export default async function PlatformOperatorOverviewPage() {
       {/* ── Charts Row 2 ───────────────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Door Growth */}
-        <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
+        <div className="rounded-xl border border-line bg-white p-5">
           <h3 className="text-sm font-semibold text-gray-700">Association Growth — Last 6 Months</h3>
           <p className="mt-0.5 text-[13px] text-gray-500">New associations onboarded</p>
           <div className="mt-4">
@@ -493,7 +493,7 @@ export default async function PlatformOperatorOverviewPage() {
         </div>
 
         {/* Trial Conversion Rate */}
-        <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
+        <div className="rounded-xl border border-line bg-white p-5">
           <h3 className="text-sm font-semibold text-gray-700">Subscription Distribution</h3>
           <p className="mt-0.5 text-[13px] text-gray-500">Active · Trial · Paused · Past Due</p>
           <div className="mt-4 space-y-3">
@@ -550,7 +550,7 @@ export default async function PlatformOperatorOverviewPage() {
       </div>
 
       {/* ── Revenue by Company ──────────────────────────── */}
-      <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
+      <div className="rounded-xl border border-line bg-white p-5">
         <h3 className="text-sm font-semibold text-gray-700">
           Revenue by Company — Top 10
         </h3>
@@ -571,8 +571,8 @@ export default async function PlatformOperatorOverviewPage() {
       {/* ── Recent Activity + Companies at Risk ─────────── */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {/* Recent Activity */}
-        <div className="rounded-xl border border-[#E5E7EB] bg-white">
-          <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
+        <div className="rounded-xl border border-line bg-white">
+          <div className="flex items-center justify-between border-b border-line px-5 py-4">
             <div>
               <h3 className="text-sm font-semibold text-gray-700">Recent Activity</h3>
               <p className="mt-0.5 text-[13px] text-gray-500">Last 20 platform events</p>
@@ -587,7 +587,7 @@ export default async function PlatformOperatorOverviewPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#E5E7EB] text-xs uppercase text-gray-500">
+                <tr className="border-b border-line text-xs uppercase text-gray-500">
                   <th className="px-5 py-3 text-left font-medium">Action</th>
                   <th className="px-5 py-3 text-left font-medium">Details</th>
                   <th className="px-5 py-3 text-right font-medium">Time</th>
@@ -632,8 +632,8 @@ export default async function PlatformOperatorOverviewPage() {
         </div>
 
         {/* Companies at Risk */}
-        <div className="rounded-xl border border-[#E5E7EB] bg-white">
-          <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
+        <div className="rounded-xl border border-line bg-white">
+          <div className="flex items-center justify-between border-b border-line px-5 py-4">
             <div>
               <h3 className="text-sm font-semibold text-gray-700">Companies at Risk</h3>
               <p className="mt-0.5 text-[13px] text-gray-500">
@@ -644,7 +644,7 @@ export default async function PlatformOperatorOverviewPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#E5E7EB] text-xs uppercase text-gray-500">
+                <tr className="border-b border-line text-xs uppercase text-gray-500">
                   <th className="px-5 py-3 text-left font-medium">Company</th>
                   <th className="px-5 py-3 text-left font-medium">Status</th>
                   <th className="px-5 py-3 text-right font-medium">Trial Ends</th>
@@ -698,8 +698,8 @@ export default async function PlatformOperatorOverviewPage() {
 
       {/* ── Health Summary ──────────────────────────────── */}
       {health.length > 0 && (
-        <div className="rounded-xl border border-[#E5E7EB] bg-white">
-          <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
+        <div className="rounded-xl border border-line bg-white">
+          <div className="flex items-center justify-between border-b border-line px-5 py-4">
             <div>
               <h3 className="text-sm font-semibold text-gray-700">Association Health by Company</h3>
               <p className="mt-0.5 text-[13px] text-gray-500">
@@ -710,7 +710,7 @@ export default async function PlatformOperatorOverviewPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#E5E7EB] text-xs uppercase text-gray-500">
+                <tr className="border-b border-line text-xs uppercase text-gray-500">
                   <th className="px-5 py-3 text-left font-medium">Portfolio</th>
                   <th className="px-5 py-3 text-right font-medium">Total Assocs</th>
                   <th className="px-5 py-3 text-right font-medium">Doors</th>

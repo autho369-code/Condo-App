@@ -18,7 +18,7 @@ export const metadata: Metadata = { title: 'Upload requested document', robots: 
 function Shell({ children }: { children: React.ReactNode }) {
   return <div className="mx-auto max-w-xl px-4 py-8 sm:py-12">{children}</div>;
 }
-const card = 'rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
+const card = 'rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
 
 export default async function VendorUploadPage({
   params,

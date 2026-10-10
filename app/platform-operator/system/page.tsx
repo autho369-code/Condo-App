@@ -6,7 +6,7 @@ import { MailCheck, MailWarning, Webhook, Database, Inbox } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 export default async function SystemMonitorPage() {
   await requirePlatformOperator()

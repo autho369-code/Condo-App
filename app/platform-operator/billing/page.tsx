@@ -42,7 +42,7 @@ function StatCard({
   );
 }
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
 const thead = 'border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500';
 const trow = 'border-b border-gray-50 last:border-0 hover:bg-gray-50/60';
 

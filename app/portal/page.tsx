@@ -127,7 +127,7 @@ export default async function OwnerDashboard() {
     } catch {}
   }
 
-  const card = 'rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+  const card = 'rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
   return (
     <div className="space-y-6">
@@ -178,7 +178,7 @@ export default async function OwnerDashboard() {
               {s.hint && <div className="mt-1 text-[12.5px] font-medium text-gray-500">{s.hint} →</div>}
             </>
           )
-          const cls = 'rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+          const cls = 'rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
           return s.href
             ? <Link key={s.label} href={s.href} className={cls + ' block transition hover:border-gray-300 hover:bg-gray-50/60'}>{inner}</Link>
             : <div key={s.label} className={cls}>{inner}</div>
@@ -198,10 +198,10 @@ export default async function OwnerDashboard() {
           <Link key={a.label} href={a.href} className={
             a.primary
               ? 'flex flex-col items-center gap-2 rounded-2xl border border-gray-950 bg-gray-950 p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:bg-gray-800'
-              : 'flex flex-col items-center gap-2 rounded-2xl border border-gray-200/70 bg-white p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300 hover:bg-gray-50/60'
+              : 'flex flex-col items-center gap-2 rounded-2xl border border-line bg-white p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300 hover:bg-gray-50/60'
           }>
-            <a.icon className={a.primary ? 'h-6 w-6 text-white/80' : 'h-6 w-6 text-gray-400'} />
-            <span className={a.primary ? 'text-xs font-semibold text-white' : 'text-xs font-medium text-gray-700'}>{a.label}</span>
+            <a.icon className={a.primary ? 'h-6 w-6 text-white/80' : 'h-6 w-6 text-accent'} />
+            <span className={a.primary ? 'text-[13.5px] font-semibold text-white' : 'text-[13.5px] font-medium text-gray-800'}>{a.label}</span>
           </Link>
         ))}
       </div>

@@ -29,7 +29,7 @@ export const dynamic = 'force-dynamic'
 
 const STAFF_ROLES = ['manager', 'company_admin']
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 type Insight = {
   severity: 'critical' | 'warning' | 'info'
@@ -233,7 +233,7 @@ export default async function PlatformInsightsPage() {
   const sevStyles = {
     critical: 'border-red-200 bg-red-50/60',
     warning: 'border-amber-200 bg-amber-50/60',
-    info: 'border-gray-200/70 bg-white',
+    info: 'border-line bg-white',
   } as const
   const sevIcon = { critical: 'text-red-600', warning: 'text-amber-600', info: 'text-gray-400' } as const
 

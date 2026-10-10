@@ -46,7 +46,7 @@ function formatLabel(value: string) {
 
 const secondaryButton =
   'inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50';
-const card = 'rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
+const card = 'rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
 
 export function FieldCaptureForm({
   userId,

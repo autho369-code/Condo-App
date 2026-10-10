@@ -69,7 +69,7 @@ export function EscalationPanel({
             const done = i < v.current_step;
             const isNext = i === v.current_step && !resolved;
             return (
-              <li key={s.id} className={`rounded-xl border px-3 py-2.5 ${isNext ? 'border-gray-900' : 'border-gray-200/70'} ${done ? 'bg-gray-50' : 'bg-white'}`}>
+              <li key={s.id} className={`rounded-xl border px-3 py-2.5 ${isNext ? 'border-gray-900' : 'border-line'} ${done ? 'bg-gray-50' : 'bg-white'}`}>
                 <div className="flex items-center gap-2 text-[12px] text-gray-500">
                   {done ? <Check className="h-3.5 w-3.5 text-gray-700" /> : <span className="tabular-nums">{i + 1}</span>}
                   <span>{i === 0 ? `day ${s.days_after_previous}` : `+${s.days_after_previous} days`}</span>

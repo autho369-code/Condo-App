@@ -9,7 +9,7 @@ import { displayTimeZone } from '@/lib/time/display-zone'
 
 export const dynamic = 'force-dynamic'
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 const STEP_LABELS: Record<string, string> = {
   initiated: 'Owner clicked Pay',

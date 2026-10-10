@@ -13,7 +13,7 @@ import { sameHostCompanyUrl } from '@/lib/tenant/request-url';
 
 export const dynamic = 'force-dynamic';
 
-const card = 'rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
+const card = 'rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
 
 function canManageAssociationStripe(me: {
   is_platform_operator: boolean;
