@@ -118,3 +118,7 @@ Back to [[Home]]. Don't redo these.
   tie-out counts on that line every ledger equity account named retained
   earnings (not "current year") that the file does not list, and names
   them on the row. An account the file lists is compared on its own row.
+  Mirsad (2026-10-10, #271): when the file lists the number, the numbered
+  row is compared whole; a combined (all associations) file where two
+  associations use the same number for different equity is left as two
+  offsetting rows (total still right), not split by guessing.
