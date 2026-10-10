@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (open PR: opening balances step on the import page; Randolph Station imported and ties out with no flags; next: vendor details, then Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (open PR #272: opening balances step on the import page; Randolph Station imported and ties out with no flags; next: vendor details, then Stripe pilot).
 
 ## Open PR
-- Branch claude/serene-wozniak-hvgpxf: opening balances step on the import
+- #272 (branch claude/serene-wozniak-hvgpxf): opening balances step on the import
   page. Under the trial balance tie-out (one association), "Post opening
   balances" posts one entry dated the as-of date with each account's
   difference (file minus ledger), prior years' retained earnings to the
