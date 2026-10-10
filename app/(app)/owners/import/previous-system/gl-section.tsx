@@ -245,6 +245,9 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
     setChecks([]);
     setError(null);
     setResult(null);
+    setRetainedNumber('');
+    setOpening(null);
+    setConfirming(false);
     setFileName(file?.name ?? '');
     if (!file) return;
     try {
@@ -305,7 +308,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
     setError(null);
     setResult(null);
     setConfirming(false);
-    if (!keepOpening) setOpening(null);
+    if (!keepOpening) { setOpening(null); setRetainedNumber(''); }
     try {
       const res = await tieOutTrialBalance(
         associationId,
@@ -351,11 +354,12 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
   // What the opening entry would post (the server recomputes it before posting).
   const pyDiff = result?.priorYears?.difference ?? 0;
   const pairedRetained = result?.priorYears?.accounts?.length === 1;
-  const openingLines = lines.filter((l) => l.difference !== 0).length + (pyDiff !== 0 && !pairedRetained ? 1 : 0);
+  // The prior-years line always posts as its own line (its account is never one of the file's rows).
+  const openingLines = lines.filter((l) => l.difference !== 0).length + (pyDiff !== 0 ? 1 : 0);
   const openingTotal = Math.round((lines.reduce((s, l) => s + (l.difference > 0 ? l.difference : 0), 0)
     + (pyDiff > 0 ? pyDiff : 0)) * 100) / 100;
   const needsRetainedChoice = pyDiff !== 0 && !pairedRetained;
-  const showOpening = Boolean(postOpeningBalances && result && t && !combined && (openingLines > 0 || opening));
+  const showOpening = Boolean(postOpeningBalances && result && t && !combined && openingLines > 0);
 
   return (
     <div className="space-y-5">
@@ -534,7 +538,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
           <SectionTitle
             className="mb-0"
             title="Opening balances"
-            description={`Posts one journal entry dated ${result?.asOf ?? asOf} that brings each account to the file's ending balance: the Difference column above. Import open balances first; what they already posted is left out. Once posted, every account matches and running this again posts nothing.`}
+            description={`Posts one journal entry dated ${result?.asOf ?? asOf} that brings each account to the file's ending balance: the Difference column above. Import the open balances section first; amounts it already posted are left out of this entry. Once posted, every account matches and running this again posts nothing.`}
           />
           {needsRetainedChoice && (
             (result?.equityAccounts?.length ?? 0) > 0 ? (
@@ -576,17 +580,18 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
               )}
             </div>
           )}
-          {opening && (
-            <Alert tone={opening.ok ? 'success' : 'danger'} title={opening.message}>
-              <ResultList items={opening.errors} />
-              {opening.ok && (opening.lines ?? 0) > 0 && (
-                <Link href="/journal-entries?tab=batches" className="mt-1 inline-flex min-h-10 items-center font-medium text-blue-700 hover:underline">
-                  View the journal entry batch
-                </Link>
-              )}
-            </Alert>
-          )}
         </Surface>
+      )}
+      {/* Outside the panel: stays visible after posting, even if the refresh fails. */}
+      {opening && (
+        <Alert tone={opening.ok ? 'success' : 'danger'} title={opening.message}>
+          <ResultList items={opening.errors} />
+          {opening.ok && (opening.lines ?? 0) > 0 && (
+            <Link href="/journal-entries?tab=batches" className="mt-1 inline-flex min-h-10 items-center font-medium underline">
+              View the journal entry batch
+            </Link>
+          )}
+        </Alert>
       )}
     </div>
   );

@@ -11,7 +11,9 @@ Back to [[Home]]. Updated 2026-10-10 (open PR: opening balances step on the impo
   import_journal_entry_batch. Server recomputes the tie-out under an import
   lock; refuses all associations, cash basis, all-time with a prior-years
   line, accounts missing from the chart, hidden accounts and ledger-only
-  balances. Confirm-first button. A second run posts nothing. No migration.
+  balances, and a second opening entry for the association (any date).
+  Holds the open-balance import's lock too. Confirm-first button. No
+  migration.
   Tests in gl-actions.test.ts. Randolph Station already ties out, so it
   would post nothing there.
 

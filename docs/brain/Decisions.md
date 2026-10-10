@@ -132,4 +132,6 @@ Back to [[Home]]. Don't redo these.
   balances first). Prior years' retained earnings go only to an account the
   tie-out pairs with that line. It never reverses a ledger balance the file
   does not list, never posts to hidden accounts, and needs an accrual file
-  compared fiscal year to date.
+  compared fiscal year to date. One opening entry per association (found by
+  its memo on the association's lines, any date); corrections go in as
+  journal entries.

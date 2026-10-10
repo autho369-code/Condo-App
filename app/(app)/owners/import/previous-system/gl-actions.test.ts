@@ -11,17 +11,22 @@ const state = vi.hoisted(() => ({
   accounts: [] as Array<{ id: string; number: number; name: string; account_type: string; active?: boolean }>,
   totals: {} as Record<string, { debit: number; credit: number }>,
   rpcs: [] as Array<{ fn: string; args: any }>,
+  openingLines: [] as Array<{ id: string }>,
+  locks: [] as string[],
 }));
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/auth/me', () => ({ requireFinanceStaff: vi.fn().mockResolvedValue({ portfolio: { id: 'co' } }) }));
-vi.mock('@/lib/imports/import-lock', () => ({ withImportLock: (_db: unknown, _s: string, _k: string, fn: () => unknown) => fn() }));
+vi.mock('@/lib/imports/import-lock', () => ({
+  withImportLock: (_db: unknown, _s: string, kind: string, fn: () => unknown) => { state.locks.push(kind); return fn(); },
+}));
 vi.mock('@/lib/finance/totals', () => ({ ledgerTotalsByAccount: async (_db: unknown, o: { to: string }) => (o.to === '2026-10-08' ? state.totals : {}) }));
 vi.mock('@/lib/supabase/fetch-all', () => ({ fetchAllRows: async () => ({ rows: state.accounts, error: null }) }));
 vi.mock('@/lib/supabase/server', () => ({
   createClient: async () => {
     const q: any = {
-      select: () => q, eq: () => q, or: () => q, is: () => q, order: () => q,
+      select: () => q, eq: () => q, or: () => q, is: () => q, order: () => q, limit: () => q,
+      then: (ok: (v: unknown) => unknown) => Promise.resolve({ data: state.openingLines, error: null }).then(ok),
       maybeSingle: async () => ({ data: { id: ASSOC, name: 'Sample', portfolio_id: 'co', fiscal_year_start: 1 }, error: null }),
     };
     return {
@@ -144,6 +149,8 @@ describe('opening balances from the trial balance', () => {
   ];
   beforeEach(() => {
     state.rpcs = [];
+    state.openingLines = [];
+    state.locks = [];
     state.accounts = [
       { id: 'cash', number: 1150, name: 'Operating', account_type: 'cash' },
       { id: 'ar', number: 1300, name: 'Receivable', account_type: 'accounts_receivable' },
@@ -170,6 +177,16 @@ describe('opening balances from the trial balance', () => {
       expect(x).toMatchObject({ entry: 'OPENING-2026-10-08', date: '2026-10-08', association: ASSOC, memo: 'Opening balance from previous system trial balance' });
     }
     expect(JSON.stringify(call?.args)).not.toMatch(/appfolio/i);
+    // Holds its own lock and the open-balance import's.
+    expect(state.locks).toEqual(['opening_balances', 'appfolio_receivables']);
+  });
+
+  it('refuses a second opening entry for the association, whatever the date', async () => {
+    state.openingLines = [{ id: 'l1' }];
+    const r = await postOpeningBalancesFromTrialBalance(ASSOC, '2026-05-31', file, { priorYearsRetainedEarnings: -850, retainedEarningsNumber: 3350 });
+    expect(r.ok).toBe(false);
+    expect(r.message).toContain('already has an opening balance entry');
+    expect(state.rpcs).toEqual([]);
   });
 
   it('posts nothing when every account already matches', async () => {

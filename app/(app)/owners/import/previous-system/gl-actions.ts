@@ -450,6 +450,7 @@ export type OpeningBalancesOptions = TieOutOptions & {
 };
 
 const OPENING_MEMO = 'Opening balance from previous system trial balance';
+const fmtMoney = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /**
  * Post one journal entry, dated `asOf`, that brings each account of one
@@ -476,7 +477,19 @@ export async function postOpeningBalancesFromTrialBalance(
   }
   const db = (await createClient()) as any;
   try {
-    return await withImportLock(db, associationId, 'opening_balances', async () => {
+    // The open-balance import writes the same accounts: hold its lock too, so
+    // nothing lands between reading the ledger and posting.
+    return await withImportLock(db, associationId, 'opening_balances', () => withImportLock(db, associationId, 'appfolio_receivables', async () => {
+      // One opening entry per association. The tie-out only reads up to the
+      // as-of date, so a run with an earlier date would not see an entry
+      // already posted and would post the opening balances again.
+      const { data: existing, error: existingErr } = await db
+        .from('journal_lines').select('id').eq('association_id', associationId).eq('memo', OPENING_MEMO).limit(1);
+      if (existingErr) return { ok: false, message: `Could not check for an earlier opening entry: ${existingErr.message}` };
+      if (existing?.length) {
+        return { ok: false, message: 'This association already has an opening balance entry. Make any corrections with a journal entry.' };
+      }
+
       // Recompute against the ledger now; this also re-checks the association is the caller's.
       const tie = await tieOutAppfolioTrialBalance(associationId, asOf, rows, {
         incomeBasis: options.incomeBasis, priorYearsRetainedEarnings: options.priorYearsRetainedEarnings,
@@ -499,7 +512,7 @@ export async function postOpeningBalancesFromTrialBalance(
         return {
           ok: false,
           message: 'Your ledger has balances on accounts the file does not list. Check these first; opening balances are posted only when every ledger balance is in the file.',
-          errors: ledgerOnly.map((l) => `${l.number} ${l.name}: ${l.portier?.toFixed(2)}`),
+          errors: ledgerOnly.map((l) => `${l.number} ${l.name}: ${fmtMoney(l.portier ?? 0)}`),
         };
       }
       const hidden = tie.lines.filter((l) => l.difference !== 0 && l.active === false);
@@ -544,7 +557,7 @@ export async function postOpeningBalancesFromTrialBalance(
       const debits = cents(posting.reduce((s, [, a]) => s + (a > 0 ? a : 0), 0));
       const credits = cents(posting.reduce((s, [, a]) => s + (a < 0 ? -a : 0), 0));
       if (debits !== credits) {
-        return { ok: false, message: `The differences do not balance (debits ${debits.toFixed(2)}, credits ${credits.toFixed(2)}). Check that the file balances and that it is for this association only.` };
+        return { ok: false, message: `The differences do not balance (debits ${fmtMoney(debits)}, credits ${fmtMoney(credits)}). Check that the file balances and that it is for this association only.` };
       }
 
       const entry = `OPENING-${asOf}`;
@@ -566,8 +579,8 @@ export async function postOpeningBalancesFromTrialBalance(
         return { ok: false, message: `Nothing was posted — fix ${data?.error_count ?? 'the'} problem${data?.error_count === 1 ? '' : 's'} and try again.`, errors: data?.errors ?? [] };
       }
       revalidatePath('/journal-entries');
-      return { ok: true, message: `Posted one opening entry with ${posting.length} lines, ${debits.toFixed(2)} on each side.`, lines: posting.length, total: debits };
-    });
+      return { ok: true, message: `Posted one opening entry with ${posting.length} lines, ${fmtMoney(debits)} on each side, against the ledger as it stood when you posted.`, lines: posting.length, total: debits };
+    }));
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : 'The opening balances could not be posted. Try again.' };
   }
