@@ -209,9 +209,11 @@ const INCOME_STATEMENT_TYPES = new Set(['income', 'other_income', 'expense', 'co
 const MAX_TIE_OUT_ROWS = 5000;
 const cents = (n: number) => Math.round(n * 100) / 100;
 /** A prior years' retained-earnings account (not the current year's). */
-// Any separator between the words: "Retained-Earnings", "Current_Year".
+// Any separator between the words ("Retained-Earnings"). A name that says
+// it is this year's in any way ("Current Fiscal Year", "This Year", "YTD",
+// "Year to Date", "FY") is never counted as prior years'.
 const PRIOR_RETAINED_EARNINGS = /retained[\W_]*earnings/i;
-const CURRENT_YEAR = /current[\W_]*year/i;
+const CURRENT_YEAR = /(^|[\W_])(current|this[\W_]*year|ytd|year[\W_]*to[\W_]*date|fy)([\W_]|$)/i;
 
 /**
  * Compare AppFolio's trial balance ending balances with the posted ledger as

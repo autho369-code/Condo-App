@@ -97,4 +97,15 @@ describe('trial balance tie-out: prior years retained earnings', () => {
     expect(r.lines?.find((l) => l.number === 3360)?.status).toBe('not_in_appfolio');
     expect(r.priorYears?.accounts?.map((a) => a.number)).toEqual([3350]);
   });
+
+  it('never counts an account that says it is this year\'s', async () => {
+    for (const name of ['Current Fiscal Year Retained Earnings', 'Retained Earnings - This Year', 'YTD Retained Earnings', 'Retained Earnings Year-to-Date', 'Retained Earnings (FY)']) {
+      state.accounts = state.accounts.map((a) => (a.number === 3360 ? { ...a, name } : a));
+      state.totals.cy = { debit: 0, credit: 50 };
+      state.totals.cash = { debit: 1050, credit: 0 };
+      const r = await tieOutAppfolioTrialBalance(ASSOC, '2026-10-08', rows, { priorYearsRetainedEarnings: -600 });
+      expect(r.lines?.find((l) => l.number === 3360)?.status, name).toBe('not_in_appfolio');
+      expect(r.priorYears?.accounts?.map((a) => a.number), name).toEqual([3350]);
+    }
+  });
 });
