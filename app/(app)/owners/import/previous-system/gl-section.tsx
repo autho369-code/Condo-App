@@ -448,10 +448,15 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance }: 
               )}
               {result.priorYears && (
                 <TR>
-                  <TD>
+                  <TD className="min-w-48">
                     Prior years&apos; retained earnings
                     <span className="block text-xs text-gray-400">
-                      {result.incomeFrom ? `Income and expense before ${result.incomeFrom}` : 'Calculated by your previous system'}
+                      {result.incomeFrom || result.priorYears.accounts?.length
+                        ? `Your ledger: ${[
+                            ...(result.incomeFrom ? [`income and expense before ${result.incomeFrom}`] : []),
+                            ...(result.priorYears.accounts ?? []).map((a) => `${a.number} ${a.name}`),
+                          ].join(' plus ')}`
+                        : 'Calculated by your previous system'}
                     </span>
                   </TD>
                   <TD className="whitespace-nowrap text-right tabular-nums">{money(result.priorYears.appfolio)}</TD>

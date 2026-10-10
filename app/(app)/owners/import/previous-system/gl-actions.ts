@@ -187,9 +187,16 @@ export type TieOutResult = {
   priorYearsNet?: number;
   /**
    * AppFolio's "Calculated Prior Years Retained Earnings" line against the
-   * ledger's net income before incomeFrom. Included in `totals`.
+   * ledger's net income before incomeFrom plus the ledger's retained-earnings
+   * accounts that are not in the file (`accounts`, e.g. where an opening
+   * journal put that balance). Included in `totals`.
    */
-  priorYears?: { appfolio: number | null; portier: number; difference: number };
+  priorYears?: {
+    appfolio: number | null;
+    portier: number;
+    difference: number;
+    accounts?: Array<{ number: number; name: string; balance: number }>;
+  };
 };
 
 export type TieOutOptions = {
@@ -201,6 +208,20 @@ export type TieOutOptions = {
 const INCOME_STATEMENT_TYPES = new Set(['income', 'other_income', 'expense', 'cost_of_goods_sold', 'other_expense', 'non_operating']);
 const MAX_TIE_OUT_ROWS = 5000;
 const cents = (n: number) => Math.round(n * 100) / 100;
+// A prior years' retained-earnings account is counted on the prior-years
+// line only when its name says so: "prior" or "previous" ("Prior FY Retained
+// Earnings") with nothing of this year's, or exactly "Retained Earnings" and
+// no other word. Any other wording ("CY", "This FY", "2026", ...) keeps the
+// account on its own row, so a name we cannot read shows as a difference
+// instead of hiding a balance. Any separator between words.
+const PRIOR_RETAINED_EARNINGS = /retained[\W_]*earnings/i;
+const SAYS_PRIOR = /(^|[\W_])(prior|previous)([\W_]|$)/i;
+const SAYS_THIS_YEAR = /(^|[\W_])(current|this|ytd|cy)([\W_]|$)/i;
+const isPriorRetainedEarnings = (name: string) => {
+  if (!PRIOR_RETAINED_EARNINGS.test(name) || SAYS_THIS_YEAR.test(name)) return false;
+  if (SAYS_PRIOR.test(name)) return true;
+  return name.replace(PRIOR_RETAINED_EARNINGS, '').replace(/[\W_]+/g, '') === '';
+};
 
 /**
  * Compare AppFolio's trial balance ending balances with the posted ledger as
@@ -299,7 +320,10 @@ export async function tieOutAppfolioTrialBalance(
   }
 
   let priorYearsNet = 0;
-  const portier = new Map<number, { name: string; account_type: string; balance: number }>();
+  // `retained`/`retainedName`: the part of the balance on prior years'
+  // retained-earnings accounts, classified per account before accounts that
+  // share a number (association-own, combined view) are added up.
+  const portier = new Map<number, { name: string; account_type: string; balance: number; retained: number; retainedName: string | null; otherName: string | null; otherType: string | null }>();
   for (const a of accounts) {
     const t = allTime[a.id] ?? { debit: 0, credit: 0 };
     let balance = t.debit - t.credit;
@@ -310,10 +334,15 @@ export async function tieOutAppfolioTrialBalance(
     }
     // Association-own accounts can share a number across associations; combined, they add up.
     const prev = portier.get(Number(a.number));
+    const isRetained = a.account_type === 'equity' && isPriorRetainedEarnings(a.name);
     portier.set(Number(a.number), {
       name: prev?.name ?? a.name,
       account_type: prev?.account_type ?? a.account_type,
       balance: cents((prev?.balance ?? 0) + balance),
+      retained: cents((prev?.retained ?? 0) + (isRetained ? balance : 0)),
+      retainedName: prev?.retainedName ?? (isRetained ? a.name : null),
+      otherName: prev?.otherName ?? (isRetained ? null : a.name),
+      otherType: prev?.otherType ?? (isRetained ? null : a.account_type),
     });
   }
 
@@ -327,20 +356,41 @@ export async function tieOutAppfolioTrialBalance(
     const difference = cents(af.ending - p.balance);
     lines.push({ number, name: af.name || p.name, account_type: p.account_type, appfolio: af.ending, portier: p.balance, difference, status: difference === 0 ? 'match' : 'different' });
   }
+  // The file's prior-years line has no account number. A ledger
+  // retained-earnings account the file does not list holds the same balance
+  // (an opening journal puts it there), so it is counted on that line
+  // instead of being flagged as missing from the file.
+  const pyRaw = options.priorYearsRetainedEarnings;
+  const pyAppfolio = typeof pyRaw === 'number' && Number.isFinite(pyRaw) ? cents(pyRaw) : null;
+  const retainedAccounts: Array<{ number: number; name: string; balance: number }> = [];
   for (const [number, p] of portier) {
-    if (appfolio.has(number) || p.balance === 0) continue;
-    lines.push({ number, name: p.name, account_type: p.account_type, appfolio: null, portier: p.balance, difference: cents(-p.balance), status: 'not_in_appfolio' });
+    if (appfolio.has(number)) continue;
+    let rest = p.balance;
+    let name = p.name;
+    let accountType = p.account_type;
+    if (pyAppfolio !== null && p.retainedName && p.retained !== 0) {
+      retainedAccounts.push({ number, name: p.retainedName, balance: p.retained });
+      rest = cents(p.balance - p.retained);
+      name = p.otherName ?? p.name;
+      accountType = p.otherType ?? p.account_type;
+    }
+    if (rest === 0) continue;
+    lines.push({ number, name, account_type: accountType, appfolio: null, portier: rest, difference: cents(-rest), status: 'not_in_appfolio' });
   }
   lines.sort((a, b) => a.number - b.number);
 
   // Prior fiscal years' net income: AppFolio prints it as its own line with
   // no account number; the ledger's equivalent is income and expense posted
-  // before incomeFrom (zero when comparing all-time balances).
-  const pyRaw = options.priorYearsRetainedEarnings;
-  const pyAppfolio = typeof pyRaw === 'number' && Number.isFinite(pyRaw) ? cents(pyRaw) : null;
-  const pyPortier = cents(priorYearsNet);
+  // before incomeFrom (zero when comparing all-time balances) plus the
+  // retained-earnings accounts above.
+  const pyPortier = cents(priorYearsNet + retainedAccounts.reduce((s, a) => s + a.balance, 0));
   const priorYears = pyAppfolio !== null || pyPortier !== 0
-    ? { appfolio: pyAppfolio, portier: pyPortier, difference: cents((pyAppfolio ?? 0) - pyPortier) }
+    ? {
+        appfolio: pyAppfolio,
+        portier: pyPortier,
+        difference: cents((pyAppfolio ?? 0) - pyPortier),
+        ...(retainedAccounts.length ? { accounts: retainedAccounts } : {}),
+      }
     : undefined;
 
   const sum = (f: (l: TieOutLine) => number) => cents(lines.reduce((s, l) => s + f(l), 0));
@@ -358,7 +408,7 @@ export async function tieOutAppfolioTrialBalance(
       notInPortier: lines.filter((l) => l.status === 'not_in_portier').length,
       notInAppfolio: lines.filter((l) => l.status === 'not_in_appfolio').length,
     },
-    priorYearsNet: pyPortier,
+    priorYearsNet: cents(priorYearsNet),
     priorYears,
   };
 }

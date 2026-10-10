@@ -4,6 +4,12 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-09
+- #270 (merged, a1a0add2; migration 20261009090000 run by Mirsad in the SQL
+  editor and read back by Claude): Journal entries -> Upload batch, Bills ->
+  Upload and the unapplied-credits scan failed with "DELETE requires a
+  WHERE clause" (pg_safeupdate). Each now clears its temp table with
+  truncate; owner, definer and grants unchanged. Test fails any later
+  migration with a bare DELETE.
 - #269 (merged; migration 20261009080000 applied by Claude before the PR
   opened and read back): the open-balance import posts credit lines
   (prepayments) as homeowner credits via import_opening_credit (Dr the Other
