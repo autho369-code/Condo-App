@@ -173,3 +173,9 @@
   city, state, zip) render through AssociationSettingsSection. Before calling a
   field uneditable, grep the field key in `lib/associations/settings-fields.ts`
   and other generic settings renderers, not only `lib/rpcs/*`.
+- RLS rewrites that swap a helper for new my_*() functions (rls-hoist,
+  2026-10-10): the old helper (can_access_portfolio) is granted to anon in
+  the baseline; new helpers revoke anon. Check pg_policies with roles
+  {public}/{anon} that now call a revoked function, and that the
+  equivalence test includes an anon caller. Also CLAUDE.md rule 6 names the
+  policy helpers - update it when the preferred form changes.

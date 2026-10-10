@@ -1,8 +1,11 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (after #280 merged; open PRs: redesign #279, RLS once-per-query; next: vendor details for Randolph Station, then Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (after #280 merged; open PRs: redesign #279, RLS once-per-query; next: Stripe pilot).
 
 ## Open PR
+- #279 claude/redesign-six-roles: one design for all six roles (do not
+  merge yet; progress and handoff in docs/redesign/). Signed-in checks done
+  for owner, vendor, manager and company admin; operator and board pending.
 - claude/rls-hoist: security checks run once per query, not once per row.
   Migration 20261011010000 APPLIED to prod 2026-10-10 (Claude). 1,475
   public policies rewritten in place (ALTER POLICY; roles/commands kept):
@@ -31,6 +34,11 @@ Back to [[Home]]. Updated 2026-10-10 (after #280 merged; open PRs: redesign #279
   signature helpers, journal_entry_touches_board_associations.
 
 ## Where things stand
+- #280 merged (ce66300c): two-step setup page no longer crashes showing
+  the QR code (Supabase returns an unencoded SVG data URL; qrDataUrl()
+  re-encodes it).
+- #278 merged (55cadd0b): dashboard reminders and owner portal home load
+  in two waves of parallel queries instead of 7-13 sequential ones.
 - #277 merged (824566b2): "Unlink login" button on the owner record
   (Portal access): confirm-first, cuts off the record's own sign-in
   (auth_user_id cleared, portal off) and every sign-in it was added to
@@ -341,5 +349,10 @@ Back to [[Home]]. Updated 2026-10-10 (after #280 merged; open PRs: redesign #279
    real association uses the import page incl. the opening balances step
    (CSV exports do not state the basis: tick the accrual box).
 1. Stripe live for one pilot association (Mirsad's account setup).
-2. Optional: per-request identity caching for speed (identity checks
-   ~0.1-0.5 ms per row each; riskier, measure first).
+2. Optional: per-request identity caching for speed. Re-measure first:
+   since 20261011010000/20000 identity checks run once per query, so the
+   old ~0.1-0.5 ms per row figure no longer applies.
+3. Low priority: per-row policy helpers left on rarely used tables
+   (current_resident_unit_since, can_manage_violations, budget/meeting/
+   signature helpers, journal_entry_touches_board_associations). Same
+   once-per-query rewrite + equivalence script if one of them gets slow.
