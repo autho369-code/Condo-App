@@ -40,8 +40,8 @@ export default async function EmergencyInfoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Emergency Information</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Emergency Information</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           What to do — and who to call — when something goes wrong{associationNames.length ? ` at ${associationNames.join(', ')}` : ''}
         </p>
       </div>
@@ -107,7 +107,7 @@ export default async function EmergencyInfoPage() {
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
                   <Icon className="h-4.5 w-4.5 text-gray-400" />
                 </div>
-                <h2 className="text-sm font-semibold text-gray-950">{section.title}</h2>
+                <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{section.title}</h2>
               </div>
               <ol className="list-decimal space-y-1.5 pl-5 text-[13px] leading-5 text-gray-600">
                 {section.steps.map((s) => <li key={s}>{s}</li>)}

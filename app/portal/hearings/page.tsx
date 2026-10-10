@@ -23,19 +23,19 @@ export default async function OwnerHearingsPage({ searchParams }: { searchParams
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Hearings</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">View hearings scheduled for your violations</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Hearings</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">View hearings scheduled for your violations</p>
       </div>
 
       {all.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <p className="text-sm font-semibold text-gray-900">No hearings scheduled.</p>
           <p className="mt-1 text-sm text-gray-500">If a hearing is scheduled for one of your violations, it will appear here. To request a hearing, contact your association management.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {all.map((v: any) => (
-            <div key={v.id} className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div key={v.id} className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <Link href={`/portal/violations/${v.id}`} className="font-semibold text-gray-900 hover:text-gray-950 hover:underline">{v.title}</Link>

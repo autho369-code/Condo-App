@@ -84,8 +84,8 @@ export default async function PiperPage({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Piper — AI Phone Receptionist</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Piper — AI Phone Receptionist</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Answers +1 (872) 269-8818 around the clock. Teach her here: <strong>pinned</strong> entries are in her head on
           every call; everything else she looks up when asked. Changes apply to the very next call — no redeploy.
         </p>
@@ -107,14 +107,14 @@ export default async function PiperPage({ searchParams }: { searchParams: Promis
         <form action={saveKnowledge} className="space-y-4">
           {editing && <input type="hidden" name="id" value={editing.id} />}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <label className="block sm:col-span-2"><span className="text-sm font-medium text-gray-700">Title</span>
+            <label className="block sm:col-span-2"><span className="text-[13.5px] font-medium text-gray-700">Title</span>
               <input name="title" required defaultValue={editing?.title ?? ''} className={input} placeholder="e.g. Reserve study support" /></label>
-            <label className="block"><span className="text-sm font-medium text-gray-700">Category</span>
+            <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Category</span>
               <select name="category" defaultValue={editing?.category ?? 'product'} className={input}>
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select></label>
           </div>
-          <label className="block"><span className="text-sm font-medium text-gray-700">What Piper should know / say</span>
+          <label className="block"><span className="text-[13.5px] font-medium text-gray-700">What Piper should know / say</span>
             <textarea name="body" required rows={5} defaultValue={editing?.body ?? ''} className={input}
               placeholder="Full detail, phone-friendly. This is exactly the material she answers from." /></label>
           <label className="flex items-center gap-2.5 text-sm text-gray-700">
@@ -131,7 +131,7 @@ export default async function PiperPage({ searchParams }: { searchParams: Promis
       {/* Knowledge list */}
       <div className={card + ' p-6'}>
         <h2 className="mb-4 text-sm font-semibold text-gray-950">What Piper knows ({rows.filter((k: any) => k.active).length} active)</h2>
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-line">
           {rows.map((k: any) => (
             <li key={k.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
               <div className="min-w-0 max-w-2xl">
@@ -173,7 +173,7 @@ export default async function PiperPage({ searchParams }: { searchParams: Promis
         {msgs.length === 0 ? (
           <p className="py-4 text-sm text-gray-400">No calls captured yet. Try her: +1 (872) 269-8818.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-line">
             {msgs.map((m: any) => (
               <li key={m.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
                 <div className="min-w-0 max-w-2xl">

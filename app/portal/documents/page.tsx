@@ -132,8 +132,8 @@ export default async function OwnerDocumentsPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Documents</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Governing documents, forms, and association records</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Documents</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Governing documents, forms, and association records</p>
       </div>
 
       {loadError && <Alert tone="danger" title="Could not load your documents:">{loadError.message}</Alert>}
@@ -142,9 +142,9 @@ export default async function OwnerDocumentsPage() {
         <div className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50/60 px-5 py-4">
             <ClipboardList className="h-5 w-5 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-950">Forms</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Forms</h2>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-line">
             {forms.map((f) => {
               const href = formLinks.get(f.id) ?? (f.file_url && /^https:\/\//i.test(f.file_url) ? f.file_url : null)
               return (
@@ -168,7 +168,7 @@ export default async function OwnerDocumentsPage() {
       )}
 
       {docsError ? null : docs.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <File className="mx-auto h-8 w-8 text-gray-300" />
           <p className="mt-3 text-sm text-gray-500">No documents have been shared with you yet.</p>
           <p className="mt-1 text-xs text-gray-400">Governing documents, forms, and meeting records will appear here once your manager uploads them.</p>
@@ -184,12 +184,12 @@ export default async function OwnerDocumentsPage() {
               <div key={b.key} className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50/60 px-5 py-4">
                   <b.icon className="h-5 w-5 text-gray-400" />
-                  <h2 className="text-sm font-semibold text-gray-950">{b.title}</h2>
+                  <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{b.title}</h2>
                 </div>
                 {items.length === 0 ? (
                   <div className="px-5 py-6 text-sm text-gray-400">No documents yet</div>
                 ) : (
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-line">
                     {items.map((d) => {
                       const href = linkByDoc.get(d.id)
                       const expires = d.expires_at ? new Date(d.expires_at).getTime() : null
@@ -211,7 +211,7 @@ export default async function OwnerDocumentsPage() {
                               ) : (
                                 <span className="block truncate text-sm text-gray-700">{d.file_name ?? 'Untitled document'}</span>
                               )}
-                              <div className="mt-0.5 text-xs text-gray-500">
+                              <div className="mt-0.5 text-[13px] text-gray-500">
                                 {d.uploaded_at ? `Uploaded ${date(d.uploaded_at)}` : 'Upload date unknown'}
                                 {expiringNote ? <span className="text-amber-600"> · {expiringNote}</span> : null}
                               </div>

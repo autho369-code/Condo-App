@@ -79,7 +79,7 @@ export default async function OwnerViolationDetail({
       {sp.hearing_requested === '1' && <Alert tone="success">Hearing request submitted to association management.</Alert>}
       {sp.error && <Alert tone="danger" title="Could not request a hearing:">{sp.error}</Alert>}
 
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{v.title}</h1>

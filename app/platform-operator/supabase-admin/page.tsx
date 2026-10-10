@@ -18,8 +18,8 @@ function StatCard({
     <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
-          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
+          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
+          <div className="mt-1.5 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -92,7 +92,7 @@ export default async function SupabaseAdminPage() {
           <Shield className="h-5 w-5 text-gray-400" />
         </div>
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Platform Admin</h1>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Platform Admin</h1>
           <p className="mt-1 text-sm leading-6 text-gray-500">Database record counts and shortcuts to every administrative tool</p>
         </div>
       </div>
@@ -110,10 +110,10 @@ export default async function SupabaseAdminPage() {
       </div>
 
       {/* Admin tool shortcuts */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Administrative Tools</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Every action below is confirmed, role-restricted, and written to the audit log.</p>
+      <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Administrative Tools</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Every action below is confirmed, role-restricted, and written to the audit log.</p>
         </div>
         <div className="grid grid-cols-1 gap-1 p-4 md:grid-cols-2">
           {ADMIN_TOOLS.map((tool) => (
@@ -138,7 +138,7 @@ export default async function SupabaseAdminPage() {
       <div className="flex items-start gap-3 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <Archive className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
         <div>
-          <h2 className="text-sm font-semibold text-gray-950">Deletes are soft, by policy</h2>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Deletes are soft, by policy</h2>
           <p className="mt-1 text-sm leading-6 text-gray-500">
             Customer data is never permanently destroyed from this console. Archiving a company disables its logins while
             preserving association data, billing records, and audit logs. Hard deletion requires a direct database operation

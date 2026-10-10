@@ -44,23 +44,23 @@ export default async function BoardDocumentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Governing Documents</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Bylaws, declarations, rules and other documents shared with the board</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Governing Documents</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Bylaws, declarations, rules and other documents shared with the board</p>
       </div>
 
       {assocDocsError && <Alert tone="danger" title="Documents could not be loaded">{assocDocsError.message}</Alert>}
       {signError && <Alert tone="danger" title="Download links could not be created">{signError}</Alert>}
 
-      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {docGroups.length === 0 && !assocDocsError ? (
           <div className="px-5 py-10 text-center text-sm text-gray-500">
             <FolderOpen className="mx-auto mb-2 h-6 w-6 text-gray-300" />
             No documents have been shared with the board yet.
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-line">
             {docGroups.map((g) => (
-              <div key={g.folder} className="px-5 py-3">
+              <div key={g.folder} className="px-5 py-3.5">
                 <div className="mb-1.5 text-[12.5px] font-semibold uppercase tracking-wide text-gray-500">{g.folder}</div>
                 <ul className="space-y-1.5">
                   {g.items.map((d: any) => (

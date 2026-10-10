@@ -73,8 +73,8 @@ export default async function OwnerTimelinePage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Activity Timeline</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">All activity on your account in one place</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Activity Timeline</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">All activity on your account in one place</p>
       </div>
 
       {loadError && (
@@ -82,7 +82,7 @@ export default async function OwnerTimelinePage() {
       )}
 
       {entries.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <Calendar className="mx-auto mb-3 h-10 w-10 text-gray-300" />
           <p className="text-sm text-gray-500">No activity recorded yet.</p>
         </div>
@@ -96,7 +96,7 @@ export default async function OwnerTimelinePage() {
               <div className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <div className="flex items-center justify-between">
                   <div className="font-medium text-gray-900 text-sm">{e.title}</div>
-                  <span className="text-xs text-gray-400">{date(e.date)}</span>
+                  <span className="text-[13px] text-gray-500">{date(e.date)}</span>
                 </div>
                 <div className="text-sm text-gray-500 mt-0.5 capitalize">{e.detail}</div>
               </div>

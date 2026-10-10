@@ -31,9 +31,9 @@ function StatCard({
     <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
-          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
-          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
+          <div className="mt-1.5 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
+          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -142,8 +142,8 @@ export default async function SupportPage({
       {loadError && <Alert title="Support requests could not be loaded">{loadError}</Alert>}
 
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Support Requests</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide support request management</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Support Requests</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Platform-wide support request management</p>
       </div>
 
       {/* Stats */}
@@ -155,23 +155,23 @@ export default async function SupportPage({
       </div>
 
       {/* Requests Table */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">All Support Requests</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Requests submitted by company admins from their platform-requests workspace.</p>
+      <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">All Support Requests</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Requests submitted by company admins from their platform-requests workspace.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-4 py-2.5 text-left font-medium">Company</th>
-                <th className="px-4 py-2.5 text-left font-medium">Type</th>
-                <th className="px-4 py-2.5 text-left font-medium">Subject</th>
-                <th className="px-4 py-2.5 text-left font-medium">Priority</th>
-                <th className="px-4 py-2.5 text-left font-medium">Status</th>
-                <th className="px-4 py-2.5 text-left font-medium">Created</th>
-                <th className="px-4 py-2.5 text-left font-medium">Updated</th>
-                <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Company</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Type</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Subject</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Priority</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Created</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Updated</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -180,7 +180,7 @@ export default async function SupportPage({
                   <td colSpan={8} className="px-4 py-12 text-center">
                     <Headphones className="mx-auto mb-2 h-8 w-8 text-gray-300" />
                     <div className="text-sm font-semibold text-gray-900">No support requests found</div>
-                    <div className="mt-1 text-xs text-gray-500">Company admins file requests from their workspace; they appear here.</div>
+                    <div className="mt-1 text-[13px] text-gray-500">Company admins file requests from their workspace; they appear here.</div>
                   </td>
                 </tr>
               ) : (
@@ -193,8 +193,8 @@ export default async function SupportPage({
                       <td className="px-4 py-3 font-medium text-gray-900">{companyName}</td>
                       <td className="px-4 py-3 text-[13px] capitalize text-gray-700">{(req.request_type ?? 'general').replace(/_/g, ' ')}</td>
                       <td className="max-w-xs truncate px-4 py-3 text-[13px] text-gray-700">{req.title ?? req.description ?? '—'}</td>
-                      <td className="px-4 py-3"><StatusChip tone={priorityTone(req.priority)}>{req.priority ?? 'medium'}</StatusChip></td>
-                      <td className="px-4 py-3"><Badge status={req.status ?? 'open'} /></td>
+                      <td className="px-4 py-3.5"><StatusChip tone={priorityTone(req.priority)}>{req.priority ?? 'medium'}</StatusChip></td>
+                      <td className="px-4 py-3.5"><Badge status={req.status ?? 'open'} /></td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs tabular-nums text-gray-500">{date(req.created_at)}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs tabular-nums text-gray-500">{date(req.updated_at ?? req.resolved_at)}</td>
                       <td className="px-4 py-3 text-right">
@@ -219,7 +219,7 @@ export default async function SupportPage({
                             </form>
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-400">—</span>
+                          <span className="text-[13px] text-gray-500">—</span>
                         )}
                       </td>
                     </tr>

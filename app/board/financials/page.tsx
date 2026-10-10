@@ -36,9 +36,9 @@ function StatCard({
     <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="text-[13px] font-medium text-gray-500">{label}</div>
           <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${valueClass}`}>{value}</div>
-          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
         </div>
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -58,10 +58,10 @@ export default async function BoardFinancialsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Financials</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">Association financial overview</p>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Financials</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Association financial overview</p>
         </div>
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <AlertTriangle className="mx-auto h-10 w-10 text-gray-300" />
           <p className="mt-3 text-sm text-gray-500">No associations assigned to your board membership.</p>
         </div>
@@ -266,8 +266,8 @@ export default async function BoardFinancialsPage() {
       {/* ── Header ── */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Financials</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Financials</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
             Financial overview for your association{boardAssocIds.length > 1 ? 's' : ''}
           </p>
         </div>
@@ -284,9 +284,9 @@ export default async function BoardFinancialsPage() {
       {loadErrors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
 
       {yearEndPackages.length > 0 && (
-        <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="border-b border-gray-100 px-5 py-3"><h2 className="text-sm font-semibold text-gray-900">Year-end financial packages</h2></div>
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-line">
             {yearEndPackages.map((p: any) => (
               <li key={p.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
                 <span className="text-gray-900">{p.associations?.name ?? 'Association'} · FY {p.fiscal_year}</span>
@@ -340,7 +340,7 @@ export default async function BoardFinancialsPage() {
       </div>
 
       {/* ── Income vs Expenses Bar ── */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <h2 className="mb-4 text-sm font-semibold text-gray-950">Income vs. Expenses (YTD)</h2>
         <div className="space-y-3">
           <div>
@@ -374,22 +374,22 @@ export default async function BoardFinancialsPage() {
       </div>
 
       {/* ── Recent Transactions ── */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+      <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">Recent Transactions</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Latest money in and out of your association bank accounts</p>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Recent Transactions</h2>
+            <p className="mt-0.5 text-[13px] text-gray-500">Latest money in and out of your association bank accounts</p>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Date</th>
-                <th className="px-5 py-2.5 text-left font-medium">Description</th>
-                <th className="px-5 py-2.5 text-left font-medium">Type</th>
-                <th className="px-5 py-2.5 text-left font-medium">Association</th>
-                <th className="px-5 py-2.5 text-right font-medium">Amount</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Date</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Description</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Type</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Association</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -397,15 +397,15 @@ export default async function BoardFinancialsPage() {
                 <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">{transactionsFailed ? 'Recent transactions are unavailable right now.' : 'No recent transactions available.'}</td></tr>
               ) : (
                 recentTransactions.map((txn: any) => (
-                  <tr key={txn.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(txn.created_at)}</td>
+                  <tr key={txn.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                    <td className="px-5 py-3.5 text-sm tabular-nums text-gray-700">{date(txn.created_at)}</td>
                     <td className="px-5 py-3 text-[13px] text-gray-900">{txn.description ?? '—'}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-3.5">
                       <StatusChip tone={txn.type === 'inflow' ? 'success' : txn.type === 'outflow' ? 'danger' : 'neutral'}>
                         {txn.type}
                       </StatusChip>
                     </td>
-                    <td className="px-5 py-3 text-[13px] text-gray-700">{txn.associations?.name ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-700">{txn.associations?.name ?? '—'}</td>
                     <td className={`px-5 py-3 text-right tabular-nums ${txn.amount > 0 ? 'text-emerald-700' : txn.amount < 0 ? 'text-red-700' : 'text-gray-700'}`}>
                       {money(txn.amount)}
                     </td>

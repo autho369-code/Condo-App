@@ -12,7 +12,7 @@ const card = 'rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</dt>
+      <dt className="text-[13px] font-medium text-gray-500">{label}</dt>
       <dd className="mt-0.5 text-sm text-gray-900">{value ?? '—'}</dd>
     </div>
   )
@@ -55,8 +55,8 @@ export default async function MyHomePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">My Home</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Your unit, parking, storage, and household details on file</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">My Home</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Your unit, parking, storage, and household details on file</p>
       </div>
 
       {occs.length === 0 ? (
@@ -69,8 +69,8 @@ export default async function MyHomePage() {
                 <Home className="h-4.5 w-4.5 text-gray-400" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-gray-950">Unit {o.units?.unit_number ?? '—'}</h2>
-                <p className="text-xs text-gray-500">{o.associations?.name ?? ''}</p>
+                <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Unit {o.units?.unit_number ?? '—'}</h2>
+                <p className="text-[13px] text-gray-500">{o.associations?.name ?? ''}</p>
               </div>
             </div>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -93,7 +93,7 @@ export default async function MyHomePage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
               <Car className="h-4.5 w-4.5 text-gray-400" />
             </div>
-            <h2 className="text-sm font-semibold text-gray-950">Assigned Parking</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Assigned Parking</h2>
           </div>
           {(parking ?? []).length === 0 ? (
             <p className="py-2 text-sm text-gray-400">No parking assignments on file. Contact your management company to register a vehicle.</p>
@@ -106,7 +106,7 @@ export default async function MyHomePage() {
                     {p.parking_spaces?.space_type ? <span className="ml-1.5 text-xs font-normal capitalize text-gray-500">({String(p.parking_spaces.space_type).replace(/_/g, ' ')})</span> : null}
                   </div>
                   {(p.vehicle_make || p.license_plate) && (
-                    <div className="mt-0.5 text-xs text-gray-500">
+                    <div className="mt-0.5 text-[13px] text-gray-500">
                       {[p.vehicle_color, p.vehicle_make, p.vehicle_model].filter(Boolean).join(' ')}{p.license_plate ? ` · ${p.license_plate}` : ''}
                     </div>
                   )}
@@ -121,7 +121,7 @@ export default async function MyHomePage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
               <PawPrint className="h-4.5 w-4.5 text-gray-400" />
             </div>
-            <h2 className="text-sm font-semibold text-gray-950">Registered Pets</h2>
+            <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Registered Pets</h2>
           </div>
           {(pets ?? []).length === 0 ? (
             <p className="py-2 text-sm text-gray-400">No pets registered. Contact your management company to register one.</p>
@@ -149,7 +149,7 @@ export default async function MyHomePage() {
             {contacts.map((c) => (
               <div key={c.id}>
                 {contacts.length > 1 && c.association && (
-                  <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{c.association}</div>
+                  <div className="text-[13px] font-medium text-gray-500">{c.association}</div>
                 )}
                 {c.name ? (
                   <p className="text-sm text-gray-900">

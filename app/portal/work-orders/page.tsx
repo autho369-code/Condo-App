@@ -38,8 +38,8 @@ export default async function OwnerWorkOrdersPage() {
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Work Orders</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">Track your maintenance and repair requests</p>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Work Orders</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Track your maintenance and repair requests</p>
         </div>
         <Link href="/portal/service-requests/new" className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">
           <Plus className="h-4 w-4" /> New Request
@@ -49,30 +49,30 @@ export default async function OwnerWorkOrdersPage() {
       {wosError && <Alert tone="danger" title="Could not load work orders:">{wosError.message}</Alert>}
 
       {wosError ? null : all.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <p className="text-sm text-gray-500">No work orders submitted yet.</p>
           <Link href="/portal/service-requests/new" className="mt-3 inline-block text-sm font-medium text-gray-700 hover:text-gray-950 hover:underline">Submit your first request →</Link>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
-                <th className="px-5 py-2.5 text-left font-medium">Request</th>
-                <th className="px-5 py-2.5 text-left font-medium">Unit</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Request</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Unit</th>
                 <th className="px-5 py-2.5 text-center font-medium">Priority</th>
                 <th className="px-5 py-2.5 text-center font-medium">Status</th>
-                <th className="px-5 py-2.5 text-right font-medium">Date</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Date</th>
               </tr>
             </thead>
             <tbody>
               {all.map((w: any) => (
-                <tr key={w.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                  <td className="px-5 py-3">
+                <tr key={w.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                  <td className="px-5 py-3.5">
                     <Link href={`/portal/work-orders/${w.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{w.title}</Link>
                     <div className="mt-0.5 text-xs capitalize text-gray-500">{w.category?.replace('_',' ') ?? 'General'}</div>
                   </td>
-                  <td className="px-5 py-3 text-[13px] text-gray-700">{w.units?.unit_number ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-sm text-gray-700">{w.units?.unit_number ?? '—'}</td>
                   <td className="px-5 py-3 text-center"><StatusChip tone={priorityTone(w.priority)}>{w.priority ?? '—'}</StatusChip></td>
                   <td className="px-5 py-3 text-center"><Badge status={w.status} /></td>
                   <td className="px-5 py-3 text-right text-[13px] tabular-nums text-gray-700">{date(w.created_at)}</td>

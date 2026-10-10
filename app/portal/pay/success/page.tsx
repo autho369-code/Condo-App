@@ -31,7 +31,7 @@ export default async function PaymentSuccessPage({
         <Clock className="mx-auto h-14 w-14 text-blue-500" />
       )}
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">
           {settled ? 'Payment received' : 'Payment submitted'}
         </h1>
         <p className="mt-2 text-sm leading-6 text-gray-500">

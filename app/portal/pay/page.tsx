@@ -103,7 +103,7 @@ export default async function PayPage({
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">How to pay</h1>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">How to pay</h1>
           <Link href="/portal"><Button variant="secondary">Back</Button></Link>
         </div>
         <Alert tone="danger" title="Payment options are unavailable right now:">
@@ -120,7 +120,7 @@ export default async function PayPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">How to pay</h1>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">How to pay</h1>
         <Link href="/portal"><Button variant="secondary">Back</Button></Link>
       </div>
 
@@ -198,19 +198,19 @@ export default async function PayPage({
                 <div className="space-y-4">
                   {assoc?.remit_payee && (
                     <div>
-                      <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Make checks payable to</div>
+                      <div className="text-[13px] font-medium text-gray-500">Make checks payable to</div>
                       <div className="mt-0.5 text-sm font-medium text-gray-900">{assoc.remit_payee}</div>
                     </div>
                   )}
                   {assoc?.remit_address && (
                     <div>
-                      <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Mail payments to</div>
+                      <div className="text-[13px] font-medium text-gray-500">Mail payments to</div>
                       <div className="mt-0.5 whitespace-pre-line text-sm text-gray-900">{assoc.remit_address}</div>
                     </div>
                   )}
                   {assoc?.payment_instructions && (
                     <div>
-                      <div className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Other options &amp; notes</div>
+                      <div className="text-[13px] font-medium text-gray-500">Other options &amp; notes</div>
                       <div className="mt-0.5 whitespace-pre-line text-sm text-gray-700">{assoc.payment_instructions}</div>
                     </div>
                   )}

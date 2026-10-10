@@ -73,8 +73,8 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
   return (
     <div className="space-y-8 max-w-3xl">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Communications</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Send messages to management and view announcements</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Communications</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Send messages to management and view announcements</p>
       </div>
 
       {banner.error && <Alert tone="danger" title="Could not send:">{banner.error}</Alert>}
@@ -84,25 +84,25 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
       )}
 
       {/* Send Message */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
         <h2 className="mb-4 text-sm font-semibold text-gray-950">Send a Message</h2>
         <form action={sendMessage} className="space-y-4">
           <input type="hidden" name="request_key" value={requestKey} />
           {records.length > 1 ? (
-            <label className="block"><span className="text-sm font-medium text-gray-700">Association</span><select name="record_id" required defaultValue={records[0].id} className="mt-1 block min-h-10 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">{records.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}</select></label>
+            <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Association</span><select name="record_id" required defaultValue={records[0].id} className="mt-1 block min-h-10 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">{records.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}</select></label>
           ) : (
             // Never a silent first-record fallback for a login with several records
             // (their list failed to load): the action then asks for the association.
             <input type="hidden" name="record_id" value={me.owner_ids.length === 1 ? me.owner_id ?? '' : ''} />
           )}
-          <label className="block"><span className="text-sm font-medium text-gray-700">Subject</span><input name="subject" required minLength={2} maxLength={200} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
-          <label className="block"><span className="text-sm font-medium text-gray-700">Message</span><textarea name="body" required minLength={2} maxLength={10000} rows={4} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
+          <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Subject</span><input name="subject" required minLength={2} maxLength={200} className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" /></label>
+          <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Message</span><textarea name="body" required minLength={2} maxLength={10000} rows={4} className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" /></label>
           <button type="submit" className="rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">Send Message</button>
         </form>
       </div>
 
       {/* Announcements */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
         <h2 className="mb-3 text-sm font-semibold text-gray-950">Announcements</h2>
         {announcements.length === 0 ? (
           <p className="text-sm text-gray-400">No announcements yet.</p>
@@ -111,7 +111,7 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
             {announcements.map((a: any, i: number) => (
               <div key={a.id ?? i} className="py-2 border-b border-gray-100 last:border-0">
                 <div className="text-sm font-medium text-gray-800">{a.subject}</div>
-                <div className="text-xs text-gray-500">{date(a.created_at)}</div>
+                <div className="text-[13px] text-gray-500">{date(a.created_at)}</div>
                 {/* Stored as HTML; rendered as plain text, never as markup. */}
                 {htmlToPlainText(a.body) && <p className="mt-1.5 whitespace-pre-line break-words text-sm leading-6 text-gray-600">{htmlToPlainText(a.body)}</p>}
               </div>
@@ -121,7 +121,7 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
       </div>
 
       {/* Message History */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
         <h2 className="mb-3 text-sm font-semibold text-gray-950">Message History</h2>
         {(msgs ?? []).length === 0 ? (
           <p className="text-sm text-gray-400">No messages sent yet.</p>
@@ -132,7 +132,7 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
                 <div>
                   <div className="text-sm text-gray-800">{m.subject}</div>
                   {m.body && <div className="mt-0.5 max-w-xl truncate text-xs text-gray-500">{m.body}</div>}
-                  <div className="text-xs text-gray-500">{date(m.created_at)}</div>
+                  <div className="text-[13px] text-gray-500">{date(m.created_at)}</div>
                 </div>
                 <Badge status={m.status} />
               </div>

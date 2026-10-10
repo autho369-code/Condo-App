@@ -17,8 +17,8 @@ export default async function OwnerAssistantPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">AI Assistant</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">AI Assistant</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Ask about your balance, payments, requests, and community events — answers come only from your own account data.
         </p>
       </div>

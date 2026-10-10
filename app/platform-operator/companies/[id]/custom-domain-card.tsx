@@ -26,7 +26,7 @@ export function CustomDomainCard({
     <Card id="custom-domain">
       <CardHeader>
         <CardTitle>Custom domain</CardTitle>
-        <p className="text-xs text-gray-500">
+        <p className="text-[13px] text-gray-500">
           Serve the company from its own domain, such as portal.theircompany.com. Its workspace address
           {slug ? ` (${slug}.${apexDomain()})` : ''} keeps working alongside it. Leave the field empty and save to remove the domain.
         </p>
@@ -67,7 +67,7 @@ async function DomainStatus({ domain }: { domain: string }) {
     <div className="mt-4 space-y-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <StatusChip tone={tone}>{label}</StatusChip>
-        <span className="text-xs text-gray-500">
+        <span className="text-[13px] text-gray-500">
           Public DNS now answers: {current.length ? current.join(', ') : 'nothing'}
         </span>
       </div>
@@ -79,7 +79,7 @@ async function DomainStatus({ domain }: { domain: string }) {
         </Alert>
       )}
       {!vercelConfigured && (
-        <p className="text-xs text-gray-500">
+        <p className="text-[13px] text-gray-500">
           Add {domain} under Vercel → Project → Domains (set VERCEL_API_TOKEN and VERCEL_PROJECT_ID to do this automatically on save).
         </p>
       )}

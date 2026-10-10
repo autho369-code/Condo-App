@@ -66,7 +66,7 @@ export default async function PlatformOperatorsPage({
             header: '',
             render: (o: any) => canResetMfa && o.auth_user_id !== me.auth_user_id ? (
               <MfaResetButton action={resetOperatorMfa} userId={o.auth_user_id} variant="ghost" />
-            ) : <span className="text-xs text-gray-400">{o.auth_user_id === me.auth_user_id ? 'Current account' : 'Read only'}</span>,
+            ) : <span className="text-[13px] text-gray-500">{o.auth_user_id === me.auth_user_id ? 'Current account' : 'Read only'}</span>,
           },
         ]}
         empty={<EmptyState icon={ShieldCheck} title="No platform operators" description="Operators are managed directly in the platform_operators table." />}

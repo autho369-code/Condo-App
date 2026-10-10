@@ -85,8 +85,8 @@ export default async function AuditLogsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Audit Logs</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Audit Logs</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Platform-wide audit trail
           {auditRows.length > 0 && ` — ${auditRows.length} records`}
         </p>
@@ -94,7 +94,7 @@ export default async function AuditLogsPage({
       {loadError && <Alert tone="danger" title="Could not load the audit log:">{loadError}</Alert>}
 
       {/* Filters */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="mb-3 flex items-center gap-2 text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400">
           <Filter className="h-3.5 w-3.5" /> Filters
         </div>
@@ -140,14 +140,14 @@ export default async function AuditLogsPage({
       </div>
 
       {/* Audit Log Table */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Audit Records</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Date, time, user, action, and affected company for every platform event.</p>
+      <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Audit Records</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">Date, time, user, action, and affected company for every platform event.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
                 <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">Date &amp; Time</th>
                 <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">User</th>
@@ -163,7 +163,7 @@ export default async function AuditLogsPage({
                   <td colSpan={6} className="px-4 py-12 text-center">
                     <FileSearch className="mx-auto mb-2 h-8 w-8 text-gray-300" />
                     <div className="text-sm font-semibold text-gray-900">{loadError ? 'Audit log unavailable' : 'No audit logs found'}</div>
-                    <div className="mt-1 text-xs text-gray-500">
+                    <div className="mt-1 text-[13px] text-gray-500">
                       Platform actions (company created, plan changed, suspensions, password resets) appear here as they happen.
                     </div>
                   </td>
@@ -172,10 +172,10 @@ export default async function AuditLogsPage({
                 auditRows.map((row: any, i: number) => {
                   const changes = row.changes ? (typeof row.changes === 'string' ? row.changes : JSON.stringify(row.changes)) : '';
                   return (
-                    <tr key={row.id ?? i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <tr key={row.id ?? i} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                       <td className="whitespace-nowrap px-4 py-3 text-[13px] tabular-nums text-gray-700">
                         {date(row.created_at)}{' '}
-                        <span className="text-xs text-gray-400">
+                        <span className="text-[13px] text-gray-500">
                           {row.created_at ? new Date(row.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: displayTimeZone() }) : ''}
                         </span>
                       </td>
@@ -188,7 +188,7 @@ export default async function AuditLogsPage({
                       <td className="whitespace-nowrap px-4 py-3 text-[13px] text-gray-700">
                         {portfolioMap.get(row.entity_id) ?? (row.entity_type ? `${row.entity_type} ${String(row.entity_id ?? '').slice(0, 8)}` : '—')}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         <span className="block max-w-[280px] truncate text-xs text-gray-500" title={changes}>{changes.slice(0, 120) || '—'}</span>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs tabular-nums text-gray-500">{row.ip_address ?? '—'}</td>

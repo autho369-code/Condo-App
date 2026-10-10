@@ -30,9 +30,9 @@ function StatCard({
     <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
-          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
-          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
+          <div className="mt-1.5 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
+          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -118,8 +118,8 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Billing &amp; Payments</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide billing overview across all companies</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Billing &amp; Payments</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Platform-wide billing overview across all companies</p>
       </div>
 
       {sp.error && <Alert title="Action failed">{sp.error}</Alert>}
@@ -139,11 +139,11 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
 
       {/* Invoices Table */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
+        <div className="border-b border-line px-5 py-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-gray-950">Invoices</h2>
-              <p className="mt-0.5 text-xs text-gray-500">All invoices across the platform. Billed offline — generate one, then mark it paid.</p>
+              <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Invoices</h2>
+              <p className="mt-0.5 text-[13px] text-gray-500">All invoices across the platform. Billed offline — generate one, then mark it paid.</p>
             </div>
             <form action={generateInvoice as any} className="flex flex-wrap items-end gap-2">
               <input type="hidden" name="return_to" value="/platform-operator/billing" />
@@ -175,13 +175,13 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
           <table className="w-full text-sm">
             <thead className={thead}>
               <tr>
-                <th className="px-4 py-2.5 text-left font-medium">Company</th>
-                <th className="px-4 py-2.5 text-left font-medium">Number</th>
-                <th className="px-4 py-2.5 text-left font-medium">Period</th>
-                <th className="px-4 py-2.5 text-right font-medium">Amount</th>
-                <th className="px-4 py-2.5 text-left font-medium">Status</th>
-                <th className="px-4 py-2.5 text-left font-medium">Paid Date</th>
-                <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Company</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Number</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Period</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Amount</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Paid Date</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -191,12 +191,12 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                 (invoices ?? []).map((inv: any) => (
                   <tr key={inv.id} className={trow}>
                     <td className="px-4 py-3 font-medium text-gray-900">{inv.portfolios?.company_name ?? '—'}</td>
-                    <td className="px-4 py-3 text-[13px] text-gray-700">{inv.number ?? `INV-${inv.id?.slice(0, 8)}`}</td>
+                    <td className="px-4 py-3.5 text-sm text-gray-700">{inv.number ?? `INV-${inv.id?.slice(0, 8)}`}</td>
                     <td className="px-4 py-3 text-xs tabular-nums text-gray-500">
                       {inv.period_start ? `${date(inv.period_start)} – ${date(inv.period_end)}` : '—'}
                     </td>
                     <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900">{money(Number(inv.total_cents ?? 0) / 100)}</td>
-                    <td className="px-4 py-3"><Badge status={inv.status ?? 'open'} /></td>
+                    <td className="px-4 py-3.5"><Badge status={inv.status ?? 'open'} /></td>
                     <td className="px-4 py-3 text-xs tabular-nums text-gray-500">{date(inv.paid_at)}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex flex-wrap items-center justify-end gap-1">
@@ -224,7 +224,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                             </form>
                           </>
                         )}
-                        {inv.status === 'void' && <span className="text-xs text-gray-400">—</span>}
+                        {inv.status === 'void' && <span className="text-[13px] text-gray-500">—</span>}
                       </div>
                     </td>
                   </tr>
@@ -237,9 +237,9 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
 
       {/* Subscriptions Table */}
       <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Subscriptions</h2>
-          <p className="mt-0.5 text-xs text-gray-500">
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Subscriptions</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">
             All subscriptions across the platform. Plan changes, limits, and suspensions are managed from each company&apos;s detail page.
           </p>
         </div>
@@ -247,13 +247,13 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
           <table className="w-full text-sm">
             <thead className={thead}>
               <tr>
-                <th className="px-4 py-2.5 text-left font-medium">Company</th>
-                <th className="px-4 py-2.5 text-left font-medium">Plan</th>
-                <th className="px-4 py-2.5 text-right font-medium">Monthly Price</th>
-                <th className="px-4 py-2.5 text-left font-medium">Status</th>
-                <th className="px-4 py-2.5 text-left font-medium">Trial End</th>
-                <th className="px-4 py-2.5 text-left font-medium">Next Billing</th>
-                <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Company</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Plan</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Monthly Price</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Status</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Trial End</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Next Billing</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -265,7 +265,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                     <td className="px-4 py-3 font-medium text-gray-900">{sub.portfolios?.company_name ?? '—'}</td>
                     <td className="px-4 py-3 text-[13px] capitalize text-gray-700">{(sub.tier ?? 'free').replace(/_/g, ' ')}</td>
                     <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900">{money((sub.price_monthly_cents ?? 0) / 100)}</td>
-                    <td className="px-4 py-3"><Badge status={sub.status ?? 'inactive'} /></td>
+                    <td className="px-4 py-3.5"><Badge status={sub.status ?? 'inactive'} /></td>
                     <td className="px-4 py-3 text-xs tabular-nums text-gray-500">{date(sub.trial_ends_at)}</td>
                     <td className="px-4 py-3 text-xs tabular-nums text-gray-500">{date(sub.current_period_end)}</td>
                     <td className="px-4 py-3 text-right">

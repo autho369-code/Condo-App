@@ -214,8 +214,8 @@ export default async function AutopayPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">AutoPay</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">AutoPay</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Set it once — your assessments pay themselves, with a maximum-withdrawal cap you control
         </p>
       </div>
@@ -236,7 +236,7 @@ export default async function AutopayPage({
           <div key={m.id} className={card}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold text-gray-950">
+                <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">
                   Unit {m.units?.unit_number ?? '—'} — {m.associations?.name ?? ''}
                 </h2>
                 <p className="mt-0.5 text-[13px] text-gray-500">
@@ -301,8 +301,8 @@ export default async function AutopayPage({
               <RefreshCcw className="h-4.5 w-4.5 text-white" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-gray-950">Set Up AutoPay</h2>
-              <p className="text-xs text-gray-500">Choose how much to pay, when, and your safety cap — then save a card or bank account securely with Stripe</p>
+              <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Set Up AutoPay</h2>
+              <p className="text-[13px] text-gray-500">Choose how much to pay, when, and your safety cap — then save a card or bank account securely with Stripe</p>
             </div>
           </div>
           <form action={startAutopaySetup as any} className="space-y-4">

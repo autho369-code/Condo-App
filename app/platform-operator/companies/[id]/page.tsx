@@ -298,7 +298,7 @@ export default async function CompanyDetailPage({
       <Card id="workspace-address">
         <CardHeader>
           <CardTitle>Workspace address</CardTitle>
-          <p className="text-xs text-gray-500">
+          <p className="text-[13px] text-gray-500">
             The company&rsquo;s own web address, used for its login page and every link it emails. Changing it keeps
             the old address working: visits and old links forward to the new one, and no other company can ever take it.
           </p>
@@ -325,7 +325,7 @@ export default async function CompanyDetailPage({
                 />
                 <span className="text-sm text-gray-500">.{apexDomain()}</span>
               </div>
-              <p className="mt-1 text-xs text-gray-500">2–32 lowercase letters, numbers or hyphens.</p>
+              <p className="mt-1 text-[13px] text-gray-500">2–32 lowercase letters, numbers or hyphens.</p>
             </div>
             <Button type="submit" variant="secondary">Save Address</Button>
           </form>
@@ -345,7 +345,7 @@ export default async function CompanyDetailPage({
       <Card id="details">
         <CardHeader>
           <CardTitle>Company details</CardTitle>
-          <p className="text-xs text-gray-500">Changes are recorded in the audit log as &ldquo;Company Updated&rdquo;.</p>
+          <p className="text-[13px] text-gray-500">Changes are recorded in the audit log as &ldquo;Company Updated&rdquo;.</p>
         </CardHeader>
         <CardBody>
           <form action={updateCompanyDetails as any} className="flex flex-wrap items-end gap-3">
@@ -372,7 +372,7 @@ export default async function CompanyDetailPage({
       <Card id="admins">
         <CardHeader>
           <CardTitle>Team &amp; password management</CardTitle>
-          <p className="text-xs text-gray-500">Reset passwords, lock or unlock accounts, and transfer company ownership.</p>
+          <p className="text-[13px] text-gray-500">Reset passwords, lock or unlock accounts, and transfer company ownership.</p>
         </CardHeader>
         <CardBody className="p-0">
           <Table className="border-0">
@@ -393,11 +393,11 @@ export default async function CompanyDetailPage({
                   <TR key={member.id}>
                     <TD>
                       <div className="font-medium text-gray-950">{member.full_name ?? member.display_name ?? member.email}</div>
-                      <div className="text-xs text-gray-500">{member.email}</div>
+                      <div className="text-[13px] text-gray-500">{member.email}</div>
                     </TD>
                     <TD className="text-xs capitalize text-gray-700">{member.hoa_role?.replace(/_/g, ' ')}</TD>
-                    <TD className="text-xs text-gray-500">{date(member.last_login_at)}</TD>
-                    <TD className="text-xs text-gray-500">{member.mfa_enrolled_at ? 'Enrolled' : '—'}</TD>
+                    <TD className="text-[13px] text-gray-500">{date(member.last_login_at)}</TD>
+                    <TD className="text-[13px] text-gray-500">{member.mfa_enrolled_at ? 'Enrolled' : '—'}</TD>
                     <TD>
                       <div className="flex flex-wrap items-center gap-1">
                         <form action={sendPasswordReset as any}>
@@ -429,7 +429,7 @@ export default async function CompanyDetailPage({
           </Table>
           <div className="grid gap-4 border-t border-gray-100 p-4 lg:grid-cols-2">
             <div>
-              <h3 className="text-sm font-semibold text-gray-950">Invite additional admin</h3>
+              <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Invite additional admin</h3>
               <form action={inviteAdmin as any} className="mt-3 flex flex-wrap items-end gap-2">
                 <input type="hidden" name="portfolio_id" value={id} />
                 <input type="hidden" name="return_to" value={returnTo} />
@@ -449,7 +449,7 @@ export default async function CompanyDetailPage({
               </form>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-950">Transfer company ownership</h3>
+              <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Transfer company ownership</h3>
               <form action={transferOwnership as any} className="mt-3 flex flex-wrap items-end gap-2">
                 <input type="hidden" name="portfolio_id" value={id} />
                 <input type="hidden" name="return_to" value={returnTo} />
@@ -476,7 +476,7 @@ export default async function CompanyDetailPage({
       <Card id="invitations">
         <CardHeader>
           <CardTitle>Invitations</CardTitle>
-          <p className="text-xs text-gray-500">{admins.length} active admin{admins.length === 1 ? '' : 's'} · invitation history for this company</p>
+          <p className="text-[13px] text-gray-500">{admins.length} active admin{admins.length === 1 ? '' : 's'} · invitation history for this company</p>
         </CardHeader>
         <CardBody className="p-0">
           <Table className="border-0">
@@ -500,12 +500,12 @@ export default async function CompanyDetailPage({
                     <TR key={inv.id}>
                       <TD>
                         <div className="font-medium text-gray-950">{inv.full_name || '—'}</div>
-                        <div className="text-xs text-gray-500">{inv.email}</div>
+                        <div className="text-[13px] text-gray-500">{inv.email}</div>
                       </TD>
                       <TD className="text-xs capitalize text-gray-700">{inv.hoa_role?.replace(/_/g, ' ')}</TD>
                       <TD>{inviteStatusChip(inv)}</TD>
-                      <TD className="text-xs text-gray-500">{date(inv.created_at)}</TD>
-                      <TD className="text-xs text-gray-500">{date(inv.expires_at)}</TD>
+                      <TD className="text-[13px] text-gray-500">{date(inv.created_at)}</TD>
+                      <TD className="text-[13px] text-gray-500">{date(inv.expires_at)}</TD>
                       <TD>
                         <div className="flex flex-wrap items-center gap-1">
                           {actionable && (
@@ -604,7 +604,7 @@ export default async function CompanyDetailPage({
                   (associationsData ?? []).map((assoc: any) => (
                     <TR key={assoc.id}>
                       <TD className="font-medium text-gray-950">{assoc.name}</TD>
-                      <TD className="text-xs text-gray-500">{[assoc.city, assoc.state].filter(Boolean).join(', ') || '—'}</TD>
+                      <TD className="text-[13px] text-gray-500">{[assoc.city, assoc.state].filter(Boolean).join(', ') || '—'}</TD>
                       <TD className="text-right tabular-nums">{assoc.unit_count ?? 0}</TD>
                     </TR>
                   ))
@@ -641,7 +641,7 @@ export default async function CompanyDetailPage({
               <PendingSubmit size="sm" pendingLabel="Generating…">Generate invoice</PendingSubmit>
             </form>
           </div>
-          <p className="mt-1 text-xs text-gray-500">Billed offline: generate an invoice (defaults to the plan price + current month), then mark it paid when payment arrives. The company admin sees it on their Billing page.</p>
+          <p className="mt-1 text-[13px] text-gray-500">Billed offline: generate an invoice (defaults to the plan price + current month), then mark it paid when payment arrives. The company admin sees it on their Billing page.</p>
         </CardHeader>
         <CardBody className="p-0">
           <Table className="border-0">
@@ -662,12 +662,12 @@ export default async function CompanyDetailPage({
                 (invoices ?? []).map((inv: any) => (
                   <TR key={inv.id}>
                     <TD className="font-medium text-gray-950">{inv.number ?? inv.id}</TD>
-                    <TD className="text-xs text-gray-500">
+                    <TD className="text-[13px] text-gray-500">
                       {date(inv.period_start)} – {date(inv.period_end)}
                     </TD>
                     <TD className="text-right tabular-nums">{money((inv.total_cents ?? 0) / 100)}</TD>
                     <TD>{subStatusChip(inv.status)}</TD>
-                    <TD className="text-xs text-gray-500">{date(inv.paid_at)}</TD>
+                    <TD className="text-[13px] text-gray-500">{date(inv.paid_at)}</TD>
                     <TD className="text-right">
                       <div className="flex flex-wrap items-center justify-end gap-1">
                         {inv.status === 'open' && (
@@ -694,7 +694,7 @@ export default async function CompanyDetailPage({
                             </form>
                           </>
                         )}
-                        {inv.status === 'void' && <span className="text-xs text-gray-400">—</span>}
+                        {inv.status === 'void' && <span className="text-[13px] text-gray-500">—</span>}
                       </div>
                     </TD>
                   </TR>
@@ -709,7 +709,7 @@ export default async function CompanyDetailPage({
       <Card id="audit">
         <CardHeader>
           <CardTitle>Audit log</CardTitle>
-          <p className="text-xs text-gray-500">Every platform action against this company: who, what, and when.</p>
+          <p className="text-[13px] text-gray-500">Every platform action against this company: who, what, and when.</p>
         </CardHeader>
         <CardBody className="p-0">
           <Table className="border-0">

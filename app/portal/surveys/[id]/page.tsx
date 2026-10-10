@@ -48,8 +48,8 @@ export default async function OwnerSurveyPage({
         <Link href="/portal/surveys" className="hover:text-gray-950 hover:underline">← Back to surveys</Link>
       </div>
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">{survey.name}</h1>
-        <p className="mt-1 text-xs text-gray-500">{survey.associations?.name ?? 'All associations'}</p>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">{survey.name}</h1>
+        <p className="mt-1 text-[13px] text-gray-500">{survey.associations?.name ?? 'All associations'}</p>
         {survey.description && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-600">{survey.description}</p>}
       </div>
 
@@ -100,7 +100,7 @@ export default async function OwnerSurveyPage({
                           </label>
                         ))}
                       </div>
-                      <p className="mt-1 text-xs text-gray-500">1 = poor, 5 = excellent</p>
+                      <p className="mt-1 text-[13px] text-gray-500">1 = poor, 5 = excellent</p>
                     </fieldset>
                   );
                 }

@@ -18,7 +18,7 @@ export default async function BoardBudgetPage() {
   if (ids.length === 0) {
     return (
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Budget vs Actual</h1>
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Budget vs Actual</h1>
         <p className="mt-4 text-sm text-gray-500">No association access. Contact your administrator.</p>
       </div>
     )
@@ -84,8 +84,8 @@ export default async function BoardBudgetPage() {
     <div className="max-w-5xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Budget vs Actual</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">Association financial performance against budget — current fiscal year</p>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Budget vs Actual</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Association financial performance against budget — current fiscal year</p>
         </div>
         <ExportActions
           documentTitle={`Budget vs Actual — ${[...new Set(allReports.map((r) => `FY${r.fy}`))].join(', ') || `FY${currentYear}`}`}
@@ -132,7 +132,7 @@ export default async function BoardBudgetPage() {
                 { label: 'Variance %', value: ytdNetBudget !== 0 ? `${(((ytdNetActual - ytdNetBudget) / ytdNetBudget) * 100).toFixed(1)}%` : '—', cls: (ytdNetActual - ytdNetBudget) >= 0 ? 'text-emerald-700' : 'text-red-700' },
               ].map(s => (
                 <div key={s.label} className={`${card} px-4 py-3.5`}>
-                  <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
+                  <div className="text-[13px] font-medium leading-5 text-gray-500">{s.label}</div>
                   <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${s.cls}`}>{s.value}</div>
                 </div>
               ))}
@@ -188,17 +188,17 @@ export default async function BoardBudgetPage() {
             {rows.length > 0 ? (
               <div className={card}>
                 <div className="border-b border-gray-100 px-5 py-3">
-                  <h3 className="text-sm font-semibold text-gray-950">Budget by GL Account</h3>
+                  <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Budget by GL Account</h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                    <thead className="border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500">
+                    <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                       <tr>
                         <th className="px-5 py-2 font-medium">GL Account</th>
-                        <th className="px-5 py-2 text-right font-medium">Budget</th>
-                        <th className="px-5 py-2 text-right font-medium">Actual</th>
-                        <th className="px-5 py-2 text-right font-medium">Variance</th>
-                        <th className="px-5 py-2 text-right font-medium">%</th>
+                        <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Budget</th>
+                        <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Actual</th>
+                        <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Variance</th>
+                        <th className="whitespace-nowrap px-5 py-3 text-right font-medium">%</th>
                         <th className="hidden px-5 py-2 font-medium sm:table-cell">Monthly Trend</th>
                       </tr>
                     </thead>
@@ -209,7 +209,7 @@ export default async function BoardBudgetPage() {
                         const good = (actual: number, budget: number) => (isExpense ? actual <= budget : actual >= budget)
                         const varianceTone = (v: number) => ((isExpense ? v <= 0 : v >= 0) ? 'text-emerald-700' : 'text-red-700')
                         return (
-                        <tr key={row.budget_line_id ?? row.gl_account_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                        <tr key={row.budget_line_id ?? row.gl_account_id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                           <td className="px-5 py-2.5">
                             <div className="flex items-center gap-2">
                               <span className={`h-1.5 w-1.5 rounded-full ${row.category === 'income' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
@@ -253,7 +253,7 @@ export default async function BoardBudgetPage() {
               <div className={`${card} p-8 text-center`}>
                 <BarChart3 className="mx-auto mb-3 h-10 w-10 text-gray-300" />
                 <p className="text-sm font-semibold text-gray-900">No budget lines found for FY{report.fy}</p>
-                <p className="mt-1 text-xs text-gray-500">Budget data will appear here once entered by management.</p>
+                <p className="mt-1 text-[13px] text-gray-500">Budget data will appear here once entered by management.</p>
               </div>
             )}
 

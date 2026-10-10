@@ -64,12 +64,12 @@ function StatCard({
   accent?: 'navy' | 'emerald' | 'amber' | 'red' | 'blue' | 'violet'
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="truncate text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
-          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
-          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
+          <div className="mt-1.5 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
+          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
           {trend && (
             <div
               className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -375,8 +375,8 @@ export default async function PlatformOperatorOverviewPage() {
       )}
       {/* ── Page Header ────────────────────────────────── */}
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Platform Command Center</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Platform Command Center</h1>
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           Executive overview across all management companies — revenue, doors, health, and risk.
         </p>
       </div>
@@ -450,7 +450,7 @@ export default async function PlatformOperatorOverviewPage() {
         {/* Revenue Growth */}
         <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
           <h3 className="text-sm font-semibold text-gray-700">Revenue Growth — Last 6 Months</h3>
-          <p className="mt-0.5 text-xs text-gray-500">Paid platform invoices collected by month</p>
+          <p className="mt-0.5 text-[13px] text-gray-500">Paid platform invoices collected by month</p>
           <div className="mt-4">
             <BarChart
               data={revenueChartData}
@@ -464,7 +464,7 @@ export default async function PlatformOperatorOverviewPage() {
         {/* Company Growth */}
         <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
           <h3 className="text-sm font-semibold text-gray-700">Company Growth — Last 6 Months</h3>
-          <p className="mt-0.5 text-xs text-gray-500">New portfolios created</p>
+          <p className="mt-0.5 text-[13px] text-gray-500">New portfolios created</p>
           <div className="mt-4">
             <BarChart
               data={companyGrowthChart}
@@ -481,7 +481,7 @@ export default async function PlatformOperatorOverviewPage() {
         {/* Door Growth */}
         <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
           <h3 className="text-sm font-semibold text-gray-700">Association Growth — Last 6 Months</h3>
-          <p className="mt-0.5 text-xs text-gray-500">New associations onboarded</p>
+          <p className="mt-0.5 text-[13px] text-gray-500">New associations onboarded</p>
           <div className="mt-4">
             <BarChart
               data={doorGrowthChart}
@@ -495,7 +495,7 @@ export default async function PlatformOperatorOverviewPage() {
         {/* Trial Conversion Rate */}
         <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
           <h3 className="text-sm font-semibold text-gray-700">Subscription Distribution</h3>
-          <p className="mt-0.5 text-xs text-gray-500">Active · Trial · Paused · Past Due</p>
+          <p className="mt-0.5 text-[13px] text-gray-500">Active · Trial · Paused · Past Due</p>
           <div className="mt-4 space-y-3">
             <div>
               <div className="flex justify-between text-xs text-gray-600 mb-1">
@@ -554,7 +554,7 @@ export default async function PlatformOperatorOverviewPage() {
         <h3 className="text-sm font-semibold text-gray-700">
           Revenue by Company — Top 10
         </h3>
-        <p className="mt-0.5 text-xs text-gray-500">
+        <p className="mt-0.5 text-[13px] text-gray-500">
           Monthly recurring revenue by subscription
         </p>
         <div className="mt-4">
@@ -575,7 +575,7 @@ export default async function PlatformOperatorOverviewPage() {
           <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
             <div>
               <h3 className="text-sm font-semibold text-gray-700">Recent Activity</h3>
-              <p className="mt-0.5 text-xs text-gray-500">Last 20 platform events</p>
+              <p className="mt-0.5 text-[13px] text-gray-500">Last 20 platform events</p>
             </div>
             <Link
               href="/platform-operator/audit-logs"
@@ -593,7 +593,7 @@ export default async function PlatformOperatorOverviewPage() {
                   <th className="px-5 py-3 text-right font-medium">Time</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {activityData.length === 0 ? (
                   <tr>
                     <td colSpan={3} className="px-5 py-8 text-center text-gray-400">
@@ -603,7 +603,7 @@ export default async function PlatformOperatorOverviewPage() {
                 ) : (
                   activityData.map((a: any) => (
                     <tr key={a.id} className="hover:bg-gray-50">
-                      <td className="px-5 py-3">
+                      <td className="px-5 py-3.5">
                         <span className="font-medium text-gray-800">{String(a.action ?? '—').replace(/_/g, ' ')}</span>
                         {a.actor_email && (
                           <span className="ml-2 text-xs text-gray-400">by {a.actor_email}</span>
@@ -636,7 +636,7 @@ export default async function PlatformOperatorOverviewPage() {
           <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
             <div>
               <h3 className="text-sm font-semibold text-gray-700">Companies at Risk</h3>
-              <p className="mt-0.5 text-xs text-gray-500">
+              <p className="mt-0.5 text-[13px] text-gray-500">
                 Suspended, past due, or trials expiring within 7 days
               </p>
             </div>
@@ -650,7 +650,7 @@ export default async function PlatformOperatorOverviewPage() {
                   <th className="px-5 py-3 text-right font-medium">Trial Ends</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {atRiskData.length === 0 ? (
                   <tr>
                     <td colSpan={3} className="px-5 py-8 text-center text-gray-400">
@@ -666,7 +666,7 @@ export default async function PlatformOperatorOverviewPage() {
                     const company = portfolios?.[0]
                     return (
                       <tr key={row.portfolio_id} className="hover:bg-gray-50">
-                        <td className="px-5 py-3">
+                        <td className="px-5 py-3.5">
                           <Link
                             href={`/platform-operator/companies/${row.portfolio_id}`}
                             className="font-medium text-gray-700 hover:text-gray-950 hover:underline"
@@ -674,7 +674,7 @@ export default async function PlatformOperatorOverviewPage() {
                             {company?.company_name ?? 'Unknown'}
                           </Link>
                         </td>
-                        <td className="px-5 py-3">
+                        <td className="px-5 py-3.5">
                           <StatusBadge status={row.status} />
                         </td>
                         <td className="px-5 py-3 text-right text-xs text-gray-500 tabular-nums">
@@ -702,7 +702,7 @@ export default async function PlatformOperatorOverviewPage() {
           <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
             <div>
               <h3 className="text-sm font-semibold text-gray-700">Association Health by Company</h3>
-              <p className="mt-0.5 text-xs text-gray-500">
+              <p className="mt-0.5 text-[13px] text-gray-500">
                 Healthy · Warning · Critical breakdown per portfolio
               </p>
             </div>
@@ -720,10 +720,10 @@ export default async function PlatformOperatorOverviewPage() {
                   <th className="px-5 py-3 text-right font-medium">Delinquency</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {health.slice(0, 20).map((h: any) => (
                   <tr key={h.portfolio_id} className="hover:bg-gray-50">
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-3.5">
                       <Link
                         href={`/platform-operator/companies/${h.portfolio_id}`}
                         className="font-medium text-gray-700 hover:text-gray-950 hover:underline"
@@ -731,10 +731,10 @@ export default async function PlatformOperatorOverviewPage() {
                         {h.portfolio_id}
                       </Link>
                     </td>
-                    <td className="px-5 py-3 text-right tabular-nums text-gray-700">
+                    <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">
                       {h.total_associations ?? 0}
                     </td>
-                    <td className="px-5 py-3 text-right tabular-nums text-gray-700">
+                    <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">
                       {h.total_doors ?? 0}
                     </td>
                     <td className="px-5 py-3 text-right tabular-nums">

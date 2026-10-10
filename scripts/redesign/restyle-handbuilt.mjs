@@ -50,7 +50,24 @@ export const CLASS_MAP = {
   'px-5 py-3 text-[13px] tabular-nums text-gray-700': 'px-5 py-3.5 text-sm tabular-nums text-gray-700',
   'px-4 py-3 text-right tabular-nums text-gray-700': 'px-4 py-3.5 text-right tabular-nums text-gray-700',
   'px-5 py-3 text-right tabular-nums text-gray-700': 'px-5 py-3.5 text-right tabular-nums text-gray-700',
+  // Portal-era extras
+  'mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15':
+    'mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+  'rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]':
+    'rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6',
+  'rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]':
+    'rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]',
+  'text-xs text-gray-400': 'text-[13px] text-gray-500',
+  'divide-y divide-gray-100': 'divide-y divide-line',
+  'px-5 py-2 text-right font-medium': 'whitespace-nowrap px-5 py-3 text-right font-medium',
+  'px-5 py-2 text-left font-medium': 'whitespace-nowrap px-5 py-3 text-left font-medium',
+  'text-sm font-medium text-gray-700': 'text-[13.5px] font-medium text-gray-700',
+  'flex items-center justify-between border-b border-gray-100 px-4 py-3': 'flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3.5',
 };
+
+// Section-title styles apply only to headings, so item names in lists keep
+// their item look.
+const HEADING_ONLY = new Set(['text-sm font-semibold text-gray-950', 'text-[15px] font-semibold text-gray-950']);
 
 function walk(dir, out = []) {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -63,9 +80,13 @@ function walk(dir, out = []) {
 
 export function restyle(src) {
   let changed = 0;
-  const out = src.replace(/className="([^"]*)"/g, (whole, cls) => {
+  const out = src.replace(/className="([^"]*)"/g, (whole, cls, offset) => {
     const next = CLASS_MAP[cls];
     if (!next) return whole;
+    if (HEADING_ONLY.has(cls)) {
+      const tag = /<([A-Za-z0-9]+)[^<]*$/.exec(src.slice(Math.max(0, offset - 300), offset))?.[1] ?? '';
+      if (!/^h[1-4]$/.test(tag)) return whole;
+    }
     changed++;
     return `className="${next}"`;
   });

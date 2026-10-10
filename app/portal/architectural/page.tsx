@@ -42,8 +42,8 @@ export default async function OwnerArchitecturalList({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Architectural requests</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">Request approval before modifying the exterior of your home, and track the review.</p>
+          <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Architectural requests</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Request approval before modifying the exterior of your home, and track the review.</p>
         </div>
         <Link href="/portal/architectural/new"><Button size="lg">+ New request</Button></Link>
       </div>
