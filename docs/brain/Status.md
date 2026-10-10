@@ -1,17 +1,27 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (after #276 merged; open PR: unlink owner login; next: vendor details for Randolph Station, then Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (after #277 merged; open PR: speed round trips; next: vendor details for Randolph Station, then Stripe pilot).
 
 ## Open PR
-- claude/unlink-owner-login: "Unlink login" button on the owner record
+- claude/speed-round-trips: fewer sequential Supabase round trips (dashboard
+  reminders 7 -> 2 waves; owner portal home ~13 -> 2 waves). No migration.
+  Measured 2026-10-10 (read-only): the biggest DB cost is RLS helpers that
+  take a column (can_access_portfolio(portfolio_id), can_manage_finance,
+  can_read_gl) running once PER ROW: gl_accounts 609 rows = 247 ms as a
+  manager vs 0.1 ms bypassed, 508 ms for a vendor who sees 0 rows; a hoisted
+  set comparison (`portfolio_id in (select my_..._ids())`) measured 242 ->
+  31 ms (manager) and 504 -> 1 ms (vendor). Next speed step: rewrite those
+  policies with per-role equivalence tests (medium risk). Middleware me()
+  is still needed per request (MFA, operator write block).
+
+## Where things stand
+- #277 merged (824566b2): "Unlink login" button on the owner record
   (Portal access): confirm-first, cuts off the record's own sign-in
   (auth_user_id cleared, portal off) and every sign-in it was added to
   (owner_portal_logins revoked), logged. Migration 20261010050000
   (unlink_owner_logins, DEFINER: staff + can_manage_association +
   operator_may_write) applied by Claude and read back; tested in a
   rolled-back transaction (manager unlinks, audit row; non-staff 42501).
-
-## Where things stand
 - #276 merged (2fea8502): third-audit fixes (operator guard on
   company_state_rules, association-documents storage owner scope, vendor
   invitation email check, opening-balance imports refuse after the opening
