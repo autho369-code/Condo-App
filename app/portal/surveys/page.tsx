@@ -25,7 +25,7 @@ export default async function OwnerSurveysPage({ searchParams }: { searchParams:
   const list = (surveys ?? []) as any[];
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Surveys</h1>
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Questions from your association. Your answers go to your management team.</p>

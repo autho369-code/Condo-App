@@ -24,7 +24,7 @@ export default async function OwnerCalendarPage() {
   const { items, timeZone, errors } = await getAssociationCalendarFeed(assocIds)
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div>
         <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Association Calendar</h1>
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">

@@ -35,7 +35,7 @@ export default async function OwnerWorkOrdersPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Work Orders</h1>
@@ -75,7 +75,7 @@ export default async function OwnerWorkOrdersPage() {
                   <td className="px-5 py-3.5 text-sm text-gray-700">{w.units?.unit_number ?? '—'}</td>
                   <td className="px-5 py-3 text-center"><StatusChip tone={priorityTone(w.priority)}>{w.priority ?? '—'}</StatusChip></td>
                   <td className="px-5 py-3 text-center"><Badge status={w.status} /></td>
-                  <td className="px-5 py-3 text-right text-[13px] tabular-nums text-gray-700">{date(w.created_at)}</td>
+                  <td className="whitespace-nowrap px-5 py-3.5 text-right text-sm tabular-nums text-gray-700">{date(w.created_at)}</td>
                 </tr>
               ))}
             </tbody>

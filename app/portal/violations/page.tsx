@@ -22,7 +22,7 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
   const fineOf = (v: any) => Number(v.fines_total ?? 0) > 0 ? Number(v.fines_total) : Number(v.fine_amount ?? 0)
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Violations</h1>
@@ -84,7 +84,7 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
                   <td className="px-5 py-3 text-[13px] capitalize text-gray-700">{v.violation_type?.replace('_',' ') ?? '—'}</td>
                   <td className="px-5 py-3 text-center"><Badge status={v.status} /></td>
                   <td className="px-5 py-3.5 text-right tabular-nums text-gray-700">{fineOf(v) > 0 ? money(fineOf(v)) : '—'}</td>
-                  <td className="px-5 py-3 text-right text-[13px] tabular-nums text-gray-700">{date(v.date_observed)}</td>
+                  <td className="whitespace-nowrap px-5 py-3.5 text-right text-sm tabular-nums text-gray-700">{date(v.date_observed)}</td>
                 </tr>
               ))}
             </tbody>

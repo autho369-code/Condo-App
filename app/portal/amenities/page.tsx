@@ -207,7 +207,7 @@ export default async function OwnerAmenitiesPage({
   const past = reservations.filter((r) => new Date(r.end_time).getTime() < now)
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8">
       <div>
         <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Amenities</h1>
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">

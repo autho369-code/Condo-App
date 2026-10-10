@@ -130,7 +130,7 @@ export default async function OwnerDocumentsPage() {
   const now = Date.now()
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div>
         <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Documents</h1>
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Governing documents, forms, and association records</p>

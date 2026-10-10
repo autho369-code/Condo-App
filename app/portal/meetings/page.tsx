@@ -25,7 +25,7 @@ export default async function OwnerMeetingsPage() {
   const all = meetings ?? []
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div>
         <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Meeting Minutes</h1>
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Approved minutes from your association&apos;s meetings</p>

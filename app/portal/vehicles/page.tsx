@@ -82,7 +82,7 @@ export default async function OwnerVehiclesPage() {
                     <td className="px-4 py-3.5 text-sm tabular-nums text-gray-700">{r.units?.unit_number ?? '—'}</td>
                     <td className="px-4 py-3.5 text-sm text-gray-700">{r.insurance_company ?? '—'}</td>
                     <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{r.monthly_fee ? money(Number(r.monthly_fee)) : '—'}</td>
-                    <td className="px-4 py-3.5 text-sm tabular-nums text-gray-700">{date(r.start_date)}</td>
+                    <td className="whitespace-nowrap px-4 py-3.5 text-sm tabular-nums text-gray-700">{date(r.start_date)}</td>
                     <td className="px-4 py-3.5"><StatusChip tone={r.status === 'active' ? 'success' : 'neutral'}>{r.status ?? '—'}</StatusChip></td>
                   </tr>
                 ))
