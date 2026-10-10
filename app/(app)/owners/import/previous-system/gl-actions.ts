@@ -445,8 +445,10 @@ export type OpeningBalancesResult = {
 export type OpeningBalancesOptions = TieOutOptions & {
   /** Equity account for prior years' retained earnings, when the ledger has none the tie-out paired. */
   retainedEarningsNumber?: number | null;
-  /** The file's accounting basis, as read in the browser (a guard only). */
+  /** The file's accounting basis: read from the file, or confirmed by the user when the file does not say. */
   basis?: 'cash' | 'accrual';
+  /** Account or prior-years lines of this property whose amount could not be read (from the browser's parse). */
+  unreadableRows?: boolean;
 };
 
 const OPENING_MEMO = 'Opening balance from previous system trial balance';
@@ -472,8 +474,16 @@ export async function postOpeningBalancesFromTrialBalance(
   if (associationId === TIE_OUT_ALL_ASSOCIATIONS || typeof associationId !== 'string' || !UUID.test(associationId)) {
     return { ok: false, message: 'Opening balances post to one association. Choose the association the trial balance is for.' };
   }
-  if (options.basis === 'cash') {
-    return { ok: false, message: 'This is a cash-basis trial balance. Export it on the accrual basis to post opening balances.' };
+  if (options.basis !== 'accrual') {
+    return {
+      ok: false,
+      message: options.basis === 'cash'
+        ? 'This is a cash-basis trial balance. Export it on the accrual basis to post opening balances.'
+        : 'Confirm the trial balance is on the accrual basis before posting opening balances.',
+    };
+  }
+  if (options.unreadableRows) {
+    return { ok: false, message: 'Some account lines in the file have an amount that could not be read, so its balances are incomplete. Fix the file, then post.' };
   }
   const db = (await createClient()) as any;
   try {

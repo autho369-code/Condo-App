@@ -163,7 +163,7 @@ describe('opening balances from the trial balance', () => {
     state.totals = { ar: { debit: 50, credit: 0 }, inc: { debit: 0, credit: 50 } };
   });
   const post = (opts: Record<string, unknown> = {}) =>
-    postOpeningBalancesFromTrialBalance(ASSOC, '2026-10-08', file, { priorYearsRetainedEarnings: -850, retainedEarningsNumber: 3350, ...opts });
+    postOpeningBalancesFromTrialBalance(ASSOC, '2026-10-08', file, { priorYearsRetainedEarnings: -850, retainedEarningsNumber: 3350, basis: 'accrual', ...opts });
 
   it('posts one balanced entry of the differences, prior years to the retained-earnings account', async () => {
     const r = await post();
@@ -183,7 +183,7 @@ describe('opening balances from the trial balance', () => {
 
   it('refuses a second opening entry for the association, whatever the date', async () => {
     state.openingLines = [{ id: 'l1' }];
-    const r = await postOpeningBalancesFromTrialBalance(ASSOC, '2026-05-31', file, { priorYearsRetainedEarnings: -850, retainedEarningsNumber: 3350 });
+    const r = await postOpeningBalancesFromTrialBalance(ASSOC, '2026-05-31', file, { priorYearsRetainedEarnings: -850, retainedEarningsNumber: 3350, basis: 'accrual' });
     expect(r.ok).toBe(false);
     expect(r.message).toContain('already has an opening balance entry');
     expect(state.rpcs).toEqual([]);
@@ -211,7 +211,7 @@ describe('opening balances from the trial balance', () => {
     expect((await postOpeningBalancesFromTrialBalance('all', '2026-10-08', file)).ok).toBe(false);
     expect((await post({ basis: 'cash' })).message).toContain('cash-basis');
     expect((await post({ incomeBasis: 'all_time' })).message).toContain('not all time');
-    expect((await postOpeningBalancesFromTrialBalance(ASSOC, '2026-10-08', [...file, { number: 9999, name: 'Unknown', ending: 0.01 }], { priorYearsRetainedEarnings: -850.01, retainedEarningsNumber: 3350 })).errors)
+    expect((await postOpeningBalancesFromTrialBalance(ASSOC, '2026-10-08', [...file, { number: 9999, name: 'Unknown', ending: 0.01 }], { priorYearsRetainedEarnings: -850.01, retainedEarningsNumber: 3350, basis: 'accrual' })).errors)
       .toEqual(['9999 Unknown']);
     state.accounts = state.accounts.map((a) => (a.number === 6101 ? { ...a, active: false } : a));
     expect((await post()).errors).toEqual(['6101 Electricity']);
@@ -250,6 +250,12 @@ describe('opening balances from the trial balance', () => {
     const rows = state.rpcs.find((c) => c.fn === 'import_journal_entry_batch')?.args.p_rows ?? [];
     expect(rows.find((x: any) => x.gl === '3360')).toMatchObject({ credit: '750.00' });
     expect(rows.some((x: any) => x.gl === '3350')).toBe(false);
+  });
+
+  it('needs an accrual file with every account line read', async () => {
+    expect((await post({ basis: undefined })).message).toContain('Confirm the trial balance is on the accrual basis');
+    expect((await post({ unreadableRows: true })).message).toContain('could not be read');
+    expect(state.rpcs).toEqual([]);
   });
 });
 

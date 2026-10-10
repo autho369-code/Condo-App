@@ -273,6 +273,12 @@ export function parseAppfolioTrialBalance(text: string): {
   basis?: 'cash' | 'accrual';
   /** Lines that are not account rows (headings, subtotals) or have unreadable amounts. */
   ignored?: string[];
+  /**
+   * Property groups (headings) with an account or prior years' line whose
+   * amount could not be read. Such a group's balances are incomplete, so it
+   * can be compared but not used to post opening balances.
+   */
+  unreadable?: string[];
   error?: string;
 } {
   const clean = text.replace(/^﻿/, '');
@@ -301,6 +307,7 @@ export function parseAppfolioTrialBalance(text: string): {
   const offset = headerAt; // report rows count from the header line
   const rows: AppfolioTrialBalanceRow[] = [];
   const ignored: string[] = [];
+  const unreadable = new Set<string>();
   const priorYears: Record<string, AppfolioTrialBalanceAmounts> = {};
   let total: AppfolioTrialBalanceAmounts | undefined;
   for (const g of report.groups) {
@@ -316,12 +323,16 @@ export function parseAppfolioTrialBalance(text: string): {
         : { balance_forward: bf, debit, credit, ending };
       const acct = splitGlAccountCell(cell);
       if (!acct) {
-        if (amounts && PRIOR_YEARS_RE.test(cell)) { priorYears[g.heading] = addAmounts(priorYears[g.heading], amounts); continue; }
+        if (PRIOR_YEARS_RE.test(cell)) {
+          if (amounts) { priorYears[g.heading] = addAmounts(priorYears[g.heading], amounts); continue; }
+          unreadable.add(g.heading);
+        }
         if (cell) ignored.push(`Line ${line}: "${cell}"`);
         continue;
       }
       if (!amounts) {
         ignored.push(`Line ${line} (${acct.number}): an amount could not be read.`);
+        unreadable.add(g.heading);
         continue;
       }
       // The full heading (name + address): two properties may share a name.
@@ -359,5 +370,6 @@ export function parseAppfolioTrialBalance(text: string): {
     total,
     warnings: warnings.length ? warnings : undefined,
     ignored: ignored.length ? ignored : undefined,
+    unreadable: unreadable.size ? [...unreadable] : undefined,
   };
 }

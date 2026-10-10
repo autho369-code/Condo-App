@@ -233,6 +233,8 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
   const [confirming, setConfirming] = React.useState(false);
   const [posting, setPosting] = React.useState(false);
   const [opening, setOpening] = React.useState<OpeningBalancesResult | null>(null);
+  const [unreadable, setUnreadable] = React.useState<string[]>([]);
+  const [accrualConfirmed, setAccrualConfirmed] = React.useState(false);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -248,6 +250,8 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
     setRetainedNumber('');
     setOpening(null);
     setConfirming(false);
+    setUnreadable([]);
+    setAccrualConfirmed(false);
     setFileName(file?.name ?? '');
     if (!file) return;
     try {
@@ -259,6 +263,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
       setGroup(g[0] ?? '');
       setBasis(parsed.basis);
       setIgnored(parsed.ignored ?? []);
+      setUnreadable(parsed.unreadable ?? []);
       setProperty(parsed.property);
       setPriorYears(parsed.priorYearsRetainedEarnings ?? {});
       setChecks(parsed.warnings ?? []);
@@ -334,7 +339,8 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
         incomeBasis,
         priorYearsRetainedEarnings: priorYearsTotal,
         retainedEarningsNumber: retainedNumber ? Number(retainedNumber) : null,
-        basis,
+        basis: basis ?? (accrualConfirmed ? 'accrual' : undefined),
+        unreadableRows: hasUnreadable,
       });
       setOpening(res);
       setConfirming(false);
@@ -361,6 +367,9 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
   const openingTotal = Math.round((lines.reduce((s, l) => s + (l.difference > 0 ? l.difference : 0), 0)
     + (pyDiff > 0 ? pyDiff : 0)) * 100) / 100;
   const needsRetainedChoice = pyDiff !== 0 && !pairedRetained;
+  // Lines of this property (every property when combined) whose amount could not be read.
+  const hasUnreadable = combined ? unreadable.length > 0 : unreadable.includes(group);
+  const basisOk = basis === 'accrual' || (basis === undefined && accrualConfirmed);
   const showOpening = Boolean(postOpeningBalances && result && t && !combined && openingLines > 0);
 
   return (
@@ -557,6 +566,26 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
               </Alert>
             )
           )}
+          {hasUnreadable && (
+            <Alert tone="warning">
+              Some account lines for this property have an amount that could not be read (listed above), so the file&apos;s
+              balances are incomplete. Fix the file before posting opening balances.
+            </Alert>
+          )}
+          {basis === 'cash' && (
+            <Alert tone="warning">This is a cash-basis trial balance. Export it on the accrual basis to post opening balances.</Alert>
+          )}
+          {basis === undefined && (
+            <label className="flex min-h-10 items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={accrualConfirmed}
+                onChange={(e) => { setAccrualConfirmed(e.target.checked); setConfirming(false); }}
+                className="h-4 w-4 accent-blue-600"
+              />
+              The file does not say its basis. This trial balance is on the accrual basis.
+            </label>
+          )}
           {openingLines > 0 && (
             <p className="text-sm text-gray-600">
               {openingLines} account{openingLines === 1 ? '' : 's'} · {money(openingTotal)} on each side
@@ -567,7 +596,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
               {!confirming ? (
                 <Button
                   type="button"
-                  disabled={posting || busy || (needsRetainedChoice && !retainedNumber)}
+                  disabled={posting || busy || hasUnreadable || !basisOk || (needsRetainedChoice && !retainedNumber)}
                   onClick={() => setConfirming(true)}
                 >
                   Post opening balances
