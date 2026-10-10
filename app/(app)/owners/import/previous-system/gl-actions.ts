@@ -323,7 +323,7 @@ export async function tieOutAppfolioTrialBalance(
   // `retained`/`retainedName`: the part of the balance on prior years'
   // retained-earnings accounts, classified per account before accounts that
   // share a number (association-own, combined view) are added up.
-  const portier = new Map<number, { name: string; account_type: string; balance: number; retained: number; retainedName: string | null; otherName: string | null }>();
+  const portier = new Map<number, { name: string; account_type: string; balance: number; retained: number; retainedName: string | null; otherName: string | null; otherType: string | null }>();
   for (const a of accounts) {
     const t = allTime[a.id] ?? { debit: 0, credit: 0 };
     let balance = t.debit - t.credit;
@@ -342,6 +342,7 @@ export async function tieOutAppfolioTrialBalance(
       retained: cents((prev?.retained ?? 0) + (isRetained ? balance : 0)),
       retainedName: prev?.retainedName ?? (isRetained ? a.name : null),
       otherName: prev?.otherName ?? (isRetained ? null : a.name),
+      otherType: prev?.otherType ?? (isRetained ? null : a.account_type),
     });
   }
 
@@ -366,13 +367,15 @@ export async function tieOutAppfolioTrialBalance(
     if (appfolio.has(number)) continue;
     let rest = p.balance;
     let name = p.name;
+    let accountType = p.account_type;
     if (pyAppfolio !== null && p.retainedName && p.retained !== 0) {
       retainedAccounts.push({ number, name: p.retainedName, balance: p.retained });
       rest = cents(p.balance - p.retained);
       name = p.otherName ?? p.name;
+      accountType = p.otherType ?? p.account_type;
     }
     if (rest === 0) continue;
-    lines.push({ number, name, account_type: p.account_type, appfolio: null, portier: rest, difference: cents(-rest), status: 'not_in_appfolio' });
+    lines.push({ number, name, account_type: accountType, appfolio: null, portier: rest, difference: cents(-rest), status: 'not_in_appfolio' });
   }
   lines.sort((a, b) => a.number - b.number);
 

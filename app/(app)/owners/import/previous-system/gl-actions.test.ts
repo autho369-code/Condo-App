@@ -117,4 +117,12 @@ describe('trial balance tie-out: prior years retained earnings', () => {
       expect(r.lines?.find((l) => l.number === 3350), name).toBeUndefined();
     }
   });
+
+  it('keeps the other account\'s name and type on the rest of a shared number', async () => {
+    state.accounts = [...state.accounts, { id: 'exp', number: 3350, name: 'Repairs', account_type: 'expense' }];
+    state.totals.exp = { debit: 25, credit: 0 };
+    state.totals.cash = { debit: 975, credit: 0 };
+    const r = await tieOutAppfolioTrialBalance(ASSOC, '2026-10-08', rows, { priorYearsRetainedEarnings: -600 });
+    expect(r.lines?.find((l) => l.number === 3350)).toMatchObject({ name: 'Repairs', account_type: 'expense', portier: 25 });
+  });
 });
