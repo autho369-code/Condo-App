@@ -35,8 +35,8 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn('mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between', className)}>
-      <div className="min-w-0">
+    <div className={cn('mb-7 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between', className)}>
+      <div className="min-w-0 md:flex-1 md:basis-[22rem]">
         {eyebrow && (
           <div className="mb-1.5 text-[13px] font-medium text-gray-500">{eyebrow}</div>
         )}
@@ -45,7 +45,7 @@ export function PageHeader({
         </h1>
         {description && <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">{description}</p>}
       </div>
-      {actions && <div className="flex flex-shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }

@@ -46,13 +46,13 @@ export function WorkspaceHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-      <div className="min-w-0">
+    <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-x-6 md:gap-y-4">
+      <div className="min-w-0 md:flex-1 md:basis-[22rem]">
         {eyebrow && <div className="mb-1.5 text-[13px] font-medium text-gray-500">{eyebrow}</div>}
         <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{title}</h1>
         {subtitle && <p className="mt-1.5 text-[15px] leading-6 text-gray-500">{subtitle}</p>}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
