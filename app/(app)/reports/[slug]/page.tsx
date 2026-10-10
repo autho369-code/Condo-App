@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { glDebitBalances, journalLineTotals, ledgerTotalsByAccount } from '@/lib/finance/totals';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
@@ -6,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/reports/workspace';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
+import { ReportRunError } from '@/components/reports/run-error';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { wallDateTimeToIso } from '@/lib/time/zoned';
 import { queueReport, saveCustomReport, toggleReportFavorite } from '@/lib/rpcs/reports';
@@ -2385,6 +2387,8 @@ async function ReportRightRail({
       ) : (
       <form action={queueReport as any} className="space-y-3">
         <input type="hidden" name="definition_id" value={def.id} />
+        <input type="hidden" name="return_to" value={`/reports/${def.slug}`} />
+        <Suspense fallback={null}><ReportRunError /></Suspense>
 
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-700">Scope</label>

@@ -69,7 +69,11 @@ Every AppFolio page is built; these need access, accounts or decisions first.
         only (literal `.from().select()` strings, anonymous, `limit=0`); it
         skips template selects and RPCs, so it does not replace the signed-in
         walkthroughs above.
-  - [ ] End-to-end Excel report download (run a report as `.xlsx`, open it).
+  - [x] End-to-end Excel report download. DONE 2026-10-10 as a manager:
+        Owner Directory, portfolio scope, Excel -> run succeeded, file is a
+        valid .xlsx (spreadsheetml type, 1 sheet, 21 rows: title lines,
+        headers, 17 owners). A refused run now returns to the same report
+        with the reason above the form (was: the Reports list).
   - [ ] End-to-end checks of the 2026-10-04 work: batch letters print, Forms
         upload + owner-portal download, Inbox saved replies/search.
 

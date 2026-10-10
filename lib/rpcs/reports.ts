@@ -18,8 +18,12 @@ export async function queueReport(formData: FormData) {
   await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
 
+  // Back to the report the user ran (a fixed /reports/<slug> path only, so
+  // the field can't redirect anywhere else), or the catalog.
+  const returnTo = String(formData.get('return_to') ?? '');
+  const back = /^\/reports\/[a-z0-9_]+$/.test(returnTo) ? returnTo : '/reports';
   const failTo = (msg: string) => {
-    redirect(`/reports?error=${encodeURIComponent(msg)}`);
+    redirect(`${back}?error=${encodeURIComponent(msg)}`);
   };
 
   const definitionId = formData.get('definition_id') as string;
