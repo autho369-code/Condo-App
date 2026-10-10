@@ -208,16 +208,19 @@ export type TieOutOptions = {
 const INCOME_STATEMENT_TYPES = new Set(['income', 'other_income', 'expense', 'cost_of_goods_sold', 'other_expense', 'non_operating']);
 const MAX_TIE_OUT_ROWS = 5000;
 const cents = (n: number) => Math.round(n * 100) / 100;
-/** A prior years' retained-earnings account (not the current year's). */
-// Any separator between the words ("Retained-Earnings"). A name that says
-// it is this year's ("Current Fiscal Year", "This Year", "YTD", "Year to
-// Date") is not counted as prior years', unless it also says prior or
-// previous ("Prior FY Retained Earnings"), which wins.
+// A prior years' retained-earnings account is counted on the prior-years
+// line only when its name says so: "prior" or "previous" ("Prior FY Retained
+// Earnings") and nothing of this year's, or a plain "Retained Earnings" with
+// no time word at all. Any other time word ("This FY", "Current Year",
+// "YTD", "Period", "2026") keeps the account on its own row: a wrong guess then
+// shows as a difference instead of hiding a balance. Any separator between
+// words ("Retained-Earnings", "Current_Year").
 const PRIOR_RETAINED_EARNINGS = /retained[\W_]*earnings/i;
-const CURRENT_YEAR = /(^|[\W_])(current|this[\W_]*year|ytd|year[\W_]*to[\W_]*date)([\W_]|$)/i;
 const SAYS_PRIOR = /(^|[\W_])(prior|previous)([\W_]|$)/i;
+const TIME_WORD = /(^|[\W_])(current|this|ytd|fy|fiscal|years?|period|month|quarter|date|to[\W_]*date|\d{2,4})([\W_]|$)/i;
+const SAYS_THIS_YEAR = /(^|[\W_])(current|this|ytd)([\W_]|$)/i;
 const isPriorRetainedEarnings = (name: string) =>
-  PRIOR_RETAINED_EARNINGS.test(name) && (SAYS_PRIOR.test(name) || !CURRENT_YEAR.test(name));
+  PRIOR_RETAINED_EARNINGS.test(name) && !SAYS_THIS_YEAR.test(name) && (SAYS_PRIOR.test(name) || !TIME_WORD.test(name));
 
 /**
  * Compare AppFolio's trial balance ending balances with the posted ledger as

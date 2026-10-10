@@ -3,9 +3,9 @@
 Back to [[Home]]. Updated 2026-10-10 (open PR: tie-out pairs the prior-years line with the ledger's retained-earnings account; Randolph Station import complete and tied out).
 
 ## Open PR
-- Branch claude/serene-wozniak-hvgpxf: trial balance tie-out counts a
-  ledger retained-earnings account the file does not list (equity, name
-  says retained earnings, not "current year") on the file's "Calculated
+- #271 (branch claude/serene-wozniak-hvgpxf): trial balance tie-out counts
+  a ledger retained-earnings account the file does not list (equity; name
+  says prior/previous or has no time word; see Decisions) on the file's "Calculated
   Prior Years Retained Earnings" line, only when the file has that line;
   the row names the accounts. Randolph Station's two offsetting flags
   (prior-years line vs 3350) become one matching row. Read-only action, no

@@ -99,7 +99,7 @@ describe('trial balance tie-out: prior years retained earnings', () => {
   });
 
   it('never counts an account that says it is this year\'s', async () => {
-    for (const name of ['Current Fiscal Year Retained Earnings', 'Retained Earnings - This Year', 'YTD Retained Earnings', 'Retained Earnings Year-to-Date']) {
+    for (const name of ['Current Fiscal Year Retained Earnings', 'Retained Earnings - This Year', 'YTD Retained Earnings', 'Retained Earnings Year-to-Date', 'This FY Retained Earnings', 'Retained Earnings - This FY', 'Retained Earnings (FY)', 'Retained Earnings 2026', 'Prior and Current Year Retained Earnings']) {
       state.accounts = state.accounts.map((a) => (a.number === 3360 ? { ...a, name } : a));
       state.totals.cy = { debit: 0, credit: 50 };
       state.totals.cash = { debit: 1050, credit: 0 };
@@ -110,7 +110,7 @@ describe('trial balance tie-out: prior years retained earnings', () => {
   });
 
   it('counts an account that says prior, even with FY or year in the name', async () => {
-    for (const name of ['Prior FY Retained Earnings', 'Retained Earnings - Previous Years']) {
+    for (const name of ['Prior FY Retained Earnings', 'Retained Earnings - Previous Years', 'Retained Earnings', 'Retained_Earnings']) {
       state.accounts = state.accounts.map((a) => (a.number === 3350 ? { ...a, name } : a));
       const r = await tieOutAppfolioTrialBalance(ASSOC, '2026-10-08', rows, { priorYearsRetainedEarnings: -600 });
       expect(r.priorYears, name).toMatchObject({ difference: 0, accounts: [{ number: 3350, balance: -600 }] });
