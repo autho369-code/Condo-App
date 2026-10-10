@@ -21,6 +21,9 @@ Back to [[Home]]. Don't redo these.
   logins whose own email no longer matches (typo fixes stay harmless).
 - **No confirm prompts on reason-required void/cancel forms** (Mirsad,
   2026-10-10): the required reason is enough.
+- **Randolph Station is a test-only association** (Mirsad, 2026-10-10):
+  don't treat its data as a real client's or chase missing details there
+  (e.g. vendor contact/tax/insurance).
 - **Resale / estoppel certificate:** declined by Mirsad; build only if he asks.
 - **Old `/platform/*` URLs** redirect permanently to `/platform-operator`
   (`next.config.mjs`), 2026-10-07.

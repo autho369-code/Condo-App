@@ -309,13 +309,11 @@ Back to [[Home]]. Updated 2026-10-10 (after #276 merged; open PR: unlink owner l
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-0. Randolph Station is fully imported and tied out. Left: the 8 added
-   vendors need contact, tax and insurance details. The opening balances
-   step shipped (#272); the next association uses it (CSV exports do not
-   state the basis: tick the accrual box).
-   Then: Stripe live for one
-   pilot association (Mirsad's account setup).
-   Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
-   step would be per-request identity caching (riskier, measure first).
-1. Nothing else buildable without Mirsad: vendor details, Stripe pilot
-   setup. Optional: per-request identity caching (measure first).
+0. Randolph Station is a TEST-ONLY association (Mirsad, 2026-10-10): it
+   proved the import end to end (imported and tied out); its 8 name-only
+   vendors stay as they are, no contact/tax/insurance to enter. The next
+   real association uses the import page incl. the opening balances step
+   (CSV exports do not state the basis: tick the accrual box).
+1. Stripe live for one pilot association (Mirsad's account setup).
+2. Optional: per-request identity caching for speed (identity checks
+   ~0.1-0.5 ms per row each; riskier, measure first).
