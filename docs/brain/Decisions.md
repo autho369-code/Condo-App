@@ -117,10 +117,10 @@ Back to [[Home]]. Don't redo these.
   balance file has its "Calculated Prior Years Retained Earnings" line, the
   tie-out counts on that line the ledger equity accounts named retained
   earnings that the file does not list and whose name says prior/previous
-  (and nothing of this year's: current, this, YTD) or carries no time word
-  at all; any other time word keeps the account on its own row (a wrong
-  guess shows as a difference, never hides a balance). Names them on the
-  row. An account the file lists is compared on its own row.
+  (and nothing of this year's: current, this, YTD, CY) or is exactly
+  "Retained Earnings"; any other wording keeps the account on its own row
+  (an unreadable name shows as a difference, never hides a balance). Names
+  them on the row. An account the file lists is compared on its own row.
   Mirsad (2026-10-10, #271): when the file lists the number, the numbered
   row is compared whole; a combined (all associations) file where two
   associations use the same number for different equity is left as two

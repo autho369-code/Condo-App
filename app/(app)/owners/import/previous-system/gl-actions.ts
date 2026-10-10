@@ -210,17 +210,18 @@ const MAX_TIE_OUT_ROWS = 5000;
 const cents = (n: number) => Math.round(n * 100) / 100;
 // A prior years' retained-earnings account is counted on the prior-years
 // line only when its name says so: "prior" or "previous" ("Prior FY Retained
-// Earnings") and nothing of this year's, or a plain "Retained Earnings" with
-// no time word at all. Any other time word ("This FY", "Current Year",
-// "YTD", "Period", "2026") keeps the account on its own row: a wrong guess then
-// shows as a difference instead of hiding a balance. Any separator between
-// words ("Retained-Earnings", "Current_Year").
+// Earnings") with nothing of this year's, or exactly "Retained Earnings" and
+// no other word. Any other wording ("CY", "This FY", "2026", ...) keeps the
+// account on its own row, so a name we cannot read shows as a difference
+// instead of hiding a balance. Any separator between words.
 const PRIOR_RETAINED_EARNINGS = /retained[\W_]*earnings/i;
 const SAYS_PRIOR = /(^|[\W_])(prior|previous)([\W_]|$)/i;
-const TIME_WORD = /(^|[\W_])(current|this|ytd|fy|fiscal|years?|period|month|quarter|date|to[\W_]*date|\d{2,4})([\W_]|$)/i;
-const SAYS_THIS_YEAR = /(^|[\W_])(current|this|ytd)([\W_]|$)/i;
-const isPriorRetainedEarnings = (name: string) =>
-  PRIOR_RETAINED_EARNINGS.test(name) && !SAYS_THIS_YEAR.test(name) && (SAYS_PRIOR.test(name) || !TIME_WORD.test(name));
+const SAYS_THIS_YEAR = /(^|[\W_])(current|this|ytd|cy)([\W_]|$)/i;
+const isPriorRetainedEarnings = (name: string) => {
+  if (!PRIOR_RETAINED_EARNINGS.test(name) || SAYS_THIS_YEAR.test(name)) return false;
+  if (SAYS_PRIOR.test(name)) return true;
+  return name.replace(PRIOR_RETAINED_EARNINGS, '').replace(/[\W_]+/g, '') === '';
+};
 
 /**
  * Compare AppFolio's trial balance ending balances with the posted ledger as
