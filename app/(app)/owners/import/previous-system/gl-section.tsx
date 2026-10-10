@@ -353,7 +353,9 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
   const unnamedFile = rows !== null && !property && groups.length === 1 && groups[0] === '';
   // What the opening entry would post (the server recomputes it before posting).
   const pyDiff = result?.priorYears?.difference ?? 0;
-  const pairedRetained = result?.priorYears?.accounts?.length === 1;
+  // Paired automatically only when that one account is active (it is then among the choices).
+  const paired = result?.priorYears?.accounts ?? [];
+  const pairedRetained = paired.length === 1 && Boolean(result?.equityAccounts?.some((a) => a.number === paired[0].number));
   // The prior-years line always posts as its own line (its account is never one of the file's rows).
   const openingLines = lines.filter((l) => l.difference !== 0).length + (pyDiff !== 0 ? 1 : 0);
   const openingTotal = Math.round((lines.reduce((s, l) => s + (l.difference > 0 ? l.difference : 0), 0)

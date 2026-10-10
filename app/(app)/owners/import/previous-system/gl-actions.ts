@@ -495,6 +495,13 @@ export async function postOpeningBalancesFromTrialBalance(
         incomeBasis: options.incomeBasis, priorYearsRetainedEarnings: options.priorYearsRetainedEarnings,
       });
       if (tie.error || !tie.lines) return { ok: false, message: tie.error ?? 'Could not compare the trial balance.' };
+      // A file with a prior-years line has closed earlier years' income into
+      // it; an all-time ledger still has that income in the income and
+      // expense accounts, and posting their differences would move it into
+      // this year.
+      if (tie.incomeFrom === null && tie.priorYears?.appfolio != null) {
+        return { ok: false, message: 'The file carries prior years\' retained earnings, so compare income and expense from the start of the fiscal year, not all time, before posting.' };
+      }
 
       const missing = tie.lines.filter((l) => l.status === 'not_in_portier');
       if (missing.length) {
@@ -530,17 +537,15 @@ export async function postOpeningBalancesFromTrialBalance(
 
       const py = tie.priorYears;
       if (py && py.difference !== 0) {
-        if (tie.incomeFrom === null) {
-          return { ok: false, message: 'The file carries prior years\' retained earnings, so compare income and expense from the start of the fiscal year, not all time, before posting.' };
-        }
         if (py.appfolio === null) {
           return { ok: false, message: 'Your ledger has income and expense from before this fiscal year, and the file has no prior years\' retained earnings line to match it. Compare all-time balances instead, or check the file.' };
         }
         const paired = py.accounts ?? [];
-        let target: number | null = paired.length === 1 ? paired[0].number : null;
+        // Only an active account can take the line (the upload posts to active accounts only).
+        const choices = tie.equityAccounts ?? [];
+        let target: number | null = paired.length === 1 && choices.some((a) => a.number === paired[0].number) ? paired[0].number : null;
         if (target === null) {
           const chosen = Number(options.retainedEarningsNumber);
-          const choices = tie.equityAccounts ?? [];
           if (choices.length === 0) {
             return { ok: false, message: 'Add an equity account named "Prior Year Retained Earnings" (or "Retained Earnings") to your chart of accounts for prior years\' retained earnings, then post again.' };
           }

@@ -226,5 +226,30 @@ describe('opening balances from the trial balance', () => {
     expect(r.errors).toEqual(['3000 Owner Equity: -20.00']);
     expect(state.rpcs).toEqual([]);
   });
+
+  it('refuses all-time balances when the file has a prior-years line, even one that matches', async () => {
+    state.totals.re = { debit: 0, credit: 850 };
+    state.totals.cash = { debit: 850, credit: 0 };
+    const r = await post({ incomeBasis: 'all_time', retainedEarningsNumber: null });
+    expect(r.message).toContain('not all time');
+    expect(state.rpcs).toEqual([]);
+  });
+
+  it('never posts prior years to a hidden paired account; asks for an active one', async () => {
+    // A hidden retained-earnings account with a balance is paired, and an active one exists.
+    state.accounts = [
+      ...state.accounts.map((a) => (a.id === 're' ? { ...a, active: false } : a)),
+      { id: 're2', number: 3360, name: 'Retained Earnings', account_type: 'equity' },
+    ];
+    state.totals.re = { debit: 0, credit: 100 };
+    state.totals.cash = { debit: 100, credit: 0 };
+    expect((await post({ retainedEarningsNumber: null })).message).toContain('Choose the equity account');
+    expect((await post({ retainedEarningsNumber: 3350 })).ok).toBe(false);
+    const r = await post({ retainedEarningsNumber: 3360 });
+    expect(r.ok).toBe(true);
+    const rows = state.rpcs.find((c) => c.fn === 'import_journal_entry_batch')?.args.p_rows ?? [];
+    expect(rows.find((x: any) => x.gl === '3360')).toMatchObject({ credit: '750.00' });
+    expect(rows.some((x: any) => x.gl === '3350')).toBe(false);
+  });
 });
 
