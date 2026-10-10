@@ -353,6 +353,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
   async function postOpening() {
     if (!postOpeningBalances || !compared) return;
     const input = compared;
+    const before = requestId.current;
     setPosting(true);
     setOpening(null);
     try {
@@ -366,7 +367,8 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
       setOpening(res);
       setConfirming(false);
       // Show the ledger as it is now: after posting, every account matches.
-      if (res.ok && (res.lines ?? 0) > 0) await run(true, input);
+      // Not if the inputs changed while posting: the page now shows other inputs.
+      if (res.ok && (res.lines ?? 0) > 0 && requestId.current === before) await run(true, input);
     } catch (err) {
       setOpening({ ok: false, message: err instanceof Error ? err.message : 'The opening balances could not be posted. Try again.' });
     } finally {

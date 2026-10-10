@@ -328,6 +328,11 @@ export function parseAppfolioTrialBalance(text: string): {
           unreadable.add(g.heading);
         }
         if (cell) ignored.push(`Line ${line}: "${cell}"`);
+        // A line that looks like an account ("115O: Operating", "12345 Dues") but
+        // whose number cannot be read: the property's balances are incomplete.
+        if (cell && !TOTAL_ROW.test(cell) && (/^\d/.test(cell) || /^[0-9A-Za-z]{2,10}\s*[:\-]\s*\S/.test(cell))) {
+          unreadable.add(g.heading);
+        }
         continue;
       }
       if (!amounts) {

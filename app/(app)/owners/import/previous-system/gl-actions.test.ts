@@ -268,6 +268,7 @@ describe('opening balances from the trial balance', () => {
     expect(section).toContain('await postOpeningBalances(input.associationId, input.asOf, input.rows, {');
     expect(section).toContain('setAssociationId(e.target.value); invalidate();');
     expect(section).toContain('setAsOf(e.target.value); invalidate();');
+    expect(section).toContain('requestId.current === before) await run(true, input);');
   });
 });
 
