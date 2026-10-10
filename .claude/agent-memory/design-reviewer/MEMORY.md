@@ -43,6 +43,7 @@
 - Sibling sections drift: check every section uses `SectionTitle` (not hand-rolled h2 with differing tracking/description colour), `<Input type="file" className="h-auto py-2">` (gl-section.tsx:118 used a raw input + filled-black file button), the same wrapper width/spacing, and `Field required` for markers.
 - `truncate` inside a TD needs `max-w-*` on the inner div; `max-w` on the td is ignored by auto table layout (work-order-section.tsx:108).
 - Badge has `capitalize`: free-text count badges ("with email", "AppFolio basis: cash") come out Title Case. Nit only.
+- Tie-out table (previous-system/gl-section.tsx ~:450): 4 nowrap money columns squeeze the Account TD to min-content at 375px, so long gray subtitles wrap word-by-word. Suggest `min-w-48` on that TD when subtitles grow (2026-10-10, retained-earnings accounts subtitle).
 - Import-result "Download all N messages" (receivables-section.tsx:240, 2026-10): secondary Button md (h-10) inside Alert matches the "Import anyway" precedent (:224). Naming AppFolio as the import source on owners/import/appfolio is expected copy, not a white-label leak; only flag Portier369/platform names.
 
 ## Two-step GET pickers (owners/change, 2026-10-09)

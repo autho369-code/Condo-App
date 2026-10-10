@@ -113,3 +113,8 @@ Back to [[Home]]. Don't redo these.
   even inside a security definer RPC ("DELETE requires a WHERE clause").
   Clear a per-call temp table with `truncate`. A test fails any later
   migration that adds a bare DELETE.
+- **Tie-out prior-years line (2026-10-10, Mirsad asked):** when the trial
+  balance file has its "Calculated Prior Years Retained Earnings" line, the
+  tie-out counts on that line every ledger equity account named retained
+  earnings (not "current year") that the file does not list, and names
+  them on the row. An account the file lists is compared on its own row.

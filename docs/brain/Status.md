@@ -1,9 +1,15 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-09 (no open PR; Randolph Station import complete and tied out; next: vendor details, then Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (open PR: tie-out pairs the prior-years line with the ledger's retained-earnings account; Randolph Station import complete and tied out).
 
 ## Open PR
-- None.
+- Branch claude/serene-wozniak-hvgpxf: trial balance tie-out counts a
+  ledger retained-earnings account the file does not list (equity, name
+  says retained earnings, not "current year") on the file's "Calculated
+  Prior Years Retained Earnings" line, only when the file has that line;
+  the row names the accounts. Randolph Station's two offsetting flags
+  (prior-years line vs 3350) become one matching row. Read-only action, no
+  migration. Test gl-actions.test.ts. Mirsad re-runs the tie-out to see it.
 
 ## Where things stand
 - Randolph Station opening balances posted and tied out (2026-10-10):
@@ -12,7 +18,7 @@ Back to [[Home]]. Updated 2026-10-09 (no open PR; Randolph Station import comple
   year to date): 46 accounts match, 0 differ, total difference $0.00. The
   only flags are the expected pair: the file's "Calculated Prior Years
   Retained Earnings" (-159,343.43, no account number) against 3350 on the
-  ledger. Claude read back: every account's ledger balance equals the
+  ledger (the open PR pairs them into one matching row). Claude read back: every account's ledger balance equals the
   trial balance ending balance (incl. 1300 A/R $4,387.69 from the open
   balances), ledger nets to 0.00, 16 entries. The trial balance CSV does
   not carry the property name (the page warns it may combine
@@ -269,10 +275,8 @@ Back to [[Home]]. Updated 2026-10-09 (no open PR; Randolph Station import comple
 
 ## Next gaps (pick up here, top first)
 0. Randolph Station is fully imported and tied out. Left: the 8 added
-   vendors need contact, tax and insurance details. Possible gaps seen:
-   the tie-out could show the prior-years retained-earnings line against
-   the account the opening journal used (3350) instead of two offsetting
-   flags; an opening-balance journal step on the import page.
+   vendors need contact, tax and insurance details. Possible gap: an
+   opening-balance journal step on the import page.
    Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next

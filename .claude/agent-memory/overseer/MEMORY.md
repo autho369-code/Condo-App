@@ -145,3 +145,9 @@
 - Import credits: the "no longer in this file (paid or removed ...)" message
   in receivables-actions.ts also fires for an imported credit that was used
   up; check wording when a sign-flipped row type joins an existing loop.
+- Tie-out prior-years fix (start check 2026-10-10): the edit was already in
+  the working tree before the start check. Pre-PR, check: absorption only when
+  the file has a prior-years line; totals unchanged (row moved, not dropped);
+  a unit test exists (logic sits in the server action, untested - extract the
+  matching to lib/imports/appfolio-gl.ts); Status Next gaps 0 drops the
+  "possible gap"; Decisions records the rule.
