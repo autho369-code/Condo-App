@@ -1,18 +1,22 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (after #277 merged; open PR: speed round trips; next: vendor details for Randolph Station, then Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (after #280 merged; open PRs: redesign #279, RLS once-per-query; next: vendor details for Randolph Station, then Stripe pilot).
 
 ## Open PR
-- claude/speed-round-trips: fewer sequential Supabase round trips (dashboard
-  reminders 7 -> 2 waves; owner portal home ~13 -> 2 waves). No migration.
-  Measured 2026-10-10 (read-only): the biggest DB cost is RLS helpers that
-  take a column (can_access_portfolio(portfolio_id), can_manage_finance,
-  can_read_gl) running once PER ROW: gl_accounts 609 rows = 247 ms as a
-  manager vs 0.1 ms bypassed, 508 ms for a vendor who sees 0 rows; a hoisted
-  set comparison (`portfolio_id in (select my_..._ids())`) measured 242 ->
-  31 ms (manager) and 504 -> 1 ms (vendor). Next speed step: rewrite those
-  policies with per-role equivalence tests (medium risk). Middleware me()
-  is still needed per request (MFA, operator write block).
+- claude/rls-hoist: security checks run once per query, not once per row.
+  Migration 20261011010000 APPLIED to prod 2026-10-10 (Claude). 1,475
+  public policies rewritten in place (ALTER POLICY; roles/commands kept):
+  zero-argument helpers and operator_may_write(..) wrapped as
+  "( SELECT f() )"; can_access_portfolio / can_manage_finance /
+  can_admin_portfolio / can_access_association / can_view_association_row
+  split into once-per-query helpers (my_access_portfolio, my_finance_portfolio,
+  my_admin_portfolio, my_accessible_association_ids,
+  my_managed_association_ids) plus a plain comparison. Equivalence checked
+  before applying (scripts/sql/rls-hoist-equivalence.sql, rolled back): 26,507
+  checks, 13 callers incl. a fixture scoped manager and support operator,
+  0 differences. Measured as each role: owners+units join 215 -> 25 ms,
+  work orders 24 -> 1 ms, journal lines 11 -> 1-5 ms, gl_accounts 247 -> 107
+  ms (manager) and 508 -> 130 ms (vendor); row counts identical.
 
 ## Where things stand
 - #277 merged (824566b2): "Unlink login" button on the owner record
