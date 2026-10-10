@@ -1,12 +1,16 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (after #280 merged; open PRs: redesign #279, RLS once-per-query; next: Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (after #279 and #281 merged; open PR: #282 query probe + report-run errors; next: Stripe pilot).
 
 ## Open PR
-- #279 claude/redesign-six-roles: one design for all six roles (do not
-  merge yet; progress and handoff in docs/redesign/). Signed-in checks done
-  for owner, vendor, manager and company admin; operator and board pending.
-- claude/rls-hoist: security checks run once per query, not once per row.
+- #282 claude/live-query-probe: production query probe (0 broken of 1,164),
+  Excel export checked end to end, refused report runs return to the report.
+
+## Merged 2026-10-10 (late)
+- #279 MERGED by Mirsad (f4201176): one design for all six roles
+  (docs/redesign/). Signed-in checks done for owner, vendor, manager and
+  company admin; operator and board screens still to check signed in.
+- #281 MERGED (aa573336), claude/rls-hoist: security checks run once per query, not once per row.
   Migration 20261011010000 APPLIED to prod 2026-10-10 (Claude). 1,475
   public policies rewritten in place (ALTER POLICY; roles/commands kept):
   zero-argument helpers and operator_may_write(..) wrapped as
