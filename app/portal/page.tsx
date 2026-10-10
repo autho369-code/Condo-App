@@ -21,111 +21,91 @@ export default async function OwnerDashboard() {
   const loadErrors: string[] = []
   const track = (label: string, error: { message?: string } | null | undefined) => { if (error) loadErrors.push(`${label} (${error.message ?? 'error'})`) }
 
+  // Two waves of parallel reads (they were ~13 sequential round trips):
+  // first what needs only the login's owner records, then what needs their units.
+  const none = Promise.resolve({ data: null, error: null, count: null })
   // Owner info + unit (occupancies has no archived_at column)
   // Current occupancies only: a sold unit must not keep showing its new
   // owner's balance, payments and work orders (board RLS would allow it).
-  const { data: occupancies, error: occError } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct').in('owner_id', ownerIds).eq('status', 'current').order('is_primary', { ascending: false }).limit(20)
-  track('your units', occError)
-  const occs = occupancies ?? []
+  const [occRes, tenure, violRes, violCountRes] = await Promise.all([
+    db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct').in('owner_id', ownerIds).eq('status', 'current').order('is_primary', { ascending: false }).limit(20),
+    // Work orders and payments (linked to a unit, not an owner) show only from
+    // the owner's own tenure on, so a buyer never sees the seller's.
+    ownerTenureCutoffs(db, ownerIds),
+    // Violations
+    db.from('violations').select('id,title,status,date_observed').in('owner_id', ownerIds).is('archived_at', null).not('status','in','("closed","cured")').order('date_observed', { ascending: false }).limit(5),
+    db.from('violations').select('id', { count: 'exact', head: true }).in('owner_id', ownerIds).is('archived_at', null).not('status','in','("closed","cured")'),
+  ])
+  track('your units', occRes.error)
+  const occs: any[] = occRes.data ?? []
   const unitIds = occs.map((o: any) => o.unit_id).filter(Boolean)
-  // Next Due = the earliest open charge's due date on the owner's units.
-  let nextDue = 'Nothing due'
-  if (unitIds.length > 0) {
-    const { data: openCharge, error: dueError } = await db.from('v_charge_balances').select('due_date').in('unit_id', unitIds).gt('balance_due', 0).not('due_date', 'is', null).order('due_date', { ascending: true }).limit(1).maybeSingle()
-    track('next due date', dueError)
-    if (openCharge?.due_date) {
-      nextDue = new Date(`${String(openCharge.due_date).slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' })
-    }
-  }
   const assocId = occs[0]?.association_id
-
-  // Current balance = outstanding A/R (charges − payments) across the owner's units
-  let totalDue = 0
-  if (unitIds.length > 0) {
-    const { data: bals, error: balError } = await db.from('unit_balances').select('balance').in('unit_id', unitIds)
-    track('balance', balError)
-    totalDue = (bals ?? []).reduce((s: number, b: any) => s + Number(b.balance ?? 0), 0)
-  }
-
-  // Work orders (work_orders links to a unit, not an owner) — only those opened
-  // during the owner's tenure, so a buyer never sees the seller's.
-  const tenure = await ownerTenureCutoffs(db, ownerIds)
-  const woScope = tenureFilter(tenure, 'created_at', unitIds)
-  let workOrders: any[] = []
-  if (woScope) {
-    const { data: wos, error: woError } = await db.from('work_orders').select('id,title,status,created_at').or(woScope).is('archived_at', null).order('created_at', { ascending: false }).limit(5)
-    track('work orders', woError)
-    workOrders = wos ?? []
-  }
-  // Counts come from their own head queries — the lists above/below are capped at 5.
-  let openWOCount = 0
-  if (woScope) {
-    const { count, error: woCountError } = await db.from('work_orders').select('id', { count: 'exact', head: true }).or(woScope).is('archived_at', null).not('status', 'in', '("done","completed","billed","closed","cancelled")')
-    track('open work order count', woCountError)
-    openWOCount = count ?? 0
-  }
-
-  // Violations
-  const { data: viols, error: violError } = await db.from('violations').select('id,title,status,date_observed').in('owner_id', ownerIds).is('archived_at', null).not('status','in','("closed","cured")').order('date_observed', { ascending: false }).limit(5)
-  const violations = viols ?? []
-  const { count: openViolationCount, error: violCountError } = await db.from('violations').select('id', { count: 'exact', head: true }).in('owner_id', ownerIds).is('archived_at', null).not('status','in','("closed","cured")')
-  track('violations', violError ?? violCountError)
-  const openViolations = openViolationCount ?? 0
-
+  track('violations', violRes.error ?? violCountRes.error)
+  const violations = violRes.data ?? []
+  const openViolations = violCountRes.count ?? 0
   // Every association the owner holds a unit in, not just the primary one
   // (a login can hold one owner record per association).
   const assocIds = [...new Set(occs.map((o: any) => o.association_id).filter(Boolean))] as string[]
-
-  // Calendar
-  let events: any[] = []
-  if (assocIds.length > 0) {
-    const { data: ev, error: evError } = await db.from('calendar_events').select('id,title,start_datetime,location').in('association_id', assocIds).is('archived_at', null).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(5)
-    track('events', evError)
-    events = ev ?? []
-  }
-
-  // Announcements
-  let announcements: any[] = []
-  if (assocIds.length > 0) {
-    // Owner-facing only: tenant-only announcements are not for owners.
-    const { data: ann, error: annError } = await db.from('communications_log').select('id,subject,body,created_at').in('association_id', assocIds).eq('channel','announcement')
-      .or('announcement_audience.is.null,announcement_audience.in.(owners,both)')
-      .order('created_at',{ascending:false}).limit(3)
-    track('announcements', annError)
-    announcements = ((ann ?? []) as any[]).map((a) => ({ ...a, preview: htmlToPlainText(a.body) }))
-  }
-
-  // Recent payments on the owner's units — only from their own move-in on, so
-  // a buyer never sees the seller's payments.
-  let recentPayments: any[] = []
+  const woScope = tenureFilter(tenure, 'created_at', unitIds)
   const paymentScope = tenureFilter(tenure, 'payment_date', unitIds)
-  if (paymentScope) {
-    const { data: pays, error: payError } = await db.from('payments').select('id, amount, payment_date, method, reversed_at').or(paymentScope).order('payment_date', { ascending: false }).limit(5)
-    track('payments', payError)
-    recentPayments = pays ?? []
-  }
-
-  // Emergency notice: open emergency-priority work orders in the owner's
-  // communities. Residents can't read those rows via RLS, so a SECURITY
-  // DEFINER RPC returns just the title + created_at.
-  let emergencies: { title: string; created_at: string }[] = []
-  if (occs.length > 0) {
-    const { data: em } = await db.rpc('owner_open_emergencies')
-    emergencies = ((em ?? []) as { title: string; created_at: string }[]).slice(0, 3)
-  }
 
   // Management contact — public branding fields only, resolved server-side.
-  let support: { name: string | null; email: string | null; phone: string | null } | null = null
-  if (assocId) {
+  const loadSupport = async (): Promise<{ name: string | null; email: string | null; phone: string | null } | null> => {
+    if (!assocId) return null
     try {
       const svc = createServiceClient() as any
       const { data: assoc } = await svc.from('associations').select('portfolio_id').eq('id', assocId).maybeSingle()
-      if (assoc?.portfolio_id) {
-        const { data: pf } = await svc.from('portfolios').select('company_name, support_email, support_phone').eq('id', assoc.portfolio_id).maybeSingle()
-        if (pf) support = { name: pf.company_name ?? null, email: pf.support_email ?? null, phone: pf.support_phone ?? null }
-      }
-    } catch {}
+      if (!assoc?.portfolio_id) return null
+      const { data: pf } = await svc.from('portfolios').select('company_name, support_email, support_phone').eq('id', assoc.portfolio_id).maybeSingle()
+      return pf ? { name: pf.company_name ?? null, email: pf.support_email ?? null, phone: pf.support_phone ?? null } : null
+    } catch { return null }
   }
+
+  const [dueRes, balRes, woRes, woCountRes, evRes, annRes, payRes, emRes, support] = await Promise.all([
+    // Next Due = the earliest open charge's due date on the owner's units.
+    unitIds.length > 0
+      ? db.from('v_charge_balances').select('due_date').in('unit_id', unitIds).gt('balance_due', 0).not('due_date', 'is', null).order('due_date', { ascending: true }).limit(1).maybeSingle()
+      : none,
+    // Current balance = outstanding A/R (charges − payments) across the owner's units
+    unitIds.length > 0 ? db.from('unit_balances').select('balance').in('unit_id', unitIds) : none,
+    woScope ? db.from('work_orders').select('id,title,status,created_at').or(woScope).is('archived_at', null).order('created_at', { ascending: false }).limit(5) : none,
+    // Counts come from their own head queries — the lists are capped at 5.
+    woScope ? db.from('work_orders').select('id', { count: 'exact', head: true }).or(woScope).is('archived_at', null).not('status', 'in', '("done","completed","billed","closed","cancelled")') : none,
+    // Calendar
+    assocIds.length > 0 ? db.from('calendar_events').select('id,title,start_datetime,location').in('association_id', assocIds).is('archived_at', null).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(5) : none,
+    // Announcements — owner-facing only: tenant-only announcements are not for owners.
+    assocIds.length > 0
+      ? db.from('communications_log').select('id,subject,body,created_at').in('association_id', assocIds).eq('channel','announcement')
+        .or('announcement_audience.is.null,announcement_audience.in.(owners,both)')
+        .order('created_at',{ascending:false}).limit(3)
+      : none,
+    // Recent payments on the owner's units, from their own move-in on.
+    paymentScope ? db.from('payments').select('id, amount, payment_date, method, reversed_at').or(paymentScope).order('payment_date', { ascending: false }).limit(5) : none,
+    // Emergency notice: open emergency-priority work orders in the owner's
+    // communities. Residents can't read those rows via RLS, so a SECURITY
+    // DEFINER RPC returns just the title + created_at.
+    occs.length > 0 ? db.rpc('owner_open_emergencies') : none,
+    loadSupport(),
+  ])
+
+  track('next due date', dueRes.error)
+  let nextDue = 'Nothing due'
+  if (dueRes.data?.due_date) {
+    nextDue = new Date(`${String(dueRes.data.due_date).slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' })
+  }
+  track('balance', balRes.error)
+  const totalDue = ((balRes.data ?? []) as any[]).reduce((s: number, b: any) => s + Number(b.balance ?? 0), 0)
+  track('work orders', woRes.error)
+  const workOrders: any[] = woRes.data ?? []
+  track('open work order count', woCountRes.error)
+  const openWOCount = woCountRes.count ?? 0
+  track('events', evRes.error)
+  const events: any[] = evRes.data ?? []
+  track('announcements', annRes.error)
+  const announcements: any[] = ((annRes.data ?? []) as any[]).map((a) => ({ ...a, preview: htmlToPlainText(a.body) }))
+  track('payments', payRes.error)
+  const recentPayments: any[] = payRes.data ?? []
+  const emergencies: { title: string; created_at: string }[] = ((emRes.data ?? []) as { title: string; created_at: string }[]).slice(0, 3)
 
   const card = 'rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
