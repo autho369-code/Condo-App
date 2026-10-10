@@ -7,8 +7,11 @@
 //   tieOutAppfolioTrialBalance    — READ-ONLY comparison of AppFolio's Trial
 //     Balance against one association's posted ledger, or every association
 //     combined (an AppFolio trial balance run for all properties, ungrouped).
+//   postOpeningBalancesFromTrialBalance — posts one opening journal entry for
+//     one association: the tie-out's differences, through the journal entry
+//     upload RPC (import_journal_entry_batch).
 //
-// Both run through the signed-in finance user's session client, so RLS
+// All run through the signed-in finance user's session client, so RLS
 // applies (gl_accounts_finance_all = can_manage_finance(portfolio_id));
 // guard_gl_account_change() re-checks numbers, parent type and association.
 import { revalidatePath } from 'next/cache';
@@ -173,6 +176,10 @@ export type TieOutLine = {
   portier: number | null;
   difference: number;
   status: 'match' | 'different' | 'not_in_portier' | 'not_in_appfolio';
+  /** False when every ledger account with this number is hidden (inactive). */
+  active?: boolean;
+  /** More than one active account has this number (company-wide and the association's own). */
+  shared?: boolean;
 };
 
 export type TieOutResult = {
@@ -197,6 +204,13 @@ export type TieOutResult = {
     difference: number;
     accounts?: Array<{ number: number; name: string; balance: number }>;
   };
+  /**
+   * One association only: active equity accounts named as prior years'
+   * retained earnings that the file does not list, i.e. accounts the tie-out
+   * counts on the prior-years line. Opening balances may post that line only
+   * to one of these, so a second run finds nothing to post.
+   */
+  equityAccounts?: Array<{ id: string; number: number; name: string }>;
 };
 
 export type TieOutOptions = {
@@ -284,8 +298,8 @@ export async function tieOutAppfolioTrialBalance(
 
   // Accounts the association(s) can post to: company-wide plus their own
   // (every account in the company when combined).
-  const { rows: accounts, error: accountsErr } = await fetchAllRows<{ id: string; number: number; name: string; account_type: string }>(() => {
-    let q = db.from('gl_accounts').select('id, number, name, account_type').eq('portfolio_id', portfolioId);
+  const { rows: accounts, error: accountsErr } = await fetchAllRows<{ id: string; number: number; name: string; account_type: string; active: boolean }>(() => {
+    let q = db.from('gl_accounts').select('id, number, name, account_type, active').eq('portfolio_id', portfolioId);
     if (!combined) q = q.or(`association_id.is.null,association_id.eq.${associationId}`);
     return q.order('number').order('id');
   });
@@ -323,7 +337,7 @@ export async function tieOutAppfolioTrialBalance(
   // `retained`/`retainedName`: the part of the balance on prior years'
   // retained-earnings accounts, classified per account before accounts that
   // share a number (association-own, combined view) are added up.
-  const portier = new Map<number, { name: string; account_type: string; balance: number; retained: number; retainedName: string | null; otherName: string | null; otherType: string | null }>();
+  const portier = new Map<number, { name: string; account_type: string; balance: number; retained: number; retainedName: string | null; otherName: string | null; otherType: string | null; active: boolean; activeCount: number }>();
   for (const a of accounts) {
     const t = allTime[a.id] ?? { debit: 0, credit: 0 };
     let balance = t.debit - t.credit;
@@ -343,6 +357,8 @@ export async function tieOutAppfolioTrialBalance(
       retainedName: prev?.retainedName ?? (isRetained ? a.name : null),
       otherName: prev?.otherName ?? (isRetained ? null : a.name),
       otherType: prev?.otherType ?? (isRetained ? null : a.account_type),
+      active: Boolean(prev?.active) || a.active !== false,
+      activeCount: (prev?.activeCount ?? 0) + (a.active !== false ? 1 : 0),
     });
   }
 
@@ -354,7 +370,7 @@ export async function tieOutAppfolioTrialBalance(
       continue;
     }
     const difference = cents(af.ending - p.balance);
-    lines.push({ number, name: af.name || p.name, account_type: p.account_type, appfolio: af.ending, portier: p.balance, difference, status: difference === 0 ? 'match' : 'different' });
+    lines.push({ number, name: af.name || p.name, account_type: p.account_type, appfolio: af.ending, portier: p.balance, difference, status: difference === 0 ? 'match' : 'different', active: p.active, shared: p.activeCount > 1 });
   }
   // The file's prior-years line has no account number. A ledger
   // retained-earnings account the file does not list holds the same balance
@@ -375,7 +391,7 @@ export async function tieOutAppfolioTrialBalance(
       accountType = p.otherType ?? p.account_type;
     }
     if (rest === 0) continue;
-    lines.push({ number, name, account_type: accountType, appfolio: null, portier: rest, difference: cents(-rest), status: 'not_in_appfolio' });
+    lines.push({ number, name, account_type: accountType, appfolio: null, portier: rest, difference: cents(-rest), status: 'not_in_appfolio', active: p.active, shared: p.activeCount > 1 });
   }
   lines.sort((a, b) => a.number - b.number);
 
@@ -410,5 +426,196 @@ export async function tieOutAppfolioTrialBalance(
     },
     priorYearsNet: cents(priorYearsNet),
     priorYears,
+    ...(combined ? {} : {
+      // By account id: a number can belong to more than one account.
+      equityAccounts: accounts
+        .filter((a) => a.account_type === 'equity' && a.active !== false && isPriorRetainedEarnings(a.name) && !appfolio.has(Number(a.number)))
+        .map((a) => ({ id: a.id, number: Number(a.number), name: a.name })),
+    }),
   };
+}
+
+/* ── Opening balances from the trial balance ──────────────────────────── */
+
+export type OpeningBalancesResult = {
+  ok: boolean;
+  message: string;
+  errors?: string[];
+  /** Lines posted (0 when every account already ties out). */
+  lines?: number;
+  total?: number;
+};
+
+export type OpeningBalancesOptions = TieOutOptions & {
+  /** Equity account (id) for prior years' retained earnings, when the ledger has none the tie-out paired. */
+  retainedEarningsAccountId?: string | null;
+  /** The file's accounting basis: read from the file, or confirmed by the user when the file does not say. */
+  basis?: 'cash' | 'accrual';
+  /** Account or prior-years lines of this property whose amount could not be read (from the browser's parse). */
+  unreadableRows?: boolean;
+};
+
+const OPENING_MEMO = 'Opening balance from previous system trial balance';
+const fmtMoney = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/**
+ * Post one journal entry, dated `asOf`, that brings each account of one
+ * association to the trial balance's ending balance: the tie-out's
+ * differences, recomputed here (never taken from the browser), with prior
+ * years' retained earnings posted to an equity account. Goes through the
+ * journal entry upload (import_journal_entry_batch), so its validation and
+ * permission checks apply. Once posted, a second run finds nothing to post.
+ */
+export async function postOpeningBalancesFromTrialBalance(
+  associationId: string,
+  asOf: string,
+  rows: TieOutInputRow[],
+  options: OpeningBalancesOptions = {},
+): Promise<OpeningBalancesResult> {
+  const me = await requireFinanceStaff();
+  const portfolioId: string | undefined = me.portfolio?.id;
+  if (!portfolioId) return { ok: false, message: 'Your account is not linked to a company.' };
+  if (associationId === TIE_OUT_ALL_ASSOCIATIONS || typeof associationId !== 'string' || !UUID.test(associationId)) {
+    return { ok: false, message: 'Opening balances post to one association. Choose the association the trial balance is for.' };
+  }
+  if (options.basis !== 'accrual') {
+    return {
+      ok: false,
+      message: options.basis === 'cash'
+        ? 'This is a cash-basis trial balance. Export it on the accrual basis to post opening balances.'
+        : 'Confirm the trial balance is on the accrual basis before posting opening balances.',
+    };
+  }
+  if (options.unreadableRows) {
+    return { ok: false, message: 'Some account lines in the file have an amount that could not be read, so its balances are incomplete. Fix the file, then post.' };
+  }
+  const db = (await createClient()) as any;
+  try {
+    // The open-balance import writes the same accounts: hold its lock too, so
+    // nothing lands between reading the ledger and posting.
+    return await withImportLock(db, associationId, 'opening_balances', () => withImportLock(db, associationId, 'appfolio_receivables', async () => {
+      // One opening entry per association. The tie-out only reads up to the
+      // as-of date, so a run with an earlier date would not see an entry
+      // already posted and would post the opening balances again.
+      const { data: existing, error: existingErr } = await db
+        .from('journal_lines').select('id').eq('association_id', associationId).eq('memo', OPENING_MEMO).limit(1);
+      if (existingErr) return { ok: false, message: `Could not check for an earlier opening entry: ${existingErr.message}` };
+      if (existing?.length) {
+        return { ok: false, message: 'This association already has an opening balance entry. Make any corrections with a journal entry.' };
+      }
+
+      // Recompute against the ledger now; this also re-checks the association is the caller's.
+      const tie = await tieOutAppfolioTrialBalance(associationId, asOf, rows, {
+        incomeBasis: options.incomeBasis, priorYearsRetainedEarnings: options.priorYearsRetainedEarnings,
+      });
+      if (tie.error || !tie.lines) return { ok: false, message: tie.error ?? 'Could not compare the trial balance.' };
+      // A file with a prior-years line has closed earlier years' income into
+      // it; an all-time ledger still has that income in the income and
+      // expense accounts, and posting their differences would move it into
+      // this year.
+      if (tie.incomeFrom === null && tie.priorYears?.appfolio != null) {
+        return { ok: false, message: 'The file carries prior years\' retained earnings, so compare income and expense from the start of the fiscal year, not all time, before posting.' };
+      }
+
+      const missing = tie.lines.filter((l) => l.status === 'not_in_portier');
+      if (missing.length) {
+        return {
+          ok: false,
+          message: 'Some accounts in the file are not in your chart of accounts. Import the chart of accounts first, then post again.',
+          errors: missing.map((l) => `${l.number} ${l.name}`),
+        };
+      }
+
+      // The file is the opening position; a ledger balance it does not list
+      // (something already posted here) is not ours to reverse.
+      const ledgerOnly = tie.lines.filter((l) => l.status === 'not_in_appfolio');
+      if (ledgerOnly.length) {
+        return {
+          ok: false,
+          message: 'Your ledger has balances on accounts the file does not list. Check these first; opening balances are posted only when every ledger balance is in the file.',
+          errors: ledgerOnly.map((l) => `${l.number} ${l.name}: ${fmtMoney(l.portier ?? 0)}`),
+        };
+      }
+      const hidden = tie.lines.filter((l) => l.difference !== 0 && l.active === false);
+      if (hidden.length) {
+        return {
+          ok: false,
+          message: 'Some accounts that need an opening balance are hidden in your chart of accounts. Show them again, then post.',
+          errors: hidden.map((l) => `${l.number} ${l.name}`),
+        };
+      }
+
+      // Keyed by what the upload resolves: an account number (the file's own
+      // rows), or an account id for prior years' retained earnings, so that
+      // line reaches exactly the equity account chosen even when another
+      // account shares its number.
+      // A number held by two active accounts (company-wide and the
+      // association's own) is ambiguous: the upload would pick one of them.
+      const shared = tie.lines.filter((l) => l.difference !== 0 && l.shared);
+      if (shared.length) {
+        return {
+          ok: false,
+          message: 'More than one active account has the same number as these accounts, so the opening balance could post to the wrong one. Hide or renumber the extra account, then post.',
+          errors: shared.map((l) => `${l.number} ${l.name}`),
+        };
+      }
+
+      const amounts = new Map<string, { number: number; amount: number }>();
+      const add = (gl: string, number: number, amount: number) =>
+        amounts.set(gl, { number, amount: cents((amounts.get(gl)?.amount ?? 0) + amount) });
+      for (const l of tie.lines) if (l.difference !== 0) add(String(l.number), l.number, l.difference);
+
+      const py = tie.priorYears;
+      if (py && py.difference !== 0) {
+        if (py.appfolio === null) {
+          return { ok: false, message: 'Your ledger has income and expense from before this fiscal year, and the file has no prior years\' retained earnings line to match it. Compare all-time balances instead, or check the file.' };
+        }
+        const paired = py.accounts ?? [];
+        // Only an active account can take the line (the upload posts to active accounts only).
+        const choices = tie.equityAccounts ?? [];
+        const pairedChoices = paired.length === 1 ? choices.filter((a) => a.number === paired[0].number) : [];
+        let target = pairedChoices.length === 1 ? pairedChoices[0] : null;
+        if (target === null) {
+          if (choices.length === 0) {
+            return { ok: false, message: 'Add an equity account named "Prior Year Retained Earnings" (or "Retained Earnings") to your chart of accounts for prior years\' retained earnings, then post again.' };
+          }
+          target = choices.find((a) => a.id === options.retainedEarningsAccountId) ?? null;
+          if (!target) return { ok: false, message: 'Choose the equity account for prior years\' retained earnings.' };
+        }
+        add(target.id, target.number, py.difference);
+      }
+
+      const posting = [...amounts].map(([gl, v]) => [gl, v.amount, v.number] as const)
+        .filter(([, a]) => a !== 0).sort((a, b) => a[2] - b[2]);
+      if (posting.length === 0) return { ok: true, message: 'Nothing to post: every account already matches the file.', lines: 0, total: 0 };
+      const debits = cents(posting.reduce((s, [, a]) => s + (a > 0 ? a : 0), 0));
+      const credits = cents(posting.reduce((s, [, a]) => s + (a < 0 ? -a : 0), 0));
+      if (debits !== credits) {
+        return { ok: false, message: `The differences do not balance (debits ${fmtMoney(debits)}, credits ${fmtMoney(credits)}). Check that the file balances and that it is for this association only.` };
+      }
+
+      const entry = `OPENING-${asOf}`;
+      const { data, error } = await db.rpc('import_journal_entry_batch', {
+        p_name: `Opening balances ${tie.association ?? ''} ${asOf}`.replace(/\s+/g, ' ').trim(),
+        p_rows: posting.map(([gl, a], i) => ({
+          row: String(i + 1),
+          entry,
+          date: asOf,
+          association: associationId,
+          gl,
+          debit: a > 0 ? a.toFixed(2) : '',
+          credit: a < 0 ? (-a).toFixed(2) : '',
+          memo: OPENING_MEMO,
+        })),
+      });
+      if (error) return { ok: false, message: `Nothing was posted: ${error.message}` };
+      if (!data?.ok) {
+        return { ok: false, message: `Nothing was posted — fix ${data?.error_count ?? 'the'} problem${data?.error_count === 1 ? '' : 's'} and try again.`, errors: data?.errors ?? [] };
+      }
+      revalidatePath('/journal-entries');
+      return { ok: true, message: `Posted one opening entry with ${posting.length} lines, ${fmtMoney(debits)} on each side, against the ledger as it stood when you posted.`, lines: posting.length, total: debits };
+    }));
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : 'The opening balances could not be posted. Try again.' };
+  }
 }

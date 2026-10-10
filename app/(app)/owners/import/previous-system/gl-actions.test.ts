@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Trial balance tie-out: the file's "Calculated Prior Years Retained Earnings"
@@ -8,26 +10,38 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const ASSOC = '11111111-1111-4111-8111-111111111111';
 
 const state = vi.hoisted(() => ({
-  accounts: [] as Array<{ id: string; number: number; name: string; account_type: string }>,
+  accounts: [] as Array<{ id: string; number: number; name: string; account_type: string; active?: boolean }>,
   totals: {} as Record<string, { debit: number; credit: number }>,
+  rpcs: [] as Array<{ fn: string; args: any }>,
+  openingLines: [] as Array<{ id: string }>,
+  locks: [] as string[],
 }));
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/auth/me', () => ({ requireFinanceStaff: vi.fn().mockResolvedValue({ portfolio: { id: 'co' } }) }));
-vi.mock('@/lib/imports/import-lock', () => ({ withImportLock: vi.fn() }));
+vi.mock('@/lib/imports/import-lock', () => ({
+  withImportLock: (_db: unknown, _s: string, kind: string, fn: () => unknown) => { state.locks.push(kind); return fn(); },
+}));
 vi.mock('@/lib/finance/totals', () => ({ ledgerTotalsByAccount: async (_db: unknown, o: { to: string }) => (o.to === '2026-10-08' ? state.totals : {}) }));
 vi.mock('@/lib/supabase/fetch-all', () => ({ fetchAllRows: async () => ({ rows: state.accounts, error: null }) }));
 vi.mock('@/lib/supabase/server', () => ({
   createClient: async () => {
     const q: any = {
-      select: () => q, eq: () => q, or: () => q, is: () => q, order: () => q,
+      select: () => q, eq: () => q, or: () => q, is: () => q, order: () => q, limit: () => q,
+      then: (ok: (v: unknown) => unknown) => Promise.resolve({ data: state.openingLines, error: null }).then(ok),
       maybeSingle: async () => ({ data: { id: ASSOC, name: 'Sample', portfolio_id: 'co', fiscal_year_start: 1 }, error: null }),
     };
-    return { from: () => q };
+    return {
+      from: () => q,
+      rpc: async (fn: string, args: any) => {
+        state.rpcs.push({ fn, args });
+        return { data: { ok: true, batch_id: 'b1', entries: 1 }, error: null };
+      },
+    };
   },
 }));
 
-import { tieOutAppfolioTrialBalance } from './gl-actions';
+import { postOpeningBalancesFromTrialBalance, tieOutAppfolioTrialBalance } from './gl-actions';
 
 const rows = [
   { number: 1150, name: 'Operating', ending: 1000 },
@@ -126,3 +140,155 @@ describe('trial balance tie-out: prior years retained earnings', () => {
     expect(r.lines?.find((l) => l.number === 3350)).toMatchObject({ name: 'Repairs', account_type: 'expense', portier: 25 });
   });
 });
+
+describe('opening balances from the trial balance', () => {
+  // A new association: the chart exists, nothing posted except an imported receivable.
+  const file = [
+    { number: 1150, name: 'Operating', ending: 1000 },
+    { number: 1300, name: 'Receivable', ending: 50 },
+    { number: 4101, name: 'Assessments', ending: -300 },
+    { number: 6101, name: 'Electricity', ending: 100 },
+  ];
+  beforeEach(() => {
+    state.rpcs = [];
+    state.openingLines = [];
+    state.locks = [];
+    state.accounts = [
+      { id: 'cash', number: 1150, name: 'Operating', account_type: 'cash' },
+      { id: 'ar', number: 1300, name: 'Receivable', account_type: 'accounts_receivable' },
+      { id: 'inc', number: 4101, name: 'Assessments', account_type: 'income' },
+      { id: 'exp', number: 6101, name: 'Electricity', account_type: 'expense' },
+      { id: 're', number: 3350, name: 'Prior Year Retained Earnings', account_type: 'equity' },
+      { id: 'own', number: 3000, name: 'Owner Equity', account_type: 'equity' },
+    ];
+    // Open balances already posted: Dr 1300 50 / Cr 4101 50.
+    state.totals = { ar: { debit: 50, credit: 0 }, inc: { debit: 0, credit: 50 } };
+  });
+  const post = (opts: Record<string, unknown> = {}) =>
+    postOpeningBalancesFromTrialBalance(ASSOC, '2026-10-08', file, { priorYearsRetainedEarnings: -850, retainedEarningsAccountId: 're', basis: 'accrual', ...opts });
+
+  it('posts one balanced entry of the differences, prior years to the retained-earnings account', async () => {
+    const r = await post();
+    expect(r).toMatchObject({ ok: true, lines: 4, total: 1100 });
+    const call = state.rpcs.find((c) => c.fn === 'import_journal_entry_batch');
+    expect(call?.args.p_name).toBe('Opening balances Sample 2026-10-08');
+    expect(call?.args.p_rows.map((x: any) => [x.gl, x.debit, x.credit])).toEqual([
+      ['1150', '1000.00', ''], ['re', '', '850.00'], ['4101', '', '250.00'], ['6101', '100.00', ''],
+    ]);
+    for (const x of call?.args.p_rows ?? []) {
+      expect(x).toMatchObject({ entry: 'OPENING-2026-10-08', date: '2026-10-08', association: ASSOC, memo: 'Opening balance from previous system trial balance' });
+    }
+    expect(JSON.stringify(call?.args)).not.toMatch(/appfolio/i);
+    // Holds its own lock and the open-balance import's.
+    expect(state.locks).toEqual(['opening_balances', 'appfolio_receivables']);
+  });
+
+  it('refuses a second opening entry for the association, whatever the date', async () => {
+    state.openingLines = [{ id: 'l1' }];
+    const r = await postOpeningBalancesFromTrialBalance(ASSOC, '2026-05-31', file, { priorYearsRetainedEarnings: -850, retainedEarningsAccountId: 're', basis: 'accrual' });
+    expect(r.ok).toBe(false);
+    expect(r.message).toContain('already has an opening balance entry');
+    expect(state.rpcs).toEqual([]);
+  });
+
+  it('posts nothing when every account already matches', async () => {
+    state.totals = {
+      cash: { debit: 1000, credit: 0 }, ar: { debit: 50, credit: 0 }, inc: { debit: 0, credit: 300 },
+      exp: { debit: 100, credit: 0 }, re: { debit: 0, credit: 850 },
+    };
+    const r = await post({ retainedEarningsAccountId: null });
+    expect(r).toMatchObject({ ok: true, lines: 0 });
+    expect(state.rpcs).toEqual([]);
+  });
+
+  it('only posts prior years to an account the tie-out will then match', async () => {
+    expect((await post({ retainedEarningsAccountId: 'own' })).ok).toBe(false);
+    expect((await post({ retainedEarningsAccountId: null })).message).toContain('Choose the equity account');
+    state.accounts = state.accounts.filter((a) => a.id !== 're');
+    expect((await post()).message).toContain('Add an equity account named');
+    expect(state.rpcs).toEqual([]);
+  });
+
+  it('refuses the all-associations view, cash basis, all-time balances and missing or hidden accounts', async () => {
+    expect((await postOpeningBalancesFromTrialBalance('all', '2026-10-08', file)).ok).toBe(false);
+    expect((await post({ basis: 'cash' })).message).toContain('cash-basis');
+    expect((await post({ incomeBasis: 'all_time' })).message).toContain('not all time');
+    expect((await postOpeningBalancesFromTrialBalance(ASSOC, '2026-10-08', [...file, { number: 9999, name: 'Unknown', ending: 0.01 }], { priorYearsRetainedEarnings: -850.01, retainedEarningsAccountId: 're', basis: 'accrual' })).errors)
+      .toEqual(['9999 Unknown']);
+    state.accounts = state.accounts.map((a) => (a.number === 6101 ? { ...a, active: false } : a));
+    expect((await post()).errors).toEqual(['6101 Electricity']);
+    expect(state.rpcs).toEqual([]);
+  });
+
+  it('never reverses a ledger balance the file does not list', async () => {
+    state.totals.own = { debit: 0, credit: 20 };
+    state.totals.cash = { debit: 20, credit: 0 };
+    const r = await post();
+    expect(r.ok).toBe(false);
+    expect(r.errors).toEqual(['3000 Owner Equity: -20.00']);
+    expect(state.rpcs).toEqual([]);
+  });
+
+  it('refuses all-time balances when the file has a prior-years line, even one that matches', async () => {
+    state.totals.re = { debit: 0, credit: 850 };
+    state.totals.cash = { debit: 850, credit: 0 };
+    const r = await post({ incomeBasis: 'all_time', retainedEarningsAccountId: null });
+    expect(r.message).toContain('not all time');
+    expect(state.rpcs).toEqual([]);
+  });
+
+  it('never posts prior years to a hidden paired account; asks for an active one', async () => {
+    // A hidden retained-earnings account with a balance is paired, and an active one exists.
+    state.accounts = [
+      ...state.accounts.map((a) => (a.id === 're' ? { ...a, active: false } : a)),
+      { id: 're2', number: 3360, name: 'Retained Earnings', account_type: 'equity' },
+    ];
+    state.totals.re = { debit: 0, credit: 100 };
+    state.totals.cash = { debit: 100, credit: 0 };
+    expect((await post({ retainedEarningsAccountId: null })).message).toContain('Choose the equity account');
+    expect((await post({ retainedEarningsAccountId: 're' })).ok).toBe(false);
+    const r = await post({ retainedEarningsAccountId: 're2' });
+    expect(r.ok).toBe(true);
+    const rows = state.rpcs.find((c) => c.fn === 'import_journal_entry_batch')?.args.p_rows ?? [];
+    expect(rows.find((x: any) => x.gl === 're2')).toMatchObject({ credit: '750.00' });
+    expect(rows.some((x: any) => x.gl === '3350' || x.gl === 're')).toBe(false);
+  });
+
+  it('needs an accrual file with every account line read', async () => {
+    expect((await post({ basis: undefined })).message).toContain('Confirm the trial balance is on the accrual basis');
+    expect((await post({ unreadableRows: true })).message).toContain('could not be read');
+    expect(state.rpcs).toEqual([]);
+  });
+
+  it('posts exactly the inputs the shown comparison was made from', () => {
+    // A slower, older comparison never replaces a newer one, and posting sends the
+    // compared snapshot rather than what the controls hold now.
+    const section = readFileSync(resolve(process.cwd(), 'app/(app)/owners/import/previous-system/gl-section.tsx'), 'utf8');
+    expect(section).toContain('if (id !== requestId.current) return;');
+    expect(section).toContain('await postOpeningBalances(input.associationId, input.asOf, input.rows, {');
+    expect(section).toContain('setAssociationId(e.target.value); invalidate();');
+    expect(section).toContain('setAsOf(e.target.value); invalidate();');
+    expect(section).toContain('requestId.current === before) await run(true, input);');
+    expect(section).toContain('if (gen !== fileGen.current) return;');
+    expect(section).toContain("if (id !== requestId.current) return;\n      setError(err instanceof Error ? err.message : 'The comparison failed. Try again.');");
+  });
+
+  it('posts prior years by account id when another account shares its number', async () => {
+    // A legacy association-own non-equity account reuses 3350.
+    state.accounts = [...state.accounts, { id: 'clash', number: 3350, name: 'Old clearing', account_type: 'liability' }];
+    const r = await post({ retainedEarningsAccountId: 're' });
+    expect(r.ok).toBe(true);
+    const rows = state.rpcs.find((c) => c.fn === 'import_journal_entry_batch')?.args.p_rows ?? [];
+    expect(rows.find((x: any) => x.gl === 're')).toMatchObject({ credit: '850.00' });
+    expect(rows.some((x: any) => x.gl === '3350' || x.gl === 'clash')).toBe(false);
+  });
+
+  it('refuses a difference on a number held by two active accounts', async () => {
+    state.accounts = [...state.accounts, { id: 'cash2', number: 1150, name: 'Operating (old)', account_type: 'cash' }];
+    const r = await post();
+    expect(r.ok).toBe(false);
+    expect(r.errors).toEqual(['1150 Operating']);
+    expect(state.rpcs).toEqual([]);
+  });
+});
+

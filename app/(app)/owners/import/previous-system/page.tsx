@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { importAppfolioUnits } from '../actions';
 import { AppfolioImportClient } from './appfolio-client';
-import { importAppfolioChartOfAccounts, tieOutAppfolioTrialBalance } from './gl-actions';
+import { importAppfolioChartOfAccounts, postOpeningBalancesFromTrialBalance, tieOutAppfolioTrialBalance } from './gl-actions';
 import { importAppfolioHomeowners } from './homeowner-actions';
 import { HomeownerImportSection } from './homeowner-section';
 import { GlImportSection, TrialBalanceTieOutSection } from './gl-section';
@@ -42,7 +42,7 @@ export default async function AppfolioImportPage() {
   return (
     <DataWorkspace
       title="Import from your previous system"
-      description="Bring associations over from your previous system's report exports, top to bottom: units, homeowners, chart of accounts, vendors, open balances and work orders, then tie out the trial balance. Nothing is saved until you review the preview and choose Import."
+      description="Bring associations over from your previous system's report exports, top to bottom: units, homeowners, chart of accounts, vendors, open balances and work orders, then tie out the trial balance and post opening balances. Nothing is saved until you review the preview and confirm."
       actions={<Link href="/owners/import"><Button variant="secondary">Other imports</Button></Link>}
     >
       <div className="max-w-5xl space-y-8">
@@ -53,7 +53,11 @@ export default async function AppfolioImportPage() {
         {canFinance && <ReceivablesImportSection associations={associations} importReceivables={importAppfolioReceivables} />}
         <WorkOrderImportSection associations={associations} importWorkOrders={importAppfolioWorkOrders} />
         {canFinance && hasCompany && (
-          <TrialBalanceTieOutSection associations={associations} tieOutTrialBalance={tieOutAppfolioTrialBalance} />
+          <TrialBalanceTieOutSection
+            associations={associations}
+            tieOutTrialBalance={tieOutAppfolioTrialBalance}
+            postOpeningBalances={postOpeningBalancesFromTrialBalance}
+          />
         )}
       </div>
     </DataWorkspace>

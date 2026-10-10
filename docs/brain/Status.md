@@ -1,24 +1,37 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (open PR: tie-out pairs the prior-years line with the ledger's retained-earnings account; Randolph Station import complete and tied out).
+Back to [[Home]]. Updated 2026-10-10 (open PR #272: opening balances step on the import page; Randolph Station imported and ties out with no flags; next: vendor details, then Stripe pilot).
 
 ## Open PR
-- #271 (branch claude/serene-wozniak-hvgpxf): trial balance tie-out counts
+- #272 (branch claude/serene-wozniak-hvgpxf): opening balances step on the import
+  page. Under the trial balance tie-out (one association), "Post opening
+  balances" posts one entry dated the as-of date with each account's
+  difference (file minus ledger), prior years' retained earnings to the
+  paired account or a chosen one the tie-out will pair, through
+  import_journal_entry_batch. Server recomputes the tie-out under an import
+  lock; refuses all associations, cash basis, all-time with a prior-years
+  line, accounts missing from the chart, hidden accounts and ledger-only
+  balances, and a second opening entry for the association (any date).
+  Holds the open-balance import's lock too. Confirm-first button. No
+  migration.
+  Tests in gl-actions.test.ts. Randolph Station already ties out, so it
+  would post nothing there.
+
+## Where things stand
+- #271 merged (4f0f197f): trial balance tie-out counts
   a ledger retained-earnings account the file does not list (equity; name
   says prior/previous or is exactly "Retained Earnings"; see Decisions) on the file's "Calculated
   Prior Years Retained Earnings" line, only when the file has that line;
   the row names the accounts. Randolph Station's two offsetting flags
   (prior-years line vs 3350) become one matching row. Read-only action, no
-  migration. Test gl-actions.test.ts. Mirsad re-runs the tie-out to see it.
-
-## Where things stand
+  migration. Test gl-actions.test.ts. Mirsad re-ran Randolph Station after the merge: every account ties out, no flags.
 - Randolph Station opening balances posted and tied out (2026-10-10):
   Mirsad uploaded the opening journal (1 batch, 1 entry, $493,061.19 each
   side, dated 2026-10-08) and ran the tie-out (as of 2026-10-08, fiscal
   year to date): 46 accounts match, 0 differ, total difference $0.00. The
   only flags are the expected pair: the file's "Calculated Prior Years
   Retained Earnings" (-159,343.43, no account number) against 3350 on the
-  ledger (the open PR pairs them into one matching row). Claude read back: every account's ledger balance equals the
+  ledger (#271 pairs them; re-run after merge shows no flags). Claude read back: every account's ledger balance equals the
   trial balance ending balance (incl. 1300 A/R $4,387.69 from the open
   balances), ledger nets to 0.00, 16 entries. The trial balance CSV does
   not carry the property name (the page warns it may combine
@@ -43,7 +56,7 @@ Back to [[Home]]. Updated 2026-10-10 (open PR: tie-out pairs the prior-years lin
   the staff note). Mirsad asked Claude to add them: 8 vendors created
   under Randolph Station (name only; contact, tax and insurance details
   still to fill in) and linked to their 14 work orders.
-- Opening balances: the trial-balance section only compares. Claude built a
+- Opening balances (Randolph Station, before the import-page step): Claude built a
   one-entry opening journal (2026-10-08, 44 lines, $493,061.19 each side)
   from the previous system's trial balance, by account, minus what the
   open-balance import already posted (1300/4101 $4,387.69); "Calculated
@@ -275,8 +288,8 @@ Back to [[Home]]. Updated 2026-10-10 (open PR: tie-out pairs the prior-years lin
 
 ## Next gaps (pick up here, top first)
 0. Randolph Station is fully imported and tied out. Left: the 8 added
-   vendors need contact, tax and insurance details. Possible gap: an
-   opening-balance journal step on the import page.
+   vendors need contact, tax and insurance details. The opening balances
+   step is in the open PR.
    Then: Stripe live for one
    pilot association (Mirsad's account setup), Illinois rule pack.
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next

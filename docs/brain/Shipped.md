@@ -3,6 +3,14 @@
 Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
+## 2026-10-10
+- #271 (merged, 4f0f197f; no migration): trial balance tie-out counts the
+  ledger's prior years' retained-earnings account (name says prior/previous
+  or is exactly "Retained Earnings"; any other wording keeps its own row)
+  on the file's "Calculated Prior Years Retained Earnings" line and names
+  it there. Classified per account before shared numbers are added up.
+  Mirsad re-ran Randolph Station: every account ties out, no flags.
+
 ## 2026-10-09
 - #270 (merged, a1a0add2; migration 20261009090000 run by Mirsad in the SQL
   editor and read back by Claude): Journal entries -> Upload batch, Bills ->

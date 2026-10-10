@@ -156,3 +156,13 @@
   entries still pointing at the merged PR now read as the new one (Status
   :53 said the pg_safeupdate fix was "in the open PR" after #270 merged).
   The tie-out matching stayed in the action, tested via vi.mock (accepted).
+- Opening-balance step (start check 2026-10-10): posting tie-out
+  differences must be idempotent through the tie-out itself. Pre-PR check:
+  the retained-earnings target is one the tie-out absorbs (equity,
+  isPriorRetainedEarnings name, not in the file) else a re-run shows a
+  difference and a second click double-posts; prior-years part refused when
+  the file has no prior-years line; withImportLock around tie-out + RPC (no
+  double post on double click); csv_gl_id needs g.active but the tie-out
+  reads inactive accounts too (refuse up front with a named list);
+  not_in_appfolio rows (ledger-only) policy stated in Decisions; confirm
+  button; no "AppFolio" in batch name / memo / reference.

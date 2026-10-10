@@ -44,6 +44,8 @@
 - `truncate` inside a TD needs `max-w-*` on the inner div; `max-w` on the td is ignored by auto table layout (work-order-section.tsx:108).
 - Badge has `capitalize`: free-text count badges ("with email", "AppFolio basis: cash") come out Title Case. Nit only.
 - Tie-out table (previous-system/gl-section.tsx ~:450): 4 nowrap money columns squeeze the Account TD to min-content at 375px, so long gray subtitles wrap word-by-word. Suggest `min-w-48` on that TD when subtitles grow (2026-10-10, retained-earnings accounts subtitle).
+- Links inside an Alert: precedent is `font-medium underline` inheriting the Alert's text colour (vendors/forms:38, journal-entries:264); `text-blue-700` in a success Alert drifts (gl-section.tsx:583, 2026-10-10).
+- Client-state choices (e.g. retainedNumber Select in gl-section) that survive a new compare/file: if the new option list lacks the stale value, the controlled Select shows the placeholder while the action posts the hidden value. Check resets in run()/onFile.
 - Import-result "Download all N messages" (receivables-section.tsx:240, 2026-10): secondary Button md (h-10) inside Alert matches the "Import anyway" precedent (:224). Naming AppFolio as the import source on owners/import/appfolio is expected copy, not a white-label leak; only flag Portier369/platform names.
 
 ## Two-step GET pickers (owners/change, 2026-10-09)

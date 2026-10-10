@@ -137,6 +137,28 @@ describe('AppFolio Trial Balance', () => {
     expect(tb.warnings).toBeUndefined();
   });
 
+  it('marks a property whose account or prior-years amount could not be read', () => {
+    const tb = parseAppfolioTrialBalance([
+      'GL Account,Balance Forward,Debit,Credit,Ending Balance',
+      '-> Oak Court,,,,',
+      '1150: Operating,,,,"10.00"',
+      '-> Elm Court,,,,',
+      '1150: Operating,,,,"abc"',
+      'Calculated Prior Years Retained Earnings,,,,"n/a"',
+      '-> Ash Court,,,,',
+      '1150: Operating,,,,"5.00"',
+      '-> Fir Court,,,,',
+      '115O: Operating,,,,"5.00"',
+      '-> Bay Court,,,,',
+      'I150 Operating,,,,"5.00"',
+      '-> Yew Court,,,,',
+      '1150: Operating,,,,"5.00"',
+      'Total Yew Court,,,,"5.00"',
+    ].join('\n'));
+    expect(tb.unreadable).toEqual(['Elm Court', 'Fir Court', 'Bay Court']);
+    expect(tb.rows?.map((r) => r.group)).toEqual(['Oak Court', 'Ash Court', 'Yew Court']);
+  });
+
   it('warns when the account lines do not add up to the Total row', () => {
     const tb = parseAppfolioTrialBalance([
       'GL Account,Balance Forward,Debit,Credit,Ending Balance',

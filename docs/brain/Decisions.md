@@ -125,3 +125,16 @@ Back to [[Home]]. Don't redo these.
   row is compared whole; a combined (all associations) file where two
   associations use the same number for different equity is left as two
   offsetting rows (total still right), not split by guessing.
+- **Opening balances from the trial balance (2026-10-10, Mirsad asked):**
+  the import page posts one entry per association dated the as-of date:
+  each account's difference between the previous system's trial balance and
+  the ledger, so open balances imported first are left out (import open
+  balances first). Prior years' retained earnings go only to an account the
+  tie-out pairs with that line. It never reverses a ledger balance the file
+  does not list, never posts to hidden accounts, and needs an accrual file
+  compared fiscal year to date. One opening entry per association (found by
+  its memo on the association's lines, any date); corrections go in as
+  journal entries.
+  Mirsad (2026-10-10, #272): the read-then-post gap (a manual journal entry
+  landing in the same second) is accepted; the tie-out re-runs right after
+  posting and shows any mismatch. No transactional RPC for it.
