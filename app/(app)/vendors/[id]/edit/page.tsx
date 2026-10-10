@@ -88,7 +88,7 @@ export default async function EditVendorPage({
     >
       {sp.error && <Alert className="mb-6 max-w-5xl" title="Could not save vendor:">{sp.error}</Alert>}
 
-      <form action={updateVendorRecord} className="max-w-5xl space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={updateVendorRecord} className="max-w-5xl space-y-6 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <input type="hidden" name="vendor_id" value={id} />
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

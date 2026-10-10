@@ -50,7 +50,7 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
           // hearing_at is what the detail page and the hearing workflow set.
           { label: 'Hearings Scheduled', value: all.filter((v: any) => v.hearing_at || v.hearing_date).length },
         ].map(s => (
-          <div key={s.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div key={s.label} className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="text-[13px] font-medium text-gray-500">{s.label}</div>
             <div className="mt-1.5 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{s.value}</div>
           </div>

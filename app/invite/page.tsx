@@ -152,13 +152,13 @@ async function Shell({ title, brand, children }: { title: string; brand?: string
   const tenant = tenantFromHeaders(await headers());
   const name = brand?.trim() || tenant?.companyName || 'Portier369';
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f6f7f9] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
       <div className="w-full max-w-md rounded-2xl border border-gray-200/80 bg-white p-8 shadow-[0_1px_3px_rgba(16,24,40,0.06),0_8px_24px_-12px_rgba(16,24,40,0.12)]">
         <div className="mb-5 flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-950 text-sm font-bold text-white">{name.charAt(0).toUpperCase()}</div>
           <span className="text-lg font-semibold text-gray-950">{name}</span>
         </div>
-        <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{title}</h1>
+        <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{title}</h1>
         {children}
       </div>
     </div>
@@ -244,7 +244,7 @@ export default async function InvitePage({
   if (existing) {
     return (
       <Shell title="Accept your invitation" brand={companyName}>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+        <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
           You&apos;ve been invited to join{companyName ? <> <strong className="text-gray-900">{companyName}</strong></> : null} as <strong className="text-gray-900">{roleLabel}</strong>.
         </p>
         <p className="mt-1 text-sm leading-6 text-gray-500">
@@ -260,7 +260,7 @@ export default async function InvitePage({
 
   return (
     <Shell title="Accept your invitation" brand={companyName}>
-      <p className="mt-1.5 text-sm leading-6 text-gray-500">
+      <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
         You&apos;ve been invited to join{companyName ? <> <strong className="text-gray-900">{companyName}</strong></> : null} as <strong className="text-gray-900">{roleLabel}</strong>.
       </p>
       <p className="mt-1 text-sm leading-6 text-gray-500">Set your password to activate your account.</p>

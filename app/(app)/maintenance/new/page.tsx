@@ -103,7 +103,7 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
           <span className="mx-2">/</span>
           New task
         </nav>
-        <h1 className="mt-2 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Add maintenance task</h1>
+        <h1 className="mt-2 font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Add maintenance task</h1>
         <p className="mt-1 text-sm text-gray-500">Tasks auto-recur based on frequency and appear on the association calendar.</p>
       </div>
       {sp.error && (

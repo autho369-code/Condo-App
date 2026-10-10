@@ -59,7 +59,7 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
 
   return (
     <DataWorkspace title="New Inspection" description="Schedule a property or unit inspection." actions={<Link href="/inspections"><Button variant="secondary">Back to inspections</Button></Link>}>
-      <form action={createInspection} className="max-w-2xl space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={createInspection} className="max-w-2xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create inspection">{sp.error}</Alert>}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>

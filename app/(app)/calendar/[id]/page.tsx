@@ -76,7 +76,7 @@ export default async function CalendarEventPage({
         </div>
 
         {!canceled && (
-          <form action={updateCalendarEvent} className="space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <form action={updateCalendarEvent} className="space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <input type="hidden" name="event_id" value={event.id} />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
@@ -122,7 +122,7 @@ export default async function CalendarEventPage({
         )}
 
         {!canceled && (
-          <form action={cancelCalendarEvent} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <form action={cancelCalendarEvent} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <input type="hidden" name="event_id" value={event.id} />
             <p className="text-sm text-gray-600">Cancel this event and its pending reminders.</p>
             <PendingSubmit variant="secondary" pendingLabel="Cancelling…" confirm="Cancel this event and its pending reminders?">Cancel event</PendingSubmit>

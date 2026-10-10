@@ -62,7 +62,7 @@ export function BatchLetters({ letters, title }: { letters: BatchLetter[]; title
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-gray-200/70 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:flex-row sm:items-center sm:p-4">
+      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:flex-row sm:items-center sm:p-4">
         <label className="flex min-h-10 items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" checked={addressBlock} onChange={(e) => setAddressBlock(e.target.checked)} className="h-4 w-4 rounded border-gray-300" />
           Print the mailing address on each letter (window envelopes)
@@ -76,7 +76,7 @@ export function BatchLetters({ letters, title }: { letters: BatchLetter[]; title
 
       <div className="space-y-4">
         {letters.map((l, i) => (
-          <article key={l.key} className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-8">
+          <article key={l.key} className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-8">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-gray-100 pb-3">
               <p className="text-sm font-semibold text-gray-950">{l.recipient}</p>
               <p className="text-[13px] text-gray-500">{l.unitLabel}</p>

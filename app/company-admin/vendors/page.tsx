@@ -140,7 +140,7 @@ export default async function VendorsPage({
         ].map((item) => {
           const Icon = item.icon
           return (
-            <div key={item.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div key={item.label} className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="text-[13px] font-medium leading-5 text-gray-500">{item.label}</div>
@@ -157,7 +157,7 @@ export default async function VendorsPage({
       </div>
 
       {/* Filters */}
-      <form action="/company-admin/vendors" method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action="/company-admin/vendors" method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <label className="text-[13px] font-medium text-gray-500">
           Trade
           <select name="trade" defaultValue={sp.trade ?? ''} className="mt-1 block h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">

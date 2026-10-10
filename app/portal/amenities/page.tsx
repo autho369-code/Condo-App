@@ -235,7 +235,7 @@ export default async function OwnerAmenitiesPage({
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-[0.06em] text-gray-500">Request a reservation</h2>
         {amenities.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 text-sm text-gray-600 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-6 text-sm text-gray-600 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             No bookable amenities are available for your community yet. Check back later or contact your management team.
           </div>
         ) : (
@@ -325,7 +325,7 @@ export default async function OwnerAmenitiesPage({
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-[0.06em] text-gray-500">My reservations</h2>
         {reservations.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white p-6 text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             You have no reservations yet.
           </div>
         ) : (
@@ -350,7 +350,7 @@ function ReservationList({
 }) {
   if (rows.length === 0) return null
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="border-b border-gray-100 bg-gray-50/60 px-5 py-2.5 text-[12.5px] font-medium uppercase tracking-wide text-gray-500">
         {title}
       </div>

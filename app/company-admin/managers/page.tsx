@@ -135,7 +135,7 @@ export default async function CompanyAdminManagersPage({
           <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Managers</h1>
           <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Staff and managers managing associations in your portfolio</p>
         </div>
-        <form action={inviteManager} className="w-full max-w-md rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <form action={inviteManager} className="w-full max-w-md rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center gap-2">
             <Input name="email" type="email" required placeholder="manager@email.com" className="h-9 flex-1" aria-label="Manager email" />
             <PendingSubmit pendingLabel="Inviting…"><UserPlus className="h-4 w-4" /> Invite</PendingSubmit>
@@ -168,7 +168,7 @@ export default async function CompanyAdminManagersPage({
           { label: 'Open Work Orders', value: rows.reduce((s: number, r: any) => s + r.openWorkOrders, 0) },
           { label: 'Overdue Work Orders', value: rows.reduce((s: number, r: any) => s + r.overdueWorkOrders, 0), warn: true },
         ].map((item) => (
-          <div key={item.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div key={item.label} className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="text-[13px] font-medium leading-5 text-gray-500">{item.label}</div>
             <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${item.warn ? 'text-amber-700' : 'text-gray-950'}`}>{item.value}</div>
           </div>

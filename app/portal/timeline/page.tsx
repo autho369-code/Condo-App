@@ -93,7 +93,7 @@ export default async function OwnerTimelinePage() {
               <div className={`absolute -left-[33px] flex h-6 w-6 items-center justify-center rounded-full border-2 border-white ${e.color.split(' ')[1]}`}>
                 <e.icon className={`h-3 w-3 ${e.color.split(' ')[0]}`} />
               </div>
-              <div className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <div className="flex items-center justify-between">
                   <div className="font-medium text-gray-900 text-sm">{e.title}</div>
                   <span className="text-[13px] text-gray-500">{date(e.date)}</span>

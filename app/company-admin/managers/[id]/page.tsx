@@ -144,7 +144,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
                 {(manager.full_name ?? manager.email ?? '?')[0].toUpperCase()}
               </div>
               <div>
-                <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{manager.full_name ?? manager.email}</h1>
+                <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{manager.full_name ?? manager.email}</h1>
                 <div className="mt-1 text-sm capitalize text-gray-500">{(manager.hoa_role ?? 'manager').replace('_', ' ')}</div>
                 {manager.disabled_at && <div className="mt-1 text-xs font-medium text-red-700">Login disabled</div>}
               </div>

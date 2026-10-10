@@ -39,7 +39,7 @@ export function ApplicationError({
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-5 py-12">
-      <section className="w-full max-w-lg rounded-2xl border border-gray-200/70 bg-white p-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-9">
+      <section className="w-full max-w-lg rounded-2xl border border-line bg-white p-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-9">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 text-gray-700">
           {recovering ? <RefreshCw className="h-5 w-5 animate-spin" /> : <ShieldAlert className="h-5 w-5" />}
         </div>

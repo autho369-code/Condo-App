@@ -964,7 +964,7 @@ async function GeneralLedgerView(ctx: ReportContext) {
       <div className="space-y-4">
         {linesTruncated && <TruncatedNotice what="journal lines" />}
         {selectedAccount && (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <span className="text-gray-600">
               Drill-down: <span className="font-medium text-gray-900">{accounts[0] ? `${accounts[0].number} — ${accounts[0].name}` : 'selected account'}</span>
               {selectedAssociation && <> · {associations.find((a: any) => a.id === selectedAssociation)?.name ?? 'association'}</>}

@@ -143,7 +143,7 @@ export default async function AccountingPage() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-2xl border border-gray-200/70 bg-white px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]"
+                className="rounded-2xl border border-line bg-white px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]"
               >
                 <div className="text-sm font-medium text-gray-950">{link.label}</div>
                 <div className="mt-1 text-[13px] text-gray-500">{link.description}</div>

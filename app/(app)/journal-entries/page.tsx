@@ -462,7 +462,7 @@ export default async function JournalEntriesPage({
         {tab === 'recurring' && (
           <>
             {recurringActiveCount > 0 && (
-              <form action={postRecurringJournalEntries} className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200/70 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <form action={postRecurringJournalEntries} className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <div className="min-w-0 flex-1">
                   <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Manually post recurring entries</h2>
                   <p className="mt-0.5 text-sm text-gray-600">Post every active recurring entry scheduled on or before this date now, instead of waiting for its date.</p>

@@ -63,7 +63,7 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
         <Alert tone="success">Your profile was saved.</Alert>
       )}
 
-      <form action={saveProfile} className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={saveProfile} className="space-y-4 rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <input type="hidden" name="record_id" value={recordId ?? ''} />
         <div className="mb-2 rounded-xl bg-gray-50 p-3 text-sm text-gray-500">
           Name and unit assignment are managed by your association. Contact management for changes.

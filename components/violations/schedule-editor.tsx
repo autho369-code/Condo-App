@@ -73,7 +73,7 @@ export function ScheduleEditor({
         {rows.map((row, i) => {
           cumulative += Number(row.days_after_previous) || 0;
           return (
-            <li key={row.key} className="rounded-xl border border-gray-200/70 p-4">
+            <li key={row.key} className="rounded-xl border border-line p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div className="text-[12px] font-medium text-gray-500">
                   Step {i + 1} · day {cumulative}

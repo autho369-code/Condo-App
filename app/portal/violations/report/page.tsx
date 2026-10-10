@@ -151,7 +151,7 @@ export default async function ReportConcernPage({
       )}
 
       {unitOptions.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 text-sm text-gray-600 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white p-6 text-sm text-gray-600 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           You don&apos;t have a unit on file yet. Contact your property manager so they can link
           your account to your unit.
         </div>

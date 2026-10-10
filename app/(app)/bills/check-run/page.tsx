@@ -127,7 +127,7 @@ export default async function CheckRunPage({
               </tbody>
             </Table>
           ) : (
-            <div className="rounded-2xl border border-gray-200/70 bg-white p-6 text-center text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="rounded-2xl border border-line bg-white p-6 text-center text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               No approved, unpaid bills for vendors that pay by check.
             </div>
           )}

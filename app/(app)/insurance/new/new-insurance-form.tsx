@@ -84,7 +84,7 @@ export default function NewInsuranceForm({ owners, associations, addPolicy, serv
           <span className="mx-2">/</span>
           New policy
         </nav>
-        <h1 className="mt-2 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Add insurance policy</h1>
+        <h1 className="mt-2 font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Add insurance policy</h1>
         <p className="mt-1 text-sm text-gray-500">
           Upload an HO6 certificate for AI extraction, or enter details manually.
         </p>

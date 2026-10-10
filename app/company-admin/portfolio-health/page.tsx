@@ -175,7 +175,7 @@ export default async function PortfolioHealthPage() {
             { label: 'Emergency work order (extra)', points: HEALTH_DEDUCTIONS.emergency },
             { label: 'Open violation', points: HEALTH_DEDUCTIONS.violations },
           ].map((factor) => (
-            <div key={factor.label} className="flex items-center justify-between rounded-xl border border-gray-200/70 bg-gray-50/60 px-4 py-3">
+            <div key={factor.label} className="flex items-center justify-between rounded-xl border border-line bg-gray-50/60 px-4 py-3">
               <span className="text-sm text-gray-600">{factor.label}</span>
               <span className="text-sm font-medium tabular-nums text-gray-950">−{factor.points}</span>
             </div>

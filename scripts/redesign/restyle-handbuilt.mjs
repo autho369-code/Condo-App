@@ -79,6 +79,24 @@ export const CLASS_MAP = {
   'mr-1 text-xs font-medium uppercase tracking-[0.14em] text-gray-400': 'mr-1 text-[13px] font-medium text-gray-500',
 };
 
+
+// Page titles from older pages, applied only to <h1> (the same classes on a
+// figure or label stay as they are).
+const PAGE_H1 = 'font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]';
+const DETAIL_H1 = 'break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]';
+export const H1_MAP = {
+  'text-[26px] font-semibold leading-tight tracking-[-0.02em] text-gray-950': PAGE_H1,
+  'text-[22px] font-semibold tracking-[-0.02em] text-gray-950': PAGE_H1,
+  'text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950': PAGE_H1,
+  'mt-2 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]': 'mt-2 ' + PAGE_H1,
+  'text-xl font-semibold tracking-[-0.02em] text-gray-950': DETAIL_H1,
+  'text-2xl font-semibold text-gray-950': DETAIL_H1,
+  'text-2xl font-semibold text-gray-900': DETAIL_H1,
+  'text-xl font-semibold text-gray-950': DETAIL_H1,
+  'text-xl font-semibold text-gray-900': DETAIL_H1,
+  'mt-1 text-[24px] font-semibold tracking-[-0.02em] text-gray-950': 'mt-1 ' + DETAIL_H1,
+};
+
 // Section-title styles apply only to headings, so item names in lists keep
 // their item look.
 const HEADING_ONLY = new Set(['text-sm font-semibold text-gray-950', 'text-[15px] font-semibold text-gray-950']);
@@ -95,6 +113,8 @@ function walk(dir, out = []) {
 export function restyle(src) {
   let changed = 0;
   const out = src.replace(/className="([^"]*)"/g, (whole, cls, offset) => {
+    const tagOf = () => /<([A-Za-z0-9]+)[^<]*$/.exec(src.slice(Math.max(0, offset - 300), offset))?.[1] ?? '';
+    if (H1_MAP[cls] && tagOf() === 'h1') { changed++; return `className="${H1_MAP[cls]}"`; }
     const next = CLASS_MAP[cls];
     if (!next) return whole;
     if (HEADING_ONLY.has(cls)) {

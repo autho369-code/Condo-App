@@ -48,7 +48,7 @@ export default async function OwnerSurveysPage({ searchParams }: { searchParams:
               <Link
                 key={s.id}
                 href={`/portal/surveys/${s.id}`}
-                className="block rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:bg-gray-50"
+                className="block rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:bg-gray-50"
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">

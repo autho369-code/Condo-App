@@ -189,7 +189,7 @@ export default async function ServiceRequestsPage({
         </FilterBar>
 
         {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white">
+          <div className="rounded-2xl border border-line bg-white">
             <EmptyState icon={ClipboardList} title="No matching service requests" description="New owner and resident requests will appear here for manager triage." />
           </div>
         ) : (

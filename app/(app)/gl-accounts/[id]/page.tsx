@@ -103,7 +103,7 @@ export default async function EditGlAccountPage({
       description="Edit this general ledger account, or mark it inactive so it is no longer offered for new entries."
       actions={<Link href="/gl-accounts"><Button variant="secondary">Back to GL accounts</Button></Link>}
     >
-      <form action={updateGlAccount} className="max-w-2xl space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={updateGlAccount} className="max-w-2xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not save the account">{sp.error}</Alert>}
         <input type="hidden" name="id" value={account.id} />
 

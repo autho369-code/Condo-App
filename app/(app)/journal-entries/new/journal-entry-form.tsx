@@ -42,7 +42,7 @@ export function JournalEntryForm({
   const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
   return (
-    <form action={action} className="space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <form action={action} className="space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <input type="hidden" name={submissionField} value={submissionToken} />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div>

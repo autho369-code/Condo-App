@@ -128,7 +128,7 @@ export default async function CompaniesPage({
 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-950">Management Companies</h1>
+          <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">Management Companies</h1>
           <p className="mt-1 text-sm text-gray-500">
             Platform oversight across every company, their subscriptions, doors, and health.
           </p>

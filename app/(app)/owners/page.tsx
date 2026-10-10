@@ -420,7 +420,7 @@ export default async function OwnersPage({
           // Compact contact-card grid for quick lookup — distinct from the
           // operational Owners table (no workflow buttons, print-friendly).
           rows.length === 0 ? (
-            <div className="rounded-2xl border border-gray-200/70 bg-white py-10 text-center text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="rounded-2xl border border-line bg-white py-10 text-center text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               No owner records match this filter.
             </div>
           ) : (
@@ -429,7 +429,7 @@ export default async function OwnersPage({
                 <Link
                   key={row.id}
                   href={`/owners/${row.id}`}
-                  className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300 hover:shadow-[0_1px_3px_rgba(16,24,40,0.08)]"
+                  className="rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300 hover:shadow-[0_1px_3px_rgba(16,24,40,0.08)]"
                 >
                   <div className="text-sm font-semibold text-gray-950">{row.name}</div>
                   <div className="mt-0.5 text-[13px] text-gray-500">

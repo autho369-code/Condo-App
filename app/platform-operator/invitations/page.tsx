@@ -118,7 +118,7 @@ export default async function InvitationsPage({
 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-950">Invitations</h1>
+          <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">Invitations</h1>
           <p className="mt-1 text-sm text-gray-500">
             Manage all user invitations across every portfolio in the platform.
           </p>

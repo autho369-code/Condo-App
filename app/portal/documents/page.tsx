@@ -139,7 +139,7 @@ export default async function OwnerDocumentsPage() {
       {loadError && <Alert tone="danger" title="Could not load your documents:">{loadError.message}</Alert>}
 
       {forms.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50/60 px-5 py-4">
             <ClipboardList className="h-5 w-5 text-gray-400" />
             <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Forms</h2>
@@ -181,7 +181,7 @@ export default async function OwnerDocumentsPage() {
             // buckets always (with their own empty state) to preserve layout.
             if (b.key === 'other' && items.length === 0) return null
             return (
-              <div key={b.key} className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div key={b.key} className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50/60 px-5 py-4">
                   <b.icon className="h-5 w-5 text-gray-400" />
                   <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">{b.title}</h2>

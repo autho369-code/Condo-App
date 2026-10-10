@@ -68,7 +68,7 @@ function Change({ now, before, format, inverse }: { now: number | null; before: 
 
 function Tile({ label, value, sub, href }: { label: string; value: string; sub?: ReactNode; href?: string }) {
   const body = (
-    <div className="h-full rounded-2xl border border-gray-200/70 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <div className="h-full rounded-2xl border border-line bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</div>
       <div className="mt-1 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
       {sub && <div className="mt-0.5">{sub}</div>}

@@ -191,7 +191,7 @@ export default async function CompanyDetailPage({
         </div>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-950">{portfolio.company_name}</h1>
+            <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{portfolio.company_name}</h1>
             <p className="mt-1 text-sm text-gray-500">
               Account management, subscription, invitations, and billing. Property operations stay with the company.
             </p>

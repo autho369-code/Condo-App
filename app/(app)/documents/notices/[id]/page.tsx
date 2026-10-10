@@ -47,7 +47,7 @@ export default async function NoticeDetailPage({
   if (!notice) {
     return (
       <DataWorkspace title="Notice Not Found" description="The notice you're looking for doesn't exist.">
-        <div className="rounded-2xl border border-gray-200/70 bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <p className="text-sm text-gray-500">Notice not found. It may have been deleted or archived.</p>
           <Link href="/documents?tab=notices" className="mt-3 inline-block text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
             Back to notices →

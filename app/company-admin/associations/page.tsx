@@ -121,7 +121,7 @@ export default async function CompanyAdminAssociationsPage({
       {associationsError && <Alert title="Could not load associations">{associationsError.message}</Alert>}
       {loadErrors.length > 0 && <Alert tone="danger" title="Some data could not be loaded; health scores may be incomplete.">{loadErrors.join(' · ')}</Alert>}
 
-      <form action="/company-admin/associations" method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action="/company-admin/associations" method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <label className="text-[13px] font-medium text-gray-500">
           Manager
           <select name="manager" defaultValue={sp.manager ?? ''} className={selectCls}>

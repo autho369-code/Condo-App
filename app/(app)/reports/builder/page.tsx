@@ -140,7 +140,7 @@ export default async function ReportBuilderPage({
         )}
 
         {/* Builder form */}
-        <section className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-5">
+        <section className="rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-5">
           <h2 className="mb-4 text-sm font-semibold text-gray-950">Build a report</h2>
           <BuilderForm sources={CLIENT_SOURCES} associations={associations} initial={initial} />
         </section>
@@ -180,7 +180,7 @@ export default async function ReportBuilderPage({
             )}
 
             {/* Save this report */}
-            <div className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <form action={saveReportView} className="flex flex-wrap items-end gap-3">
                 <input type="hidden" name="query" value={currentQuery} />
                 <Field label="Save this report" htmlFor="name" className="min-w-64 flex-1">

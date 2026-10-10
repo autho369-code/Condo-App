@@ -85,7 +85,7 @@ export function EscalationPanel({
       )}
 
       {fines.length > 0 && (
-        <div className="mt-4 rounded-xl border border-gray-200/70 px-4 py-3 text-sm">
+        <div className="mt-4 rounded-xl border border-line px-4 py-3 text-sm">
           <div className="mb-1 font-medium text-gray-900">Fines posted — {money(fines.reduce((s, f) => s + Number(f.amount), 0))}</div>
           {fines.map((f) => (
             <div key={f.id} className="flex justify-between text-gray-600"><span>{f.step_name}</span><span className="tabular-nums">{money(f.amount)} · {date(f.assessed_at)}</span></div>
@@ -119,7 +119,7 @@ export function EscalationPanel({
             </form>
 
             {hearingOpen && (
-              <form action={recordViolationHearing} className="space-y-2 rounded-xl border border-gray-200/70 p-3">
+              <form action={recordViolationHearing} className="space-y-2 rounded-xl border border-line p-3">
                 <input type="hidden" name="id" value={v.id} />
                 <div className="text-sm font-medium text-gray-900">
                   Record hearing decision{v.hearing_requested_at ? ` — owner requested ${date(v.hearing_requested_at)}` : ''}

@@ -83,7 +83,7 @@ export default async function MaintenanceTeamPage({ searchParams }: { searchPara
         ]} />
 
         {board.members.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200/70 bg-white">
+          <div className="rounded-2xl border border-line bg-white">
             <EmptyState icon={Users} title="No team activity yet"
               description="Assign work orders to a team member (In-house assignee on the work order) and log labor against them to see them here." />
           </div>

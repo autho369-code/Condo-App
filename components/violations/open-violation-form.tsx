@@ -71,7 +71,7 @@ export function OpenViolationForm({
       </div>
 
       {rule && (
-        <div className="rounded-xl border border-gray-200/70 bg-gray-50 px-4 py-3 text-[13px] leading-5 text-gray-600">
+        <div className="rounded-xl border border-line bg-gray-50 px-4 py-3 text-[13px] leading-5 text-gray-600">
           <div className="font-medium text-gray-900">{rule.rule_number} — {rule.title}</div>
           <p className="mt-1 whitespace-pre-wrap">{rule.description}</p>
           {rule.action_to_resolve && <p className="mt-2"><span className="font-medium text-gray-700">To resolve: </span>{rule.action_to_resolve}</p>}

@@ -221,13 +221,13 @@ export default async function ViolationDetailPage({
                   </div>
                 );
                 return (
-                  <div key={`${att.path}-${idx}`} className="overflow-hidden rounded-xl border border-gray-200/70 bg-gray-50/60">
+                  <div key={`${att.path}-${idx}`} className="overflow-hidden rounded-xl border border-line bg-gray-50/60">
                     {href ? (
                       <a href={href} target="_blank" rel="noopener noreferrer" className="block">{body}</a>
                     ) : (
                       body
                     )}
-                    <div className="truncate border-t border-gray-200/70 bg-white px-2.5 py-1.5 text-xs text-gray-500" title={att.name}>{att.name}</div>
+                    <div className="truncate border-t border-line bg-white px-2.5 py-1.5 text-xs text-gray-500" title={att.name}>{att.name}</div>
                   </div>
                 );
               })}

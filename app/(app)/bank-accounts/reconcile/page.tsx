@@ -264,7 +264,7 @@ export default async function BankReconciliationPage({
             />
 
             {/* Bank Account Info Bar */}
-            <div className="flex flex-wrap gap-4 rounded-2xl border border-gray-200/70 bg-white px-4 py-3 text-sm shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="flex flex-wrap gap-4 rounded-2xl border border-line bg-white px-4 py-3 text-sm shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <div>
                 <span className="text-gray-500">Account: </span>
                 <span className="font-medium text-gray-900">{selectedAccount.name}</span>

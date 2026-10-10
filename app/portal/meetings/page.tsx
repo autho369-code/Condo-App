@@ -38,7 +38,7 @@ export default async function OwnerMeetingsPage() {
       ) : (
         <div className="space-y-4">
           {all.map((m: any) => (
-            <div key={m.id} className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
+            <div key={m.id} className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h2 className="text-base font-semibold leading-tight text-gray-950">{m.title}</h2>

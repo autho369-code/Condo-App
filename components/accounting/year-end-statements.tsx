@@ -5,7 +5,7 @@ type Snapshot = any;
 
 function Table({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-6 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] print:break-inside-avoid print:rounded-none print:border-gray-300 print:shadow-none">
+    <section className="mb-6 overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] print:break-inside-avoid print:rounded-none print:border-gray-300 print:shadow-none">
       <div className="border-b border-gray-100 px-5 py-3"><h2 className="text-sm font-semibold text-gray-900">{title}</h2></div>
       <div className="overflow-x-auto">{children}</div>
     </section>

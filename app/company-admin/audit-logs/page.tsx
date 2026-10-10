@@ -63,7 +63,7 @@ export default async function AuditLogsPage({
       {logError && <Alert title="Could not load the audit log">{logError.message}</Alert>}
 
       {/* Date Range Filter */}
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <form action="/company-admin/audit-logs" method="get" className="flex flex-wrap items-end gap-3">
           <label className="block">
             <span className="text-[13px] font-medium text-gray-500">From</span>

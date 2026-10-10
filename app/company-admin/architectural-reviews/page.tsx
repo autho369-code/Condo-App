@@ -58,7 +58,7 @@ export default async function ArchitecturalReviewsOversightPage() {
         ].map((item) => {
           const Icon = item.icon
           return (
-            <div key={item.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div key={item.label} className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="text-[13px] font-medium text-gray-500">{item.label}</div>

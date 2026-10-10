@@ -39,7 +39,7 @@ export default async function YearEndPackagePage({
   const assoc = s.association ?? {};
 
   return (
-    <div className="min-h-full bg-[#f6f7f9] px-4 py-5 sm:px-6 lg:px-8 print:bg-white print:p-0">
+    <div className="min-h-full bg-canvas px-4 py-5 sm:px-6 lg:px-8 print:bg-white print:p-0">
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
           <Link href={`/accounting/year-end?association_id=${pkg.association_id}&year=${pkg.fiscal_year}`} className="text-sm text-gray-500 hover:text-gray-900">← Year-end close</Link>
@@ -57,9 +57,9 @@ export default async function YearEndPackagePage({
         {pkg.status === 'superseded' && <Alert tone="warning" className="mb-4">Superseded {fmt(pkg.superseded_at)}: {pkg.supersede_reason}</Alert>}
         {pkg.status === 'draft' && <Alert tone="info" className="mb-4 print:hidden">Draft — these figures reflect the books when the draft was prepared ({fmt(pkg.generated_at)}). Finalizing re-verifies nothing has changed since.</Alert>}
 
-        <header className="mb-6 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)] print:rounded-none print:border-0 print:p-0 print:shadow-none">
+        <header className="mb-6 rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)] print:rounded-none print:border-0 print:p-0 print:shadow-none">
           <div className="text-[12.5px] font-semibold uppercase tracking-[0.12em] text-gray-400">Year-end financial package</div>
-          <h1 className="mt-1 text-[24px] font-semibold tracking-[-0.02em] text-gray-950">{assoc.legal_name || assoc.name || pkg.associations?.name}</h1>
+          <h1 className="mt-1 break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">{assoc.legal_name || assoc.name || pkg.associations?.name}</h1>
           <p className="mt-1 text-sm text-gray-500">Fiscal year {s.fiscal_year} · {s.period_start} to {s.period_end}{assoc.tax_id ? ` · EIN ${assoc.tax_id}` : ''}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-gray-500">
             {pkg.status === 'finalized' ? <StatusChip tone="success">Finalized {fmt(pkg.finalized_at)}</StatusChip> : pkg.status === 'draft' ? <StatusChip tone="warning">Draft</StatusChip> : <StatusChip tone="neutral">Superseded</StatusChip>}

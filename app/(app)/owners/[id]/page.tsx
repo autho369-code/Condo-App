@@ -860,7 +860,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
                     {/* Active tenants */}
                     {unitTenants.map((t: any) => (
-                      <div key={t.id} className="mt-3 rounded-xl border border-gray-200/70 bg-gray-50/60 p-4">
+                      <div key={t.id} className="mt-3 rounded-xl border border-line bg-gray-50/60 p-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <div className="text-sm font-semibold text-gray-950">{t.first_name} {t.last_name}</div>
@@ -1498,7 +1498,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
 function Section({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
         <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
         {right}

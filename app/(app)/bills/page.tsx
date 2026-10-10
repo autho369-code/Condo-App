@@ -394,7 +394,7 @@ export default async function BillsPage({
               <form action={bulkBillAction} className="space-y-3">
               <input type="hidden" name="back" value={`/bills?tab=bills${statusFilter !== 'all' ? `&status=${statusFilter}` : ''}`} />
               {actionableCount > 0 && (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-gray-200/70 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                   <p className="text-sm text-gray-600">Select draft or pending bills, then send them to the board or approve them together.</p>
                   <div className="flex flex-wrap gap-2">
                     <Button type="submit" name="op" value="submit" variant="secondary" size="sm">Submit selected for approval</Button>

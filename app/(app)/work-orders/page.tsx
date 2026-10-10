@@ -387,7 +387,7 @@ export default async function WorkOrdersPage({
         {filtered.length > 0 ? (
           <form action={bulkWorkOrderAction} className="space-y-3">
           <input type="hidden" name="back" value={backHref} />
-          <div className="flex flex-col gap-3 rounded-2xl border border-gray-200/70 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] lg:flex-row lg:items-end lg:justify-between">
             <p className="text-sm text-gray-600">Select work orders, then act on all of them at once.</p>
             <div className="flex flex-wrap items-end gap-2">
               <select name="vendor_id" aria-label="Vendor to assign" defaultValue=""

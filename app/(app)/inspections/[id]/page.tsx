@@ -178,9 +178,9 @@ export default async function InspectionDetailPage({
       {sp.saved && <Alert className="mb-5" tone="success">{sp.saved}</Alert>}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Findings</div><div className="mt-1 text-2xl font-semibold tabular-nums">{(findings ?? []).length}</div></div>
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Unresolved</div><div className="mt-1 text-2xl font-semibold tabular-nums">{unresolved.length}</div></div>
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Major / critical</div><div className="mt-1 text-2xl font-semibold tabular-nums">{critical.length}</div></div>
+        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Findings</div><div className="mt-1 text-2xl font-semibold tabular-nums">{(findings ?? []).length}</div></div>
+        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Unresolved</div><div className="mt-1 text-2xl font-semibold tabular-nums">{unresolved.length}</div></div>
+        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Major / critical</div><div className="mt-1 text-2xl font-semibold tabular-nums">{critical.length}</div></div>
       </div>
 
       {checklistRows.length > 0 && (

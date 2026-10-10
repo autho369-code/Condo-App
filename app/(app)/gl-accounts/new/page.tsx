@@ -74,7 +74,7 @@ export default async function NewGlAccountPage({ searchParams }: { searchParams:
       description="Add a general ledger account to the chart of accounts."
       actions={<Link href="/gl-accounts"><Button variant="secondary">Back to GL accounts</Button></Link>}
     >
-      <form action={createGlAccount} className="max-w-2xl space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={createGlAccount} className="max-w-2xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create account">{sp.error}</Alert>}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

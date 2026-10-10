@@ -145,7 +145,7 @@ export default function NewTemplatePage() {
       <main className="min-w-0 flex-1 overflow-y-auto px-8 py-6">
         <div className="mb-6 flex items-start justify-between gap-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-950">New Template</h1>
+            <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">New Template</h1>
             <p className="mt-1 max-w-3xl text-sm text-gray-500">
               Create a reusable document template with merge variables for violation notices, welcome letters, assessment letters, and board packets.
             </p>

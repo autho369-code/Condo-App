@@ -31,7 +31,7 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
       description="Create the owner, assign the unit, set up the full fee schedule, and capture tenant/lease details if the unit is rented."
       actions={<Link href="/owners"><Button variant="secondary">Back to owners</Button></Link>}
     >
-      <form action={createOwnerWithDetails} className="max-w-5xl space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={createOwnerWithDetails} className="max-w-5xl space-y-6 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create owner">{sp.error}</Alert>}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

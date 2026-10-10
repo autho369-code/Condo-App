@@ -66,7 +66,7 @@ export default async function AccountPage({
   const mfaStatusUnavailable = Boolean(factorsError);
 
   return (
-    <div className="min-h-screen bg-[#f6f7f9]">
+    <div className="min-h-screen bg-canvas">
       <div className="mx-auto max-w-xl px-6 py-10 sm:py-14">
         <Link
           href={back}
@@ -80,7 +80,7 @@ export default async function AccountPage({
             <ShieldCheck className="h-5 w-5 text-gray-400" />
           </div>
           <div>
-            <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-gray-950">Account &amp; security</h1>
+            <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Account &amp; security</h1>
             <p className="text-sm text-gray-500">Manage your sign-in details.</p>
           </div>
         </div>
@@ -94,7 +94,7 @@ export default async function AccountPage({
           {sp.error && <Alert tone="danger" title="Couldn’t update your password.">{sp.error}</Alert>}
 
           {/* ======== ACCOUNT DETAILS ======== */}
-          <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <h2 className="text-[13px] font-semibold uppercase tracking-wide text-gray-500">Account</h2>
             <dl className="mt-3 divide-y divide-gray-100 text-sm">
               <div className="flex items-center justify-between py-2.5">
@@ -119,7 +119,7 @@ export default async function AccountPage({
             </p>
           </section>
 
-          <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-inset ring-blue-100">
@@ -155,7 +155,7 @@ export default async function AccountPage({
           </section>
 
           {/* ======== CHANGE PASSWORD ======== */}
-          <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <section className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <h2 className="text-[13px] font-semibold uppercase tracking-wide text-gray-500">Change password</h2>
             <form action={changePassword} className="mt-4 space-y-4">
               <div>

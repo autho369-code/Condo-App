@@ -44,7 +44,7 @@ export default async function OwnerAccountPage({ searchParams }: { searchParams:
       <RecordSwitcher records={records} currentId={recordId} basePath="/portal/account" caption="Each association keeps its own account details for you. Showing:" />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="space-y-4 rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Personal Information</h2>
           {[
             ['Name', (o.full_name ?? `${o.first_name ?? ''} ${o.last_name ?? ''}`.trim()) || '—'],
@@ -60,7 +60,7 @@ export default async function OwnerAccountPage({ searchParams }: { searchParams:
           ))}
         </div>
 
-        <div className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="space-y-4 rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Property Information</h2>
           {[
             ['Association', assocInfo?.name ?? '—'],

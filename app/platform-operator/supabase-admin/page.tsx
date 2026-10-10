@@ -15,7 +15,7 @@ function StatCard({
   icon: React.ElementType;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <div className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
           <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
@@ -135,7 +135,7 @@ export default async function SupabaseAdminPage() {
       </div>
 
       {/* Data retention note */}
-      <div className="flex items-start gap-3 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="flex items-start gap-3 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <Archive className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
         <div>
           <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Deletes are soft, by policy</h2>

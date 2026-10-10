@@ -88,7 +88,7 @@ export default async function EditRecurringWorkOrderPage({
       description="Update this scheduled maintenance template."
       actions={<Link href="/recurring-work-orders"><Button variant="secondary">Back to recurring work orders</Button></Link>}
     >
-      <form action={updateRecurring} className="max-w-3xl space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={updateRecurring} className="max-w-3xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not update recurring work order">{sp.error}</Alert>}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>

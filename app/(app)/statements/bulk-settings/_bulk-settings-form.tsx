@@ -74,7 +74,7 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
 
   if (result) {
     return (
-      <div className="max-w-4xl rounded-2xl border border-gray-200/70 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="max-w-4xl rounded-2xl border border-line bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-2xl text-emerald-600">&#10003;</div>
         <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Settings updated</h3>
         <p className="mt-1 text-sm text-gray-500">
@@ -113,7 +113,7 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
         <p className="mt-3 text-xs text-gray-500">{selectedAssocs.size} association{selectedAssocs.size !== 1 ? 's' : ''} selected</p>
       </div>
 
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] space-y-4">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] space-y-4">
         <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">2. Statement Settings</h3>
         <p className="text-[13px] text-gray-500">Changes apply only to the selected associations. Unchanged settings keep their current value.</p>
 

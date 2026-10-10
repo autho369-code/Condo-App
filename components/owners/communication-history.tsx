@@ -67,7 +67,7 @@ export function OwnerCommunicationHistory({ emails, letters }: { emails: OwnerEm
   const sent = emails.filter((e) => e.status === 'sent').length;
 
   return (
-    <section id="communications" className="scroll-mt-20 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <section id="communications" className="scroll-mt-20 overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-3">
         <h2 className="text-sm font-semibold text-gray-900">Emails &amp; letters ({rows.length})</h2>
         {sent > 0 && <span className="text-[13px] text-gray-500">{opened} of {sent} emails opened</span>}

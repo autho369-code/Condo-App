@@ -171,7 +171,7 @@ export function NewArchitecturalRequestForm({ unitOptions }: { unitOptions: Unit
           Plans, drawings, contractor quotes, photos — up to {MAX_FILES} files, 25 MB each. They upload one at a time when you submit, so large files are fine.
         </p>
         {files.length > 0 && (
-          <ul className="mb-2 divide-y divide-gray-100 rounded-xl border border-gray-200/70">
+          <ul className="mb-2 divide-y divide-gray-100 rounded-xl border border-line">
             {files.map((f, i) => (
               <li key={`${f.name}-${f.size}`} className="flex items-center justify-between gap-3 px-3 py-2">
                 <span className="flex min-w-0 items-center gap-2 text-sm text-gray-800">

@@ -103,7 +103,7 @@ export default async function OwnerPacketsPage({
         {sp.error && <Alert tone="danger" title="Could not save">{sp.error}</Alert>}
 
         {selectedOwner && (
-          <section className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
               <h2 className="text-sm font-semibold text-gray-900">Packet settings — {selectedOwner.full_name}</h2>
               <Link href="/owners/packets" className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline">Close</Link>

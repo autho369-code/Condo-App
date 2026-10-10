@@ -77,7 +77,7 @@ export default async function BoardReportsPage() {
           <Link
             key={r.label}
             href={r.href}
-            className="group rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]"
+            className="group rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]"
           >
             <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${r.bg}`}>
               <r.icon className={`h-5 w-5 ${r.color}`} />

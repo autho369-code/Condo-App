@@ -181,10 +181,10 @@ export default async function ProjectDetailPage({
       {sp.saved && <Alert className="mb-5" tone="success">{sp.saved}</Alert>}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Approved budget</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget)}</div></div>
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Committed spend</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(spent)}</div></div>
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Remaining</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget - spent)}</div></div>
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-[13px] text-gray-500">Milestones</div><div className="mt-1 text-xl font-semibold tabular-nums">{(milestones ?? []).filter((m: any) => m.status === 'completed').length}/{(milestones ?? []).length}</div></div>
+        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Approved budget</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget)}</div></div>
+        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Committed spend</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(spent)}</div></div>
+        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Remaining</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget - spent)}</div></div>
+        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Milestones</div><div className="mt-1 text-xl font-semibold tabular-nums">{(milestones ?? []).filter((m: any) => m.status === 'completed').length}/{(milestones ?? []).length}</div></div>
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">

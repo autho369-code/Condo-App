@@ -44,7 +44,7 @@ export default async function NewVendorPage({
         <div className="mb-6 max-w-5xl"><Alert tone="danger" title="Could not load associations">{associationsError.message}</Alert></div>
       )}
 
-      <form action={createVendor as any} className="max-w-5xl space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={createVendor as any} className="max-w-5xl space-y-6 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
             <Label htmlFor="association_id">Association <span className="text-red-500">*</span></Label>

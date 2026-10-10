@@ -62,7 +62,7 @@ export function BulkReportsForm({
 
   if (result) {
     return (
-      <div className="max-w-4xl rounded-2xl border border-gray-200/70 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="max-w-4xl rounded-2xl border border-line bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-2xl text-emerald-600">&#10003;</div>
         <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Reports queued</h3>
         <p className="mt-1 text-sm text-gray-500">
@@ -134,7 +134,7 @@ export function BulkReportsForm({
         <p className="mt-3 text-xs text-gray-500">{selectedAssocs.size} association{selectedAssocs.size !== 1 ? 's' : ''} selected</p>
       </div>
 
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] space-y-4">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] space-y-4">
         <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">3. Options</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>

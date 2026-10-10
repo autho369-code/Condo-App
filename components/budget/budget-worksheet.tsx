@@ -185,7 +185,7 @@ export function BudgetWorksheet({
   return (
     <div className="space-y-3">
       {!readOnly && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200/70 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] lg:flex-row lg:flex-wrap lg:items-end">
+        <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] lg:flex-row lg:flex-wrap lg:items-end">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[12px] font-medium text-gray-500">Start from</span>
             <Button type="button" size="sm" variant="secondary" onClick={() => fill('prior_budget')}>FY{fiscalYear - 1} budget</Button>
@@ -244,7 +244,7 @@ export function BudgetWorksheet({
       </div>
 
       {!readOnly && (
-        <form action={saveBudgetWorksheet} className="sticky bottom-0 flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200/70 bg-white/95 p-3 backdrop-blur">
+        <form action={saveBudgetWorksheet} className="sticky bottom-0 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-white/95 p-3 backdrop-blur">
           <input type="hidden" name="association_id" value={associationId} />
           <input type="hidden" name="association_ref" value={associationRef} />
           <input type="hidden" name="fiscal_year" value={fiscalYear} />

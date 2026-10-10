@@ -144,7 +144,7 @@ export default function EditTemplatePage() {
     return (
       <div className="flex h-full bg-gray-50">
         <main className="min-w-0 flex-1 overflow-y-auto px-8 py-6">
-          <div className="rounded-2xl border border-gray-200/70 bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <p className="text-sm text-gray-500">Template not found. It may have been deleted or archived.</p>
             <Link href="/documents?tab=templates" className="mt-3 inline-block text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
               Back to templates →
@@ -160,7 +160,7 @@ export default function EditTemplatePage() {
       <main className="min-w-0 flex-1 overflow-y-auto px-8 py-6">
         <div className="mb-6 flex items-start justify-between gap-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-950">Edit Template</h1>
+            <h1 className="break-words font-display text-[24px] font-bold leading-[1.15] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[28px]">Edit Template</h1>
             <p className="mt-1 max-w-3xl text-sm text-gray-500">
               Update this document template. Changes apply to future documents only — previously generated documents keep their original content.
             </p>

@@ -107,7 +107,7 @@ export function NewSignatureRequestForm({
         </div>
         <div className="space-y-2">
           {signers.map((x, i) => (
-            <div key={x.key} className="grid grid-cols-1 gap-2 rounded-xl border border-gray-200/70 p-3 sm:grid-cols-[28px_1fr_1fr_160px_40px] sm:items-center">
+            <div key={x.key} className="grid grid-cols-1 gap-2 rounded-xl border border-line p-3 sm:grid-cols-[28px_1fr_1fr_160px_40px] sm:items-center">
               <span className="hidden text-center text-[12px] tabular-nums text-gray-400 sm:block">{i + 1}</span>
               <Input aria-label="Signer name" value={x.name} onChange={(e) => update(x.key, { name: e.target.value })} placeholder="Full name" maxLength={120} />
               <Input aria-label="Signer email" type="email" value={x.email} onChange={(e) => update(x.key, { email: e.target.value })} placeholder="email@example.com" maxLength={254} />

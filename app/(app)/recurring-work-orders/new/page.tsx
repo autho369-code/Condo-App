@@ -68,7 +68,7 @@ export default async function NewRecurringWorkOrderPage({ searchParams }: { sear
 
   return (
     <DataWorkspace title="New Recurring Work Order" description="Set up a maintenance task that regenerates on a schedule." actions={<Link href="/recurring-work-orders"><Button variant="secondary">Back to recurring work orders</Button></Link>}>
-      <form action={createRecurring} className="max-w-3xl space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <form action={createRecurring} className="max-w-3xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create recurring work order">{sp.error}</Alert>}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
