@@ -59,8 +59,12 @@ no Supabase schema, policy, RPC or integration change; the parity test
 - **All 30 sidebar destinations and pages load with their titles.** No errors and no redirects; `/company-admin` forwards to the overview by design.
 - **Checked visually:** overview, financials, compliance, settings and managers. The managers count and layout were fixed.
 
+## Operator check (signed in as operator@portier369.com, with two-step)
+
+- All 21 sidebar destinations and 11 linked detail pages load with their titles and no errors: the company record and the Piper edit views.
+- Checked visually: overview and the company record (header actions, figure tiles, plan, limits and workspace address sections).
+
 ## Not yet verified
 
 - **Phone widths in a signed-in browser.** The Chrome window could not be resized.
 - **Owner, board and vendor screens.** There are no logins for these roles in production.
-- **Operator screens.** These need the operator account's two-step setup.
