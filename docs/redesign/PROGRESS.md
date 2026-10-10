@@ -31,6 +31,12 @@ no Supabase schema, policy, RPC or integration change; the parity test
 
 - **18 of the 26 board pages are redirect stubs.** Sections deliberately removed from the read-only board portal, such as `/board/work-orders` and `/board/owners`, only redirect to `/board`. They have nothing to style and their behavior is unchanged.
 
+## Owner portal check (signed in as owner2, linked to a Randolph Station homeowner)
+
+- **All 47 links checked.** Sidebar, dashboard and list links, including work order details, were loaded one at a time: every page loads with its title, with no error page and no redirect to sign-in.
+- **The new layout checked visually.** Dashboard, Work Orders.
+- **Speed problem found, not caused by the redesign.** Loading four owner pages at once triggered database statement timeouts (`canceling statement due to statement timeout`, then `25P02`). The identity check then failed and the request redirected to sign-in. This is the per-row RLS helper cost measured in the speed work; the fix is the policy rewrite proposed there. Slowest pages in dev, one at a time: `/portal` 4.7s, `/portal/pay` 3.3s, `/portal/ledger` 2.7s.
+
 ## Not yet verified
 
 - **Phone widths in a signed-in browser.** The Chrome window could not be resized.
