@@ -587,7 +587,7 @@ export default async function PlatformOperatorOverviewPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-line text-xs uppercase text-gray-500">
+                <tr className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                   <th className="px-5 py-3 text-left font-medium">Action</th>
                   <th className="px-5 py-3 text-left font-medium">Details</th>
                   <th className="px-5 py-3 text-right font-medium">Time</th>
@@ -644,7 +644,7 @@ export default async function PlatformOperatorOverviewPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-line text-xs uppercase text-gray-500">
+                <tr className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                   <th className="px-5 py-3 text-left font-medium">Company</th>
                   <th className="px-5 py-3 text-left font-medium">Status</th>
                   <th className="px-5 py-3 text-right font-medium">Trial Ends</th>
@@ -710,7 +710,7 @@ export default async function PlatformOperatorOverviewPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-line text-xs uppercase text-gray-500">
+                <tr className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
                   <th className="px-5 py-3 text-left font-medium">Portfolio</th>
                   <th className="px-5 py-3 text-right font-medium">Total Assocs</th>
                   <th className="px-5 py-3 text-right font-medium">Doors</th>

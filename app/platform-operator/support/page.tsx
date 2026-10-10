@@ -227,12 +227,12 @@ export default async function SupportPage({
                       <td colSpan={8} className="px-4 pb-4 pt-0">
                         <div className="grid gap-3 lg:grid-cols-2">
                           <div className="min-w-0">
-                            <div className="text-[12.5px] font-medium uppercase tracking-wide text-gray-400">Request</div>
+                            <div className="text-[13px] font-medium text-gray-500">Request</div>
                             <p className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-5 text-gray-700">{req.description || 'No description provided.'}</p>
                           </div>
                           <form action={respondToRequest as any} className="min-w-0 space-y-2">
                             <input type="hidden" name="request_id" value={req.id} />
-                            <Label htmlFor={`response-${req.id}`} className="text-[12.5px] font-medium uppercase tracking-wide text-gray-400">
+                            <Label htmlFor={`response-${req.id}`} className="text-[13px] font-medium text-gray-500">
                               {req.platform_response ? 'Response (visible to the company admin)' : 'Reply to the company admin'}
                             </Label>
                             <Textarea

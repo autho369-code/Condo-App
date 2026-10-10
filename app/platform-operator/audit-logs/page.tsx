@@ -95,7 +95,7 @@ export default async function AuditLogsPage({
 
       {/* Filters */}
       <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="mb-3 flex items-center gap-2 text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400">
+        <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-gray-700">
           <Filter className="h-3.5 w-3.5" /> Filters
         </div>
         <form className="flex flex-wrap items-center gap-3">

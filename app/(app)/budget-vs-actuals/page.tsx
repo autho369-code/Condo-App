@@ -228,7 +228,7 @@ function ProgressCard({
   const pct = budget > 0 ? Math.min((actual / budget) * 100, 100) : 0;
   return (
     <Surface padded={false} className="p-4">
-      <div className="mb-3 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+      <div className="mb-3 text-[13px] font-semibold text-gray-700">{label}</div>
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-gray-500">Budget</span>

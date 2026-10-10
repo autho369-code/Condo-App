@@ -77,6 +77,14 @@ export const CLASS_MAP = {
   'mb-3 text-xs font-semibold uppercase text-gray-500': 'mb-3 text-[13px] font-semibold text-gray-700',
   'text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400': 'text-[13px] font-semibold text-gray-700',
   'mr-1 text-xs font-medium uppercase tracking-[0.14em] text-gray-400': 'mr-1 text-[13px] font-medium text-gray-500',
+  'mb-3 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400': 'mb-3 text-[13px] font-semibold text-gray-700',
+  'mb-4 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400': 'mb-4 text-[13px] font-semibold text-gray-700',
+  'px-4 py-2.5 text-left text-[12.5px] font-medium uppercase tracking-wide text-gray-500': 'whitespace-nowrap px-4 py-3 text-left text-[12.5px] font-medium text-gray-500',
+  'border-b border-line text-xs uppercase text-gray-500': 'border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500',
+  'text-sm font-semibold uppercase tracking-[0.06em] text-gray-500': 'text-[13px] font-semibold text-gray-700',
+  'text-[12.5px] font-medium uppercase tracking-wide text-gray-400': 'text-[13px] font-medium text-gray-500',
+  'text-[12.5px] font-semibold uppercase tracking-[0.12em] text-gray-400': 'text-[13px] font-semibold text-gray-700',
+  'mb-3 flex items-center gap-2 text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gray-400': 'mb-3 flex items-center gap-2 text-[13px] font-semibold text-gray-700',
 };
 
 

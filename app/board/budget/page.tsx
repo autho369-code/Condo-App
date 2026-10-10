@@ -141,7 +141,7 @@ export default async function BoardBudgetPage() {
             {/* YTD Income vs Expense */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className={`${card} p-4`}>
-                <div className="mb-3 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">YTD Income</div>
+                <div className="mb-3 text-[13px] font-semibold text-gray-700">YTD Income</div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Budget</span>
@@ -162,7 +162,7 @@ export default async function BoardBudgetPage() {
                 </div>
               </div>
               <div className={`${card} p-4`}>
-                <div className="mb-3 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">YTD Expenses</div>
+                <div className="mb-3 text-[13px] font-semibold text-gray-700">YTD Expenses</div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Budget</span>

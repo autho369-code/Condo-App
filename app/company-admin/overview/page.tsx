@@ -215,7 +215,7 @@ export default async function OverviewPage() {
 
       {/* ── Quick Actions ─────────────────────────────── */}
       <div className={`${card} p-5`}>
-        <div className="mb-3 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Quick Actions</div>
+        <div className="mb-3 text-[13px] font-semibold text-gray-700">Quick Actions</div>
         <div className="flex flex-wrap gap-3">
           <QuickActionButton href="/company-admin/managers"><UserPlus className="h-4 w-4 text-gray-400" /> Invite Manager</QuickActionButton>
           <QuickActionButton href="/onboard"><PlusCircle className="h-4 w-4 text-gray-400" /> Add Association</QuickActionButton>
@@ -278,7 +278,7 @@ export default async function OverviewPage() {
       {/* ── Health Distribution ───────────────────────── */}
       <div className="grid grid-cols-1 gap-4">
         <div className={`${card} p-5`}>
-          <div className="mb-4 text-[12.5px] font-medium uppercase tracking-[0.08em] text-gray-400">Health Score Distribution</div>
+          <div className="mb-4 text-[13px] font-semibold text-gray-700">Health Score Distribution</div>
           {totalWithHealth > 0 ? (
             <div className="space-y-4">
               <div className="flex items-center justify-center gap-8">

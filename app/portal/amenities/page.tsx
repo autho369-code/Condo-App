@@ -233,7 +233,7 @@ export default async function OwnerAmenitiesPage({
 
       {/* Request form */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.06em] text-gray-500">Request a reservation</h2>
+        <h2 className="text-[13px] font-semibold text-gray-700">Request a reservation</h2>
         {amenities.length === 0 ? (
           <div className="rounded-2xl border border-line bg-white p-6 text-sm text-gray-600 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             No bookable amenities are available for your community yet. Check back later or contact your management team.
@@ -323,7 +323,7 @@ export default async function OwnerAmenitiesPage({
 
       {/* My reservations */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.06em] text-gray-500">My reservations</h2>
+        <h2 className="text-[13px] font-semibold text-gray-700">My reservations</h2>
         {reservations.length === 0 ? (
           <div className="rounded-2xl border border-line bg-white p-6 text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             You have no reservations yet.

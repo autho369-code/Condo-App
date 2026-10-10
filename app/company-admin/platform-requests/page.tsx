@@ -41,7 +41,7 @@ function statusBadge(s: string) {
 }
 
 function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-4 py-2.5 text-left text-[12.5px] font-medium uppercase tracking-wide text-gray-500">{children}</th>
+  return <th className="whitespace-nowrap px-4 py-3 text-left text-[12.5px] font-medium text-gray-500">{children}</th>
 }
 
 function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
