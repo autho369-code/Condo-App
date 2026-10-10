@@ -35,9 +35,10 @@ async function createTask(formData: FormData) {
   const reminders = formData.getAll('reminder_days').map(Number).filter(n => n > 0);
   const startDate = formData.get('start_date') as string;
 
-  // The vendor must be the association's company's (the id comes from the form).
+  // The vendor must be the association's own (the id comes from the form).
   const linkError = await checkLinkedRecords(db, {
     associationId: (formData.get('association_id') as string) || null,
+    portfolioId: me.portfolio?.id,
     vendorId: (formData.get('vendor_id') as string) || null,
   });
   if (linkError) redirect('/maintenance/new?error=' + encodeURIComponent(linkError));

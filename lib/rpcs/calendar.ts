@@ -77,14 +77,6 @@ export async function createCalendarEvent(formData: FormData) {
     failTo('That association is unavailable or outside your access.');
     return;
   }
-  const linkError = await checkLinkedRecords(db, {
-    associationId: assocId,
-    buildingId: str(formData, 'building_id'),
-    unitId: str(formData, 'unit_id'),
-    vendorId: str(formData, 'vendor_id'),
-    ownerId: str(formData, 'owner_id'),
-  });
-  if (linkError) { failTo(linkError); return; }
   // The event belongs to its association's company (a platform operator's own
   // workspace is not the client's), as maintenance calendar events do.
   let eventPortfolioId: string | null | undefined = me.portfolio?.id;
@@ -93,6 +85,15 @@ export async function createCalendarEvent(formData: FormData) {
     if (!association?.portfolio_id) { failTo('That association is unavailable or outside your access.'); return; }
     eventPortfolioId = association.portfolio_id;
   }
+  const linkError = await checkLinkedRecords(db, {
+    associationId: assocId,
+    portfolioId: eventPortfolioId,
+    buildingId: str(formData, 'building_id'),
+    unitId: str(formData, 'unit_id'),
+    vendorId: str(formData, 'vendor_id'),
+    ownerId: str(formData, 'owner_id'),
+  });
+  if (linkError) { failTo(linkError); return; }
   // datetime-local values carry no zone; the server runs in UTC, so "9:00"
   // was stored as 9:00 UTC (4–5 AM in the US). Read them in the community's zone.
   const timeZone = await associationTimeZone(db, assocId);

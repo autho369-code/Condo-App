@@ -3,7 +3,10 @@
 Back to [[Home]]. Updated 2026-10-10 (after #272 merged; no open PR; next: vendor details for Randolph Station, then Stripe pilot).
 
 ## Open PR
-- None.
+- claude/linked-records-company: `checkLinkedRecords` vendor check mirrors
+  the vendor_link_same_association trigger (association's own vendor or
+  its company's management company; no association -> the record's
+  company). Calendar + maintenance pass the record's company. No migration.
 
 ## Where things stand
 - #272 merged (b5dde4a7): opening balances step on the import
@@ -293,14 +296,9 @@ Back to [[Home]]. Updated 2026-10-10 (after #272 merged; no open PR; next: vendo
    step shipped (#272); the next association uses it (CSV exports do not
    state the basis: tick the accrual box).
    Then: Stripe live for one
-   pilot association (Mirsad's account setup), Illinois rule pack.
+   pilot association (Mirsad's account setup).
    Remaining speed: identity checks still ~0.1-0.5 ms per row each; next
    step would be per-request identity caching (riskier, measure first).
-1. `checkLinkedRecords` with no association (calendar events without one):
-   a vendor only has to be visible, so a platform operator could attach
-   another company's. Compare against the record's company (DB trigger
-   already covers calendar vendors). Low. (The owner half is fixed in owner
-   login part 2: the owner's association must be one the caller manages.)
-2. Run a third overseer + security-reviewer audit for new gaps.
-3. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
+1. Run a third overseer + security-reviewer audit for new gaps.
+2. Optional (Mirsad decides): confirm prompts on reason-required void/cancel
    forms.
