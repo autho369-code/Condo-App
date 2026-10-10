@@ -178,6 +178,8 @@ export type TieOutLine = {
   status: 'match' | 'different' | 'not_in_portier' | 'not_in_appfolio';
   /** False when every ledger account with this number is hidden (inactive). */
   active?: boolean;
+  /** More than one active account has this number (company-wide and the association's own). */
+  shared?: boolean;
 };
 
 export type TieOutResult = {
@@ -335,7 +337,7 @@ export async function tieOutAppfolioTrialBalance(
   // `retained`/`retainedName`: the part of the balance on prior years'
   // retained-earnings accounts, classified per account before accounts that
   // share a number (association-own, combined view) are added up.
-  const portier = new Map<number, { name: string; account_type: string; balance: number; retained: number; retainedName: string | null; otherName: string | null; otherType: string | null; active: boolean }>();
+  const portier = new Map<number, { name: string; account_type: string; balance: number; retained: number; retainedName: string | null; otherName: string | null; otherType: string | null; active: boolean; activeCount: number }>();
   for (const a of accounts) {
     const t = allTime[a.id] ?? { debit: 0, credit: 0 };
     let balance = t.debit - t.credit;
@@ -356,6 +358,7 @@ export async function tieOutAppfolioTrialBalance(
       otherName: prev?.otherName ?? (isRetained ? null : a.name),
       otherType: prev?.otherType ?? (isRetained ? null : a.account_type),
       active: Boolean(prev?.active) || a.active !== false,
+      activeCount: (prev?.activeCount ?? 0) + (a.active !== false ? 1 : 0),
     });
   }
 
@@ -367,7 +370,7 @@ export async function tieOutAppfolioTrialBalance(
       continue;
     }
     const difference = cents(af.ending - p.balance);
-    lines.push({ number, name: af.name || p.name, account_type: p.account_type, appfolio: af.ending, portier: p.balance, difference, status: difference === 0 ? 'match' : 'different', active: p.active });
+    lines.push({ number, name: af.name || p.name, account_type: p.account_type, appfolio: af.ending, portier: p.balance, difference, status: difference === 0 ? 'match' : 'different', active: p.active, shared: p.activeCount > 1 });
   }
   // The file's prior-years line has no account number. A ledger
   // retained-earnings account the file does not list holds the same balance
@@ -388,7 +391,7 @@ export async function tieOutAppfolioTrialBalance(
       accountType = p.otherType ?? p.account_type;
     }
     if (rest === 0) continue;
-    lines.push({ number, name, account_type: accountType, appfolio: null, portier: rest, difference: cents(-rest), status: 'not_in_appfolio', active: p.active });
+    lines.push({ number, name, account_type: accountType, appfolio: null, portier: rest, difference: cents(-rest), status: 'not_in_appfolio', active: p.active, shared: p.activeCount > 1 });
   }
   lines.sort((a, b) => a.number - b.number);
 
@@ -546,6 +549,17 @@ export async function postOpeningBalancesFromTrialBalance(
       // rows), or an account id for prior years' retained earnings, so that
       // line reaches exactly the equity account chosen even when another
       // account shares its number.
+      // A number held by two active accounts (company-wide and the
+      // association's own) is ambiguous: the upload would pick one of them.
+      const shared = tie.lines.filter((l) => l.difference !== 0 && l.shared);
+      if (shared.length) {
+        return {
+          ok: false,
+          message: 'More than one active account has the same number as these accounts, so the opening balance could post to the wrong one. Hide or renumber the extra account, then post.',
+          errors: shared.map((l) => `${l.number} ${l.name}`),
+        };
+      }
+
       const amounts = new Map<string, { number: number; amount: number }>();
       const add = (gl: string, number: number, amount: number) =>
         amounts.set(gl, { number, amount: cents((amounts.get(gl)?.amount ?? 0) + amount) });

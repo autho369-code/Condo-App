@@ -330,7 +330,9 @@ export function parseAppfolioTrialBalance(text: string): {
         if (cell) ignored.push(`Line ${line}: "${cell}"`);
         // A line that looks like an account ("115O: Operating", "12345 Dues") but
         // whose number cannot be read: the property's balances are incomplete.
-        if (cell && !TOTAL_ROW.test(cell) && (/^\d/.test(cell) || /^[0-9A-Za-z]{2,10}\s*[:\-]\s*\S/.test(cell))) {
+        // ("I150 Operating": a short leading code with a digit in it).
+        if (cell && !TOTAL_ROW.test(cell) && (/^\d/.test(cell) || /^[0-9A-Za-z]{2,10}\s*[:\-]\s*\S/.test(cell)
+          || /^(?=[0-9A-Za-z]{2,10}\s)[A-Za-z]*\d[0-9A-Za-z]*\s+\S/.test(cell))) {
           unreadable.add(g.heading);
         }
         continue;

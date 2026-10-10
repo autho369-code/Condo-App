@@ -149,11 +149,13 @@ describe('AppFolio Trial Balance', () => {
       '1150: Operating,,,,"5.00"',
       '-> Fir Court,,,,',
       '115O: Operating,,,,"5.00"',
+      '-> Bay Court,,,,',
+      'I150 Operating,,,,"5.00"',
       '-> Yew Court,,,,',
       '1150: Operating,,,,"5.00"',
       'Total Yew Court,,,,"5.00"',
     ].join('\n'));
-    expect(tb.unreadable).toEqual(['Elm Court', 'Fir Court']);
+    expect(tb.unreadable).toEqual(['Elm Court', 'Fir Court', 'Bay Court']);
     expect(tb.rows?.map((r) => r.group)).toEqual(['Oak Court', 'Ash Court', 'Yew Court']);
   });
 

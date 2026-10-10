@@ -350,6 +350,7 @@ export function TrialBalanceTieOutSection({ associations, tieOutTrialBalance, po
       if (res.error) setError(res.error);
       else { setResult(res); setCompared(input); }
     } catch (err) {
+      if (id !== requestId.current) return;
       setError(err instanceof Error ? err.message : 'The comparison failed. Try again.');
     } finally {
       if (id === requestId.current) setBusy(false);

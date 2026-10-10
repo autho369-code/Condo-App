@@ -270,6 +270,7 @@ describe('opening balances from the trial balance', () => {
     expect(section).toContain('setAsOf(e.target.value); invalidate();');
     expect(section).toContain('requestId.current === before) await run(true, input);');
     expect(section).toContain('if (gen !== fileGen.current) return;');
+    expect(section).toContain("if (id !== requestId.current) return;\n      setError(err instanceof Error ? err.message : 'The comparison failed. Try again.');");
   });
 
   it('posts prior years by account id when another account shares its number', async () => {
@@ -280,6 +281,14 @@ describe('opening balances from the trial balance', () => {
     const rows = state.rpcs.find((c) => c.fn === 'import_journal_entry_batch')?.args.p_rows ?? [];
     expect(rows.find((x: any) => x.gl === 're')).toMatchObject({ credit: '850.00' });
     expect(rows.some((x: any) => x.gl === '3350' || x.gl === 'clash')).toBe(false);
+  });
+
+  it('refuses a difference on a number held by two active accounts', async () => {
+    state.accounts = [...state.accounts, { id: 'cash2', number: 1150, name: 'Operating (old)', account_type: 'cash' }];
+    const r = await post();
+    expect(r.ok).toBe(false);
+    expect(r.errors).toEqual(['1150 Operating']);
+    expect(state.rpcs).toEqual([]);
   });
 });
 
