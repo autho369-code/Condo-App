@@ -92,7 +92,7 @@ export default async function ArchitecturalReviewsTab({
         <Section title="Board Approval Defaults" padded>
           <div className="mb-3">
             <label className="mb-1 block text-sm text-gray-600">Select Participants</label>
-            <select name="default_committee_id" defaultValue={settings?.default_committee_id ?? ''} className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+            <select name="default_committee_id" defaultValue={settings?.default_committee_id ?? ''} className="h-10 w-full max-w-md rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="">- Select a committee -</option>
               {(committees ?? []).map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>

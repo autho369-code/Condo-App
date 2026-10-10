@@ -105,6 +105,19 @@ export const H1_MAP = {
   'mt-1 text-[24px] font-semibold tracking-[-0.02em] text-gray-950': 'mt-1 ' + DETAIL_H1,
 };
 
+// Hand-built inputs -> the shared field (40px, 10px radius), only on <input>/<select>.
+const FIELD = 'rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
+export const INPUT_MAP = {
+  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20': 'h-10 w-full ' + FIELD,
+  'w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20': 'h-10 w-44 ' + FIELD,
+  'w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20': 'h-10 w-full max-w-md ' + FIELD,
+  'mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20': 'mt-1.5 block h-10 w-full ' + FIELD,
+  'w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none': 'h-10 w-full ' + FIELD,
+  'rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20': 'h-10 ' + FIELD,
+  'w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15': 'h-10 w-full ' + FIELD,
+  'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none': 'h-10 w-full ' + FIELD,
+};
+
 // Section-title styles apply only to headings, so item names in lists keep
 // their item look.
 const HEADING_ONLY = new Set(['text-sm font-semibold text-gray-950', 'text-[15px] font-semibold text-gray-950']);
@@ -123,6 +136,7 @@ export function restyle(src) {
   const out = src.replace(/className="([^"]*)"/g, (whole, cls, offset) => {
     const tagOf = () => /<([A-Za-z0-9]+)[^<]*$/.exec(src.slice(Math.max(0, offset - 300), offset))?.[1] ?? '';
     if (H1_MAP[cls] && tagOf() === 'h1') { changed++; return `className="${H1_MAP[cls]}"`; }
+    if (INPUT_MAP[cls] && /^(input|select|Input|Select)$/.test(tagOf())) { changed++; return `className="${INPUT_MAP[cls]}"`; }
     const next = CLASS_MAP[cls];
     if (!next) return whole;
     if (HEADING_ONLY.has(cls)) {

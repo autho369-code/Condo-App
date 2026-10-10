@@ -20,15 +20,15 @@ export function BankAccountsSection() {
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Account Name</label>
-                <input type="text" name={`bank_name_${i}`} placeholder="Operating, Reserve, etc." className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
+                <input type="text" name={`bank_name_${i}`} placeholder="Operating, Reserve, etc." className="h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Bank Name</label>
-                <input type="text" name={`bank_bank_name_${i}`} placeholder="Chase, BofA..." className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
+                <input type="text" name={`bank_bank_name_${i}`} placeholder="Chase, BofA..." className="h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Purpose</label>
-                <select name={`bank_purpose_${i}`} className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none">
+                <select name={`bank_purpose_${i}`} className="h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                   <option value="">— Select —</option>
                   <option value="operating">Operating</option>
                   <option value="reserve">Reserve</option>
@@ -38,11 +38,11 @@ export function BankAccountsSection() {
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Account Number</label>
-                <input type="text" name={`bank_account_number_${i}`} className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
+                <input type="text" name={`bank_account_number_${i}`} className="h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Routing Number</label>
-                <input type="text" name={`bank_routing_number_${i}`} className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
+                <input type="text" name={`bank_routing_number_${i}`} className="h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
               </div>
             </div>
           </div>

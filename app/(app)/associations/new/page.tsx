@@ -163,7 +163,7 @@ export default async function NewPropertyPage({ searchParams }: { searchParams: 
 
         <Section title="Property Name and Address" padded>
           <FormRow label="Property Type" required>
-            <select name="property_type" required className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+            <select name="property_type" required className="h-10 w-full max-w-md rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="">— Select —</option>
               <option value="condominium">Condominium</option>
               <option value="townhome">Townhome</option>
@@ -182,16 +182,16 @@ export default async function NewPropertyPage({ searchParams }: { searchParams: 
           </FormRow>
           <FormRow label="">
             <div className="grid max-w-lg grid-cols-[1fr_120px_140px] gap-2">
-              <input type="text" name="city" placeholder="City" className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
-              <select name="state" className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+              <input type="text" name="city" placeholder="City" className="h-10 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+              <select name="state" className="h-10 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">State</option>
                 {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
-              <input type="text" name="zip" placeholder="Zip" className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+              <input type="text" name="zip" placeholder="Zip" className="h-10 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
             </div>
           </FormRow>
           <FormRow label="County">
-            <input type="text" name="county" className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+            <input type="text" name="county" className="h-10 w-full max-w-md rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
         </Section>
 
@@ -201,8 +201,8 @@ export default async function NewPropertyPage({ searchParams }: { searchParams: 
           </FormRow>
           <FormRow label="Site Manager">
             <div className="mb-2 grid max-w-md grid-cols-2 gap-2">
-              <input type="text" name="site_manager_first_name" placeholder="First Name" className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
-              <input type="text" name="site_manager_last_name" placeholder="Last Name" className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+              <input type="text" name="site_manager_first_name" placeholder="First Name" className="h-10 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+              <input type="text" name="site_manager_last_name" placeholder="Last Name" className="h-10 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
             </div>
             <input type="tel" name="site_manager_phone" placeholder="Phone Number" className="w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
@@ -210,15 +210,15 @@ export default async function NewPropertyPage({ searchParams }: { searchParams: 
             <input type="number" name="year_built" min="1800" max={new Date().getFullYear() + 1} className="w-32 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
           <FormRow label="Management Start Date">
-            <input type="date" name="management_start_date" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+            <input type="date" name="management_start_date" className="h-10 w-44 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
           <FormRow label="Fiscal Year Ends">
-            <select name="fiscal_year_end" defaultValue="12" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+            <select name="fiscal_year_end" defaultValue="12" className="h-10 w-44 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
             </select>
           </FormRow>
           <FormRow label="Owner Auto-Pay Frequency">
-            <select name="payment_frequency" defaultValue="monthly" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+            <select name="payment_frequency" defaultValue="monthly" className="h-10 w-44 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="monthly">Monthly</option>
               <option value="quarterly">Quarterly</option>
               <option value="semi_annually">Semi-annually</option>
@@ -232,7 +232,7 @@ export default async function NewPropertyPage({ searchParams }: { searchParams: 
             <CurrencyInput name="maintenance_limit" defaultValue="0.00" />
           </FormRow>
           <FormRow label="Insurance Expiration">
-            <input type="date" name="insurance_expiration" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+            <input type="date" name="insurance_expiration" className="h-10 w-44 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
           <FormRow label="Maintenance Notes">
             <textarea name="maintenance_notes" rows={3} className="w-full max-w-lg resize-y rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />

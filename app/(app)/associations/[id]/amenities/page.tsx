@@ -232,7 +232,7 @@ export default async function AmenitiesTab({
         >
           <form action={createAmenity as any} className="space-y-4">
             <FormRow label="Title" required>
-              <input type="text" name="name" required placeholder="e.g. Tennis Court 1" className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+              <input type="text" name="name" required placeholder="e.g. Tennis Court 1" className="h-10 w-full max-w-md rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
             </FormRow>
 
             <FormRow label="Image">
@@ -248,10 +248,10 @@ export default async function AmenitiesTab({
               <legend className="mb-2 text-sm font-semibold text-gray-700">Hours of Operation</legend>
               <div className="flex items-end gap-4">
                 <FormRow label="Opens">
-                  <input type="time" name="opens_at" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+                  <input type="time" name="opens_at" className="h-10 w-44 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
                 </FormRow>
                 <FormRow label="Closes">
-                  <input type="time" name="closes_at" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+                  <input type="time" name="closes_at" className="h-10 w-44 rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
                 </FormRow>
               </div>
             </fieldset>
@@ -291,11 +291,11 @@ export default async function AmenitiesTab({
               </div>
 
               <FormRow label="Email Address">
-                <input type="email" name="reservation_email" placeholder='e.g. "reservations@gmail.com"' className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+                <input type="email" name="reservation_email" placeholder='e.g. "reservations@gmail.com"' className="h-10 w-full max-w-md rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
               </FormRow>
 
               <FormRow label="Platform URL">
-                <input type="url" name="reservation_url" placeholder="https://..." className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+                <input type="url" name="reservation_url" placeholder="https://..." className="h-10 w-full max-w-md rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
               </FormRow>
             </fieldset>
 
