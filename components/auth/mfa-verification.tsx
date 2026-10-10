@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, KeyRound, Loader2, LogOut, ShieldCheck } from 'lucide-react';
@@ -9,6 +8,13 @@ import { safeInternalNext } from '@/lib/security/redirects';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
+
+/** A QR code data URL the browser can always parse: the SVG part percent-encoded. */
+export function qrDataUrl(qrCode: string): string {
+  const svg = qrCode.startsWith('data:') ? qrCode.slice(qrCode.indexOf(',') + 1) : qrCode;
+  if (!svg.trimStart().startsWith('<')) return qrCode; // already encoded or base64
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
 
 type Step = 'loading' | 'setup' | 'enroll' | 'challenge' | 'active' | 'error';
 
@@ -264,12 +270,15 @@ export function MfaVerification({
       {step === 'enroll' && enrollment && (
         <div className="space-y-5">
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
-            <Image
-              src={enrollment.qrCode}
+            {/* Supabase returns the QR as `data:image/svg+xml;utf-8,<raw svg>`; next/image
+                cannot take that unencoded SVG (the page crashed), so it is re-encoded and
+                shown with a plain img. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={qrDataUrl(enrollment.qrCode)}
               alt="QR code for authenticator setup"
               width={208}
               height={208}
-              unoptimized
               className="mx-auto rounded-lg bg-white p-2"
             />
             <p className="mt-3 text-xs leading-5 text-gray-500">
