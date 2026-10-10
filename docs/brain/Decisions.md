@@ -10,10 +10,12 @@ Back to [[Home]]. Don't redo these.
   missing items of associations in the file; an association whose items are
   all paid (absent from the export) is left to the Import Variances report.
   Don't build a reconciliation pass unless he asks.
-- **No single-state rule packs** (Mirsad, 2026-10-10): the software is for
-  the entire USA. The "Illinois rule pack" gap was dropped; state-specific
-  rules only as rows in nationwide tables (like
-  `collection_jurisdiction_profiles`), never one state's pack.
+- **State rules are the company's, per state, for the whole USA** (Mirsad,
+  2026-10-10: "forget illinois rule pack, this software needs to be for
+  entire usa"; "the company admin should be able to add this for each
+  particular state and it should be visible to the property manager").
+  `company_state_rules` (company admin edits, staff read) overrides the
+  built-in `collection_jurisdiction_profiles`. Never build a single-state pack.
 - **Resale / estoppel certificate:** declined by Mirsad; build only if he asks.
 - **Old `/platform/*` URLs** redirect permanently to `/platform-operator`
   (`next.config.mjs`), 2026-10-07.

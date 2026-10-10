@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { requireFinanceStaff, requireStaff } from '@/lib/auth/me';
+import { hasPortfolioAdminAccess, requireFinanceStaff, requireStaff } from '@/lib/auth/me';
 import { setAssociationHidden } from '@/lib/rpcs/entities';
 import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/workspace/shell';
 import { Alert } from '@/components/ui/shell';
@@ -21,6 +21,8 @@ import { todayInZone } from '@/lib/time/zoned';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { CopyButton } from '@/components/ui/copy-button';
 import { companyUrl, isPortfolioSlug } from '@/lib/tenant/host';
+import { StateRulesSection } from '@/components/associations/state-rules-section';
+import { loadStateRule, stateCodeOf } from '@/lib/state-rules';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +56,9 @@ export default async function AssociationProfileTab({
     .eq('id', id)
     .maybeSingle();
   if (aErr || !assoc) notFound();
+  // The rules the company follows in this association's state.
+  const assocStateCode = stateCodeOf(assoc.state);
+  const stateRule = await loadStateRule(supabase, assoc.portfolio_id, assocStateCode);
 
   // Manager-entered payment remittance details (white-glove: each manager sets
   // their own payee / mailing address / bill-pay notes per association).
@@ -340,6 +345,10 @@ export default async function AssociationProfileTab({
       <div className="grid gap-6 lg:grid-cols-2">
         <KeysList keys={keys ?? []} associationId={id} back={recordBack} />
         <NotesList notes={notes ?? []} associationId={id} back={recordBack} />
+      </div>
+
+      <div className="mt-6">
+        <StateRulesSection stateCode={assocStateCode} rule={stateRule.rule} source={stateRule.source} loadError={stateRule.error} canEdit={hasPortfolioAdminAccess(me)} />
       </div>
 
       <div className="mt-6">

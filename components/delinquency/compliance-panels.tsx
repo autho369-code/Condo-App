@@ -12,6 +12,8 @@ import { todayInZone } from '@/lib/time/zoned';
 
 type Profile = {
   state_code: string; state_name: string; summary: string; citations: string[];
+  /** The company's own rules for the state (company_state_rules). */
+  company?: boolean; other_rules?: string | null;
 };
 type Policy = {
   association_id: string; jurisdiction: string | null; pre_referral_notice_days: number; notice_method: string;
@@ -53,7 +55,9 @@ export function JurisdictionPanel({
           </ul>
           {profile && (
             <div className="rounded-xl bg-gray-50 p-3 text-[13px] leading-5 text-gray-600">
+              {profile.company && <p className="mb-1 text-[12px] font-medium text-gray-900">Your company&apos;s {profile.state_name} rules</p>}
               <p>{profile.summary}</p>
+              {profile.other_rules && <p className="mt-2 whitespace-pre-line">{profile.other_rules}</p>}
               <p className="mt-2 text-[12px] text-gray-400">{profile.citations.join(' · ')}</p>
             </div>
           )}
