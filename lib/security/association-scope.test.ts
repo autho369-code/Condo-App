@@ -40,13 +40,27 @@ describe('managesAssociation', () => {
 
 describe('checkLinkedRecords', () => {
   it('accepts records visible to the caller and inside the association', async () => {
-    const db = fakeDb({ buildings: [{ id: B, association_id: A }], vendors: [{ id: B, portfolio_id: 'co' }], associations: [{ id: A, portfolio_id: 'co' }] });
+    const db = fakeDb({ buildings: [{ id: B, association_id: A }], vendors: [{ id: B, portfolio_id: 'co', association_id: A, is_management_company: false }] });
     expect(await checkLinkedRecords(db, { associationId: A, buildingId: B, vendorId: B })).toBeNull();
   });
 
   it("rejects a vendor from another company even when the caller can see it (platform operators)", async () => {
-    const db = fakeDb({ vendors: [{ id: B, portfolio_id: 'other-co' }], associations: [{ id: A, portfolio_id: 'co' }] });
-    expect(await checkLinkedRecords(db, { associationId: A, vendorId: B })).toMatch(/company/);
+    const db = fakeDb({ vendors: [{ id: B, portfolio_id: 'other-co', association_id: null, is_management_company: true }], associations: [{ id: A, portfolio_id: 'co' }] });
+    expect(await checkLinkedRecords(db, { associationId: A, vendorId: B })).toMatch(/another company/);
+  });
+
+  it("rejects another association's vendor; accepts the company's management company", async () => {
+    const other = fakeDb({ vendors: [{ id: B, portfolio_id: 'co', association_id: 'other', is_management_company: false }] });
+    expect(await checkLinkedRecords(other, { associationId: A, vendorId: B })).toMatch(/another association/);
+    const mgmt = fakeDb({ vendors: [{ id: B, portfolio_id: 'co', association_id: null, is_management_company: true }], associations: [{ id: A, portfolio_id: 'co' }] });
+    expect(await checkLinkedRecords(mgmt, { associationId: A, vendorId: B })).toBeNull();
+  });
+
+  it("with no association, requires the vendor to be of the record's company", async () => {
+    const db = fakeDb({ vendors: [{ id: B, portfolio_id: 'other-co', association_id: 'x', is_management_company: false }] });
+    expect(await checkLinkedRecords(db, { associationId: null, portfolioId: 'co', vendorId: B })).toMatch(/another company/);
+    expect(await checkLinkedRecords(db, { associationId: null, vendorId: B })).toMatch(/another company/);
+    expect(await checkLinkedRecords(db, { associationId: null, portfolioId: 'other-co', vendorId: B })).toBeNull();
   });
 
   it('rejects a building from another association', async () => {
