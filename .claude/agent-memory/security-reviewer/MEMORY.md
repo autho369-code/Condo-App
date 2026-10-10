@@ -11,6 +11,7 @@
 - Service-client undo/cleanup must be pinned to the exact row id plus `portfolio_id`.
 
 ## Helpers / files worth checking
+- [RLS once-per-query rewrite](rls-hoist.md) -- my_* helpers replace can_* in policy text (2026-10-11); grep/helper-edit drift, portfolio-wide id RPCs
 - Tenant headers (`x-tenant-host`, `x-portfolio-id`, ...) are trusted only because `middleware.ts` `INTERNAL_TENANT_HEADERS` strips client copies first; any new internal header must be added there.
 - `portfolios` column guards are triggers: `portfolios_guard_platform_columns` (tier, slug, custom_domain...; passes when `auth.uid() is null` or platform admin) and `portfolios_guard_domain_verification` (custom_domain_verified_at; blocks `current_user in ('authenticated','anon')`, so only service role/SQL editor write it). Prefer the `current_user` check for new guards: `auth.uid() is null` also passes anon. New platform-owned columns must join one.
 - Auth/Supabase redirect links (reset, invite callback) must stay on `tenantWorkspaceUrl`/`resolvedTenantUrl`; `companyUrl` (verified custom domain) is for plain links only.

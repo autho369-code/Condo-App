@@ -1,20 +1,57 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (after #277 merged; open PR: speed round trips; next: vendor details for Randolph Station, then Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (after #280 merged; open PRs: redesign #279, RLS once-per-query; next: Stripe pilot).
 
 ## Open PR
-- claude/speed-round-trips: fewer sequential Supabase round trips (dashboard
-  reminders 7 -> 2 waves; owner portal home ~13 -> 2 waves). No migration.
-  Measured 2026-10-10 (read-only): the biggest DB cost is RLS helpers that
-  take a column (can_access_portfolio(portfolio_id), can_manage_finance,
-  can_read_gl) running once PER ROW: gl_accounts 609 rows = 247 ms as a
-  manager vs 0.1 ms bypassed, 508 ms for a vendor who sees 0 rows; a hoisted
-  set comparison (`portfolio_id in (select my_..._ids())`) measured 242 ->
-  31 ms (manager) and 504 -> 1 ms (vendor). Next speed step: rewrite those
-  policies with per-role equivalence tests (medium risk). Middleware me()
-  is still needed per request (MFA, operator write block).
+- #279 claude/redesign-six-roles: one design for all six roles (do not
+  merge yet; progress and handoff in docs/redesign/). Signed-in checks done
+  for owner, vendor, manager and company admin; operator and board pending.
+- claude/rls-hoist: security checks run once per query, not once per row.
+  Migration 20261011010000 APPLIED to prod 2026-10-10 (Claude). 1,475
+  public policies rewritten in place (ALTER POLICY; roles/commands kept):
+  zero-argument helpers and operator_may_write(..) wrapped as
+  "( SELECT f() )"; can_access_portfolio / can_manage_finance /
+  can_admin_portfolio / can_access_association / can_view_association_row
+  split into once-per-query helpers (my_access_portfolio, my_finance_portfolio,
+  my_admin_portfolio, my_accessible_association_ids,
+  my_managed_association_ids) plus a plain comparison. Equivalence checked
+  before applying (scripts/sql/rls-hoist-equivalence.sql, rolled back): 26,507
+  checks, 13 callers incl. a fixture scoped manager and support operator,
+  0 differences. Measured as each role: owners+units join 215 -> 25 ms,
+  work orders 24 -> 1 ms, journal lines 11 -> 1-5 ms, gl_accounts 247 -> 107
+  ms (manager) and 508 -> 130 ms (vendor); row counts identical.
+- Part 2, 20261011020000 APPLIED to prod 2026-10-10 (Claude): part-1
+  comparisons wrapped in COALESCE(.., false) so an AND stops early (null
+  made Postgres still run can_read_gl per row), and can_read_gl,
+  can_access_unit, can_manage_association, can_edit_association_mvp,
+  can_write_vendor_row hoisted (gl_read_all, my_readable_gl_ids,
+  my_accessible_unit_ids, my_manageable_association_ids,
+  my_editable_association_ids). 307 policies; 14,716 checks, 0
+  differences. After both parts: gl_accounts 247 -> 0.6 ms (manager),
+  508 -> 1.2 ms (vendor); owners+units 215 -> 4-6 ms; charges, work
+  orders, documents 1-5 ms.
+- Part 3, 20261011030000 APPLIED (migration-reviewer finding): the
+  association set helpers look only at the caller's company (or all, for
+  an operator) instead of calling a helper for every association on the
+  platform. 52 caller/helper sets identical before/after. Note: part 2's
+  `(?<!COALESCE)` guard is ineffective, so re-running part 2 would nest
+  COALESCE (same result, longer text) - don't replay it by hand.
+- 20261011040000 (comments): each original can_* helper names its twin.
+- 20261011050000 APPLIED (Codex P2): my_accessible_association_ids and
+  my_accessible_unit_ids moved to schema rls_private (not exposed by the
+  API, no USAGE for anyone) so a scoped manager can't list every company
+  id by RPC. Policies keep working (they reference functions by id);
+  same row counts per role after the move.
+  Still per-row (rare tables):
+  current_resident_unit_since, can_manage_violations, budget/meeting/
+  signature helpers, journal_entry_touches_board_associations.
 
 ## Where things stand
+- #280 merged (ce66300c): two-step setup page no longer crashes showing
+  the QR code (Supabase returns an unencoded SVG data URL; qrDataUrl()
+  re-encodes it).
+- #278 merged (55cadd0b): dashboard reminders and owner portal home load
+  in two waves of parallel queries instead of 7-13 sequential ones.
 - #277 merged (824566b2): "Unlink login" button on the owner record
   (Portal access): confirm-first, cuts off the record's own sign-in
   (auth_user_id cleared, portal off) and every sign-in it was added to
@@ -325,5 +362,10 @@ Back to [[Home]]. Updated 2026-10-10 (after #277 merged; open PR: speed round tr
    real association uses the import page incl. the opening balances step
    (CSV exports do not state the basis: tick the accrual box).
 1. Stripe live for one pilot association (Mirsad's account setup).
-2. Optional: per-request identity caching for speed (identity checks
-   ~0.1-0.5 ms per row each; riskier, measure first).
+2. Optional: per-request identity caching for speed. Re-measure first:
+   since 20261011010000/20000 identity checks run once per query, so the
+   old ~0.1-0.5 ms per row figure no longer applies.
+3. Low priority: per-row policy helpers left on rarely used tables
+   (current_resident_unit_since, can_manage_violations, budget/meeting/
+   signature helpers, journal_entry_touches_board_associations). Same
+   once-per-query rewrite + equivalence script if one of them gets slow.

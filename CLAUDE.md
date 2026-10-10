@@ -42,8 +42,15 @@ functionality with an original design. Next.js 15 (App Router) + Supabase
    tables scroll horizontally, touch targets ≥40px. Shared components handle
    this if you use them.
 6. RLS is enabled on all tables. New tables: enable RLS + portfolio-scoped
-   policies using the helpers `can_access_portfolio(uuid)`,
-   `can_manage_finance(uuid)`, `is_any_staff()`, `is_platform_operator()`.
+   policies whose helpers run ONCE PER QUERY, never once per row:
+   `COALESCE(portfolio_id = (select public.my_access_portfolio()), false)`
+   `or ((select public.is_platform_operator()) and portfolio_id is not null)`
+   (finance: `my_finance_portfolio()`), `association_id in (select
+   rls_private.my_accessible_association_ids())`, `(select public.is_any_staff())`,
+   `(select public.is_platform_operator())`. Don't call
+   `can_access_portfolio(portfolio_id)` / `can_manage_finance(..)` in a
+   policy (they run per row); they stay for functions and RPCs. See
+   Product Rules → Speed and migration 20261011010000.
    New functions are NOT executable by `anon` by default (and new trigger
    functions by nobody) — an RPC for signed-out callers needs an explicit
    `grant execute ... to anon` (migration default_function_privileges).

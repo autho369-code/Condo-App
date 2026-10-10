@@ -1,0 +1,12 @@
+---
+name: data-writers
+description: Who writes which column (tokens, company_name, imported_balances, invitations) and receivables GL facts
+metadata:
+  type: reference
+---
+
+- Invitation emails: `queue_invitation_email` (20260731010000) skips rows with `metadata.email_delivery = 'application'`; `invite_staff` relies on the `hoa_role` default 'manager'. Email URLs: auth links use slug host (`tenantWorkspaceUrl`), never custom domain.
+- `user_invitations.token` writers (as of 20261007040000): column default (2x uuid sans dashes = 64 hex) and `generate_invite_token()` (hex of 32 bytes); no app insert/update sets `token`. A token CHECK is safe; re-grep `from('user_invitations')` and SQL `insert into public.user_invitations` for a `token` column if it changes.
+- `portfolios.company_name` writers (as of 20261007050000): SQL `provision_portfolio` (20261005010001:80, untrimmed, app trims first), `update_company_profile` (20261001171941, rejects blank), legacy `invite_company_admin`/`platform_create_company` (baseline :4918/:5921, unused by app); app: `app/platform-operator/companies/actions.ts` (:87 create, :660 edit), `app/(app)/settings/branding/page.tsx`, `lib/rpcs/portfolio.ts`. All reject blank before writing.
+- imported_balances writers: `import_opening_balance` (20261003120000, invoker; charge due_date = p_as_of) from CSV opening-balance import and the AppFolio AR import (`app/(app)/owners/import/appfolio/receivables-actions.ts`), which since 2026-10-08 dates every row of a run with the report's as-of date (charge date kept in memo), so 20261008070000's unit+as_of_date grouping is right per run. Residual: one unit imported at two different as-of dates compares system balance (includes earlier imports) to only the later group's sum; a cumulative per-unit window sum fixes it (low).
+- Receivables GL facts (2026-10-09): charge Dr A/R / Cr income, payment (method 'credit') Dr payments.gl_account_id / Cr A/R, both via post_subledger_entry (insert posted=false then update posted=true, so `trg_guard_closed_period` raises for closed months on charges and payments alike). New payments auto-apply via `trg_auto_apply_payment` -> apply_payment (ownership period of payment_date); new charges via `auto_apply_credit_on_new_charge` (same period). post_homeowner_credit requires a non-blank memo; `trg_payments_gl_permission` checks can_use_gl on payments.gl_account_id (charges skip it when the category has no GL).

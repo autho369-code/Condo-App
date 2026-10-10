@@ -33,6 +33,15 @@ Back to [[Home]].
   row), which made pages time out (fixed in 20261008050000). A new or
   replaced helper must be `language plpgsql`; measure RLS changes as each
   role inside a rolled-back transaction before shipping.
+- RLS policies call helpers ONCE PER QUERY: write `( SELECT public.f() )`
+  for zero-argument helpers, and compare the row's column against a
+  once-per-query helper (`portfolio_id = ( SELECT public.my_access_portfolio() )`,
+  `association_id IN ( SELECT rls_private.my_accessible_association_ids() )`)
+  instead of `can_access_portfolio(portfolio_id)`, which runs per row
+  (20261011010000). Keep the result false, not null (COALESCE), when it
+  is ANDed with another per-row check. Changing a can_* helper body?
+  Change its once-per-query twin too (each helper's COMMENT names it,
+  20261011040000); policies no longer call the originals.
 - **No competitor names in the product** (Mirsad, 2026-10-09): nothing a
   manager, owner, board or vendor sees — page text, buttons, URLs, errors,
   and text an import stores (charge descriptions, notes) — says "AppFolio".
