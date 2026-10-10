@@ -13,6 +13,7 @@ import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { JurisdictionPanel, ReferralReadiness } from '@/components/delinquency/compliance-panels';
 import { todayInZone } from '@/lib/time/zoned';
+import { stateName } from '@/lib/state-rules';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,13 +107,16 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
     back('saved', 'Certified-mail delivery evidence recorded with an audit trail.');
   }
 
-  const [casesRes, policiesRes, stepsRes, associationsRes, mailRes, profilesRes] = await Promise.all([
+  const [casesRes, policiesRes, stepsRes, associationsRes, mailRes, profilesRes, companyRulesRes] = await Promise.all([
     db.from('delinquency_cases').select('*, associations(name), units(unit_number), owners(full_name, email), delinquency_policies(name)').order('balance_snapshot', { ascending: false }),
     db.from('delinquency_policies').select('id, association_id, name, minimum_balance, active, jurisdiction, pre_referral_notice_days, notice_method, payment_plan_offer_required, payment_plan_min_months, board_vote_required, foreclosure_min_balance, foreclosure_min_months'),
     db.from('delinquency_steps').select('policy_id, step_number, name, days_past_due, action_type, requires_human_approval').order('step_number'),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('physical_mail_deliveries').select('id, delinquency_case_id, status, provider, provider_piece_id, expected_delivery_date, delivered_at, delivery_verified_at, updated_at').not('delinquency_case_id', 'is', null).order('created_at', { ascending: false }),
     db.from('collection_jurisdiction_profiles').select('state_code, state_name, summary, citations').order('state_name'),
+    me.portfolio?.id
+      ? db.from('company_state_rules').select('state_code, summary, other_rules, citations').eq('portfolio_id', me.portfolio.id)
+      : Promise.resolve({ data: [], error: null }),
   ]);
   // A failed read must never look like "no cases" or a $0.00 balance.
   const loadErrors: string[] = [];
@@ -125,7 +129,13 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
   const steps = pick(stepsRes, 'Policy steps');
   const associations = pick(associationsRes, 'Associations');
   const mailDeliveries = pick(mailRes, 'Tracked mail');
-  const profiles = pick(profilesRes, 'State collection rules');
+  // The company's own state rules replace the built-in profile of that state.
+  const companyRules = pick(companyRulesRes, 'Company state rules');
+  const companyRuleStates = new Set(companyRules.map((r: any) => r.state_code));
+  const profiles = [
+    ...pick(profilesRes, 'State collection rules').filter((p: any) => !companyRuleStates.has(p.state_code)),
+    ...companyRules.map((r: any) => ({ ...r, state_name: stateName(r.state_code), company: true })),
+  ].sort((a: any, b: any) => a.state_name.localeCompare(b.state_name));
   const casesFailed = !!casesRes.error;
   const policyAssociations = new Set((policies ?? []).map((policy: any) => policy.association_id));
   const stepsByPolicy = new Map<string, any[]>();

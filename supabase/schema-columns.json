@@ -76,6 +76,7 @@
 "communications_log":["announcement_audience","association_id","body","channel","created_at","direction","error_message","id","idempotency_key","portfolio_id","recipient_count","sender_id","status","subject"],
 "companies":["address","brandColor","createdAt","email","id","isActive","logoUrl","name","phone","slug","tier","updatedAt"],
 "company_settings":["billing_email","branding","created_at","id","logo_url","manager_permission_defaults","notification_defaults","office_address","office_city","office_state","office_zip","owner_invite_defaults","phone","portfolio_id","updated_at","vendor_invite_defaults"],
+"company_state_rules":["board_vote_required","citations","created_at","foreclosure_min_balance","foreclosure_min_months","id","notice_method","other_rules","payment_plan_min_months","payment_plan_offer_required","portfolio_id","pre_referral_notice_days","state_code","summary","updated_at","updated_by"],
 "credit_card_accounts":["archived_at","association_id","created_at","created_by","gl_account_id","id","issuer","last_four","name","portfolio_id","updated_at"],
 "credit_card_charges":["amount","association_id","card_id","charge_date","created_at","created_by","description","gl_account_id","id","journal_entry_id","payee","portfolio_id","reference","vendor_id","void_journal_entry_id","void_reason","voided_at","voided_by"],
 "data_diagnostics":["category","details","entity_id","entity_type","first_seen_at","id","last_seen_at","occurrence_count","portfolio_id","resolved_at","resolved_by","severity","title"],

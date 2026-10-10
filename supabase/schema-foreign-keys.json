@@ -150,6 +150,7 @@
 "communications_log.association_id":"associations",
 "communications_log.portfolio_id":"portfolios",
 "company_settings.portfolio_id":"portfolios",
+"company_state_rules.portfolio_id":"portfolios",
 "credit_card_accounts.association_id":"associations",
 "credit_card_accounts.gl_account_id":"gl_accounts",
 "credit_card_accounts.portfolio_id":"portfolios",

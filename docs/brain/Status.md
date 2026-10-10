@@ -3,7 +3,18 @@
 Back to [[Home]]. Updated 2026-10-10 (after #272 merged; no open PR; next: vendor details for Randolph Station, then Stripe pilot).
 
 ## Open PR
-- None.
+- claude/company-state-rules: State Rules. Company admins record the rules
+  their company follows in each state (`/company-admin/state-rules`):
+  collection gates + plain-words summary, other state requirements
+  (fines/hearings, notices, records, resale), citations; a new state starts
+  from the built-in profile + the /hoa-laws state summary. Managers see the
+  association's state rules on its profile and on Delinquencies.
+  `apply_delinquency_jurisdiction` uses the company's rule first, then the
+  built-in profile, then DEFAULT; "Apply to associations" re-applies to the
+  state's existing policies. Migration 20261010010000 applied by Claude and
+  read back (RLS on, read can_access_portfolio, write can_admin_portfolio,
+  touch + audit triggers, anon no access/execute); tested as the live
+  company admin and a manager in rolled-back transactions.
 
 ## Where things stand
 - #272 merged (b5dde4a7): opening balances step on the import
