@@ -210,10 +210,14 @@ const MAX_TIE_OUT_ROWS = 5000;
 const cents = (n: number) => Math.round(n * 100) / 100;
 /** A prior years' retained-earnings account (not the current year's). */
 // Any separator between the words ("Retained-Earnings"). A name that says
-// it is this year's in any way ("Current Fiscal Year", "This Year", "YTD",
-// "Year to Date", "FY") is never counted as prior years'.
+// it is this year's ("Current Fiscal Year", "This Year", "YTD", "Year to
+// Date") is not counted as prior years', unless it also says prior or
+// previous ("Prior FY Retained Earnings"), which wins.
 const PRIOR_RETAINED_EARNINGS = /retained[\W_]*earnings/i;
-const CURRENT_YEAR = /(^|[\W_])(current|this[\W_]*year|ytd|year[\W_]*to[\W_]*date|fy)([\W_]|$)/i;
+const CURRENT_YEAR = /(^|[\W_])(current|this[\W_]*year|ytd|year[\W_]*to[\W_]*date)([\W_]|$)/i;
+const SAYS_PRIOR = /(^|[\W_])(prior|previous)([\W_]|$)/i;
+const isPriorRetainedEarnings = (name: string) =>
+  PRIOR_RETAINED_EARNINGS.test(name) && (SAYS_PRIOR.test(name) || !CURRENT_YEAR.test(name));
 
 /**
  * Compare AppFolio's trial balance ending balances with the posted ledger as
@@ -326,7 +330,7 @@ export async function tieOutAppfolioTrialBalance(
     }
     // Association-own accounts can share a number across associations; combined, they add up.
     const prev = portier.get(Number(a.number));
-    const isRetained = a.account_type === 'equity' && PRIOR_RETAINED_EARNINGS.test(a.name) && !CURRENT_YEAR.test(a.name);
+    const isRetained = a.account_type === 'equity' && isPriorRetainedEarnings(a.name);
     portier.set(Number(a.number), {
       name: prev?.name ?? a.name,
       account_type: prev?.account_type ?? a.account_type,
