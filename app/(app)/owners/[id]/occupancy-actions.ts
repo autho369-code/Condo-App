@@ -382,6 +382,22 @@ export async function setOwnerPortalAccess(ownerId: string, enable: boolean) {
   redirect(`/owners/${ownerId}?saved=${enable ? 'portal_enabled' : 'portal_disabled'}`);
 }
 
+/**
+ * Cuts off every login of this owner record: its own sign-in and any sign-in
+ * it was added to. The database re-checks that the caller manages the owner's
+ * association, revokes the links and logs it (unlink_owner_logins). The
+ * person's other records and roles are untouched; the owner can be invited
+ * again.
+ */
+export async function unlinkOwnerLogins(ownerId: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { data: unlinked, error } = await (supabase as any).rpc('unlink_owner_logins', { p_owner_id: ownerId });
+  if (error) fail(ownerId, `Login not unlinked: ${error.message}`);
+  revalidatePath(`/owners/${ownerId}`);
+  redirect(`/owners/${ownerId}?saved=${Number(unlinked) > 0 ? 'logins_unlinked' : 'no_logins'}`);
+}
+
 export async function sendTenantPortalInvitation(tenantId: string, ownerId: string) {
   const me = await requireStaff();
   const supabase = await createClient();
