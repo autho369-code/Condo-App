@@ -46,7 +46,7 @@ functionality with an original design. Next.js 15 (App Router) + Supabase
    `COALESCE(portfolio_id = (select public.my_access_portfolio()), false)`
    `or ((select public.is_platform_operator()) and portfolio_id is not null)`
    (finance: `my_finance_portfolio()`), `association_id in (select
-   public.my_accessible_association_ids())`, `(select public.is_any_staff())`,
+   rls_private.my_accessible_association_ids())`, `(select public.is_any_staff())`,
    `(select public.is_platform_operator())`. Don't call
    `can_access_portfolio(portfolio_id)` / `can_manage_finance(..)` in a
    policy (they run per row); they stay for functions and RPCs. See

@@ -36,7 +36,7 @@ Back to [[Home]].
 - RLS policies call helpers ONCE PER QUERY: write `( SELECT public.f() )`
   for zero-argument helpers, and compare the row's column against a
   once-per-query helper (`portfolio_id = ( SELECT public.my_access_portfolio() )`,
-  `association_id IN ( SELECT public.my_accessible_association_ids() )`)
+  `association_id IN ( SELECT rls_private.my_accessible_association_ids() )`)
   instead of `can_access_portfolio(portfolio_id)`, which runs per row
   (20261011010000). Keep the result false, not null (COALESCE), when it
   is ANDed with another per-row check. Changing a can_* helper body?

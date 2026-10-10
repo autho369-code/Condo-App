@@ -36,6 +36,12 @@ Back to [[Home]]. Updated 2026-10-10 (after #280 merged; open PRs: redesign #279
   platform. 52 caller/helper sets identical before/after. Note: part 2's
   `(?<!COALESCE)` guard is ineffective, so re-running part 2 would nest
   COALESCE (same result, longer text) - don't replay it by hand.
+- 20261011040000 (comments): each original can_* helper names its twin.
+- 20261011050000 APPLIED (Codex P2): my_accessible_association_ids and
+  my_accessible_unit_ids moved to schema rls_private (not exposed by the
+  API, no USAGE for anyone) so a scoped manager can't list every company
+  id by RPC. Policies keep working (they reference functions by id);
+  same row counts per role after the move.
   Still per-row (rare tables):
   current_resident_unit_since, can_manage_violations, budget/meeting/
   signature helpers, journal_entry_touches_board_associations.

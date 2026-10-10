@@ -1,6 +1,7 @@
 -- Equivalence check for 20261011010000_rls_checks_once_per_query.sql and
 -- 20261011020000_rls_checks_once_per_query_part2.sql (run once per migration,
--- each against the policies as they were before it).
+-- each against the policies as they were before it). Since 20261011050000
+-- the association and unit set helpers live in rls_private.
 --
 -- Run BEFORE the migration is applied, as one statement batch:
 --   1. the line below that saves the current policies,
@@ -106,7 +107,7 @@ begin
       union select null::uuid
     loop
       a := coalesce(public.can_access_association(x), false);
-      b := coalesce(x in (select public.my_accessible_association_ids()), false);
+      b := coalesce(x in (select rls_private.my_accessible_association_ids()), false);
       if a <> b then problems := problems || format('can_access_association(%s) caller %s', x, who); end if;
       a := coalesce(public.can_view_association_row(x), false);
       b := coalesce(((select public.manager_is_scoped()) is not true) or x is null
@@ -123,7 +124,7 @@ begin
     end loop;
     for x in select id from public.units union select gen_random_uuid() union select null::uuid loop
       a := coalesce(public.can_access_unit(x), false);
-      b := coalesce(x in (select public.my_accessible_unit_ids()), false);
+      b := coalesce(x in (select rls_private.my_accessible_unit_ids()), false);
       if a <> b then problems := problems || format('can_access_unit(%s) caller %s', x, who); end if;
       checked := checked + 1;
     end loop;
