@@ -17,6 +17,18 @@ Back to [[Home]]. Updated 2026-10-10 (after #280 merged; open PRs: redesign #279
   0 differences. Measured as each role: owners+units join 215 -> 25 ms,
   work orders 24 -> 1 ms, journal lines 11 -> 1-5 ms, gl_accounts 247 -> 107
   ms (manager) and 508 -> 130 ms (vendor); row counts identical.
+- Part 2, 20261011020000 APPLIED to prod 2026-10-10 (Claude): part-1
+  comparisons wrapped in COALESCE(.., false) so an AND stops early (null
+  made Postgres still run can_read_gl per row), and can_read_gl,
+  can_access_unit, can_manage_association, can_edit_association_mvp,
+  can_write_vendor_row hoisted (gl_read_all, my_readable_gl_ids,
+  my_accessible_unit_ids, my_manageable_association_ids,
+  my_editable_association_ids). 307 policies; 14,716 checks, 0
+  differences. After both parts: gl_accounts 247 -> 0.6 ms (manager),
+  508 -> 1.2 ms (vendor); owners+units 215 -> 4-6 ms; charges, work
+  orders, documents 1-5 ms. Still per-row (rare tables):
+  current_resident_unit_since, can_manage_violations, budget/meeting/
+  signature helpers, journal_entry_touches_board_associations.
 
 ## Where things stand
 - #277 merged (824566b2): "Unlink login" button on the owner record

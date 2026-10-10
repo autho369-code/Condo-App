@@ -1,4 +1,6 @@
--- Equivalence check for 20261011010000_rls_checks_once_per_query.sql.
+-- Equivalence check for 20261011010000_rls_checks_once_per_query.sql and
+-- 20261011020000_rls_checks_once_per_query_part2.sql (run once per migration,
+-- each against the policies as they were before it).
 --
 -- Run BEFORE the migration is applied, as one statement batch:
 --   1. the line below that saves the current policies,
@@ -18,6 +20,8 @@ create temp table rls_hoist_old on commit drop as
   select schemaname, tablename, policyname, qual, with_check from pg_policies where schemaname = 'public';
 
 -- <the migration goes here>
+-- (For part 2 the part-2 helper loops below need part 2's functions; for
+-- part 1 alone, delete them.)
 
 do $$
 declare
@@ -103,6 +107,32 @@ begin
                     or x in (select public.my_managed_association_ids()), false);
       if a <> b then problems := problems || format('can_view_association_row(%s) caller %s', x, who); end if;
       checked := checked + 2;
+    end loop;
+    -- Part 2 helpers.
+    for x in select id from public.gl_accounts union select gen_random_uuid() union select null::uuid loop
+      a := coalesce(public.can_read_gl(x), false);
+      b := coalesce(((select public.gl_read_all()) or coalesce(x in (select public.my_readable_gl_ids()), false)), false);
+      if a <> b then problems := problems || format('can_read_gl(%s) caller %s', x, who); end if;
+      checked := checked + 1;
+    end loop;
+    for x in select id from public.units union select gen_random_uuid() union select null::uuid loop
+      a := coalesce(public.can_access_unit(x), false);
+      b := coalesce(x in (select public.my_accessible_unit_ids()), false);
+      if a <> b then problems := problems || format('can_access_unit(%s) caller %s', x, who); end if;
+      checked := checked + 1;
+    end loop;
+    for x in select id from public.associations union select gen_random_uuid() union select null::uuid loop
+      a := coalesce(public.can_manage_association(x), false);
+      b := coalesce(x in (select public.my_manageable_association_ids()), false);
+      if a <> b then problems := problems || format('can_manage_association(%s) caller %s', x, who); end if;
+      a := coalesce(public.can_edit_association_mvp(x), false);
+      b := coalesce(((select public.is_platform_operator()) and x is not null)
+                    or coalesce(x in (select public.my_editable_association_ids()), false), false);
+      if a <> b then problems := problems || format('can_edit_association_mvp(%s) caller %s', x, who); end if;
+      a := coalesce(public.can_write_vendor_row(x), false);
+      b := coalesce((x is not null or (not (select public.manager_is_scoped())) or (select public.is_company_admin())), false);
+      if a <> b then problems := problems || format('can_write_vendor_row(%s) caller %s', x, who); end if;
+      checked := checked + 3;
     end loop;
   end loop;
 
