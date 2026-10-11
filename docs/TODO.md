@@ -1,9 +1,49 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-10-07.
+Last updated: 2026-10-10.
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
+
+---
+
+## 📋 Mirsad's action list (2026-10-10)
+
+Everything Claude can do alone is done; these need Mirsad (accounts, keys,
+DNS or decisions). Details for the older items are further down.
+
+**Housekeeping (quick)**
+- [ ] **Delete the test conversation** "Inbox test (please ignore)" in the
+      Inbox (Randolph Station, Alexandra Podkanska).
+- [ ] **Delete the old Resend API key** that was pasted in chat (Resend →
+      API Keys), if it is not the one now set in Vercel.
+- [ ] **Optional:** put the current Resend key in
+      `C:\Users\autho\Portier369\.env.local` (`RESEND_API_KEY`) so local
+      testing sends mail like production.
+- [ ] **Remember:** a changed Vercel environment variable only takes effect
+      after a production redeploy.
+
+**Accounts and setup**
+- [ ] **Stripe live for one pilot association** — Stripe Connect platform keys
+      in Vercel (see "Set the platform Stripe keys in Vercel" below), then the
+      association connects its own Stripe account.
+- [ ] **Stellar's own email sender domain** — Company admin → Settings → Email
+      sender: add Stellar's domain and the DNS records it shows. Until then
+      Stellar's mail (Inbox replies, notices) goes out as "Stellar Property
+      Management <hello@portier369.com>"; after verification it comes from
+      Stellar's own address automatically (no code change).
+- [ ] **Two-way SMS** — Twilio Trust Hub KYC + US 10DLC registration.
+- [ ] **Physical mail** — Lob account + billing address.
+- [ ] **Live bank feeds** — Plaid sandbox/production certification.
+- [ ] **AI features** — set an AI key at `/settings/ai`.
+- [ ] **DMARC** — move from `p=none` to `quarantine`, then `reject` (DNS).
+
+**Decisions**
+- [ ] **Legal sign-off** on `/legal/*` by counsel.
+- [ ] **Platform remittance** — how management companies pay Portier369.
+- [ ] **Tenant portal** — in or out of scope.
+- [ ] **Pilot company** — onboard one real management company for a full
+      month on real data.
 
 ---
 
