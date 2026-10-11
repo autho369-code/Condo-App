@@ -21,7 +21,8 @@ export function PiperWidget() {
   const sessionRef = useRef<string>('');
 
   useEffect(() => {
-    sessionRef.current = `web-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+    // Unguessable: the server rate-limits and files leads by this id.
+    sessionRef.current = `web-${crypto.randomUUID()}`;
     const openHandler = () => setOpen(true);
     window.addEventListener('open-piper', openHandler);
     return () => window.removeEventListener('open-piper', openHandler);
