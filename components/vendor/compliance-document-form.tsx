@@ -90,7 +90,7 @@ export function ComplianceDocumentForm({
       )}
       <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Document</span>
         <input ref={fileRef} type="file" required accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx" disabled={busy}
-          className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white disabled:opacity-50" />
+          className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-white disabled:opacity-50" />
         <span className="mt-1 block text-xs text-gray-400">Private upload, maximum 25 MB.</span>
       </label>
       <Button type="submit" disabled={busy}>

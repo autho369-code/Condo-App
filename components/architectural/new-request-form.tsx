@@ -197,7 +197,7 @@ export function NewArchitecturalRequestForm({ unitOptions }: { unitOptions: Unit
           disabled={busy || files.length >= MAX_FILES}
           accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx,.xls,.xlsx"
           onChange={(e) => addFiles(e.target.files)}
-          className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800 disabled:opacity-50"
+          className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800 disabled:opacity-50"
         />
       </div>
 

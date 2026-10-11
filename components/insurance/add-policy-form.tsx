@@ -83,14 +83,14 @@ export function AddInsurancePolicyForm({ ownerId, returnQuery = '' }: { ownerId?
       </div>
       <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Policy Document (PDF or photo)</span>
         <input ref={fileRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic" disabled={busy}
-          className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800 disabled:opacity-50" />
+          className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800 disabled:opacity-50" />
         <span className="mt-1 block text-xs text-gray-400">Max 25 MB. Uploads directly to your association&apos;s records — large PDFs are fine.</span></label>
       <div className="space-y-2 pt-1">
-        <label className="flex items-center gap-2.5 text-sm text-gray-700">
+        <label className="flex min-h-10 items-center gap-2.5 text-sm text-gray-700">
           <input type="checkbox" name="remind_owner" defaultChecked className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-blue-500/30" />
           Email me 30 and 15 days before expiration
         </label>
-        <label className="flex items-center gap-2.5 text-sm text-gray-700">
+        <label className="flex min-h-10 items-center gap-2.5 text-sm text-gray-700">
           <input type="checkbox" name="remind_manager" defaultChecked className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-blue-500/30" />
           Also notify my property manager
         </label>
