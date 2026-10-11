@@ -371,8 +371,11 @@ Back to [[Home]]. Updated 2026-10-10 (after #279 and #281 merged; open PR: #282 
 - 2026-10-10: `npm run check:queries` against production: 0 broken of
   1,164 static queries. Excel report run checked end to end (valid .xlsx,
   17 owners); a refused run now returns to its report with the reason. All six roles checked signed in. 2026-10-04 checks done
-  (batch letters, Forms upload + owner download, saved replies). Still
-  open: an Inbox conversation (needs a test homeowner address to send to).
+  (batch letters, Forms upload + owner download, saved replies). Inbox
+  conversation checked too. FOUND + FIXED 2026-10-10: production email
+  was down since 2026-07-05 (Vercel RESEND_API_KEY rejected by Resend);
+  Mirsad set a new key and redeployed; queued email sends again. A changed
+  Vercel variable only applies after a redeploy.
 0. Randolph Station is a TEST-ONLY association (Mirsad, 2026-10-10): it
    proved the import end to end (imported and tied out); its 8 name-only
    vendors stay as they are, no contact/tax/insurance to enter. The next

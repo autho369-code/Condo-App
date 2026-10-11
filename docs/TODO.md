@@ -87,9 +87,15 @@ Every AppFolio page is built; these need access, accounts or decisions first.
           with channel email, which is what the Inbox reply box loads. Then
           deleted. Not seen inside a conversation: production has none.
         - Inbox search: loads without errors; nothing to find (0 threads).
-  - [ ] Inbox with a real conversation (saved reply in the reply box, search
-        results). Starting one sends a message to a homeowner: needs a test
-        address from Mirsad.
+  - [x] Inbox with a real conversation. DONE 2026-10-10: manager started
+        "Inbox test (please ignore)" to owner2's homeowner record (email set
+        to hello@portier369.com for the test, then back to blank). Search finds
+        it by subject and by name, nothing for a non-match; "Insert a saved
+        reply" fills the owner's name into the reply box. The email first
+        FAILED: production RESEND_API_KEY in Vercel was rejected by Resend
+        ("API key is invalid"); no queued email had sent since 2026-07-05.
+        Mirsad set a new key in Vercel and redeployed; the email then sent
+        (Resend message id recorded).
 
 ### Known issue to fix
 - [x] **Forms upload size on Vercel.** FIXED 2026-10-04: the file now goes
