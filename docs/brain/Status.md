@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (#279-#287 merged; open PR: projects list spend; next: Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (#279-#289 merged; open PRs: phone width #290, receivables totals; next: Receivables page timeouts).
 
 ## Open PR
 - claude/project-spend-list: the projects list showed "$0 spent" to staff
@@ -374,6 +374,18 @@ Back to [[Home]]. Updated 2026-10-10 (#279-#287 merged; open PR: projects list s
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- OPEN 2026-10-10: Receivables page (/charges) shows "Some receivables
+  could not be loaded" (statement timeouts) on most loads for a manager,
+  even with 17 units. It runs six queries at once over RLS-heavy views
+  (aged_receivables, delinquent_units, v_charges_by_category,
+  receivable_payments_ledger, receivable_unit_totals); each takes 0.05-1 s
+  alone but several pass the 8 s limit together. receivable_unit_totals
+  fixed (13-25 s -> <0.6 s, 20261011090000). Next: one security-definer
+  page RPC that computes the page's totals once with explicit scoping, or
+  load the totals after the page (and check the database's CPU/compute size
+  in the Supabase dashboard; timings swing 10x run to run). Also: every DDL
+  (even a test function) reloads PostgREST's schema cache; avoid DDL test
+  loops on production during the day.
 - 2026-10-10: `npm run check:queries` against production: 0 broken of
   1,164 static queries. Excel report run checked end to end (valid .xlsx,
   17 owners); a refused run now returns to its report with the reason. All six roles checked signed in. 2026-10-04 checks done
