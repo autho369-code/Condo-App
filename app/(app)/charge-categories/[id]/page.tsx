@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { Alert, PageHeader, PageShell, Surface } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { updateChargeCategory, archiveChargeCategory } from '@/lib/rpcs/charges';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -37,7 +37,7 @@ export default async function EditChargeCategory({ params, searchParams }: { par
                 <PendingSubmit variant="danger" pendingLabel="Archiving…" confirm="Archive this charge category?">Archive</PendingSubmit>
               </form>
             )}
-            <Link href="/charge-categories"><Button variant="secondary">Back</Button></Link>
+            <Link href="/charge-categories" className={buttonClass('secondary')}>Back</Link>
           </>
         }
       />

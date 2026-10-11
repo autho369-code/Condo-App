@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { checkLinkedRecords, managesAssociation } from '@/lib/security/association-scope';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -69,7 +69,7 @@ export default async function NewManagementAgreementPage({ searchParams }: { sea
     <DataWorkspace
       title="New Management Agreement"
       description="Create an owner and association management agreement with fee schedule and delivery method."
-      actions={<Link href="/owners"><Button variant="secondary">Back to owners</Button></Link>}
+      actions={<Link href="/owners" className={buttonClass('secondary')}>Back to owners</Link>}
     >
       <form action={handleSubmit} className="max-w-4xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create agreement">{sp.error}</Alert>}

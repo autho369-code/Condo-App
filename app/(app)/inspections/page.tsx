@@ -8,7 +8,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
@@ -197,11 +197,9 @@ export default async function InspectionsPage({
       description="Schedule, track, and score property inspections across associations and units."
       actions={
         <div className="flex flex-wrap gap-2">
-          {me.is_staff && <Link href="/inspections/templates"><Button variant="secondary">Templates</Button></Link>}
-          {me.is_staff && <Link href="/inspections/bulk"><Button variant="secondary">Schedule from template</Button></Link>}
-          <Link href="/inspections/new">
-            <Button><Plus className="h-4 w-4" /> New inspection</Button>
-          </Link>
+          {me.is_staff && <Link href="/inspections/templates" className={buttonClass('secondary')}>Templates</Link>}
+          {me.is_staff && <Link href="/inspections/bulk" className={buttonClass('secondary')}>Schedule from template</Link>}
+          <Link href="/inspections/new" className={buttonClass()}><Plus className="h-4 w-4" /> New inspection</Link>
         </div>
       }
     >

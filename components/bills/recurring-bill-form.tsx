@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Surface, SectionTitle } from '@/components/ui/shell';
 import { saveRecurringBill } from '@/lib/rpcs/recurring';
@@ -111,7 +111,7 @@ export function RecurringBillForm({
       </Surface>
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Link href="/bills/recurring"><Button type="button" variant="secondary">Cancel</Button></Link>
+        <Link href="/bills/recurring" className={buttonClass('secondary')}>Cancel</Link>
         <Button type="submit">{values.id ? 'Save changes' : 'Create recurring bill'}</Button>
       </div>
     </form>

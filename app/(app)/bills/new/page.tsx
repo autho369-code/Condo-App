@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import Link from 'next/link';
 import NewBillForm from './new-bill-form';
 import { todayInZone } from '@/lib/time/zoned';
@@ -45,7 +45,7 @@ export default async function NewBillPage({
       <Breadcrumb items={[{ label: 'Accounts payable', href: '/bills' }, { label: 'New bill' }]} />
       <PageHeader
         title="New bill"
-        actions={<Link href="/bills"><Button variant="secondary">Cancel</Button></Link>}
+        actions={<Link href="/bills" className={buttonClass('secondary')}>Cancel</Link>}
       />
 
       {sp.error && (

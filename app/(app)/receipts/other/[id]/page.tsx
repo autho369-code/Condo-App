@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -45,7 +45,7 @@ export default async function OtherReceiptPage({
     <DataWorkspace
       title={`Receipt from ${r.payer_name}`}
       description={`${r.associations?.name ?? ''} · ${date(r.receipt_date)} · ${money(r.amount)}`}
-      actions={<Link href="/receipts/other"><Button variant="secondary">All other receipts</Button></Link>}
+      actions={<Link href="/receipts/other" className={buttonClass('secondary')}>All other receipts</Link>}
     >
       <div className="max-w-4xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not complete that">{sp.error}</Alert>}

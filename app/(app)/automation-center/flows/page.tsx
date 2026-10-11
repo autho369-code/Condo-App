@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ChevronDown, Plus, Workflow } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, Badge, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -73,12 +73,8 @@ export default async function AutomationFlowsPage({
       description="Teach the system a rule once — when a trigger condition is met, the actions run automatically. Each flow fires at most once per record."
       actions={
         <>
-          <Link href="/automation-center">
-            <Button variant="secondary">Automation Center</Button>
-          </Link>
-          <Link href="/automation-center/flows/new">
-            <Button><Plus className="h-4 w-4" /> New flow</Button>
-          </Link>
+          <Link href="/automation-center" className={buttonClass('secondary')}>Automation Center</Link>
+          <Link href="/automation-center/flows/new" className={buttonClass()}><Plus className="h-4 w-4" /> New flow</Link>
         </>
       }
     >
@@ -101,9 +97,7 @@ export default async function AutomationFlowsPage({
               title="No flows yet"
               description="Create your first rule — for example, email the owner and apply the late fee when a dues charge is 15 days overdue."
               action={
-                <Link href="/automation-center/flows/new">
-                  <Button><Plus className="h-4 w-4" /> New flow</Button>
-                </Link>
+                <Link href="/automation-center/flows/new" className={buttonClass()}><Plus className="h-4 w-4" /> New flow</Link>
               }
             />
           </Surface>

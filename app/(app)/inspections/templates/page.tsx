@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ClipboardList } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Textarea } from '@/components/ui/input';
 import { Alert, EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -41,8 +41,8 @@ export default async function InspectionTemplatesPage({
       description="Reusable checklists. Schedule inspections from a template and each one gets the full checklist to rate item by item."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/inspections"><Button variant="secondary">All inspections</Button></Link>
-          <Link href="/inspections/bulk"><Button>Schedule from a template</Button></Link>
+          <Link href="/inspections" className={buttonClass('secondary')}>All inspections</Link>
+          <Link href="/inspections/bulk" className={buttonClass()}>Schedule from a template</Link>
         </div>
       }
     >
@@ -61,7 +61,7 @@ export default async function InspectionTemplatesPage({
             </Field>
             <div className="flex flex-wrap gap-2 sm:col-span-2">
               <Button type="submit">{editing ? 'Save changes' : 'Create template'}</Button>
-              {editing && <Link href="/inspections/templates"><Button type="button" variant="ghost">Cancel</Button></Link>}
+              {editing && <Link href="/inspections/templates" className={buttonClass('ghost')}>Cancel</Link>}
             </div>
           </form>
         </Surface>
@@ -88,7 +88,7 @@ export default async function InspectionTemplatesPage({
                   <TD className="text-right tabular-nums">{(t.items ?? []).length}</TD>
                   <TD className="text-right">
                     <div className="flex flex-wrap justify-end gap-1">
-                      <Link href={`/inspections/templates?edit=${t.id}`}><Button variant="ghost" size="sm">Edit</Button></Link>
+                      <Link href={`/inspections/templates?edit=${t.id}`} className={buttonClass('ghost', 'sm')}>Edit</Link>
                       <form action={archiveInspectionTemplate}>
                         <input type="hidden" name="id" value={t.id} />
                         <PendingSubmit variant="ghost" size="sm" pendingLabel="Archiving…" confirm="Archive this inspection template?">Archive</PendingSubmit>

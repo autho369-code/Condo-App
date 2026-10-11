@@ -9,7 +9,7 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { ASSET_STATUSES, label } from '@/components/fixed-assets/asset-fields';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { todayInZone } from '@/lib/time/zoned';
 import { money, date } from '@/lib/utils';
@@ -92,9 +92,7 @@ export default async function FixedAssetsPage({
       title="Fixed Assets"
       description="Equipment, appliances and other capital assets at each association: where they are, warranty, and value."
       actions={
-        <Link href="/fixed-assets/new">
-          <Button><Plus className="h-4 w-4" /> Add fixed asset</Button>
-        </Link>
+        <Link href="/fixed-assets/new" className={buttonClass()}><Plus className="h-4 w-4" /> Add fixed asset</Link>
       }
     >
       <div className="space-y-4">

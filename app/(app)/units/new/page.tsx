@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Input, Label } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { createUnit, createBuilding } from '@/lib/rpcs/entities';
 
 export const dynamic = 'force-dynamic';
@@ -115,9 +115,7 @@ export default async function NewUnitPage({
                 </div>
               </form>
             ) : (
-              <Link href="/associations" className="mt-4 inline-block">
-                <Button>Pick an association →</Button>
-              </Link>
+              <Link href="/associations" className={buttonClass('primary', 'md', 'mt-4')}>Pick an association →</Link>
             )}
           </div>
         </Section>

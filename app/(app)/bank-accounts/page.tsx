@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { DataTable } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -62,24 +62,12 @@ export default async function BankAccountsPage({
       description="Operating, reserve, and trust bank accounts, with deposits, bank feed, reconciliation and period close."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/bank-accounts/new">
-            <Button><Plus className="h-4 w-4" /> New bank account</Button>
-          </Link>
-          <Link href="/bank-accounts/deposits/new">
-            <Button variant="secondary">New bank deposit</Button>
-          </Link>
-          <Link href="/bank-accounts/feeds">
-            <Button variant="secondary">Bank feed</Button>
-          </Link>
-          <Link href="/bank-accounts/reconcile">
-            <Button variant="secondary">Reconcile</Button>
-          </Link>
-          <Link href="/accounting-periods">
-            <Button variant="secondary">Close accounting period</Button>
-          </Link>
-          <Link href="/bank-accounts/link-bank">
-            <Button variant="secondary">Link with bank</Button>
-          </Link>
+          <Link href="/bank-accounts/new" className={buttonClass()}><Plus className="h-4 w-4" /> New bank account</Link>
+          <Link href="/bank-accounts/deposits/new" className={buttonClass('secondary')}>New bank deposit</Link>
+          <Link href="/bank-accounts/feeds" className={buttonClass('secondary')}>Bank feed</Link>
+          <Link href="/bank-accounts/reconcile" className={buttonClass('secondary')}>Reconcile</Link>
+          <Link href="/accounting-periods" className={buttonClass('secondary')}>Close accounting period</Link>
+          <Link href="/bank-accounts/link-bank" className={buttonClass('secondary')}>Link with bank</Link>
         </div>
       }
     >
@@ -183,9 +171,7 @@ export default async function BankAccountsPage({
               title="No bank accounts match this view"
               description="Adjust the filters or add a new bank account to get started."
               action={
-                <Link href="/bank-accounts/new">
-                  <Button><Plus className="h-4 w-4" /> New bank account</Button>
-                </Link>
+                <Link href="/bank-accounts/new" className={buttonClass()}><Plus className="h-4 w-4" /> New bank account</Link>
               }
             />
           }

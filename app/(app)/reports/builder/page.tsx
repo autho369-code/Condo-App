@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { DataTable, type Column } from '@/components/ui/table';
 import { createClient } from '@/lib/supabase/server';
@@ -156,9 +156,7 @@ export default async function ReportBuilderPage({
                 </h2>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Link href={`/reports/builder/export?${exportQuery}`} prefetch={false}>
-                  <Button variant="secondary" size="sm">Export CSV</Button>
-                </Link>
+                <Link href={`/reports/builder/export?${exportQuery}`} prefetch={false} className={buttonClass('secondary', 'sm')}>Export CSV</Link>
               </div>
             </div>
 
@@ -224,9 +222,7 @@ export default async function ReportBuilderPage({
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <Link href={`/reports/builder/export?${q}`} prefetch={false}>
-                        <Button variant="ghost" size="sm">CSV</Button>
-                      </Link>
+                      <Link href={`/reports/builder/export?${q}`} prefetch={false} className={buttonClass('ghost', 'sm')}>CSV</Link>
                       <form action={deleteReportView}>
                         <input type="hidden" name="id" value={view.id} />
                         <input type="hidden" name="query" value={currentQuery} />

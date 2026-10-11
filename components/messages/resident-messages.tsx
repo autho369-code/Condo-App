@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { MessageSquare, Send } from 'lucide-react';
 import { Alert, EmptyState, PageHeader, Surface } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label, Textarea } from '@/components/ui/input';
 import { StatusChip } from '@/components/operations/status-chip';
 import { startResidentConversation, replyAsResident } from '@/lib/rpcs/messages';
@@ -45,7 +45,7 @@ export function ResidentConversationList({
       <PageHeader
         title="Messages"
         description="Ask your management team anything — billing, documents, insurance, move-ins. For something broken, submit a service request instead."
-        actions={!compose ? <Link href={`${base}?compose=1`}><Button><Send className="h-4 w-4" /> New message</Button></Link> : null}
+        actions={!compose ? <Link href={`${base}?compose=1`} className={buttonClass()}><Send className="h-4 w-4" /> New message</Link> : null}
       />
       {error ? <Alert>{error}</Alert> : null}
 
@@ -75,7 +75,7 @@ export function ResidentConversationList({
                 <Textarea id="body" name="body" required maxLength={5000} rows={6} />
               </div>
               <div className="flex justify-end gap-2">
-                <Link href={base}><Button type="button" variant="secondary">Cancel</Button></Link>
+                <Link href={base} className={buttonClass('secondary')}>Cancel</Link>
                 <Button type="submit"><Send className="h-4 w-4" /> Send</Button>
               </div>
             </form>

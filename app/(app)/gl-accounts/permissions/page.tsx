@@ -3,7 +3,7 @@ import { ShieldCheck } from 'lucide-react';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -35,7 +35,7 @@ export default async function GlPermissionsPage({
     : { data: [] };
   const permissions = new Map((permissionRows ?? []).map((row: any) => [row.gl_account_id, row.permission]));
 
-  return <DataWorkspace title="GL Role Permissions" description="Control which chart-of-account lines each custom staff role can report on or use in postings." actions={<Link href="/gl-accounts"><Button variant="secondary">Back to GL accounts</Button></Link>}>
+  return <DataWorkspace title="GL Role Permissions" description="Control which chart-of-account lines each custom staff role can report on or use in postings." actions={<Link href="/gl-accounts" className={buttonClass('secondary')}>Back to GL accounts</Link>}>
     <div className="space-y-5">
       {sp.error && <Alert title="Could not save permission">{sp.error}</Alert>}
       {sp.saved && <Alert tone="success">GL permission saved and audit logged.</Alert>}

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -60,8 +60,8 @@ export default async function PaymentPlanPage({
       description={`${plan.associations?.name ?? 'Association'} · Unit ${plan.units?.unit_number ?? '—'} · ${plan.installment_count} installments, ${frequencyLabel}, from ${date(plan.start_date)}`}
       actions={
         <div className="flex flex-wrap gap-2">
-          {plan.owner_id && <Link href={`/owners/${plan.owner_id}`}><Button variant="secondary">Homeowner</Button></Link>}
-          <Link href="/payment-plans"><Button variant="secondary">All payment plans</Button></Link>
+          {plan.owner_id && <Link href={`/owners/${plan.owner_id}`} className={buttonClass('secondary')}>Homeowner</Link>}
+          <Link href="/payment-plans" className={buttonClass('secondary')}>All payment plans</Link>
         </div>
       }
     >

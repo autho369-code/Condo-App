@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireFinanceStaff } from '@/lib/auth/me';
@@ -31,7 +31,7 @@ export default async function NewBankTransferPage({ searchParams }: { searchPara
     <DataWorkspace
       title="New Bank Transfer"
       description="Move money between two bank accounts of the same association. The transfer posts to the ledger when you record it."
-      actions={<Link href="/bank-transfers"><Button variant="secondary">Back to transfers</Button></Link>}
+      actions={<Link href="/bank-transfers" className={buttonClass('secondary')}>Back to transfers</Link>}
     >
       <form action={recordBankTransfer} className="max-w-2xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />

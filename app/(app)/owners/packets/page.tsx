@@ -6,7 +6,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -96,7 +96,7 @@ export default async function OwnerPacketsPage({
     <DataWorkspace
       title="Send Owner Packets"
       description="Configure what each owner receives, how often, and how it's delivered — then stage outbound packet delivery."
-      actions={<Link href="/owners/forms?template=owner_packet"><Button>Prepare packet</Button></Link>}
+      actions={<Link href="/owners/forms?template=owner_packet" className={buttonClass()}>Prepare packet</Link>}
     >
       <div className="space-y-4">
         {sp.saved && <Alert tone="success" title="Packet settings saved" />}

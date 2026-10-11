@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Alert, Badge, PageShell, PageHeader, EmptyState } from '@/components/ui/shell'
 import { DataTable } from '@/components/ui/table'
 import { Input, Select } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Button, buttonClass } from '@/components/ui/button';
 
 type Association = {
   id: string
@@ -102,21 +102,11 @@ export default function AssociationsPage() {
         description={`${visible.length} communities · ${totalUnits.toLocaleString()} units under management`}
         actions={
           <>
-            <Link href="/meetings">
-              <Button variant="secondary">Meeting sign-in</Button>
-            </Link>
-            <Link href="/violations/field">
-              <Button variant="secondary">Violations field entry</Button>
-            </Link>
-            <Link href="/reports/bulk-association">
-              <Button variant="secondary">Bulk board reports</Button>
-            </Link>
-            <Link href="/associations/groups">
-              <Button variant="secondary"><FolderTree className="h-4 w-4" /> Property groups</Button>
-            </Link>
-            <Link href="/associations/new">
-              <Button><Plus className="h-4 w-4" /> New association</Button>
-            </Link>
+            <Link href="/meetings" className={buttonClass('secondary')}>Meeting sign-in</Link>
+            <Link href="/violations/field" className={buttonClass('secondary')}>Violations field entry</Link>
+            <Link href="/reports/bulk-association" className={buttonClass('secondary')}>Bulk board reports</Link>
+            <Link href="/associations/groups" className={buttonClass('secondary')}><FolderTree className="h-4 w-4" /> Property groups</Link>
+            <Link href="/associations/new" className={buttonClass()}><Plus className="h-4 w-4" /> New association</Link>
           </>
         }
       />
@@ -214,7 +204,7 @@ export default function AssociationsPage() {
               title={query ? 'No matches' : 'No associations yet'}
               description={query ? 'Try a different name or city.' : 'Create your first community to start managing units, owners, and finances.'}
               action={!query && (
-                <Link href="/associations/new"><Button><Plus className="h-4 w-4" /> New association</Button></Link>
+                <Link href="/associations/new" className={buttonClass()}><Plus className="h-4 w-4" /> New association</Link>
               )}
             />
           }

@@ -2,7 +2,7 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -58,7 +58,7 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
   }
 
   return (
-    <DataWorkspace title="New Inspection" description="Schedule a property or unit inspection." actions={<Link href="/inspections"><Button variant="secondary">Back to inspections</Button></Link>}>
+    <DataWorkspace title="New Inspection" description="Schedule a property or unit inspection." actions={<Link href="/inspections" className={buttonClass('secondary')}>Back to inspections</Link>}>
       <form action={createInspection} className="max-w-2xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create inspection">{sp.error}</Alert>}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

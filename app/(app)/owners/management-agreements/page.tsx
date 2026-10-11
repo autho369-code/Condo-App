@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -53,9 +53,7 @@ export default async function ManagementAgreementsPage({
       title="Management Agreements"
       description="Agreements between the management company and owners/associations — terms, fees, and signature status."
       actions={
-        <Link href={`/owners/management-agreements/new${sp.owner ? `?owner=${sp.owner}` : ''}`}>
-          <Button>New agreement</Button>
-        </Link>
+        <Link href={`/owners/management-agreements/new${sp.owner ? `?owner=${sp.owner}` : ''}`} className={buttonClass()}>New agreement</Link>
       }
     >
       <div className="space-y-4">

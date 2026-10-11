@@ -6,7 +6,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Label, Select, Textarea } from '@/components/ui/input';
 import { date } from '@/lib/utils';
 import { loadMaintenanceAttachments } from '@/lib/maintenance/attachments';
@@ -119,9 +119,7 @@ export default async function ServiceRequestDetail({
             <div className="mb-2 text-[13px] font-semibold text-gray-700">Next step</div>
             <div className="space-y-2">
               {openWorkOrder ? (
-                <Link href={`/work-orders/${openWorkOrder.id}`}>
-                  <Button className="w-full" variant="secondary">Open work order #{openWorkOrder.number ?? ''} <ArrowUpRight className="h-3.5 w-3.5" /></Button>
-                </Link>
+                <Link href={`/work-orders/${openWorkOrder.id}`} className={buttonClass('secondary', 'md', 'w-full')}>Open work order #{openWorkOrder.number ?? ''} <ArrowUpRight className="h-3.5 w-3.5" /></Link>
               ) : isOpen && sr.request_kind === 'maintenance' ? (
                 <form action={triageServiceRequest.bind(null, sr.id)}>
                   <Button type="submit" className="w-full"><Wrench className="h-3.5 w-3.5" /> Create work order</Button>
@@ -182,7 +180,7 @@ export default async function ServiceRequestDetail({
               <form action={clearDuplicateFlag.bind(null, sr.id)}>
                 <Button type="submit" size="sm" variant="secondary">Not a duplicate</Button>
               </form>
-              <Link href={`/service-requests/${original.id}`}><Button size="sm" variant="ghost">Open #{original.number ?? ''}</Button></Link>
+              <Link href={`/service-requests/${original.id}`} className={buttonClass('ghost', 'sm')}>Open #{original.number ?? ''}</Link>
             </div>
             <p className="mt-3 text-xs text-gray-500">Merging closes this request and tells the resident the issue is tracked under #{original.number ?? ''}.</p>
           </div>

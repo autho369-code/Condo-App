@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert, Badge } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -62,7 +62,7 @@ export default async function CalendarEventPage({
     <DataWorkspace
       title={event.title}
       description={`${eventTypeLabel(event.event_type)}${event.associations?.name ? ` · ${event.associations.name}` : ''} · ${when}`}
-      actions={<Link href={event.association_id ? `/calendar?assoc=${event.association_id}` : '/calendar'}><Button variant="secondary">Back to calendar</Button></Link>}
+      actions={<Link href={event.association_id ? `/calendar?assoc=${event.association_id}` : '/calendar'} className={buttonClass('secondary')}>Back to calendar</Link>}
     >
       <div className="max-w-3xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not save the event">{sp.error}</Alert>}

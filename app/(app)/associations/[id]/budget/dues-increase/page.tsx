@@ -6,7 +6,7 @@ import { requireFinanceOrPortfolioAdmin } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { THead, TR, TH, TD } from '@/components/ui/table';
 import { Alert, EmptyState } from '@/components/ui/shell';
@@ -117,7 +117,7 @@ export default async function DuesIncreasePage({ params, searchParams }: { param
             eyebrow={<Link href={`/associations/${ref}/budget`} className="hover:text-gray-600">Budget</Link>}
             title="Dues increase"
             subtitle={`Raise every unit’s recurring dues for ${assoc.name} from a date you choose.`}
-            actions={<Link href={`/associations/${ref}/budget/assessments`}><Button size="sm" variant="secondary">Update from budget instead</Button></Link>}
+            actions={<Link href={`/associations/${ref}/budget/assessments`} className={buttonClass('secondary', 'sm')}>Update from budget instead</Link>}
           />
         </>
       }

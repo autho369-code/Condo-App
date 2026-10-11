@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Plus, Repeat } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { PayablesTabs } from '@/components/accounting/payables-tabs';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, Badge, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
@@ -53,8 +53,8 @@ export default async function RecurringBillsPage({
       description={`${active.length} active · about ${money(monthly)} a month. Bills are created automatically each morning on their scheduled date.`}
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/bills"><Button variant="secondary">All bills</Button></Link>
-          <Link href="/bills/recurring/new"><Button><Plus className="h-4 w-4" /> New recurring bill</Button></Link>
+          <Link href="/bills" className={buttonClass('secondary')}>All bills</Link>
+          <Link href="/bills/recurring/new" className={buttonClass()}><Plus className="h-4 w-4" /> New recurring bill</Link>
         </div>
       }
     >
@@ -91,7 +91,7 @@ export default async function RecurringBillsPage({
               icon={Repeat}
               title="No recurring bills yet"
               description="Set up janitorial, landscaping, utilities or any other bill that repeats, and it will be entered for you."
-              action={<Link href="/bills/recurring/new"><Button><Plus className="h-4 w-4" /> New recurring bill</Button></Link>}
+              action={<Link href="/bills/recurring/new" className={buttonClass()}><Plus className="h-4 w-4" /> New recurring bill</Link>}
             />
           </Surface>
         ) : (
@@ -130,7 +130,7 @@ export default async function RecurringBillsPage({
                   <TD className="text-right tabular-nums">{money(r.amount)}</TD>
                   <TD className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Link href={`/bills/recurring/${r.id}/edit`}><Button variant="ghost" size="sm">Edit</Button></Link>
+                      <Link href={`/bills/recurring/${r.id}/edit`} className={buttonClass('ghost', 'sm')}>Edit</Link>
                       <form action={archiveRecurringBill}>
                         <input type="hidden" name="id" value={r.id} />
                         <Button type="submit" variant="ghost" size="sm">Stop</Button>

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireFinanceStaff } from '@/lib/auth/me';
@@ -68,7 +68,7 @@ export default async function NewBankDepositPage({ searchParams }: { searchParam
     <DataWorkspace
       title="Other deposit"
       description="Record a deposit that is not an owner payment (interest, insurance proceeds, transfers in). Owner payments recorded as receipts on the unit already post to the bank account — do not deposit them again here."
-      actions={<Link href="/bank-accounts"><Button variant="secondary">Back to bank accounts</Button></Link>}
+      actions={<Link href="/bank-accounts" className={buttonClass('secondary')}>Back to bank accounts</Link>}
     >
       <div className="max-w-3xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not record deposit">{sp.error}</Alert>}

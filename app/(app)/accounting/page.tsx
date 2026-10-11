@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Surface, SectionTitle } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -128,8 +128,8 @@ export default async function AccountingPage() {
       description="Payables, receivables, bank accounts, and the general ledger — all from one dashboard."
       actions={
         <>
-          <Link href="/bills/new"><Button><Plus className="h-4 w-4" /> New bill</Button></Link>
-          <Link href="/bills/check-run"><Button variant="secondary">Check run</Button></Link>
+          <Link href="/bills/new" className={buttonClass()}><Plus className="h-4 w-4" /> New bill</Link>
+          <Link href="/bills/check-run" className={buttonClass('secondary')}>Check run</Link>
         </>
       }
     >

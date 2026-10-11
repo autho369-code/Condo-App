@@ -4,7 +4,7 @@ import { CalendarClock, PiggyBank, Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
@@ -32,9 +32,7 @@ export default async function CapitalReservesPage() {
       title="Capital & Reserves"
       description="Component-level reserve studies, replacement schedules, funding scenarios, and board-ready capital planning."
       actions={
-        <Link href="/capital-reserves/new">
-          <Button><Plus className="h-4 w-4" /> New reserve study</Button>
-        </Link>
+        <Link href="/capital-reserves/new" className={buttonClass()}><Plus className="h-4 w-4" /> New reserve study</Link>
       }
     >
       <div className="space-y-6">
@@ -91,7 +89,7 @@ export default async function CapitalReservesPage() {
               icon={PiggyBank}
               title="No component-level reserve studies yet"
               description="Model roofs, elevators, paving, mechanical systems, and other capital components, then compare contribution strategies before the board commits."
-              action={<Link href="/capital-reserves/new"><Button><CalendarClock className="h-4 w-4" /> Start a reserve study</Button></Link>}
+              action={<Link href="/capital-reserves/new" className={buttonClass()}><CalendarClock className="h-4 w-4" /> Start a reserve study</Link>}
             />
           </div>
         )}

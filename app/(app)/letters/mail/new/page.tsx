@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 
@@ -66,7 +66,7 @@ export default async function NewPhysicalMailPage({ searchParams }: { searchPara
     redirect('/letters/mail');
   }
 
-  return <DataWorkspace title="New Physical Mail Piece" description="Review recipient data and content before adding the piece to the durable provider queue." actions={<Link href="/letters/mail"><Button variant="secondary">Back to fulfillment</Button></Link>}>
+  return <DataWorkspace title="New Physical Mail Piece" description="Review recipient data and content before adding the piece to the durable provider queue." actions={<Link href="/letters/mail" className={buttonClass('secondary')}>Back to fulfillment</Link>}>
     <div className="space-y-5">
       {sp.error && <Alert title="Could not queue mail">{sp.error}</Alert>}
       <Surface className="max-w-4xl"><form action="/letters/mail/new" className="flex flex-col gap-3 sm:flex-row sm:items-end">{sp.case_id && <input type="hidden" name="case_id" value={sp.case_id} />}<Field label="Owner" className="flex-1"><Select name="owner_id" defaultValue={selected?.id ?? ''}><option value="">Select owner</option>{(owners ?? []).map((owner: any) => <option key={owner.id} value={owner.id}>{owner.full_name}</option>)}</Select></Field><Button type="submit" variant="secondary">Load recipient</Button></form></Surface>

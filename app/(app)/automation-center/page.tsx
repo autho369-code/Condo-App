@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { BellRing, ListChecks, Plus, Workflow } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, Badge, EmptyState, SectionTitle } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -76,12 +76,8 @@ export default async function AutomationCenterPage({ searchParams }: { searchPar
       description="Review what the system is scheduled to do for association events, vendor confirmations, resident notices, and after-event follow-ups."
       actions={
         <>
-          <Link href="/automation-center/flows">
-            <Button variant="secondary"><Workflow className="h-4 w-4" /> Flows</Button>
-          </Link>
-          <Link href="/calendar/new">
-            <Button><Plus className="h-4 w-4" /> Create event automation</Button>
-          </Link>
+          <Link href="/automation-center/flows" className={buttonClass('secondary')}><Workflow className="h-4 w-4" /> Flows</Link>
+          <Link href="/calendar/new" className={buttonClass()}><Plus className="h-4 w-4" /> Create event automation</Link>
         </>
       }
     >

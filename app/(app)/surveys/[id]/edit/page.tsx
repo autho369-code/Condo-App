@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { SurveyFields } from '@/components/surveys/survey-fields';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { saveSurvey } from '@/lib/rpcs/surveys';
@@ -36,7 +36,7 @@ export default async function EditSurveyPage({
     <DataWorkspace
       title={`Edit ${survey.name}`}
       description="Change who can answer, the name or the description."
-      actions={<Link href={`/surveys/${id}`}><Button variant="secondary">Back to survey</Button></Link>}
+      actions={<Link href={`/surveys/${id}`} className={buttonClass('secondary')}>Back to survey</Link>}
     >
       <div className="max-w-3xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not save survey">{sp.error}</Alert>}

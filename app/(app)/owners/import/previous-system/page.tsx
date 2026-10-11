@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
@@ -43,7 +43,7 @@ export default async function AppfolioImportPage() {
     <DataWorkspace
       title="Import from your previous system"
       description="Bring associations over from your previous system's report exports, top to bottom: units, homeowners, chart of accounts, vendors, open balances and work orders, then tie out the trial balance and post opening balances. Nothing is saved until you review the preview and confirm."
-      actions={<Link href="/owners/import"><Button variant="secondary">Other imports</Button></Link>}
+      actions={<Link href="/owners/import" className={buttonClass('secondary')}>Other imports</Link>}
     >
       <div className="max-w-5xl space-y-8">
         <AppfolioImportClient associations={associations} importUnits={importAppfolioUnits} />

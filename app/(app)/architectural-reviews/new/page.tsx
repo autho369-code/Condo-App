@@ -1,7 +1,7 @@
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Select, Textarea, Field } from '@/components/ui/input';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -72,7 +72,7 @@ export default async function NewArchitecturalRequestForOwner({
     <DataWorkspace
       title="New Architectural Request"
       description="Submit a request on a homeowner's behalf — for owners who call in or hand you paper plans. It enters the same review queue as portal submissions."
-      actions={<Link href="/architectural-reviews"><Button variant="secondary">Back to queue</Button></Link>}
+      actions={<Link href="/architectural-reviews" className={buttonClass('secondary')}>Back to queue</Link>}
     >
       <div className="max-w-3xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not submit request">{sp.error}</Alert>}

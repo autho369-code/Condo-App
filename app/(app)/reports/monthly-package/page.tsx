@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +32,7 @@ export default async function MonthlyPackagePage() {
     <DataWorkspace
       title="Monthly financial package"
       description="Generate one board-ready PDF containing the association's core monthly statements and reconciliations."
-      actions={<Link href="/reports"><Button variant="secondary">Back to reports</Button></Link>}
+      actions={<Link href="/reports" className={buttonClass('secondary')}>Back to reports</Link>}
     >
       <form action="/reports/monthly-package/pdf" method="get" className="max-w-2xl space-y-5 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <label className="block text-sm font-medium text-gray-700">Association

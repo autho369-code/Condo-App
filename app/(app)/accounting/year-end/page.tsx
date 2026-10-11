@@ -6,7 +6,7 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { Section } from '@/components/workspace/shell';
 import { YearEndChecklist } from '@/components/accounting/year-end-checklist';
 import { Alert, EmptyState } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireFinanceOrPortfolioAdmin } from '@/lib/auth/me';
@@ -69,7 +69,7 @@ export default async function YearEndPage({
               {current ? (
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center gap-2"><PackageStatus status={current.status} /><span className="text-gray-500">prepared {date(current.generated_at)}</span></div>
-                  <Link href={`/accounting/year-end/${current.id}`}><Button className="w-full">Open package</Button></Link>
+                  <Link href={`/accounting/year-end/${current.id}`} className={buttonClass('primary', 'md', 'w-full')}>Open package</Link>
                   {current.status === 'draft' && (
                     <form action={generateYearEndPackage}>
                       <input type="hidden" name="association_id" value={selected.id} />

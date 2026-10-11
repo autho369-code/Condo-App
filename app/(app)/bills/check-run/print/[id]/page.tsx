@@ -26,7 +26,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { PrintButton } from '@/components/ui/print-button';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
@@ -92,8 +92,8 @@ export default async function PrintChecksPage({
           <p className="text-sm text-gray-500">Sized for #10 double-window envelopes. Tri-fold along the perforation lines.</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/bills"><Button variant="secondary">Back</Button></Link>
-          <a href={`/bills/check-run/pdf/${seedCheckId}`}><Button variant="secondary">Download PDF</Button></a>
+          <Link href="/bills" className={buttonClass('secondary')}>Back</Link>
+          <a href={`/bills/check-run/pdf/${seedCheckId}`} className={buttonClass('secondary')}>Download PDF</a>
           <PrintButton label="Print" />
         </div>
       </div>

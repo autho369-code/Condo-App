@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -31,7 +31,7 @@ export default async function VendorFormsPage({ searchParams }: { searchParams: 
     <DataWorkspace
       title="Request a vendor document"
       description="Email a vendor a secure upload link for their W-9, insurance certificate or license. No vendor login needed; you review what they send."
-      actions={<Link href="/vendors/compliance"><Button variant="secondary">Vendor compliance</Button></Link>}
+      actions={<Link href="/vendors/compliance" className={buttonClass('secondary')}>Vendor compliance</Link>}
     >
       <div className="max-w-3xl space-y-4">
         {sp.error && <Alert tone="danger">{sp.error}</Alert>}
@@ -64,7 +64,7 @@ export default async function VendorFormsPage({ searchParams }: { searchParams: 
               <Textarea id="message" name="message" rows={4} maxLength={2000} placeholder="e.g. Please list Granville Courts Condominium Association as additional insured." />
             </Field>
             <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
-              <Link href="/vendors"><Button variant="secondary" type="button">Cancel</Button></Link>
+              <Link href="/vendors" className={buttonClass('secondary')}>Cancel</Link>
               <Button type="submit">Email request</Button>
             </div>
           </form>

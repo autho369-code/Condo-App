@@ -3,7 +3,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Badge, EmptyState, SectionTitle } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { money } from '@/lib/utils';
 import { Plus, Tags } from 'lucide-react';
 import Link from 'next/link';
@@ -29,9 +29,7 @@ export default async function ChargeCategoriesPage() {
       title="Charge categories"
       description="The catalog of chargeable items — dues, assessments, fees, amenities. Each unit can subscribe to any of these on a recurring schedule."
       actions={
-        <Link href="/charge-categories/new">
-          <Button><Plus className="h-4 w-4" /> New category</Button>
-        </Link>
+        <Link href="/charge-categories/new" className={buttonClass()}><Plus className="h-4 w-4" /> New category</Link>
       }
     >
       <SectionTitle title={`${categories.length} active categories`} />
@@ -77,9 +75,7 @@ export default async function ChargeCategoriesPage() {
             title="No charge categories yet"
             description="Create your first category to start billing dues, assessments, and fees."
             action={
-              <Link href="/charge-categories/new">
-                <Button><Plus className="h-4 w-4" /> New category</Button>
-              </Link>
+              <Link href="/charge-categories/new" className={buttonClass()}><Plus className="h-4 w-4" /> New category</Link>
             }
           />
         </div>

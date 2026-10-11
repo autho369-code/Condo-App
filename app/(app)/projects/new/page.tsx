@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -52,7 +52,7 @@ export default async function NewProjectPage({ searchParams }: { searchParams: P
   }
 
   return (
-    <DataWorkspace title="New Capital Project" description="Create the durable project record before linking work orders and milestones." actions={<Link href="/projects"><Button variant="secondary">Back to projects</Button></Link>}>
+    <DataWorkspace title="New Capital Project" description="Create the durable project record before linking work orders and milestones." actions={<Link href="/projects" className={buttonClass('secondary')}>Back to projects</Link>}>
       <Surface className="max-w-4xl">
         <form action={createProject} className="space-y-5">
           {sp.error && <Alert title="Could not create project">{sp.error}</Alert>}
@@ -77,7 +77,7 @@ export default async function NewProjectPage({ searchParams }: { searchParams: P
           <Field label="Reserve component" htmlFor="reserve_component_id" hint="Optional link back to the approved reserve study component."><Select id="reserve_component_id" name="reserve_component_id"><option value="">Not linked</option>{(components ?? []).map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
           <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700"><input type="checkbox" name="board_approval_required" className="h-4 w-4 rounded border-gray-300" /> Require recorded board approval before activation</label>
           <Field label="Internal notes" htmlFor="notes"><Textarea id="notes" name="notes" /></Field>
-          <div className="flex gap-3 border-t border-gray-100 pt-5"><Button type="submit">Create project</Button><Link href="/projects"><Button type="button" variant="secondary">Cancel</Button></Link></div>
+          <div className="flex gap-3 border-t border-gray-100 pt-5"><Button type="submit">Create project</Button><Link href="/projects" className={buttonClass('secondary')}>Cancel</Link></div>
         </form>
       </Surface>
     </DataWorkspace>

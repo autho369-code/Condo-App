@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
@@ -90,8 +90,8 @@ export default async function LoanDetailPage({
       description={`${loan.associations?.name ?? ''} · ${String(loan.loan_type ?? 'loan').replace(/_/g, ' ')}`}
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href={`/associations/${loan.association_id}/profile`}><Button variant="secondary">Association profile</Button></Link>
-          <Link href="/accounting/loans"><Button variant="secondary">All loans</Button></Link>
+          <Link href={`/associations/${loan.association_id}/profile`} className={buttonClass('secondary')}>Association profile</Link>
+          <Link href="/accounting/loans" className={buttonClass('secondary')}>All loans</Link>
         </div>
       }
     >

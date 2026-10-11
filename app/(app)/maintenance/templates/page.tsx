@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { LayoutTemplate, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, Breadcrumb, EmptyState, PageHeader, PageShell, SectionTitle } from '@/components/ui/shell';
 
 export const dynamic = 'force-dynamic';
@@ -27,9 +27,7 @@ export default async function TemplatesPage() {
         title="Template library"
         description={`${templates?.length ?? 0} starter tasks across ${Object.keys(grouped).length} categories. Click a template to add it to an association.`}
         actions={
-          <Link href="/maintenance/new">
-            <Button><Plus className="h-4 w-4" /> Custom task</Button>
-          </Link>
+          <Link href="/maintenance/new" className={buttonClass()}><Plus className="h-4 w-4" /> Custom task</Link>
         }
       />
 

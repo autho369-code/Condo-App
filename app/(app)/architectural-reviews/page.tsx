@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
@@ -137,9 +137,7 @@ export default async function ArchitecturalReviewQueue({
             filename={`architectural-reviews-${todayDate}`}
             tables={[exportTable]}
           />
-          <Link href="/architectural-reviews/new">
-            <Button><Plus className="h-4 w-4" /> New request</Button>
-          </Link>
+          <Link href="/architectural-reviews/new" className={buttonClass()}><Plus className="h-4 w-4" /> New request</Link>
         </>
       }
     >

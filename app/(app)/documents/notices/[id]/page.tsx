@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { SUBMISSION_FIELD, newSubmissionToken } from '@/lib/forms/submission';
@@ -79,9 +79,7 @@ export default async function NoticeDetailPage({
               </PendingSubmit>
             </form>
           )}
-          <Link href="/documents?tab=notices">
-            <Button variant="secondary">Back to Notices</Button>
-          </Link>
+          <Link href="/documents?tab=notices" className={buttonClass('secondary')}>Back to Notices</Link>
         </div>
       }
     >

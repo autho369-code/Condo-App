@@ -6,7 +6,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
@@ -115,15 +115,9 @@ export default async function RecurringWorkOrdersPage({
       description="Scheduled maintenance — landscaping, pool service, annual inspections. A nightly cron generates real work orders from these."
       actions={
         <>
-          <Link href="/reports/recurring_work_orders">
-            <Button variant="secondary">Recurring work orders report</Button>
-          </Link>
-          <Link href="/work-orders/new">
-            <Button variant="secondary">New work order</Button>
-          </Link>
-          <Link href="/recurring-work-orders/new">
-            <Button><Plus className="h-4 w-4" /> New recurring work order</Button>
-          </Link>
+          <Link href="/reports/recurring_work_orders" className={buttonClass('secondary')}>Recurring work orders report</Link>
+          <Link href="/work-orders/new" className={buttonClass('secondary')}>New work order</Link>
+          <Link href="/recurring-work-orders/new" className={buttonClass()}><Plus className="h-4 w-4" /> New recurring work order</Link>
         </>
       }
     >

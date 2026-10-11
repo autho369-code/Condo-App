@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Label, Select, Textarea } from '@/components/ui/input';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
@@ -137,8 +137,8 @@ export default async function MeetingDetailPage({
       description={`${meeting.meeting_type?.replace(/_/g, ' ') || 'Meeting'} · ${meeting.associations?.name || 'No association'}`}
       actions={
         <div className="flex items-center gap-2">
-          <Link href="/reports/monthly-package"><Button variant="secondary" size="sm">Financial package</Button></Link>
-          <Link href="/meetings"><Button variant="secondary" size="sm">Back to meetings</Button></Link>
+          <Link href="/reports/monthly-package" className={buttonClass('secondary', 'sm')}>Financial package</Link>
+          <Link href="/meetings" className={buttonClass('secondary', 'sm')}>Back to meetings</Link>
         </div>
       }
     >

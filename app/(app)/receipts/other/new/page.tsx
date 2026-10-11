@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { VendorSelect } from '@/components/vendors/vendor-select';
@@ -36,7 +36,7 @@ export default async function NewOtherReceiptPage({ searchParams }: { searchPara
     <DataWorkspace
       title="Record other receipt"
       description="Money the association receives that isn't a homeowner payment — vendor refunds, insurance proceeds, laundry or cell-tower income, reimbursements. Split it across as many GL accounts as needed; it posts to the ledger straight away."
-      actions={<Link href="/receipts/other"><Button variant="secondary">Back to other receipts</Button></Link>}
+      actions={<Link href="/receipts/other" className={buttonClass('secondary')}>Back to other receipts</Link>}
     >
       <div className="max-w-4xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not record receipt">{sp.error}</Alert>}

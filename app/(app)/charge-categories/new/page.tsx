@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { PageHeader, PageShell, Surface } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { createChargeCategory } from '@/lib/rpcs/charges';
 import Link from 'next/link';
 
@@ -23,7 +23,7 @@ export default async function NewChargeCategory({
     <PageShell className="max-w-4xl">
       <PageHeader
         title="New charge category"
-        actions={<Link href="/charge-categories"><Button variant="secondary">Cancel</Button></Link>}
+        actions={<Link href="/charge-categories" className={buttonClass('secondary')}>Cancel</Link>}
       />
 
       {sp.error && (
@@ -98,7 +98,7 @@ export default async function NewChargeCategory({
 
             <div className="flex gap-2 sm:col-span-2">
               <Button type="submit">Create category</Button>
-              <Link href="/charge-categories"><Button variant="secondary" type="button">Cancel</Button></Link>
+              <Link href="/charge-categories" className={buttonClass('secondary')}>Cancel</Link>
             </div>
           </form>
       </Surface>

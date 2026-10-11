@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { PurchaseOrderForm } from '@/components/purchase-orders/po-form';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { loadPurchaseOrderFormOptions } from '@/lib/purchase-orders/form-options';
 import { savePurchaseOrder } from '@/lib/rpcs/purchase-orders';
@@ -47,7 +47,7 @@ export default async function EditPurchaseOrderPage({
     <DataWorkspace
       title={`Edit PO ${po.number ?? po.id.slice(0, 8)}`}
       description={po.approval_status === 'rejected' ? 'The board rejected this order. Revise it and resubmit for a new vote.' : 'Update the draft, then submit it for approval.'}
-      actions={<Link href={`/purchase-orders/${id}`}><Button variant="secondary">Back to purchase order</Button></Link>}
+      actions={<Link href={`/purchase-orders/${id}`} className={buttonClass('secondary')}>Back to purchase order</Link>}
     >
       <div className="max-w-4xl">
         <PurchaseOrderForm

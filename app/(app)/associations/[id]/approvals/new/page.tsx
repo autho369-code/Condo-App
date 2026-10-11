@@ -5,7 +5,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import type { Database } from '@/lib/types/database';
 
@@ -230,9 +230,7 @@ export default async function NewApprovalPage({
 
           <div className="flex items-center gap-2">
             <Button type="submit" size="sm">Send for Approval</Button>
-            <Link href={`/associations/${id}/approvals`}>
-              <Button type="button" size="sm" variant="secondary">Cancel</Button>
-            </Link>
+            <Link href={`/associations/${id}/approvals`} className={buttonClass('secondary', 'sm')}>Cancel</Link>
           </div>
         </Section>
 

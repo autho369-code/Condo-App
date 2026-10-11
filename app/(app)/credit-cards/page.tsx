@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { CreditCard } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -50,7 +50,7 @@ export default async function CreditCardsPage({ searchParams }: { searchParams: 
       description="Association credit cards. Each purchase posts to the card's liability account; pay the card with a bill to the issuer coded to that account."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/reports/credit_card_expense_detail"><Button variant="secondary">Credit Card Expense Detail</Button></Link>
+          <Link href="/reports/credit_card_expense_detail" className={buttonClass('secondary')}>Credit Card Expense Detail</Link>
         </div>
       }
     >

@@ -1,6 +1,6 @@
 import { OwnerSelect } from '@/components/owners/owner-select';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { EVENT_TYPES, DEFAULT_REMINDERS, REMINDER_ACTIONS, eventTypeLabel, reminderLabel } from '@/lib/operations/calendar';
 import { createCalendarEvent } from '@/lib/rpcs/calendar';
@@ -46,9 +46,7 @@ export default async function NewCalendarEventPage({
             Schedule the event once, then generate reminders, owner notices, vendor confirmations, and follow-up work from the same record.
           </p>
         </div>
-        <Link href="/calendar">
-          <Button type="button" variant="secondary">Cancel</Button>
-        </Link>
+        <Link href="/calendar" className={buttonClass('secondary')}>Cancel</Link>
       </div>
 
       {sp.error && (

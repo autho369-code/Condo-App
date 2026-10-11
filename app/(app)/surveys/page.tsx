@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -69,8 +69,8 @@ export default async function SurveysPage({
       description="Ask owners questions and see their answers. Owners answer open surveys from their portal."
       actions={
         <>
-          <Link href="/reports/survey_results"><Button variant="secondary">Survey Results report</Button></Link>
-          <Link href="/surveys/new"><Button><Plus className="h-4 w-4" /> New survey</Button></Link>
+          <Link href="/reports/survey_results" className={buttonClass('secondary')}>Survey Results report</Link>
+          <Link href="/surveys/new" className={buttonClass()}><Plus className="h-4 w-4" /> New survey</Link>
         </>
       }
     >
@@ -128,7 +128,7 @@ export default async function SurveysPage({
             <EmptyState
               title={q || status || association ? 'No surveys match this filter' : 'No surveys yet'}
               description="Create a survey; owners answer it in their portal."
-              action={<Link href="/surveys/new"><Button><Plus className="h-4 w-4" /> New survey</Button></Link>}
+              action={<Link href="/surveys/new" className={buttonClass()}><Plus className="h-4 w-4" /> New survey</Link>}
             />
           </div>
         )}

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -152,7 +152,7 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
     <DataWorkspace
       title="Send Owner Form"
       description="Stage owner communications with recipient, template, and delivery context."
-      actions={<Link href="/owners"><Button variant="secondary">Back to owners</Button></Link>}
+      actions={<Link href="/owners" className={buttonClass('secondary')}>Back to owners</Link>}
     >
       <div className="max-w-4xl space-y-4">
         {sp.error && <Alert tone="danger" title="Could not stage the form:">{sp.error}</Alert>}
@@ -190,7 +190,7 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
               </Field>
             </div>
             <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
-              <Link href="/owners"><Button variant="secondary" type="button">Cancel</Button></Link>
+              <Link href="/owners" className={buttonClass('secondary')}>Cancel</Link>
               <Button type="submit">Send form</Button>
             </div>
           </form>

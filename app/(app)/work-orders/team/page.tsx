@@ -6,7 +6,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date, money } from '@/lib/utils';
@@ -66,7 +66,7 @@ export default async function MaintenanceTeamPage({ searchParams }: { searchPara
     <DataWorkspace
       title="Maintenance team"
       description="What each in-house team member has open, what they finished, how fast, and the labor they logged. Vendors have their own scorecards."
-      actions={<Link href="/vendors"><Button variant="secondary">Vendor scorecards</Button></Link>}
+      actions={<Link href="/vendors" className={buttonClass('secondary')}>Vendor scorecards</Link>}
     >
       <div className="space-y-6">
         <FilterBar action="/work-orders/team" search={false}>

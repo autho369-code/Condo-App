@@ -6,7 +6,7 @@ import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { Alert } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { redirect } from 'next/navigation';
 import { requireFinanceOrPortfolioAdmin } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -172,8 +172,8 @@ export default async function VendorAchPage({
         description={`Review and authorize ACH payments for ${focusVendor.name}.`}
         actions={
           <>
-            <Link href="/vendors/ach"><Button variant="secondary">All vendors</Button></Link>
-            <Link href="/vendors"><Button variant="ghost">Back to vendors</Button></Link>
+            <Link href="/vendors/ach" className={buttonClass('secondary')}>All vendors</Link>
+            <Link href="/vendors" className={buttonClass('ghost')}>Back to vendors</Link>
           </>
         }
       >
@@ -341,8 +341,8 @@ export default async function VendorAchPage({
         description={`Enter ${focusVendor.name}'s bank account so ACH can be verified and activated.`}
         actions={
           <>
-            <Link href="/vendors/ach"><Button variant="secondary">All vendors</Button></Link>
-            <Link href="/vendors"><Button variant="ghost">Back to vendors</Button></Link>
+            <Link href="/vendors/ach" className={buttonClass('secondary')}>All vendors</Link>
+            <Link href="/vendors" className={buttonClass('ghost')}>Back to vendors</Link>
           </>
         }
       >
@@ -376,7 +376,7 @@ export default async function VendorAchPage({
     <DataWorkspace
       title="Vendor ACH Setup"
       description="Review bank readiness, payout method, auto-pay flags, and authorization status before enabling vendor ACH."
-      actions={<Link href="/vendors"><Button variant="secondary">Back to vendors</Button></Link>}
+      actions={<Link href="/vendors" className={buttonClass('secondary')}>Back to vendors</Link>}
     >
       {sp.error && <Alert tone="danger" title="Could not save bank details:" className="mb-4">{sp.error}</Alert>}
       <div className="space-y-4">

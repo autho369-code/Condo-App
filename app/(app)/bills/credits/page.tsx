@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -65,7 +65,7 @@ export default async function VendorCreditsPage({
     <DataWorkspace
       title="Vendor credits"
       description="Credits from vendors (refunds, overcharges). Apply them to the vendor's unpaid bills — the check run pays only what's left."
-      actions={<Link href="/bills"><Button variant="secondary">Back to bills</Button></Link>}
+      actions={<Link href="/bills" className={buttonClass('secondary')}>Back to bills</Link>}
     >
       <div className="space-y-4">
         {sp.error && <Alert tone="danger" title="Could not save">{sp.error}</Alert>}

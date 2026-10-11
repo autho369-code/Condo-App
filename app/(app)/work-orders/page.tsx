@@ -7,7 +7,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { SelectAllCheckbox } from '@/components/ui/select-all';
 import { bulkWorkOrderAction } from '@/lib/rpcs/work-order-bulk';
@@ -266,18 +266,10 @@ export default async function WorkOrdersPage({
             filename={`work-orders-${tab}-${exportStamp}`}
             tables={[exportTable]}
           />
-          <Link href="/recurring-work-orders/new">
-            <Button variant="secondary">New recurring work order</Button>
-          </Link>
-          <Link href="/purchase-orders/new">
-            <Button variant="secondary">New purchase order</Button>
-          </Link>
-          <Link href="/work-orders/team">
-            <Button variant="secondary"><Users className="h-4 w-4" /> Team</Button>
-          </Link>
-          <Link href="/work-orders/new">
-            <Button><Plus className="h-4 w-4" /> New work order</Button>
-          </Link>
+          <Link href="/recurring-work-orders/new" className={buttonClass('secondary')}>New recurring work order</Link>
+          <Link href="/purchase-orders/new" className={buttonClass('secondary')}>New purchase order</Link>
+          <Link href="/work-orders/team" className={buttonClass('secondary')}><Users className="h-4 w-4" /> Team</Link>
+          <Link href="/work-orders/new" className={buttonClass()}><Plus className="h-4 w-4" /> New work order</Link>
         </>
       }
     >
@@ -478,9 +470,7 @@ export default async function WorkOrdersPage({
               title="No work orders match this view"
               description="Adjust the filters or create a new work order to get started."
               action={
-                <Link href="/work-orders/new">
-                  <Button><Plus className="h-4 w-4" /> New work order</Button>
-                </Link>
+                <Link href="/work-orders/new" className={buttonClass()}><Plus className="h-4 w-4" /> New work order</Link>
               }
             />
           </div>

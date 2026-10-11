@@ -3,7 +3,7 @@ import { CalendarDays, FileText, MessageSquare, ShieldCheck, Wrench } from 'luci
 import { requireTenant } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { Alert, Badge, Metric, MetricStrip, PageHeader, Surface } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -57,7 +57,7 @@ export default async function ResidentDashboard() {
         eyebrow={association?.name ?? 'Resident portal'}
         title={`Welcome, ${tenant?.first_name ?? me.profile?.full_name ?? 'Resident'}`}
         description={`${building?.name ? `${building.name} · ` : ''}Unit ${unit?.unit_number ?? 'not assigned'}`}
-        actions={<Link href="/resident/requests"><Button><Wrench className="h-4 w-4" /> New service request</Button></Link>}
+        actions={<Link href="/resident/requests" className={buttonClass()}><Wrench className="h-4 w-4" /> New service request</Link>}
       />
 
       {insuranceDays !== null && insuranceDays <= 30 ? (

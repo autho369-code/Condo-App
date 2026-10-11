@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { Input, Label, Select } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, PageHeader, PageShell, Surface } from '@/components/ui/shell';
 import { StatusChip } from '@/components/operations/status-chip';
 import { revalidatePath } from 'next/cache';
@@ -116,12 +116,8 @@ export default async function OnboardPage({
             Keep these open while you set up — they walk through every step below and the day-to-day operations after launch.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <a href="/manuals/company-admin-guide.pdf" target="_blank" rel="noopener noreferrer">
-              <Button variant="secondary">Company Admin Guide (PDF)</Button>
-            </a>
-            <a href="/manuals/manager-runbook.pdf" target="_blank" rel="noopener noreferrer">
-              <Button variant="secondary">Manager Runbook (PDF)</Button>
-            </a>
+            <a href="/manuals/company-admin-guide.pdf" target="_blank" rel="noopener noreferrer" className={buttonClass('secondary')}>Company Admin Guide (PDF)</a>
+            <a href="/manuals/manager-runbook.pdf" target="_blank" rel="noopener noreferrer" className={buttonClass('secondary')}>Manager Runbook (PDF)</a>
           </div>
         </Surface>
 
@@ -188,11 +184,9 @@ export default async function OnboardPage({
             </div>
             <p className="text-sm text-gray-600">{s.desc}</p>
             <div className="mt-4">
-              <Link href={s.href}>
-                <Button variant={s.done ? 'secondary' : 'primary'}>
+              <Link href={s.href} className={buttonClass(s.done ? 'secondary' : 'primary')}>
                   {s.done ? 'Manage' : 'Open'}
-                </Button>
-              </Link>
+                </Link>
             </div>
           </Surface>
         ))}
@@ -221,11 +215,9 @@ export default async function OnboardPage({
           )}
           {associationCount > 0 && (
             <div className="mt-4">
-              <Link href={missingDocsByAssoc.length > 0 ? `/associations/${missingDocsByAssoc[0].id}/documents` : '/associations'}>
-                <Button variant={steps[3].done ? 'secondary' : 'primary'}>
+              <Link href={missingDocsByAssoc.length > 0 ? `/associations/${missingDocsByAssoc[0].id}/documents` : '/associations'} className={buttonClass(steps[3].done ? 'secondary' : 'primary')}>
                   {steps[3].done ? 'Manage' : 'Upload documents'}
-                </Button>
-              </Link>
+                </Link>
             </div>
           )}
         </Surface>
@@ -240,11 +232,9 @@ export default async function OnboardPage({
           </div>
           <p className="text-sm text-gray-600">Add accountants, property managers, and on-site staff.</p>
           <div className="mt-4">
-            <Link href="/settings">
-              <Button variant={steps[4].done ? 'secondary' : 'primary'}>
+            <Link href="/settings" className={buttonClass(steps[4].done ? 'secondary' : 'primary')}>
                 {steps[4].done ? 'Manage' : 'Open'}
-              </Button>
-            </Link>
+              </Link>
           </div>
         </Surface>
 
@@ -259,9 +249,7 @@ export default async function OnboardPage({
             see these on their &ldquo;How to Pay&rdquo; page, and managers record received payments manually.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link href="/associations">
-              <Button variant="secondary">Open associations →</Button>
-            </Link>
+            <Link href="/associations" className={buttonClass('secondary')}>Open associations →</Link>
             <form action={finishOnboarding as any}>
               <Button type="submit">I&apos;m set — go to dashboard</Button>
             </form>

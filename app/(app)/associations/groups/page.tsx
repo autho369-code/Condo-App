@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Section } from '@/components/workspace/shell';
 import { Alert, EmptyState } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { hasPortfolioAdminAccess, requireStaff } from '@/lib/auth/me';
 import { deletePropertyGroup, savePropertyGroup, setPropertyGroupMembers } from '@/lib/rpcs/property-groups';
@@ -36,7 +36,7 @@ export default async function PropertyGroupsPage({
     <DataWorkspace
       title="Property groups"
       description="Organize associations by manager, region, or service tier. Groups filter the association list and keep large portfolios navigable."
-      actions={<Link href="/associations"><Button variant="secondary">All associations</Button></Link>}
+      actions={<Link href="/associations" className={buttonClass('secondary')}>All associations</Link>}
     >
       <div className="space-y-6">
         {sp.error && <Alert tone="danger" title="Could not save:">{sp.error}</Alert>}

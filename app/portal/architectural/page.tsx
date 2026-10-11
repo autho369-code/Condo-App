@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/me';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { StatusChip } from '@/components/operations/status-chip';
 import { ARC_STATUS_TONE, arcStatusLabel } from '@/components/architectural/status';
@@ -45,7 +45,7 @@ export default async function OwnerArchitecturalList({
           <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Architectural requests</h1>
           <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Request approval before modifying the exterior of your home, and track the review.</p>
         </div>
-        <Link href="/portal/architectural/new"><Button size="lg">+ New request</Button></Link>
+        <Link href="/portal/architectural/new" className={buttonClass('primary', 'lg')}>+ New request</Link>
       </div>
 
       {error && (

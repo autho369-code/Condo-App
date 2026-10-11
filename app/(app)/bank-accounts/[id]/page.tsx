@@ -5,7 +5,7 @@ import { Landmark } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -134,12 +134,8 @@ export default async function BankAccountDetailPage({
       description={`${account.bank_name ?? 'Bank account'}${account.associations?.name ? ` · ${account.associations.name}` : ''}`}
       actions={
         <>
-          <Link href={`/bank-accounts/activity?bank_account_id=${account.id}`}>
-            <Button variant="secondary">View full activity</Button>
-          </Link>
-          <Link href={`/bank-accounts/reconcile?account_id=${account.id}`}>
-            <Button>Reconcile</Button>
-          </Link>
+          <Link href={`/bank-accounts/activity?bank_account_id=${account.id}`} className={buttonClass('secondary')}>View full activity</Link>
+          <Link href={`/bank-accounts/reconcile?account_id=${account.id}`} className={buttonClass()}>Reconcile</Link>
         </>
       }
     >

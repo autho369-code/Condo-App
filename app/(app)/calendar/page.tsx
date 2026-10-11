@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, PageShell, PageHeader, Surface } from '@/components/ui/shell';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
 import '@/components/calendar/calendar-theme.css';
@@ -23,9 +23,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         title="Calendar"
         description="Month, week, day and agenda views"
         actions={
-          <Link href={`/calendar/new${sp.assoc ? `?assoc=${encodeURIComponent(sp.assoc)}` : ''}`}>
-            <Button><Plus className="h-4 w-4" /> Create event</Button>
-          </Link>
+          <Link href={`/calendar/new${sp.assoc ? `?assoc=${encodeURIComponent(sp.assoc)}` : ''}`} className={buttonClass()}><Plus className="h-4 w-4" /> Create event</Link>
         }
       />
       {sp.error && <Alert tone="danger" title="Something went wrong">{sp.error}</Alert>}

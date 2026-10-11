@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Repeat } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, Badge, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
@@ -41,7 +41,7 @@ export default async function RecurringPurchaseOrdersPage({
     <DataWorkspace
       title="Recurring purchase orders"
       description="A draft purchase order is created on each scheduled date for you to review and submit — board approval rules still apply. Pause one to keep it as a reusable template."
-      actions={<Link href="/purchase-orders"><Button variant="secondary">All purchase orders</Button></Link>}
+      actions={<Link href="/purchase-orders" className={buttonClass('secondary')}>All purchase orders</Link>}
     >
       <div className="space-y-4">
         {sp.saved && <Alert tone="success" title="Recurring purchase order saved" />}
@@ -53,7 +53,7 @@ export default async function RecurringPurchaseOrdersPage({
               icon={Repeat}
               title="No recurring purchase orders yet"
               description="Open any purchase order and choose “Repeat this order” to schedule it — pool supplies, janitorial, seasonal work."
-              action={<Link href="/purchase-orders"><Button>Go to purchase orders</Button></Link>}
+              action={<Link href="/purchase-orders" className={buttonClass()}>Go to purchase orders</Link>}
             />
           </Surface>
         ) : (

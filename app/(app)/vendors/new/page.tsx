@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label, Select } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -34,7 +34,7 @@ export default async function NewVendorPage({
     <DataWorkspace
       title="New Vendor"
       description="Create the vendor record, capture tax/payment defaults, and route follow-up bank or document requests."
-      actions={<Link href="/vendors"><Button variant="secondary">Back to vendors</Button></Link>}
+      actions={<Link href="/vendors" className={buttonClass('secondary')}>Back to vendors</Link>}
     >
       {sp.error && (
         <div className="mb-6 max-w-5xl"><Alert tone="danger" title="Could not create vendor">{sp.error}</Alert></div>

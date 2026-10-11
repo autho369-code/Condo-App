@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert, EmptyState } from '@/components/ui/shell';
@@ -47,9 +47,7 @@ export default async function FormsPage({
       title="Forms"
       description="Forms homeowners download from the owner portal, plus forms your team keeps for vendors and internal use."
       actions={
-        <Link href="/forms/new">
-          <Button><Plus className="h-4 w-4" /> New form</Button>
-        </Link>
+        <Link href="/forms/new" className={buttonClass()}><Plus className="h-4 w-4" /> New form</Link>
       }
     >
       <div className="space-y-6">
@@ -82,7 +80,7 @@ export default async function FormsPage({
               icon={FileText}
               title={audience || status || term ? 'No forms match these filters' : 'No forms yet'}
               description="Upload a move-in checklist, parking permit or pet registration form for homeowners to download."
-              action={<Link href="/forms/new"><Button><Plus className="h-4 w-4" /> New form</Button></Link>}
+              action={<Link href="/forms/new" className={buttonClass()}><Plus className="h-4 w-4" /> New form</Link>}
             />
           </div>
         ) : (

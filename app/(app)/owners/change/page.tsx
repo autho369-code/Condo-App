@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Label, Select } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -54,7 +54,7 @@ export default async function ChangeHomeownerPage({ searchParams }: { searchPara
     <DataWorkspace
       title="Change Homeowner"
       description="Record a unit sale: the new owner takes over the unit and the previous owner's ownership ends on the transfer date. The unit's balance stays with the unit."
-      actions={<Link href="/owners"><Button variant="secondary">Back to homeowners</Button></Link>}
+      actions={<Link href="/owners" className={buttonClass('secondary')}>Back to homeowners</Link>}
     >
       {!selectedUnit ? (
         <Surface className="max-w-3xl">

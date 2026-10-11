@@ -4,7 +4,7 @@ import { Receipt } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -117,9 +117,9 @@ export default async function ReceiptsPage({
       description="Every homeowner payment received, across all associations."
       actions={
         <div className="flex flex-wrap gap-2">
-          <a href={`/receipts/export?${exportQuery}`}><Button variant="secondary">Export CSV</Button></a>
-          <Link href="/receipts/other"><Button variant="secondary">Other receipts</Button></Link>
-          <Link href="/receipts/new"><Button>Homeowner receipt</Button></Link>
+          <a href={`/receipts/export?${exportQuery}`} className={buttonClass('secondary')}>Export CSV</a>
+          <Link href="/receipts/other" className={buttonClass('secondary')}>Other receipts</Link>
+          <Link href="/receipts/new" className={buttonClass()}>Homeowner receipt</Link>
         </div>
       }
     >
@@ -196,8 +196,8 @@ export default async function ReceiptsPage({
               description={`Nothing received between ${date(from)} and ${date(to)} with these filters.`}
               action={
                 <div className="flex flex-wrap justify-center gap-2">
-                  <Link href={`/receipts?${rangeQuery('all')}`}><Button variant="secondary">Show all dates</Button></Link>
-                  <Link href="/receipts/new"><Button>Record a homeowner receipt</Button></Link>
+                  <Link href={`/receipts?${rangeQuery('all')}`} className={buttonClass('secondary')}>Show all dates</Link>
+                  <Link href="/receipts/new" className={buttonClass()}>Record a homeowner receipt</Link>
                 </div>
               }
             />
@@ -235,7 +235,7 @@ export default async function ReceiptsPage({
                   <TD className="text-sm text-gray-600">{r.method === 'credit' ? '—' : r.bank_accounts?.name ?? 'Operating'}</TD>
                   <TD className={`text-right tabular-nums ${r.reversed_at ? 'text-gray-400 line-through' : r.method === 'credit' ? 'text-gray-500' : ''}`}>{money(r.amount)}</TD>
                   <TD className="text-right">
-                    <Link href={`/payments/${r.id}/receipt`}><Button variant="ghost" size="sm">{r.method === 'credit' ? 'Memo' : 'Receipt'}</Button></Link>
+                    <Link href={`/payments/${r.id}/receipt`} className={buttonClass('ghost', 'sm')}>{r.method === 'credit' ? 'Memo' : 'Receipt'}</Link>
                   </TD>
                 </TR>
               ))}

@@ -4,7 +4,7 @@ import { Users } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { BatchLetters, type BatchLetter } from '@/components/letters/batch-letters';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -123,8 +123,8 @@ export default async function BatchLettersPage({
       title={`Batch letters: ${template.name}`}
       description="Merge this template for every current homeowner in an association, review the letters, and print them in one run."
       actions={<>
-        <Link href={`/letters/${id}/preview`}><Button variant="secondary">Single letter</Button></Link>
-        <Link href="/letters"><Button variant="secondary">All templates</Button></Link>
+        <Link href={`/letters/${id}/preview`} className={buttonClass('secondary')}>Single letter</Link>
+        <Link href="/letters" className={buttonClass('secondary')}>All templates</Link>
       </>}
     >
       <div className="space-y-6">

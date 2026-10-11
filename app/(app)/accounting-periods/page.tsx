@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -94,7 +94,7 @@ export default async function AccountingPeriodsPage({
       title="Accounting periods"
       description="A guided, audited close process that blocks hard close until draft journal entries are posted and every active bank account is reconciled through period end."
       actions={(
-        <Link href="/diagnostics"><Button variant="secondary">Run diagnostics</Button></Link>
+        <Link href="/diagnostics" className={buttonClass('secondary')}>Run diagnostics</Link>
       )}
     >
       <div className="space-y-6">

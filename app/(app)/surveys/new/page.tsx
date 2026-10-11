@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { SurveyFields } from '@/components/surveys/survey-fields';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { saveSurvey } from '@/lib/rpcs/surveys';
@@ -20,7 +20,7 @@ export default async function NewSurveyPage({ searchParams }: { searchParams: Pr
     <DataWorkspace
       title="New survey"
       description="Owners answer from their portal; each owner answers once."
-      actions={<Link href="/surveys"><Button variant="secondary">Back to surveys</Button></Link>}
+      actions={<Link href="/surveys" className={buttonClass('secondary')}>Back to surveys</Link>}
     >
       <div className="max-w-3xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not create survey">{sp.error}</Alert>}

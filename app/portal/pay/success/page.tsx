@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { Button } from '@/components/ui/button'
+import { buttonClass } from '@/components/ui/button';
 import { money } from '@/lib/utils'
 import { CheckCircle2, Clock } from 'lucide-react'
 
@@ -43,8 +43,8 @@ export default async function PaymentSuccessPage({
         </p>
       </div>
       <div className="flex justify-center gap-2">
-        <Link href="/portal/ledger"><Button variant="secondary">View ledger</Button></Link>
-        <Link href="/portal"><Button>Back to dashboard</Button></Link>
+        <Link href="/portal/ledger" className={buttonClass('secondary')}>View ledger</Link>
+        <Link href="/portal" className={buttonClass()}>Back to dashboard</Link>
       </div>
     </div>
   )

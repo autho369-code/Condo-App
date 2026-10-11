@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getMe, requireStaff } from '@/lib/auth/me';
 import { BankAccountsSection } from '@/components/associations/bank-accounts-section';
 import { Section } from '@/components/workspace/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 
 export const dynamic = 'force-dynamic';
@@ -245,9 +245,7 @@ export default async function NewPropertyPage({ searchParams }: { searchParams: 
 
         <div className="flex items-center gap-2 pt-2">
           <Button type="submit" size="sm">Save</Button>
-          <Link href="/associations">
-            <Button type="button" size="sm" variant="secondary">Cancel</Button>
-          </Link>
+          <Link href="/associations" className={buttonClass('secondary', 'sm')}>Cancel</Link>
         </div>
       </form>
     </div>

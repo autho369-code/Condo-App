@@ -11,7 +11,7 @@ import { Alert, EmptyState } from '@/components/ui/shell';
 import { SelectAllCheckbox } from '@/components/ui/select-all';
 import { bulkBillAction } from '@/lib/rpcs/bills';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { todayInZone } from '@/lib/time/zoned';
@@ -290,30 +290,14 @@ export default async function BillsPage({
               tables={[exportTable]}
             />
           )}
-          <Link href="/bills/new">
-            <Button><Plus className="h-4 w-4" /> New bill</Button>
-          </Link>
-          <Link href="/bills/check-run">
-            <Button variant="secondary">Pay bills</Button>
-          </Link>
-          <Link href="/bills/recurring">
-            <Button variant="secondary">Recurring bills</Button>
-          </Link>
-          <Link href="/bills/credits">
-            <Button variant="secondary">Vendor credits</Button>
-          </Link>
-          <Link href="/bills/upload">
-            <Button variant="secondary">Upload bills</Button>
-          </Link>
-          <Link href="/accounting/management-fees">
-            <Button variant="secondary">Pay management fees</Button>
-          </Link>
-          <Link href="/bills/owner-payable">
-            <Button variant="secondary">Homeowner payable</Button>
-          </Link>
-          <Link href="/bank-transfers/new">
-            <Button variant="secondary">Transfer between accounts</Button>
-          </Link>
+          <Link href="/bills/new" className={buttonClass()}><Plus className="h-4 w-4" /> New bill</Link>
+          <Link href="/bills/check-run" className={buttonClass('secondary')}>Pay bills</Link>
+          <Link href="/bills/recurring" className={buttonClass('secondary')}>Recurring bills</Link>
+          <Link href="/bills/credits" className={buttonClass('secondary')}>Vendor credits</Link>
+          <Link href="/bills/upload" className={buttonClass('secondary')}>Upload bills</Link>
+          <Link href="/accounting/management-fees" className={buttonClass('secondary')}>Pay management fees</Link>
+          <Link href="/bills/owner-payable" className={buttonClass('secondary')}>Homeowner payable</Link>
+          <Link href="/bank-transfers/new" className={buttonClass('secondary')}>Transfer between accounts</Link>
         </>
       }
     >
@@ -474,9 +458,7 @@ export default async function BillsPage({
                   title="No bills in this view"
                   description="Adjust the filters or enter a new vendor bill."
                   action={
-                    <Link href="/bills/new">
-                      <Button><Plus className="h-4 w-4" /> New bill</Button>
-                    </Link>
+                    <Link href="/bills/new" className={buttonClass()}><Plus className="h-4 w-4" /> New bill</Link>
                   }
                 />
               </div>

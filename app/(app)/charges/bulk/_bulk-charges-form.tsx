@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { createBulkCharges } from '@/lib/rpcs/bulk-operations';
@@ -111,7 +111,7 @@ export function BulkChargesForm({
           <Button onClick={() => { setResult(null); setSelectedUnits(new Set()); setAmount(''); setDescription(''); }}>
             Create another batch
           </Button>
-          <Link href="/charges"><Button variant="secondary">Back to receivables</Button></Link>
+          <Link href="/charges" className={buttonClass('secondary')}>Back to receivables</Link>
         </div>
       </Surface>
     );

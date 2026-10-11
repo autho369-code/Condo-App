@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -118,9 +118,7 @@ export default async function UnitTurnsPage({
       title="Unit Turns"
       description="Track unit move-out preparation, cleaning, inspection, and re-listing workflows."
       actions={
-        <Link href="/unit-turns/new">
-          <Button><Plus className="h-4 w-4" /> New unit turn</Button>
-        </Link>
+        <Link href="/unit-turns/new" className={buttonClass()}><Plus className="h-4 w-4" /> New unit turn</Link>
       }
     >
       <div className="space-y-6">
@@ -235,9 +233,7 @@ export default async function UnitTurnsPage({
               }
               action={
                 all.length === 0 && (
-                  <Link href="/unit-turns/new">
-                    <Button><Plus className="h-4 w-4" /> New unit turn</Button>
-                  </Link>
+                  <Link href="/unit-turns/new" className={buttonClass()}><Plus className="h-4 w-4" /> New unit turn</Link>
                 )
               }
             />

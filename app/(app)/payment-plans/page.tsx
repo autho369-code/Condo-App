@@ -4,7 +4,7 @@ import { HandCoins } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -63,8 +63,8 @@ export default async function PaymentPlansPage({ searchParams }: { searchParams:
       description="Installment agreements with homeowners who are behind. Collections pause while a plan is current."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/reports/payment_plans"><Button variant="secondary">Payment Plans report</Button></Link>
-          <Link href="/payment-plans/new"><Button>New payment plan</Button></Link>
+          <Link href="/reports/payment_plans" className={buttonClass('secondary')}>Payment Plans report</Link>
+          <Link href="/payment-plans/new" className={buttonClass()}>New payment plan</Link>
         </div>
       }
     >
@@ -92,7 +92,7 @@ export default async function PaymentPlansPage({ searchParams }: { searchParams:
               icon={HandCoins}
               title={showAll ? 'No payment plans yet' : 'No active payment plans'}
               description="Set up an installment plan when a homeowner agrees to pay down a past-due balance."
-              action={<Link href="/payment-plans/new"><Button>New payment plan</Button></Link>}
+              action={<Link href="/payment-plans/new" className={buttonClass()}>New payment plan</Link>}
             />
           </Surface>
         ) : (

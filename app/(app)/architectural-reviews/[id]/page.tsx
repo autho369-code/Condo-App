@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread';
 import { postArchitecturalMessage, decideArchitecturalRequest } from '@/lib/rpcs/architectural';
@@ -57,7 +57,7 @@ export default async function ManagerArchitecturalDetail({
 
   return (
     <Workspace
-      header={<WorkspaceHeader title={req.title} subtitle={`${req.associations?.name ?? ''} · Unit ${req.units?.unit_number ?? '—'} · ${req.owners?.full_name ?? ''}`} actions={<Link href={`/signatures/new?subject_type=architectural_request&subject_id=${req.id}`}><Button variant="secondary">Send decision for e-signature</Button></Link>} />}
+      header={<WorkspaceHeader title={req.title} subtitle={`${req.associations?.name ?? ''} · Unit ${req.units?.unit_number ?? '—'} · ${req.owners?.full_name ?? ''}`} actions={<Link href={`/signatures/new?subject_type=architectural_request&subject_id=${req.id}`} className={buttonClass('secondary')}>Send decision for e-signature</Link>} />}
     >
       <div className="max-w-3xl space-y-5">
         <Link href="/architectural-reviews" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-950">

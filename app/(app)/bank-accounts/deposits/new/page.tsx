@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -56,8 +56,8 @@ export default async function NewBankDepositPage({
       description="Group the receipts you took to the bank into one deposit, so it matches the single deposit line on the bank statement."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/bank-accounts/deposits"><Button variant="secondary">Bank deposits</Button></Link>
-          <Link href="/bank-accounts/deposits/other"><Button variant="secondary">Other deposit</Button></Link>
+          <Link href="/bank-accounts/deposits" className={buttonClass('secondary')}>Bank deposits</Link>
+          <Link href="/bank-accounts/deposits/other" className={buttonClass('secondary')}>Other deposit</Link>
         </div>
       }
     >

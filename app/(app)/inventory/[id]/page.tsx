@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -89,7 +89,7 @@ export default async function InventoryItemPage({
     <DataWorkspace
       title={item.name}
       description={[item.category, item.location].filter(Boolean).join(' · ') || 'Inventory item'}
-      actions={<Link href="/inventory"><Button variant="secondary">Back to inventory</Button></Link>}
+      actions={<Link href="/inventory" className={buttonClass('secondary')}>Back to inventory</Link>}
     >
       <div className="space-y-4">
         {removed && <Alert tone="info" title="Removed from inventory">This item is no longer stocked. Its history is kept here for reference.</Alert>}

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { VendorSelect } from '@/components/vendors/vendor-select';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
@@ -68,7 +68,7 @@ export default async function CreditCardPage({
     <DataWorkspace
       title={card.name}
       description={[card.issuer, card.last_four ? `•••• ${card.last_four}` : null, card.associations?.name ?? 'Any association'].filter(Boolean).join(' · ')}
-      actions={<Link href="/credit-cards"><Button variant="secondary">All credit cards</Button></Link>}
+      actions={<Link href="/credit-cards" className={buttonClass('secondary')}>All credit cards</Link>}
     >
       <div className="space-y-4">
         {sp.error && <Alert tone="danger" title="Could not save">{sp.error}</Alert>}

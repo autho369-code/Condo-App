@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -90,7 +90,7 @@ export default async function BulkInventoryPage({ searchParams }: { searchParams
     <DataWorkspace
       title="Bulk add inventory items"
       description="Paste or type one item per line to add many items at once."
-      actions={<Link href="/inventory"><Button variant="secondary">Back to inventory</Button></Link>}
+      actions={<Link href="/inventory" className={buttonClass('secondary')}>Back to inventory</Link>}
     >
       <div className="max-w-3xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not add items">{sp.error}</Alert>}

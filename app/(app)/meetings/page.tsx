@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { CalendarDays, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
 import { EmptyState, PageHeader, PageShell, Surface } from '@/components/ui/shell';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
@@ -105,9 +105,7 @@ export default function MeetingsPage() {
         title="Meetings"
         description="Board meetings, annual meetings, and sign-in tracking"
         actions={
-          <Link href="/meetings/new">
-            <Button><Plus className="h-4 w-4" /> New meeting</Button>
-          </Link>
+          <Link href="/meetings/new" className={buttonClass()}><Plus className="h-4 w-4" /> New meeting</Link>
         }
       />
 
@@ -178,9 +176,7 @@ export default function MeetingsPage() {
             title="No meetings found"
             description="Meetings will appear here once created. Schedule a board meeting, annual meeting, or special session."
             action={
-              <Link href="/meetings/new">
-                <Button><Plus className="h-4 w-4" /> New meeting</Button>
-              </Link>
+              <Link href="/meetings/new" className={buttonClass()}><Plus className="h-4 w-4" /> New meeting</Link>
             }
           />
         </div>

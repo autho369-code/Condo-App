@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { createBankAccount } from '@/lib/rpcs/entities';
@@ -33,7 +33,7 @@ export default async function NewBankAccountPage({
     <DataWorkspace
       title="New bank account"
       description="Create the account record, map it to the association and GL, and capture payment/reconciliation settings safely."
-      actions={<Link href="/bank-accounts"><Button variant="secondary">Cancel</Button></Link>}
+      actions={<Link href="/bank-accounts" className={buttonClass('secondary')}>Cancel</Link>}
     >
       {sp.error && (
         <div className="mb-6 max-w-3xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
@@ -108,7 +108,7 @@ export default async function NewBankAccountPage({
 
         <div className="flex gap-2">
           <Button type="submit">Create bank account</Button>
-          <Link href={returnTo ?? '/bank-accounts'}><Button variant="secondary" type="button">Cancel</Button></Link>
+          <Link href={returnTo ?? '/bank-accounts'} className={buttonClass('secondary')}>Cancel</Link>
         </div>
       </form>
     </DataWorkspace>

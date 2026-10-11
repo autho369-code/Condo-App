@@ -6,7 +6,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -277,22 +277,12 @@ export default async function OwnersPage({
           />
           {view === 'tenants' && (
             // eslint-disable-next-line @next/next/no-html-link-for-pages -- route handler returns a CSV download, not a page
-            <a href="/owners/leases/export">
-              <Button variant="secondary">Export leases (CSV)</Button>
-            </a>
+            <a href="/owners/leases/export" className={buttonClass('secondary')}>Export leases (CSV)</a>
           )}
-          <Link href={`/send-email${assoc ? `?association=${assoc}` : ''}`}>
-            <Button variant="secondary">Email all homeowners</Button>
-          </Link>
-          <Link href="/owners/forms">
-            <Button variant="secondary">Send owner form</Button>
-          </Link>
-          <Link href="/owners/change">
-            <Button variant="secondary">Change homeowner</Button>
-          </Link>
-          <Link href="/owners/new">
-            <Button><Plus className="h-4 w-4" /> Move in homeowner</Button>
-          </Link>
+          <Link href={`/send-email${assoc ? `?association=${assoc}` : ''}`} className={buttonClass('secondary')}>Email all homeowners</Link>
+          <Link href="/owners/forms" className={buttonClass('secondary')}>Send owner form</Link>
+          <Link href="/owners/change" className={buttonClass('secondary')}>Change homeowner</Link>
+          <Link href="/owners/new" className={buttonClass()}><Plus className="h-4 w-4" /> Move in homeowner</Link>
         </>
       }
     >

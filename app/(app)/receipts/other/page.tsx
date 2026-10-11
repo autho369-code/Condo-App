@@ -3,7 +3,7 @@ import { Receipt } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { StatusChip } from '@/components/operations/status-chip';
@@ -72,8 +72,8 @@ export default async function OtherReceiptsPage({
       description="Vendor refunds, insurance proceeds and other income that isn't a homeowner payment."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/receipts"><Button variant="secondary">Homeowner receipts</Button></Link>
-          <Link href="/receipts/other/new"><Button>Record other receipt</Button></Link>
+          <Link href="/receipts" className={buttonClass('secondary')}>Homeowner receipts</Link>
+          <Link href="/receipts/other/new" className={buttonClass()}>Record other receipt</Link>
         </div>
       }
     >

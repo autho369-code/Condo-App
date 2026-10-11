@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { PageHeader, Surface, Alert, EmptyState } from '@/components/ui/shell'
 import { DataTable } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input'
 import { PendingSubmit } from '@/components/ui/pending-submit'
 import { StatusChip } from '@/components/operations/status-chip'
@@ -65,7 +65,7 @@ export default async function StateRulesPage({ searchParams }: { searchParams: P
       <PageHeader
         title="State Rules"
         description="The rules your company follows in each state. Collection policies use them, and managers see them on each association in that state."
-        actions={selected ? <Link href="/company-admin/state-rules"><Button variant="secondary">All states</Button></Link> : undefined}
+        actions={selected ? <Link href="/company-admin/state-rules" className={buttonClass('secondary')}>All states</Link> : undefined}
       />
 
       {sp.error && <Alert tone="danger">{sp.error}</Alert>}
@@ -152,7 +152,7 @@ export default async function StateRulesPage({ searchParams }: { searchParams: P
               </Field>
               <div className="flex flex-wrap gap-2">
                 <PendingSubmit pendingLabel="Saving…">{existing ? 'Save changes' : 'Save rules'}</PendingSubmit>
-                <Link href="/company-admin/state-rules"><Button type="button" variant="secondary">Cancel</Button></Link>
+                <Link href="/company-admin/state-rules" className={buttonClass('secondary')}>Cancel</Link>
               </div>
             </form>
           </Surface>

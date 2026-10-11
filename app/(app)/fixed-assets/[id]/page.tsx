@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { AssetFields, label } from '@/components/fixed-assets/asset-fields';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { loadAssetOptions } from '@/lib/fixed-assets/options';
@@ -71,7 +71,7 @@ export default async function FixedAssetPage({
     <DataWorkspace
       title={asset.name}
       description={asset.description || [asset.asset_type, asset.associations?.name].filter(Boolean).join(' · ') || 'Fixed asset'}
-      actions={<Link href="/fixed-assets"><Button variant="secondary">Back to fixed assets</Button></Link>}
+      actions={<Link href="/fixed-assets" className={buttonClass('secondary')}>Back to fixed assets</Link>}
     >
       <div className="space-y-4">
         {removed && <Alert tone="info" title="Removed from fixed assets">This asset is no longer on the register. Its details are kept here for reference.</Alert>}

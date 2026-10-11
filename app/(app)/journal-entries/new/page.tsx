@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
@@ -74,7 +74,7 @@ export default async function NewJournalEntryPage({ searchParams }: { searchPara
     <DataWorkspace
       title="New Journal Entry"
       description="Create a balanced double-entry journal entry. Debits must equal credits before it can post."
-      actions={<Link href="/journal-entries"><Button variant="secondary">Back to journal entries</Button></Link>}
+      actions={<Link href="/journal-entries" className={buttonClass('secondary')}>Back to journal entries</Link>}
     >
       <div className="space-y-4">
         {sp.error && <Alert tone="danger" title="Could not post entry">{sp.error}</Alert>}

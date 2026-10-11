@@ -10,7 +10,7 @@ import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { deleteDraftJournalEntry, postDraftJournalEntry } from '@/lib/rpcs/journal-entries';
@@ -243,15 +243,9 @@ export default async function JournalEntriesPage({
       description="Create, review, and post journal entries. Manage recurring entries and upload batches."
       actions={
         <>
-          <Link href="/journal-entries/new">
-            <Button><Plus className="h-4 w-4" /> New entry</Button>
-          </Link>
-          <Link href="/journal-entries/recurring/new">
-            <Button variant="secondary">New recurring entry</Button>
-          </Link>
-          <Link href="/journal-entries/upload">
-            <Button variant="secondary">Upload batch</Button>
-          </Link>
+          <Link href="/journal-entries/new" className={buttonClass()}><Plus className="h-4 w-4" /> New entry</Link>
+          <Link href="/journal-entries/recurring/new" className={buttonClass('secondary')}>New recurring entry</Link>
+          <Link href="/journal-entries/upload" className={buttonClass('secondary')}>Upload batch</Link>
         </>
       }
     >
@@ -513,7 +507,7 @@ export default async function JournalEntriesPage({
                       </TD>
                       <TD className="whitespace-nowrap text-right">
                         <div className="flex justify-end gap-1">
-                          <Link href={`/journal-entries/recurring/${r.id}/edit`}><Button variant="ghost" size="sm">Edit</Button></Link>
+                          <Link href={`/journal-entries/recurring/${r.id}/edit`} className={buttonClass('ghost', 'sm')}>Edit</Link>
                           <form action={archiveRecurringJournalEntry}>
                             <input type="hidden" name="id" value={r.id} />
                             <Button type="submit" variant="ghost" size="sm">Stop</Button>

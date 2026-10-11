@@ -8,7 +8,7 @@ import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert, EmptyState, SectionTitle } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { glBalances, normalBalance } from '@/lib/gl/accounts';
 import { money } from '@/lib/utils';
@@ -77,10 +77,10 @@ export default async function GLAccountsPage({
       title="GL Accounts"
       description="Chart of accounts, grouped by account type. Open an account to edit or deactivate it."
       actions={<>
-        <a href={`/gl-accounts/export?${new URLSearchParams({ q, status, association_id: assoc }).toString()}`}><Button variant="secondary"><Download className="h-4 w-4" /> Export</Button></a>
-        {isFinance && <Link href="/gl-accounts/map"><Button variant="secondary">GL account map</Button></Link>}
-        {hasPortfolioAdminAccess(me) && <Link href="/gl-accounts/permissions"><Button variant="secondary">Role permissions</Button></Link>}
-        {isFinance && <Link href="/gl-accounts/new"><Button><Plus className="h-4 w-4" /> New GL account</Button></Link>}
+        <a href={`/gl-accounts/export?${new URLSearchParams({ q, status, association_id: assoc }).toString()}`} className={buttonClass('secondary')}><Download className="h-4 w-4" /> Export</a>
+        {isFinance && <Link href="/gl-accounts/map" className={buttonClass('secondary')}>GL account map</Link>}
+        {hasPortfolioAdminAccess(me) && <Link href="/gl-accounts/permissions" className={buttonClass('secondary')}>Role permissions</Link>}
+        {isFinance && <Link href="/gl-accounts/new" className={buttonClass()}><Plus className="h-4 w-4" /> New GL account</Link>}
       </>}
     >
       <div className="space-y-6">
@@ -114,9 +114,7 @@ export default async function GLAccountsPage({
               title={q || status || assoc ? 'No GL accounts match your filters' : 'No GL accounts configured yet'}
               description="The chart of accounts will appear here, grouped by account range."
               action={isFinance && !q && !status && !assoc && (
-                <Link href="/gl-accounts/new">
-                  <Button><Plus className="h-4 w-4" /> Create your first GL account</Button>
-                </Link>
+                <Link href="/gl-accounts/new" className={buttonClass()}><Plus className="h-4 w-4" /> Create your first GL account</Link>
               )}
             />
           </div>

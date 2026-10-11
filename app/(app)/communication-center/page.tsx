@@ -4,7 +4,7 @@ import { MessageSquare } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, Badge, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -167,9 +167,9 @@ export default async function CommunicationCenterPage({
       description="Every email, text message and mailed letter sent to owners, vendors and boards, and messages waiting for approval."
       actions={
         <>
-          <Link href="/letters"><Button variant="secondary">Letters</Button></Link>
-          <Link href="/sms"><Button variant="secondary">Send text</Button></Link>
-          <Link href="/send-email"><Button>Compose email</Button></Link>
+          <Link href="/letters" className={buttonClass('secondary')}>Letters</Link>
+          <Link href="/sms" className={buttonClass('secondary')}>Send text</Link>
+          <Link href="/send-email" className={buttonClass()}>Compose email</Link>
         </>
       }
     >

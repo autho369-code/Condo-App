@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { Input, Label, Select } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { money, date } from '@/lib/utils';
@@ -439,15 +439,9 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       description={`Owner portal — ${owner.email}${unitNames ? ` · ${unitNames}` : ''}`}
       actions={
         <div className="flex items-center gap-2">
-          <Link href={`/inbox/new?owner=${id}`}>
-            <Button size="sm">Message</Button>
-          </Link>
-          <Link href={`/owners/${id}?view=statements`}>
-            <Button variant="secondary" size="sm">View Statements</Button>
-          </Link>
-          <Link href={`/owners/${id}?view=tax`}>
-            <Button variant="secondary" size="sm">Download Tax Docs</Button>
-          </Link>
+          <Link href={`/inbox/new?owner=${id}`} className={buttonClass('primary', 'sm')}>Message</Link>
+          <Link href={`/owners/${id}?view=statements`} className={buttonClass('secondary', 'sm')}>View Statements</Link>
+          <Link href={`/owners/${id}?view=tax`} className={buttonClass('secondary', 'sm')}>Download Tax Docs</Link>
         </div>
       }
     >
@@ -475,15 +469,9 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         {/* ── Quick Actions ── */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="mr-1 text-[13px] font-medium text-gray-500">Quick actions</span>
-          <Link href={`/owners/${id}?view=statements`}>
-            <Button variant="secondary" size="sm">View statements</Button>
-          </Link>
-          <Link href={`/owners/${id}?view=tax`}>
-            <Button variant="secondary" size="sm">Download tax docs</Button>
-          </Link>
-          <Link href={`/charges?owner=${id}`}>
-            <Button variant="secondary" size="sm">View charges</Button>
-          </Link>
+          <Link href={`/owners/${id}?view=statements`} className={buttonClass('secondary', 'sm')}>View statements</Link>
+          <Link href={`/owners/${id}?view=tax`} className={buttonClass('secondary', 'sm')}>Download tax docs</Link>
+          <Link href={`/charges?owner=${id}`} className={buttonClass('secondary', 'sm')}>View charges</Link>
         </div>
 
         <RecordMetaPanels type="owner" id={id} meta={meta} currentUserId={me.auth_user_id} tagHref={(t) => `/owners?tag=${t}`} />

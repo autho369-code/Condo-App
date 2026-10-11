@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Badge } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { approveBill, submitBillForApproval, voidBill, voidPaidCheck } from '@/lib/rpcs/bills';
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
@@ -159,7 +159,7 @@ export default async function BillDetailPage({ params, searchParams }: { params:
           </form>
         )}
         {b.status === 'approved' && b.paid_at === null && (
-          <Link href="/bills/check-run"><Button variant="secondary">{b.vendors?.payment_type === 'check' ? 'Include in check run' : 'Record payment'}</Button></Link>
+          <Link href="/bills/check-run" className={buttonClass('secondary')}>{b.vendors?.payment_type === 'check' ? 'Include in check run' : 'Record payment'}</Link>
         )}
         {b.status === 'paid' && issuedCheck && (
           <form action={voidPaidCheck as any} className="flex flex-wrap items-end gap-2 rounded-lg border border-red-200 bg-red-50 p-3">

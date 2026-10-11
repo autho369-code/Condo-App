@@ -3,7 +3,7 @@ import { Car } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -65,7 +65,7 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
     <DataWorkspace
       title="Parking"
       description="Association-owned parking spaces: who's assigned, the vehicle on file, the deposit held, and turnover."
-      actions={<a href="#add-space"><Button variant="secondary">Add space</Button></a>}
+      actions={<a href="#add-space" className={buttonClass('secondary')}>Add space</a>}
     >
       <div className="space-y-6">
         {sp.error && <Alert tone="danger" title="Action failed">{sp.error}</Alert>}
