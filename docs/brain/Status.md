@@ -1,12 +1,16 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#304 merged; open PR: #305 claude/link-button-nesting; next: operator screens at 375 px once Mirsad signs in as operator).
+Back to [[Home]]. Updated 2026-10-11 (#279-#305 merged; open PR: claude/middleware-deadlines; next: operator screens at 375 px once Mirsad signs in as operator).
 
 ## Open PR
-- #305 claude/link-button-nesting: every button nested in a link (352
-  `<Link><Button/></Link>` + 15 `<a><Button/></a>`, 200 files) is now one
-  link styled by buttonClass(); same size and position (checked on
-  Bank accounts, Owners, Calendar, Vendors against main).
+- claude/middleware-deadlines: middleware database calls get time limits
+  (6 s each, 9 s for the sign-in check). Production logs had 155 middleware
+  timeouts (25 s, Sep 2 - Oct 8) while the database was slow: Auth retries
+  a token refresh for up to 30 s. Now a slow database answers 503 "try
+  again" (refreshed cookies kept) instead of hanging, sending signed-in
+  people to sign-in, or calling a company's address "workspace not found".
+  A failed identity lookup now refuses every request (it let platform-host
+  reads past the MFA check once it failed - security-reviewer).
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
@@ -20,6 +24,7 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#304 merged; open PR: #305 claude/lin
   receivables in one pass (receivable_summary_by_months 20261011130000);
   /metrics 1.7-2.1 s (was 4.6-5.2 s). #299-#302 closed as included.
 - #304 platform operator 40px tap targets; shared buttonClass().
+- #305 all 367 buttons nested in links -> buttonClass() links.
 
 ## Merged 2026-10-10 (late)
 - #282 query probe + refused report runs return to the report; #283
@@ -392,6 +397,11 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#304 merged; open PR: #305 claude/lin
   2026-10-11: 40px tap targets on 10 operator pages; View/Billing were
   buttons nested in links). Owner (#298), board, vendor and company admin
   (#299, merged inside #303) DONE 2026-10-11; manager 2026-10-10.
+- NEXT (code): index the one foreign key without an index
+  (email_sender_domain_owners.portfolio_id; Supabase performance advisor).
+- 2026-10-11 production check: no runtime errors in Vercel for 72 h (all
+  12 error groups of the last 7 days were last seen 2026-10-08, before the
+  speed work and the compute upgrade).
 - DONE 2026-10-11: speed check of 85 manager pages after the compute
   upgrade, signed in: no errors or timeouts; median 2.4 s on a first visit
   (incl. local compiling), all under ~3.2 s once compiled (Command Center

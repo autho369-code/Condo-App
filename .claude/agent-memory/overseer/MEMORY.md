@@ -195,3 +195,8 @@
   (project-spend-list) while #296-#303 merged; the PR edited only Next gaps
   + Shipped. Every pre-PR: diff Status line 3 + "## Open PR" against
   `gh pr list --state open`, and add merged PRs to "Where things stand".
+- Recurring 4th time (middleware-deadlines pre-PR, 2026-10-11): the
+  security-reviewer memory line added in the same diff describes the MFA
+  skip as current ("only blocks writes and SKIPS the MFA gate") although the
+  diff fixed it. Also: a new 503 body string in middleware.ts is user text -
+  white-label-checker scope even when "no brand name" was self-checked.

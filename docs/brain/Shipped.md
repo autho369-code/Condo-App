@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Middleware time limits (claude/middleware-deadlines): every database call
+  in middleware 6 s, the sign-in check 9 s, so a slow database answers 503
+  "try again" within Vercel's 25 s instead of hanging (155 such timeouts
+  Sep 2 - Oct 8). No sign-out, no "workspace not found", refreshed cookies
+  kept; a failed identity lookup refuses every request (fails closed).
 - No more buttons inside links (claude/link-button-nesting): 367 spots in
   200 files (`<Link><Button/></Link>`, `<a><Button/></a>`) are one link
   styled by buttonClass() - valid HTML, one Tab stop and one accessible name
