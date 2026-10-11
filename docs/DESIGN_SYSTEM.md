@@ -47,6 +47,8 @@ or `StatusChip` (`components/operations/status-chip.tsx`). Never hand-pick statu
 
 ### Forms
 - `Button` (primary/secondary/ghost/danger/link) — `components/ui/button.tsx`
+  — a link that looks like a button is `<Link className={buttonClass('primary', 'md')}>`;
+  never put a `Button` inside a `Link` (a button inside a link is invalid HTML)
 - `CopyButton` — `components/ui/copy-button.tsx` — copy a link or value; says
   "Copied" or "Copy failed" (show the value selectable next to it).
 - `Input`, `Select`, `Textarea`, `Label`, `Field` — `components/ui/input.tsx`
@@ -75,7 +77,7 @@ or `StatusChip` (`components/operations/status-chip.tsx`). Never hand-pick statu
 
 ### List page
 ```tsx
-<DataWorkspace title="Vendors" description="..." actions={<Link href="/vendors/new"><Button><Plus className="h-4 w-4"/> New vendor</Button></Link>}>
+<DataWorkspace title="Vendors" description="..." actions={<Link href="/vendors/new" className={buttonClass()}><Plus className="h-4 w-4"/> New vendor</Link>}>
   <MetricStrip metrics={[...]} />
   <div className="mt-5"><FilterBar action="/vendors" searchPlaceholder="Search vendors">...</FilterBar></div>
   <div className="mt-4"><DataTable ... empty={<EmptyState .../>} /></div>

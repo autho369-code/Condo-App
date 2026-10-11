@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 
 const card = 'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 const input =
-  'mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
+  'mt-1 block min-h-10 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
 const RETURN = '/platform-operator/piper'
 const CATEGORIES = ['pricing', 'product', 'sales', 'company', 'support', 'general'] as const
 
@@ -117,13 +117,13 @@ export default async function PiperPage({ searchParams }: { searchParams: Promis
           <label className="block"><span className="text-[13.5px] font-medium text-gray-700">What Piper should know / say</span>
             <textarea name="body" required rows={5} defaultValue={editing?.body ?? ''} className={input}
               placeholder="Full detail, phone-friendly. This is exactly the material she answers from." /></label>
-          <label className="flex items-center gap-2.5 text-sm text-gray-700">
+          <label className="flex min-h-10 items-center gap-2.5 text-sm text-gray-700">
             <input type="checkbox" name="pinned" defaultChecked={editing?.pinned ?? false} className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-blue-500/30" />
             Pinned — always in Piper&apos;s head (use for pricing and core facts; keep under ~10 pinned entries)
           </label>
           <div className="flex gap-2">
             <Button type="submit">{editing ? 'Save changes' : 'Teach Piper'}</Button>
-            {editing && <a href={RETURN} className="inline-flex items-center rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</a>}
+            {editing && <a href={RETURN} className="inline-flex h-10 items-center rounded-xl border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</a>}
           </div>
         </form>
       </div>
@@ -143,18 +143,18 @@ export default async function PiperPage({ searchParams }: { searchParams: Promis
                 <p className="mt-1 line-clamp-2 text-sm text-gray-500">{k.body}</p>
               </div>
               <div className="flex flex-shrink-0 items-center gap-2 text-xs">
-                <a href={`${RETURN}?edit=${k.id}`} className="font-medium text-gray-600 hover:text-gray-950 hover:underline">Edit</a>
+                <a href={`${RETURN}?edit=${k.id}`} className="inline-flex min-h-10 items-center font-medium text-gray-600 hover:text-gray-950 hover:underline">Edit</a>
                 <form action={toggleKnowledge}>
                   <input type="hidden" name="id" value={k.id} />
                   <input type="hidden" name="field" value="pinned" />
                   <input type="hidden" name="value" value={k.pinned ? '0' : '1'} />
-                  <button type="submit" className="font-medium text-gray-600 hover:text-gray-950 hover:underline">{k.pinned ? 'Unpin' : 'Pin'}</button>
+                  <button type="submit" className="inline-flex min-h-10 items-center font-medium text-gray-600 hover:text-gray-950 hover:underline">{k.pinned ? 'Unpin' : 'Pin'}</button>
                 </form>
                 <form action={toggleKnowledge}>
                   <input type="hidden" name="id" value={k.id} />
                   <input type="hidden" name="field" value="active" />
                   <input type="hidden" name="value" value={k.active ? '0' : '1'} />
-                  <button type="submit" className={'font-medium hover:underline ' + (k.active ? 'text-red-600' : 'text-emerald-700')}>
+                  <button type="submit" className={'inline-flex min-h-10 items-center font-medium hover:underline ' + (k.active ? 'text-red-600' : 'text-emerald-700')}>
                     {k.active ? 'Disable' : 'Enable'}
                   </button>
                 </form>
@@ -192,7 +192,7 @@ export default async function PiperPage({ searchParams }: { searchParams: Promis
                 {!m.handled ? (
                   <form action={markHandled}>
                     <input type="hidden" name="id" value={m.id} />
-                    <button type="submit" className="text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Mark handled</button>
+                    <button type="submit" className="inline-flex min-h-10 items-center text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Mark handled</button>
                   </form>
                 ) : (
                   <span className="text-xs text-gray-300">handled</span>

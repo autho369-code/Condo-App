@@ -150,22 +150,22 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
               <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
               <div>
                 <Label htmlFor="inv_company" className="text-xs">Company</Label>
-                <select id="inv_company" name="portfolio_id" required className="h-9 w-48 rounded-md border border-gray-300 bg-white px-2 text-sm">
+                <select id="inv_company" name="portfolio_id" required className="h-10 w-48 rounded-md border border-gray-300 bg-white px-2 text-sm">
                   <option value="">Select company</option>
                   {(companies ?? []).map((c: any) => <option key={c.id} value={c.id}>{c.company_name}</option>)}
                 </select>
               </div>
               <div>
                 <Label htmlFor="inv_amount" className="text-xs">Amount ($)</Label>
-                <Input id="inv_amount" name="amount" type="number" step="0.01" min="0" placeholder="Plan price" className="h-9 w-28" />
+                <Input id="inv_amount" name="amount" type="number" step="0.01" min="0" placeholder="Plan price" className="w-28" />
               </div>
               <div>
                 <Label htmlFor="inv_start" className="text-xs">Period start</Label>
-                <Input id="inv_start" name="period_start" type="date" className="h-9 w-36" />
+                <Input id="inv_start" name="period_start" type="date" className="w-36" />
               </div>
               <div>
                 <Label htmlFor="inv_end" className="text-xs">Period end</Label>
-                <Input id="inv_end" name="period_end" type="date" className="h-9 w-36" />
+                <Input id="inv_end" name="period_end" type="date" className="w-36" />
               </div>
               <PendingSubmit size="sm" pendingLabel="Generating…">Generate</PendingSubmit>
             </form>
@@ -271,7 +271,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/platform-operator/companies/${sub.portfolio_id}`}
-                        className="text-xs font-medium text-gray-700 hover:text-gray-950 hover:underline"
+                        className="inline-flex min-h-10 items-center text-xs font-medium text-gray-700 hover:text-gray-950 hover:underline"
                       >
                         Manage
                       </Link>

@@ -579,7 +579,7 @@ export default async function PlatformOperatorOverviewPage() {
             </div>
             <Link
               href="/platform-operator/audit-logs"
-              className="text-xs font-medium text-gray-700 hover:text-gray-950 hover:underline"
+              className="inline-flex min-h-10 items-center text-xs font-medium text-gray-700 hover:text-gray-950 hover:underline"
             >
               View all
             </Link>

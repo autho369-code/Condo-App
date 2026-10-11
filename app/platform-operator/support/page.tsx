@@ -204,18 +204,18 @@ export default async function SupportPage({
                               <form action={setRequestStatus as any}>
                                 <input type="hidden" name="request_id" value={req.id} />
                                 <input type="hidden" name="status" value="in_progress" />
-                                <button type="submit" className="text-xs font-medium text-gray-700 hover:text-gray-950 hover:underline">Start</button>
+                                <button type="submit" className="inline-flex min-h-10 items-center text-xs font-medium text-gray-700 hover:text-gray-950 hover:underline">Start</button>
                               </form>
                             )}
                             <form action={setRequestStatus as any}>
                               <input type="hidden" name="request_id" value={req.id} />
                               <input type="hidden" name="status" value="resolved" />
-                              <button type="submit" className="text-xs font-medium text-emerald-700 hover:underline">Resolve</button>
+                              <button type="submit" className="inline-flex min-h-10 items-center text-xs font-medium text-emerald-700 hover:underline">Resolve</button>
                             </form>
                             <form action={setRequestStatus as any}>
                               <input type="hidden" name="request_id" value={req.id} />
                               <input type="hidden" name="status" value="closed" />
-                              <button type="submit" className="text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">Close</button>
+                              <button type="submit" className="inline-flex min-h-10 items-center text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">Close</button>
                             </form>
                           </div>
                         ) : (

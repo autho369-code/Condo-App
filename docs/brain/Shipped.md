@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Platform operator at phone width (claude/operator-tap-targets): 40px tap
+  targets on 10 operator pages (filters, invoice fields, row actions on
+  Support and Piper, links); Companies View/Billing were <Button> inside
+  <Link> (invalid) and are now plain links. Name links inside table cells
+  left as they are (same as #299). #299-#302 merged inside #303.
 - Metrics month-end receivables in one pass (claude/metrics-month-ends;
   migration 20261011130000, LIVE): receivable_summary_by_months replaces
   twelve receivable_summary_as_of calls inside metrics_monthly_trend
