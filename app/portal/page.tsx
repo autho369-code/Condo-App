@@ -154,7 +154,7 @@ export default async function OwnerDashboard() {
           const inner = (
             <>
               <div className="text-[13px] font-medium leading-5 text-gray-500">{s.label}</div>
-              <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${s.color}`}>{s.value}</div>
+              <div className={`mt-1.5 text-lg font-semibold tabular-nums [overflow-wrap:anywhere] sm:text-2xl ${s.color}`}>{s.value}</div>
               {s.hint && <div className="mt-1 text-[12.5px] font-medium text-gray-500">{s.hint} →</div>}
             </>
           )

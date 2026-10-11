@@ -133,7 +133,7 @@ export default async function BoardBudgetPage() {
               ].map(s => (
                 <div key={s.label} className={`${card} px-4 py-3.5`}>
                   <div className="text-[13px] font-medium leading-5 text-gray-500">{s.label}</div>
-                  <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${s.cls}`}>{s.value}</div>
+                  <div className={`mt-1.5 text-lg font-semibold tabular-nums [overflow-wrap:anywhere] sm:text-2xl ${s.cls}`}>{s.value}</div>
                 </div>
               ))}
             </div>

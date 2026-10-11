@@ -7,7 +7,7 @@ import { createVendorUpload, saveVendorComplianceDocument } from '@/lib/rpcs/ven
 import { createClient } from '@/lib/supabase/client';
 
 const BUCKET = 'association-documents';
-const inputClass = 'mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15';
+const inputClass = 'mt-1 block min-h-10 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15';
 
 export function ComplianceDocumentForm({
   requests,

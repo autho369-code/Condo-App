@@ -37,10 +37,10 @@ function StatCard({
       <div className="flex items-start justify-between">
         <div className="min-w-0">
           <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
-          <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${tone === 'danger' ? 'text-red-700' : tone === 'warning' ? 'text-amber-700' : tone === 'success' ? 'text-emerald-700' : 'text-gray-950'}`}>{value}</div>
+          <div className={`mt-1.5 text-lg font-semibold tabular-nums [overflow-wrap:anywhere] sm:text-2xl ${tone === 'danger' ? 'text-red-700' : tone === 'warning' ? 'text-amber-700' : tone === 'success' ? 'text-emerald-700' : 'text-gray-950'}`}>{value}</div>
           {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
         </div>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
+        <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70 sm:flex">
           <Icon className="h-4.5 w-4.5 text-gray-400" />
         </div>
       </div>
@@ -135,7 +135,7 @@ export default async function BoardDashboardPage() {
       <div className={card}>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Upcoming Meetings</h2>
-          <Link href="/board/meetings" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
+          <Link href="/board/meetings" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
             All meetings <ArrowRight className="h-3 w-3" />
           </Link>
         </div>

@@ -54,7 +54,7 @@ export default async function VendorWorkOrders({
             key={f.id}
             href={`/vendor/work-orders?f=${f.id}`}
             className={
-              'flex h-8 items-center justify-center rounded-lg px-4 text-[13px] font-medium transition-colors ' +
+              'flex h-10 items-center justify-center rounded-lg px-4 text-[13px] font-medium transition-colors ' +
               (filter === f.id ? 'bg-gray-950 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900')
             }
           >

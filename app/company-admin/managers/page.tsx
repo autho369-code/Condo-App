@@ -176,7 +176,7 @@ export default async function CompanyAdminManagersPage({
         ].map((item) => (
           <div key={item.label} className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="text-[13px] font-medium leading-5 text-gray-500">{item.label}</div>
-            <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${item.warn ? 'text-amber-700' : 'text-gray-950'}`}>{item.value}</div>
+            <div className={`mt-1.5 text-lg font-semibold tabular-nums [overflow-wrap:anywhere] sm:text-2xl ${item.warn ? 'text-amber-700' : 'text-gray-950'}`}>{item.value}</div>
           </div>
         ))}
       </div>

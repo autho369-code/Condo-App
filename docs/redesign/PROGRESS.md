@@ -91,6 +91,19 @@ no Supabase schema, policy, RPC or integration change; the parity test
 - Still to check at phone width: owner, board, vendor and company-admin
   screens.
 
+## Other roles at phone width (2026-10-11, signed in, 375 x 812)
+
+- Owner (24 pages + a work order, #298), board (6), vendor (9 + a work
+  order) and company admin (22): no page scrolls sideways.
+- Fixed (claude/owner-portal-tap-targets, claude/board-vendor-admin-tap-targets):
+  links and buttons under 40 px on every role; figure tiles where large
+  amounts spilled out of a 2-column tile (12 hand-built copies: 18 px value
+  and no icon below sm; shared Metric/MetricStrip: 22 px below sm).
+- Follow-up (design-reviewer): give the shared Metric a tone and an
+  optional icon and move the 12 hand-built tiles onto it; vendor work-order
+  filter -> RecordSwitcher; vendor compliance form and platform-request
+  tabs -> shared Input/Select/Button.
+
 ## Not yet verified
 
 - **Phone widths in a signed-in browser.** The Chrome window could not be resized.

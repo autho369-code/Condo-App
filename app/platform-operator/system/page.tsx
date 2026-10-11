@@ -59,9 +59,9 @@ export default async function SystemMonitorPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="text-[13px] font-medium text-gray-500">{t.label}</div>
-                  <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${t.bad ? 'text-red-700' : 'text-gray-950'}`}>{t.value}</div>
+                  <div className={`mt-1.5 text-lg font-semibold tabular-nums [overflow-wrap:anywhere] sm:text-2xl ${t.bad ? 'text-red-700' : 'text-gray-950'}`}>{t.value}</div>
                 </div>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
+                <div className="hidden h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70 sm:flex">
                   <Icon className="h-4.5 w-4.5 text-gray-400" />
                 </div>
               </div>

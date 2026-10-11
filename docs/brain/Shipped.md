@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Board, vendor and company admin at phone width
+  (claude/board-vendor-admin-tap-targets; no migration): signed in per role
+  at 375 px, 37 pages, no horizontal overflow. Tap targets raised to 40 px;
+  figure tiles fixed where large amounts spilled out (12 hand-built copies
+  plus the shared Metric/MetricStrip). Follow-ups in docs/redesign/PROGRESS.md.
 - Shared components (claude/shared-components-cleanup; no migration):
   calendar filters -> Select, Print/CSV/PDF export buttons -> Button
   (secondary, sm; on ~19 list pages), Reports search card and Company admin
