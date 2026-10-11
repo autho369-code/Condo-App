@@ -370,8 +370,9 @@ Back to [[Home]]. Updated 2026-10-10 (after #279 and #281 merged; open PR: #282 
 ## Next gaps (pick up here, top first)
 - 2026-10-10: `npm run check:queries` against production: 0 broken of
   1,164 static queries. Excel report run checked end to end (valid .xlsx,
-  17 owners); a refused run now returns to its report with the reason. Still open in docs/TODO.md "Needs access":
-  signed-in walkthroughs for operator and board, and the 2026-10-04 checks (batch letters, Forms upload, Inbox).
+  17 owners); a refused run now returns to its report with the reason. All six roles checked signed in. 2026-10-04 checks done
+  (batch letters, Forms upload + owner download, saved replies). Still
+  open: an Inbox conversation (needs a test homeowner address to send to).
 0. Randolph Station is a TEST-ONLY association (Mirsad, 2026-10-10): it
    proved the import end to end (imported and tied out); its 8 name-only
    vendors stay as they are, no contact/tax/insurance to enter. The next
