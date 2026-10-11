@@ -1,4 +1,5 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { Button } from '@/components/ui/button'
 import { requireOwner } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
 import { Alert } from '@/components/ui/shell'
@@ -143,7 +144,7 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
         {current?.policy_number && <div className="text-sm text-gray-600"><span className="text-gray-500">Policy #:</span> {current.policy_number}</div>}
         {current?.coverage_amount && <div className="text-sm text-gray-600"><span className="text-gray-500">Coverage:</span> ${Number(current.coverage_amount).toLocaleString()}</div>}
         {certificateUrl && (
-          <a href={certificateUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-gray-950 hover:underline">
+          <a href={certificateUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-gray-950 hover:underline">
             <FileText className="h-4 w-4 text-gray-400" /> View policy document
           </a>
         )}
@@ -157,15 +158,15 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
           <form action={updateReminders} className="space-y-3">
             <input type="hidden" name="policy_id" value={current.id} />
             <input type="hidden" name="return_query" value={recordQuery} />
-            <label className="flex items-center gap-2.5 text-sm text-gray-700">
+            <label className="flex min-h-10 items-center gap-2.5 text-sm text-gray-700">
               <input type="checkbox" name="remind_owner" defaultChecked={current.remind_owner !== false} className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-blue-500/30" />
               Email me before this policy expires
             </label>
-            <label className="flex items-center gap-2.5 text-sm text-gray-700">
+            <label className="flex min-h-10 items-center gap-2.5 text-sm text-gray-700">
               <input type="checkbox" name="remind_manager" defaultChecked={current.remind_manager !== false} className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-blue-500/30" />
               Also notify my property manager
             </label>
-            <button type="submit" className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50">Save Reminder Settings</button>
+            <Button type="submit" variant="secondary">Save Reminder Settings</Button>
           </form>
         </div>
       )}

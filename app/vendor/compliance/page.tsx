@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { RecordSwitcher } from '@/components/ui/record-switcher';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { FileText, ShieldCheck } from 'lucide-react';
@@ -120,26 +120,10 @@ export default async function VendorCompliance({
       {sp.saved && <Alert tone="success" className="mb-5">Dates sent to management. They count toward your compliance once management approves the matching document.</Alert>}
       {sp.saved_document && <Alert tone="success" className="mb-5">Compliance document uploaded for management review.</Alert>}
 
-      {records.length > 1 && (
-        <div className="mb-5">
-          <p className="mb-2 text-[13px] text-gray-500">Each association keeps its own compliance file. Showing:</p>
-          <div className="inline-flex flex-wrap gap-1 rounded-xl border border-gray-200/80 bg-white p-1 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            {records.map((record: any) => (
-              <Link
-                key={record.id}
-                href={`/vendor/compliance?record=${encodeURIComponent(record.id)}`}
-                aria-current={record.id === recordId ? 'page' : undefined}
-                className={
-                  'flex min-h-10 items-center justify-center rounded-lg px-4 text-[13px] font-medium transition-colors ' +
-                  (record.id === recordId ? 'bg-gray-950 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900')
-                }
-              >
-                {vendorAssociationLabel(record)}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="mb-5 empty:hidden">
+        <RecordSwitcher caption="Each association keeps its own compliance file. Showing:" basePath="/vendor/compliance" currentId={recordId}
+          records={records.map((record: any) => ({ id: record.id, label: vendorAssociationLabel(record) }))} />
+      </div>
 
       <Surface>
         <SectionTitle title="Certificates & licenses" description="Enter the expiration date from each document. The status shows the date management has approved." />

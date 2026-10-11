@@ -201,7 +201,7 @@ export function Metric({
     <Surface padded={false} className="overflow-hidden p-4">
       {accent && <div className={cn('mb-3 h-1 w-8 rounded-full', bar[accent])} />}
       <div className="text-[13px] font-medium text-gray-500">{label}</div>
-      <div className="mt-1 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{value}</div>
+      <div className="mt-1 font-display text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-ink [overflow-wrap:anywhere] sm:text-[28px]">{value}</div>
       {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
     </Surface>
   );

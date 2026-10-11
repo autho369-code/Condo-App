@@ -17,7 +17,7 @@ export function MetricStrip({ metrics }: { metrics: Metric[] }) {
           <div className="text-[13px] font-medium leading-5 text-gray-500">
             {metric.label}
           </div>
-          <div className="mt-1.5 font-display text-[26px] font-semibold leading-none tabular-nums tracking-[-0.02em] text-ink sm:text-[28px]">
+          <div className="mt-1.5 font-display text-[22px] font-semibold leading-none tabular-nums tracking-[-0.02em] text-ink [overflow-wrap:anywhere] sm:text-[28px]">
             {metric.value}
           </div>
           {metric.sublabel && <div className="mt-2 text-[13px] leading-5 text-gray-500">{metric.sublabel}</div>}
