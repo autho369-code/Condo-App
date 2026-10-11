@@ -118,56 +118,42 @@ export default async function ChargesPage({
     return c;
   };
 
-  const [receiptsRes, chargesRes, receiptAmounts, delinquentRes, unitTotalsRes, categoriesRes] = await Promise.all([
+  const [receiptsRes, chargesRes, totalsRes] = await Promise.all([
     tab === 'receipts'
       ? receiptsBase().order('payment_date', { ascending: false }).order('payment_id').limit(ROW_CAP)
       : Promise.resolve({ data: [], count: null, error: null }),
     tab === 'charges'
       ? chargesBase().order('due_date').order('charge_id').limit(ROW_CAP)
       : Promise.resolve({ data: [], count: null, error: null }),
-    // Receipt totals cover every matching receipt, not just the rows shown.
-    fetchAllRows<any>(() => {
-      let r = db.from('receivable_payments_ledger').select('payment_id, amount')
-        .or('method.is.null,method.neq.credit')
-        .is('reversed_at', null); // returned (NSF) payments were never collected
-      if (assoc) r = r.eq('association_id', assoc);
-      if (owner) r = r.in('unit_id', unitScope);
-      return r.order('payment_id');
+    // Receipt count and total, delinquent units, outstanding and delinquent
+    // totals, and charges by category (unfiltered page only) in one call:
+    // run as separate parallel queries over these views they timed out.
+    db.rpc('receivables_page_totals', {
+      p_association_id: assoc || null,
+      p_owner_unit_ids: owner ? unitScope : null,
+      p_totals_unit_ids: totalsUnitIds ? (totalsUnitIds.length ? totalsUnitIds : [noUnit]) : null,
     }),
-    fetchAllRows<any>(() => {
-      let d = db.from('delinquent_units').select('unit_id, unit_number, association_id, balance, oldest_due');
-      if (assoc) d = d.eq('association_id', assoc);
-      if (owner) d = d.in('unit_id', unitScope);
-      return d.order('unit_id');
-    }),
-    db.rpc('receivable_unit_totals', { p_unit_ids: totalsUnitIds ? (totalsUnitIds.length ? totalsUnitIds : [noUnit]) : null }),
-    owner || assoc
-      ? Promise.resolve({ rows: [], truncated: false, error: null })
-      // One row per association × category × month: read every row and total
-      // by category below.
-      : fetchAllRows<any>(() => db
-        .from('v_charges_by_category')
-        .select('association_id, category_id, category_name, period_month, charge_count, outstanding_balance')
-        .order('association_id')
-        .order('category_id', { nullsFirst: true })
-        .order('period_month', { nullsFirst: true })),
   ]);
+  const totals = (totalsRes.data ?? {}) as {
+    receipts?: { count: number; amount: number };
+    delinquent?: any[];
+    unit_totals?: { outstanding_total: number; delinquent_count: number; delinquent_balance: number } | null;
+    categories?: any[];
+  };
   const loadErrors = [
-    receiptsRes.error?.message, chargesRes.error?.message, receiptAmounts.error, delinquentRes.error,
-    unitTotalsRes.error?.message, categoriesRes.error,
+    receiptsRes.error?.message, chargesRes.error?.message, totalsRes.error?.message,
   ].filter(Boolean) as string[];
-  if (categoriesRes.truncated) loadErrors.push('The charges-by-category totals cover the first 50,000 rows only.');
-  if (receiptAmounts.truncated) loadErrors.push('The receipts total covers the first 50,000 receipts only; choose an association for an exact total.');
 
   const receipts = (receiptsRes.data ?? []) as any[];
   const receiptsMatching = receiptsRes.count ?? receipts.length;
   const charges = (chargesRes.data ?? []) as any[];
   const chargesMatching = chargesRes.count ?? charges.length;
-  const totalReceipts = (receiptAmounts.rows as any[]).reduce((s, r) => s + Number(r.amount ?? 0), 0);
-  const unitTotals = (Array.isArray(unitTotalsRes.data) ? unitTotalsRes.data[0] : unitTotalsRes.data) ?? null;
+  const receiptCount = Number(totals.receipts?.count ?? 0);
+  const totalReceipts = Number(totals.receipts?.amount ?? 0);
+  const unitTotals = totals.unit_totals ?? null;
 
   // ── Owner delinquency: who owns each delinquent unit ──
-  const delinquentRows = delinquentRes.rows as any[];
+  const delinquentRows = (totals.delinquent ?? []) as any[];
   const ownerNamesByUnit = new Map<string, string[]>();
   if (tab === 'owner-delinquency' && delinquentRows.length) {
     const { rows: occ } = await fetchAllRows<any>(() => db
@@ -287,7 +273,7 @@ export default async function ChargesPage({
     ? delinquentRows.reduce((s, u) => s + Number(u.balance ?? 0), 0)
     : Number(unitTotals?.delinquent_balance ?? 0);
   const categoryTotals = new Map<string, { key: string; category_name: string | null; charge_count: number; outstanding_balance: number }>();
-  for (const r of categoriesRes.rows as any[]) {
+  for (const r of (totals.categories ?? []) as any[]) {
     const key = r.category_id ?? 'uncategorized';
     const t = categoryTotals.get(key) ?? {
       key, category_name: r.category_id ? r.category_name : (r.category_name ?? 'Uncategorized'), charge_count: 0, outstanding_balance: 0,
@@ -366,7 +352,7 @@ export default async function ChargesPage({
   }
 
   const metrics = [
-    { label: 'Receipts', value: receiptAmounts.rows.length, sublabel: `${money(totalReceipts)} total` },
+    { label: 'Receipts', value: receiptCount, sublabel: `${money(totalReceipts)} total` },
     { label: 'Outstanding', value: money(totalOutstanding), sublabel: 'Open charges less credits' },
     { label: 'Delinquent units', value: delinquentCount, sublabel: `${money(overdueBalance)} past due` },
     { label: 'Chargebacks', value: chargebacks.length, sublabel: `${money(chargebackOpenTotal)} unpaid` },

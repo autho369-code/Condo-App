@@ -374,18 +374,18 @@ Back to [[Home]]. Updated 2026-10-10 (#279-#289 merged; open PRs: phone width #2
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- OPEN 2026-10-10: Receivables page (/charges) shows "Some receivables
-  could not be loaded" (statement timeouts) on most loads for a manager,
-  even with 17 units. It runs six queries at once over RLS-heavy views
-  (aged_receivables, delinquent_units, v_charges_by_category,
-  receivable_payments_ledger, receivable_unit_totals); each takes 0.05-1 s
-  alone but several pass the 8 s limit together. receivable_unit_totals
-  fixed (13-25 s -> <0.6 s, 20261011090000). Next: one security-definer
-  page RPC that computes the page's totals once with explicit scoping, or
-  load the totals after the page (and check the database's CPU/compute size
-  in the Supabase dashboard; timings swing 10x run to run). Also: every DDL
-  (even a test function) reloads PostgREST's schema cache; avoid DDL test
-  loops on production during the day.
+- OPEN 2026-10-10: Receivables page (/charges) still times out at times.
+  Fixed so far: receivable_unit_totals (13-25 s -> <0.6 s, 20261011090000)
+  and four of the page's six parallel queries now one call
+  (receivables_page_totals, 20261011100000). Remaining: the open-charges
+  list (aged_receivables, count exact) and that call. Late on 2026-10-10 the
+  same function took 76 ms, then 0.7-14 s with identical settings: the
+  database's CPU looked throttled (burst credits used up, partly by a long
+  evening of load tests). Mirsad to check Supabase dashboard -> CPU usage
+  and compute size (see TODO). Re-measure when it is quiet before more
+  query work. Every DDL (even a test function) reloads PostgREST's schema
+  cache; avoid DDL test loops on production during the day; rolled-back
+  DDL does not reload it.
 - 2026-10-10: `npm run check:queries` against production: 0 broken of
   1,164 static queries. Excel report run checked end to end (valid .xlsx,
   17 owners); a refused run now returns to its report with the reason. All six roles checked signed in. 2026-10-04 checks done
