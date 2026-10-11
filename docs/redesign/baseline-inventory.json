@@ -10082,8 +10082,8 @@
      "New project"
     ],
     "data": [
+     "rpc:capital_project_spend_totals",
      "table:associations",
-     "table:capital_project_financials",
      "table:capital_projects"
     ],
     "guard": [
