@@ -9,6 +9,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   (secondary, sm; on ~19 list pages), Reports search card and Company admin
   invite card -> Surface. Checked at 375 px and desktop: 40 px controls,
   no horizontal overflow, same card padding and radius.
+- Receivables plan cache (claude/receivables-plan-cache; migration
+  20261011110000, LIVE): receivables_page_totals and receivable_unit_totals
+  use plan_cache_mode = force_generic_plan, so a connection plans their
+  queries once instead of on each of its first five calls: 786 ms first
+  call, then 72-78 ms (was 0.3-5.5 s for the first five).
 
 ## 2026-10-10
 - Receivables page totals in one call (claude/receivables-page-totals;
