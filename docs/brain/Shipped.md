@@ -9,6 +9,9 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   "try again" within Vercel's 25 s instead of hanging (155 such timeouts
   Sep 2 - Oct 8). No sign-out, no "workspace not found", refreshed cookies
   kept; a failed identity lookup refuses every request (fails closed).
+  Codex: a hit time limit now cancels the request's database calls (no
+  token refresh finishing after the answer), and the branding 503 keeps
+  refreshed cookies too.
 - No more buttons inside links (claude/link-button-nesting): 367 spots in
   200 files (`<Link><Button/></Link>`, `<a><Button/></a>`) are one link
   styled by buttonClass() - valid HTML, one Tab stop and one accessible name

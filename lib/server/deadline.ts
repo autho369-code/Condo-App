@@ -12,22 +12,35 @@ export class DeadlineError extends Error {
   }
 }
 
-/** Resolves like `work`, or rejects with DeadlineError after `ms`. */
-export function withDeadline<T>(work: PromiseLike<T>, ms: number, label: string): Promise<T> {
+/**
+ * Resolves like `work`, or rejects with DeadlineError after `ms`. Pass the
+ * request's `cancel` controller (the one given to fetchWithTimeout) so the
+ * work itself stops too: otherwise Auth's retries run on after the answer
+ * has gone out and a token refresh could finish without its cookies reaching
+ * the browser.
+ */
+export function withDeadline<T>(work: PromiseLike<T>, ms: number, label: string, cancel?: AbortController): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const deadline = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new DeadlineError(label, ms)), ms);
+    timer = setTimeout(() => {
+      const error = new DeadlineError(label, ms);
+      cancel?.abort(error);
+      reject(error);
+    }, ms);
   });
   return Promise.race([Promise.resolve(work), deadline]).finally(() => clearTimeout(timer));
 }
 
-/** fetch that gives up after `ms` (keeps any abort signal the caller passed). */
-export function fetchWithTimeout(ms: number): typeof fetch {
+/**
+ * fetch that gives up after `ms`, keeps any abort signal the caller passed,
+ * and stops at once (now and for every later call) when `cancel` aborts.
+ */
+export function fetchWithTimeout(ms: number, cancel?: AbortSignal): typeof fetch {
   return (input, init) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(new DeadlineError('fetch', ms)), ms);
-    const outer = init?.signal;
-    if (outer) {
+    for (const outer of [init?.signal, cancel]) {
+      if (!outer) continue;
       if (outer.aborted) controller.abort(outer.reason);
       else outer.addEventListener('abort', () => controller.abort(outer.reason), { once: true });
     }

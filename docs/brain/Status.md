@@ -1,16 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#305 merged; open PR: #306 claude/middleware-deadlines; next: operator screens at 375 px once Mirsad signs in as operator).
+Back to [[Home]]. Updated 2026-10-11 (#279-#306 merged; open PR: claude/middleware-deadline-cancel; next: operator screens at 375 px once Mirsad signs in as operator).
 
 ## Open PR
-- #306 claude/middleware-deadlines: middleware database calls get time limits
-  (6 s each, 9 s for the sign-in check). Production logs had 155 middleware
-  timeouts (25 s, Sep 2 - Oct 8) while the database was slow: Auth retries
-  a token refresh for up to 30 s. Now a slow database answers 503 "try
-  again" (refreshed cookies kept) instead of hanging, sending signed-in
-  people to sign-in, or calling a company's address "workspace not found".
-  A failed identity lookup now refuses every request (it let platform-host
-  reads past the MFA check once it failed - security-reviewer).
+- claude/middleware-deadline-cancel: Codex follow-up to #306. A hit time
+  limit now cancels every database call of the request (Auth's refresh
+  retries could otherwise finish after the 503 and the browser would keep a
+  spent refresh token); the branding-error 503 keeps refreshed cookies too.
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
@@ -25,6 +21,9 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#305 merged; open PR: #306 claude/mid
   /metrics 1.7-2.1 s (was 4.6-5.2 s). #299-#302 closed as included.
 - #304 platform operator 40px tap targets; shared buttonClass().
 - #305 all 367 buttons nested in links -> buttonClass() links.
+- #306 middleware time limits (6 s per call, 9 s sign-in): a slow database
+  answers 503 "try again" within Vercel's 25 s; failed identity lookup
+  refuses every request.
 
 ## Merged 2026-10-10 (late)
 - #282 query probe + refused report runs return to the report; #283
