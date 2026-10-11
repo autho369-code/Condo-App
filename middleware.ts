@@ -7,6 +7,7 @@ import { isStaleAuthSession, isSupabaseAuthCookie } from '@/lib/server/auth-sess
 import { apexDomain, classifyTenantHost, forwardedTenantHostname, tenantAccessDecision } from '@/lib/tenant/host'
 import { requiresMfa } from '@/lib/auth/mfa-policy'
 import { blocksOperatorWrite } from '@/lib/auth/operator-writes'
+import { fetchWithTimeout, isUnavailableError, withDeadline } from '@/lib/server/deadline'
 
 const APEX_DOMAIN = apexDomain()
 const MARKETING_PATHS = ['/pricing', '/features', '/company', '/report-card', '/local', '/hoa-laws', '/contact', '/compare', '/customers', '/onboarding', '/ai-receptionist', '/professional-services', '/demo', '/legal']
@@ -37,6 +38,23 @@ function pathMatches(pathname: string, paths: readonly string[]) {
 
 function setEncodedHeader(headers: Headers, name: string, value: unknown) {
   if (typeof value === 'string' && value) headers.set(name, encodeURIComponent(value))
+}
+
+// Vercel stops middleware after 25 s. Each database call gets 6 s and the
+// sign-in check 9 s in all (Auth retries a token refresh for up to 30 s), so
+// even three slow calls end in time with a "try again" answer.
+const CALL_TIMEOUT_MS = 6_000
+const AUTH_DEADLINE_MS = 9_000
+
+// `from` carries any session cookies Auth refreshed during this request, so a
+// "try again" answer never loses a newly issued refresh token.
+function serviceUnavailable(pathname: string, from?: NextResponse) {
+  const headers = { 'Cache-Control': 'no-store', 'Retry-After': '30' }
+  const answer = pathname.startsWith('/api/')
+    ? NextResponse.json({ error: 'service_unavailable' }, { status: 503, headers })
+    : new NextResponse('This page could not load because the database did not answer. Try again in a moment.', { status: 503, headers })
+  from?.cookies.getAll().forEach((cookie) => answer.cookies.set(cookie))
+  return answer
 }
 
 function expireAuthCookies(target: NextResponse, cookieNames: string[]) {
@@ -75,6 +93,7 @@ export async function middleware(request: NextRequest) {
     getSupabaseUrl(),
     getSupabaseBrowserKey(),
     {
+      global: { fetch: fetchWithTimeout(CALL_TIMEOUT_MS) },
       cookies: {
         getAll() { return request.cookies.getAll() },
         setAll(items) {
@@ -93,10 +112,19 @@ export async function middleware(request: NextRequest) {
 
   let tenantPortfolio: any = null
   if (host.kind === 'subdomain' || host.kind === 'custom-domain') {
-    const { data: brandingRows } = await (supabase as any).rpc('tenant_branding', {
-      p_host: host.hostname,
-      p_slug: host.slug,
-    })
+    let branding: { data: any; error: unknown }
+    try {
+      branding = await withDeadline<any>((supabase as any).rpc('tenant_branding', {
+        p_host: host.hostname,
+        p_slug: host.slug,
+      }), CALL_TIMEOUT_MS, 'tenant_branding')
+    } catch (error) {
+      branding = { data: null, error }
+    }
+    // An error is not "no such company": don't send the visitor to the
+    // workspace-not-found page because the database was slow.
+    if (branding.error) return serviceUnavailable(pathname)
+    const brandingRows = branding.data
     tenantPortfolio = brandingRows?.[0] ?? null
 
     if (!tenantPortfolio) {
@@ -159,7 +187,19 @@ export async function middleware(request: NextRequest) {
 
   // Refresh the Auth session. Protected server layouts and route handlers
   // still enforce roles and tenant identity; middleware is defense-in-depth.
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  let authResult: { data: { user: any }; error: any }
+  try {
+    authResult = await withDeadline(supabase.auth.getUser(), AUTH_DEADLINE_MS, 'auth.getUser')
+  } catch (error) {
+    authResult = { data: { user: null }, error }
+  }
+  const { data: { user }, error: authError } = authResult
+
+  // Auth did not answer: the visitor may well be signed in, so don't send them
+  // to the sign-in page (and never clear their cookies) - ask them to retry.
+  if (!user && !isPublic && pathname !== '/' && isUnavailableError(authError)) {
+    return serviceUnavailable(pathname, response)
+  }
   let expiredAuthCookies: string[] = []
 
   // A browser can retain a rotated or revoked refresh token indefinitely. Clear
@@ -195,15 +235,23 @@ export async function middleware(request: NextRequest) {
   let requestIdentity: any = null
   let requestIdentityError: any = null
   if (user && !isPublic) {
-    const { data, error } = await (supabase as any).rpc('me')
-    requestIdentity = data
-    requestIdentityError = error
+    try {
+      const { data, error } = await withDeadline<any>((supabase as any).rpc('me'), CALL_TIMEOUT_MS, 'me')
+      requestIdentity = data
+      requestIdentityError = error
+    } catch (error) {
+      requestIdentityError = error
+    }
   }
 
+  // Without the caller's identity the workspace, operator-write and MFA checks
+  // below cannot run: refuse every request with "try again" (fails closed; a
+  // tenant host used to say "access denied", the platform host let reads past
+  // the MFA check). Pages repeat these checks through getMe().
+  if (user && !isPublic && requestIdentityError) return serviceUnavailable(pathname, response)
+
   if (user && tenantPortfolio && !isPublic) {
-    const decision = requestIdentityError
-      ? { allowed: false as const, reason: 'portfolio_mismatch' as const }
-      : tenantAccessDecision(tenantPortfolio.id, requestIdentity)
+    const decision = tenantAccessDecision(tenantPortfolio.id, requestIdentity)
 
     if (!decision.allowed) {
       if (pathname.startsWith('/api/')) {
@@ -226,15 +274,7 @@ export async function middleware(request: NextRequest) {
   // switch to the service-role client, where the database cannot tell who
   // started the write, so refuse non-GET requests from support/readonly
   // operators here (see lib/auth/operator-writes.ts for the exceptions).
-  // A failed identity lookup fails closed for writes (the handler's own
-  // getMe() would fail on the same RPC anyway).
-  const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(request.method.toUpperCase())
-  if (user && !isPublic && isWrite && requestIdentityError) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'identity_unavailable' }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
-    }
-    return new NextResponse('Your account could not be verified. Try again in a moment.', { status: 503, headers: { 'Cache-Control': 'no-store' } })
-  }
+  // (A failed identity lookup was refused above.)
   if (user && !isPublic && !requestIdentityError && blocksOperatorWrite(requestIdentity, request.method, pathname)) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'operator_read_only' }, { status: 403, headers: { 'Cache-Control': 'no-store' } })

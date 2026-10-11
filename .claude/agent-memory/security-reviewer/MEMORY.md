@@ -130,3 +130,4 @@
   table policy is moved to a new identity helper, look for its storage.objects
   twin in live pg_policies (association-documents missed in #268, fixed by
   20261010030000).
+- Middleware timeouts (2026-10-11, deadline diff): a deadline turns a hang (504, closed) into an error. Found: on apex a failed `me` only blocked writes and skipped the MFA gate on reads; fixed in claude/middleware-deadlines (any identity error on a protected path -> 503, every method and host). Lesson: check every new error source against the MFA/operator gates.

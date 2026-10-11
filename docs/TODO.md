@@ -30,6 +30,11 @@ DNS or decisions). Details for the older items are further down.
       (Receivables) timed out; a small "burstable" size runs out of CPU
       allowance. Tell Claude what it shows; upgrading costs money, so it is
       your call.
+- [ ] **Let Auth use the bigger database** - Supabase dashboard -> project
+      condo-app -> Settings -> Database (or Auth) -> connection pooling for
+      Auth: switch from a fixed 10 connections to a percentage. Supabase's
+      advisor: after a compute upgrade a fixed number does not grow, so
+      sign-ins don't benefit from the upgrade. Free, a setting only.
 - [ ] **Stripe live for one pilot association** — Stripe Connect platform keys
       in Vercel (see "Set the platform Stripe keys in Vercel" below), then the
       association connects its own Stripe account.

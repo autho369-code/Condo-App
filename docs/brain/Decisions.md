@@ -2,6 +2,14 @@
 
 Back to [[Home]]. Don't redo these.
 
+- **Supabase "multiple permissive policies" warnings stay** (2026-10-11):
+  511 warnings on 165 tables (one policy per role: staff, board, resident,
+  vendor, operator). Since 20261011010000-60000 every policy helper runs
+  once per query; measured cost 0.2-2 ms per query. Merging policies per
+  table would risk who-sees-what for no visible speed. Revisit only if a
+  table is measured slow because of it. "Unused index" (889) notices: most
+  tables are still small; don't drop indexes on that signal alone.
+
 - **Project spend totals count every account, readable or not** (2026-10-10):
   the projects list total equals the project page total, which already adds
   spend on restricted GL accounts as one unnamed "Restricted accounts" line.
