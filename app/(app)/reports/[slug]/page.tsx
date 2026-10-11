@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/reports/workspace';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
-import { ReportRunError } from '@/components/reports/run-error';
+import { ReportChoiceSelect, ReportRunError } from '@/components/reports/run-error';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { wallDateTimeToIso } from '@/lib/time/zoned';
 import { queueReport, saveCustomReport, toggleReportFavorite } from '@/lib/rpcs/reports';
@@ -2421,15 +2421,17 @@ async function ReportRightRail({
           <div className="grid grid-cols-1 gap-2">
             <div>
               <label className="mb-0.5 block text-[12.5px] text-gray-500">Unit{unitRequired ? ' (required)' : ''}</label>
-              <select
+              <ReportChoiceSelect
                 name="param_unit_id"
-                defaultValue=""
+                param="unit"
+                allowed={sortedUnits.map((u: any) => u.id)}
+                fallback=""
                 required={unitRequired}
                 className="h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="">{unitRequired ? 'Select a unit…' : 'All units'}</option>
                 {sortedUnits.map((u: any) => <option key={u.id} value={u.id}>{unitLabel(u)}</option>)}
-              </select>
+              </ReportChoiceSelect>
             </div>
           </div>
         )}
@@ -2486,15 +2488,17 @@ async function ReportRightRail({
         {/* Format */}
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-700">Output format</label>
-          <select
+          <ReportChoiceSelect
             name="output_format"
-            defaultValue={def.output_formats?.[0] ?? 'csv'}
+            param="format"
+            allowed={supportedReportOutputFormats(def.output_formats)}
+            fallback={def.output_formats?.[0] ?? 'csv'}
             className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           >
             {supportedReportOutputFormats(def.output_formats).map((f) => (
               <option key={f} value={f}>{reportFormatLabel(f)}</option>
             ))}
-          </select>
+          </ReportChoiceSelect>
         </div>
 
         <Button type="submit" className="w-full">

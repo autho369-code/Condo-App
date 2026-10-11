@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { isSupportedReportOutputFormat, type SupportedReportOutputFormat } from '@/lib/reports/formats';
 import { computePeriod } from '@/lib/reports/period';
+import { keptReportChoices } from '@/lib/reports/kept-choices';
 
 /**
  * Queue a report run. The DB function stamps the portfolio_id + triggered_by
@@ -22,8 +23,12 @@ export async function queueReport(formData: FormData) {
   // the field can't redirect anywhere else), or the catalog.
   const returnTo = String(formData.get('return_to') ?? '');
   const back = /^\/reports\/[a-z0-9_]+$/.test(returnTo) ? returnTo : '/reports';
+  // A refused run keeps what the user chose, so the form comes back as
+  // submitted instead of with its defaults.
+  const kept = keptReportChoices(formData);
   const failTo = (msg: string) => {
-    redirect(`${back}?error=${encodeURIComponent(msg)}`);
+    kept.set('error', msg);
+    redirect(`${back}?${kept.toString()}`);
   };
 
   const definitionId = formData.get('definition_id') as string;
