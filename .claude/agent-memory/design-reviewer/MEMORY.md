@@ -11,6 +11,7 @@
 - Text-link -> `Button size="sm"` swaps in mixed rows (36d850ba): siblings left as text-xs links / px-2 py-1 pills give mixed 26px/40px heights (maintenance/page.tsx:367 `flex gap-1` stretches the Edit <a>); and plain ghost drops the red destructive cue the old link had. Convert the whole row, keep `text-red-600 hover:bg-red-50`.
 - Confirm sweeps: grep the touched files for leftover one-click `End`/`Cancel` submits (owners/[id] End seat :504, End :749, End tenancy :891; platform-operator companies Cancel invitation :522 were missed in 36d850ba).
 - `flex-1` on an Input inside `flex flex-col sm:flex-row` collapses it to ~19px at 375px (basis 0 in a column); fix `sm:flex-1` (Input is already w-full). Grep for it (reports/page.tsx:151, company-admin/managers:145 fixed 2026-10-10). In the same pass check sibling "Clear filters" text links (CalendarGrid.tsx:131 left ~16px).
+- `Select className="w-auto"` in a flex-wrap toolbar sizes to its longest option; a long name can overflow 375px. Suggest `w-auto max-w-full` (CalendarGrid.tsx:122, 2026-10-11).
 - Checkbox labels: `min-h-10` on the wrapping `<label>` satisfies the 40px target (whole label clicks the box).
 
 ## Useful checks
