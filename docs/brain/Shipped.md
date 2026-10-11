@@ -4,6 +4,12 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Metrics in one call (claude/metrics-one-call; migration 20261011120000,
+  LIVE): the page's month-by-month figures (6 requests per month, 72 a year)
+  come from one security-invoker function, metrics_monthly_trend, using the
+  same functions and filters: ~1.4 s for 12 months in the database (was 5-9 s
+  for the page two months at a time). 0 differing months for manager,
+  company admin and board, with and without an association filter.
 - Shared components (claude/shared-components-cleanup; no migration):
   calendar filters -> Select, Print/CSV/PDF export buttons -> Button
   (secondary, sm; on ~19 list pages), Reports search card and Company admin

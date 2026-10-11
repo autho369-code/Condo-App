@@ -4394,7 +4394,7 @@ id,role,route,type,item,guard,redesigned_location,verification
 "manager|/metrics|data|rpc:journal_line_totals","manager","/metrics","Data source","rpc:journal_line_totals","requireStaff","unchanged route","static parity: pending"
 "manager|/metrics|data|rpc:receivable_aging_buckets","manager","/metrics","Data source","rpc:receivable_aging_buckets","requireStaff","unchanged route","static parity: pending"
 "manager|/metrics|data|rpc:receivable_summary","manager","/metrics","Data source","rpc:receivable_summary","requireStaff","unchanged route","static parity: pending"
-"manager|/metrics|data|rpc:receivable_summary_as_of","manager","/metrics","Data source","rpc:receivable_summary_as_of","requireStaff","unchanged route","static parity: pending"
+"manager|/metrics|data|rpc:metrics_monthly_trend","manager","/metrics","Data source","rpc:metrics_monthly_trend","requireStaff","unchanged route","static parity: pending (replaces per-month rpc:receivable_summary_as_of, billing, journal and count reads, 2026-10-11: same figures in one call)"
 "manager|/metrics|data|rpc:report_data_delinquency","manager","/metrics","Data source","rpc:report_data_delinquency","requireStaff","unchanged route","static parity: pending"
 "manager|/metrics|data|rpc:unpaid_bills_total","manager","/metrics","Data source","rpc:unpaid_bills_total","requireStaff","unchanged route","static parity: pending"
 "manager|/metrics|data|rpc:vendor_1099_totals","manager","/metrics","Data source","rpc:vendor_1099_totals","requireStaff","unchanged route","static parity: pending"
