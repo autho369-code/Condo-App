@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { SegmentedButtons } from '@/components/ui/segmented'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { submitPlatformRequest } from './actions'
 import { Send, Clock, MessageSquare, RefreshCw } from 'lucide-react'
@@ -106,30 +108,12 @@ export default function PlatformRequestsPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex w-fit gap-1 rounded-xl border border-gray-200/80 bg-white p-1 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <button
-          onClick={() => { setActiveTab('submit'); setMsg(null) }}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            activeTab === 'submit'
-              ? 'bg-gray-950 text-white shadow-sm'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
-          }`}
-        >
-          <Send className="mr-1.5 inline h-4 w-4" />
-          Submit Request
-        </button>
-        <button
-          onClick={() => { setActiveTab('history'); fetchRequests() }}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            activeTab === 'history'
-              ? 'bg-gray-950 text-white shadow-sm'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
-          }`}
-        >
-          <Clock className="mr-1.5 inline h-4 w-4" />
-          Request History
-        </button>
-      </div>
+      <SegmentedButtons label="Platform requests" value={activeTab}
+        items={[{ id: 'submit', label: 'Submit Request', icon: Send }, { id: 'history', label: 'Request History', icon: Clock }]}
+        onChange={(id) => {
+          if (id === 'submit') { setActiveTab('submit'); setMsg(null) }
+          else { setActiveTab('history'); fetchRequests() }
+        }} />
 
       {/* Submit Request Tab */}
       {activeTab === 'submit' && (
@@ -202,13 +186,10 @@ export default function PlatformRequestsPage() {
         <div className={card}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
             <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Request History</h2>
-            <button
-              onClick={fetchRequests}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-950"
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={fetchRequests}>
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
               Refresh
-            </button>
+            </Button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

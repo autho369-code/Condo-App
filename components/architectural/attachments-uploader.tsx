@@ -4,6 +4,7 @@
 // once (plans, drawings, quotes, photos); each uploads directly
 // browser→Supabase Storage via a signed URL — one at a time so nothing is
 // overloaded, and far past Vercel's ~4.5 MB server-action body cap.
+import { Button } from '@/components/ui/button';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Paperclip, Upload } from 'lucide-react';
@@ -77,17 +78,12 @@ export function ArcAttachmentsUploader({
           multiple
           disabled={busy}
           accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx,.xls,.xlsx"
-          className="block text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800 disabled:opacity-50"
+          className="block text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800 disabled:opacity-50"
         />
-        <button
-          type="button"
-          onClick={handleUpload}
-          disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50 disabled:opacity-50"
-        >
+        <Button type="button" variant="secondary" size="sm" onClick={handleUpload} disabled={busy}>
           {busy ? <Upload className="h-4 w-4 animate-pulse text-gray-400" /> : <Paperclip className="h-4 w-4 text-gray-400" />}
           {busy ? 'Uploading…' : 'Upload'}
-        </button>
+        </Button>
       </div>
       {statuses.length > 0 && (
         <ul className="space-y-1 text-xs">

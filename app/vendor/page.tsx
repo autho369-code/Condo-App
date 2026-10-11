@@ -115,13 +115,13 @@ export default async function VendorDashboard() {
         <Metric label="Emergency" value={emergencies.length} accent={emergencies.length > 0 ? 'red' : undefined} />
         <Metric label="Scheduled" value={scheduled.length} />
         <Metric label="Completed" value={completed.length} sub="recent history" accent="emerald" />
-        <Metric label="Pending payment" value={money(pendingPay)} sub={<Link href="/vendor/payments" className="underline underline-offset-2">payment status</Link>} />
+        <Metric label="Pending payment" value={money(pendingPay)} sub={<Link href="/vendor/payments" className="-my-3 inline-block py-3 underline underline-offset-2">payment status</Link>} />
         <Metric label="All assigned" value={wos.length} sub="last 100 shown" />
       </MetricStrip>
 
       <Surface padded={false}>
         <SectionTitle title="Open work orders" className="px-5 pt-5 sm:px-6" actions={
-          <Link href="/vendor/work-orders" className="flex items-center gap-1 text-[13px] font-medium text-blue-600 hover:text-blue-800">
+          <Link href="/vendor/work-orders" className="flex min-h-10 items-center gap-1 text-[13px] font-medium text-blue-600 hover:text-blue-800">
             View all <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         } />

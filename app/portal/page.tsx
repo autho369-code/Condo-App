@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { StatTile } from '@/components/ui/stat-tile'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { Badge, Alert } from '@/components/ui/shell'
@@ -146,23 +147,14 @@ export default async function OwnerDashboard() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: 'Current Balance', value: money(totalDue), color: totalDue > 0 ? 'text-red-700' : 'text-emerald-700', href: '/portal/ledger', hint: 'View ledger' },
-          { label: 'Open Work Orders', value: openWOCount, color: 'text-gray-950' },
-          { label: 'Open Violations', value: openViolations, color: openViolations > 0 ? 'text-amber-700' : 'text-gray-950' },
-          { label: 'Next Due', value: occs.length > 0 ? nextDue : '—', color: 'text-gray-950' },
-        ].map(s => {
-          const inner = (
-            <>
-              <div className="text-[13px] font-medium leading-5 text-gray-500">{s.label}</div>
-              <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${s.color}`}>{s.value}</div>
-              {s.hint && <div className="mt-1 text-[12.5px] font-medium text-gray-500">{s.hint} →</div>}
-            </>
-          )
-          const cls = 'rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
-          return s.href
-            ? <Link key={s.label} href={s.href} className={cls + ' block transition hover:border-gray-300 hover:bg-gray-50/60'}>{inner}</Link>
-            : <div key={s.label} className={cls}>{inner}</div>
-        })}
+          { label: 'Current Balance', value: money(totalDue), tone: totalDue > 0 ? 'danger' as const : 'success' as const, href: '/portal/ledger', hint: 'View ledger' },
+          { label: 'Open Work Orders', value: openWOCount, tone: 'default' as const },
+          { label: 'Open Violations', value: openViolations, tone: openViolations > 0 ? 'warning' as const : 'default' as const },
+          { label: 'Next Due', value: occs.length > 0 ? nextDue : '—', tone: 'default' as const },
+        ].map(s => (
+          <StatTile key={s.label} label={s.label} value={s.value} tone={s.tone} href={s.href}
+            sub={s.hint ? <span className="font-medium">{s.hint} →</span> : undefined} />
+        ))}
       </div>
 
       {/* Quick actions */}
@@ -304,19 +296,19 @@ export default async function OwnerDashboard() {
         <div className={card}>
           <h2 className="mb-4 text-sm font-semibold text-gray-950">Your Management Company</h2>
           {support ? (
-            <div className="space-y-2.5">
+            <div className="space-y-1">
               {support.name && <div className="text-sm font-medium text-gray-900">{support.name}</div>}
               {support.email && (
-                <a href={`mailto:${support.email}`} className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-950 hover:underline">
+                <a href={`mailto:${support.email}`} className="flex min-h-10 items-center gap-2 text-sm text-gray-700 hover:text-gray-950 hover:underline">
                   <Mail className="h-4 w-4 text-gray-400" /> {support.email}
                 </a>
               )}
               {support.phone && (
-                <a href={`tel:${support.phone}`} className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-950 hover:underline">
+                <a href={`tel:${support.phone}`} className="flex min-h-10 items-center gap-2 text-sm text-gray-700 hover:text-gray-950 hover:underline">
                   <Phone className="h-4 w-4 text-gray-400" /> {support.phone}
                 </a>
               )}
-              <Link href="/portal/communications" className="inline-flex items-center gap-1.5 pt-1 text-sm font-medium text-gray-600 hover:text-gray-950 hover:underline">
+              <Link href="/portal/communications" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-950 hover:underline">
                 <MessageSquare className="h-4 w-4 text-gray-400" /> Send a message
               </Link>
             </div>

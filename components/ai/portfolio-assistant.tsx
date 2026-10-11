@@ -138,7 +138,7 @@ export function PortfolioAssistant({
                   key={s}
                   type="button"
                   onClick={() => ask(s)}
-                  className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[13px] font-medium text-gray-700 transition-colors hover:border-gray-400 hover:bg-gray-50"
+                  className="min-h-10 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[13px] font-medium text-gray-700 transition-colors hover:border-gray-400 hover:bg-gray-50"
                 >
                   {s}
                 </button>

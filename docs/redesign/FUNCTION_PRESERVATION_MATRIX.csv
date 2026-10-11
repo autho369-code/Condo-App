@@ -9189,7 +9189,7 @@ id,role,route,type,item,guard,redesigned_location,verification
 "vendor|/vendor/assistant|link|/settings/ai","vendor","/vendor/assistant","Link / navigation","/settings/ai","requireVendor","unchanged route","static parity: pending"
 "vendor|/vendor/compliance|page","vendor","/vendor/compliance","Screen","app/vendor/compliance/page.tsx","requireVendor","unchanged route","static parity: pending"
 "vendor|/vendor/compliance|link|/vendor/compliance?:paramsaved_document=1","vendor","/vendor/compliance","Link / navigation","/vendor/compliance?:paramsaved_document=1","requireVendor","unchanged route","static parity: pending"
-"vendor|/vendor/compliance|link|/vendor/compliance?record=:param","vendor","/vendor/compliance","Link / navigation","/vendor/compliance?record=:param","requireVendor","unchanged route","static parity: pending"
+"vendor|/vendor/compliance|link|:param?record=:param","vendor","/vendor/compliance","Link / navigation",":param?record=:param","requireVendor","unchanged route","static parity: pending (now the shared RecordSwitcher, as on the owner portal; same /vendor/compliance?record=<id> links, 2026-10-11)"
 "vendor|/vendor/compliance|action|createVendorUpload","vendor","/vendor/compliance","Form or server action","createVendorUpload","requireVendor","unchanged route","static parity: pending"
 "vendor|/vendor/compliance|action|save","vendor","/vendor/compliance","Form or server action","save","requireVendor","unchanged route","static parity: pending"
 "vendor|/vendor/compliance|action|saveVendorComplianceDocument","vendor","/vendor/compliance","Form or server action","saveVendorComplianceDocument","requireVendor","unchanged route","static parity: pending"

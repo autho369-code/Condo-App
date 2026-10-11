@@ -14,6 +14,25 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   same functions and filters: ~1.4 s for 12 months in the database (was 5-9 s
   for the page two months at a time). 0 differing months for manager,
   company admin and board, with and without an association filter.
+- Design follow-ups (claude/design-followups; no migration): shared StatTile
+  replaces 12 hand-built figure tiles; shared segmented control for every
+  pill switcher (vendor filter, calendar views, platform-request tabs,
+  RecordSwitcher, vendor compliance); vendor forms on the shared form kit.
+  Documented in DESIGN_SYSTEM.md.
+- Board, vendor and company admin at phone width
+  (claude/board-vendor-admin-tap-targets; no migration): signed in per role
+  at 375 px, 37 pages, no horizontal overflow. Tap targets raised to 40 px;
+  figure tiles fixed where large amounts spilled out (12 hand-built copies
+  plus the shared Metric/MetricStrip). Follow-ups in docs/redesign/PROGRESS.md.
+- Owner portal at phone width (claude/owner-portal-tap-targets; no
+  migration): signed in as owner2 at 375 px, all 24 portal pages plus a
+  work order: no horizontal overflow. Raised to 40 px: dashboard and
+  Emergency contact/action links, "Back to work orders", assistant
+  suggestion chips (shared by every role's assistant), ledger Print/CSV/PDF
+  (shared Button), file-upload buttons (8 forms), reminder checkbox
+  labels, insurance certificate link, attachments Upload (shared Button).
+  Finding for Mirsad: Stellar has no support phone/email set, so owners'
+  Emergency page shows no contact for the management company.
 - Per-row database calls limited (claude/limit-per-row-rpcs; no
   migration): Payment plans read one schedule per plan (up to 500 at once)
   and Delinquencies one referral-readiness check per case, all at once;

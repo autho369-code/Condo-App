@@ -47,7 +47,7 @@ export default async function OwnerWorkOrderDetail({ params, searchParams }: { p
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Link href="/portal/work-orders" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-950"><ArrowLeft className="h-4 w-4" /> Back to work orders</Link>
+      <Link href="/portal/work-orders" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-950"><ArrowLeft className="h-4 w-4" /> Back to work orders</Link>
 
       {sp.error && <Alert tone="danger" title="Could not post message:">{sp.error}</Alert>}
 
