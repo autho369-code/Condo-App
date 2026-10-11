@@ -4,6 +4,13 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Metrics month-end receivables in one pass (claude/metrics-month-ends;
+  migration 20261011130000, LIVE): receivable_summary_by_months replaces
+  twelve receivable_summary_as_of calls inside metrics_monthly_trend
+  (join, not a per-row subquery, so it scales with payment applications).
+  Identical results incl. back-dated charges and partial payments; the call
+  1.6-2.9 s -> 0.16-0.33 s; /metrics 1.7-2.1 s signed in as a manager
+  (was 4.6-5.2 s before #301).
 - Metrics: monthly call runs alongside the snapshot (claude/metrics-parallel;
   on #301): measured signed in as a manager, /metrics 4.6-5.2 s before #301,
   3.6-3.8 s with #301, 2.7-2.8 s with this. Remaining: the 12-month
