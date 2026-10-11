@@ -5586,19 +5586,17 @@
      "PDF"
     ],
     "data": [
-     "rpc:receivable_unit_totals",
+     "rpc:receivables_page_totals",
      "table:aged_receivables",
      "table:associations",
      "table:charges",
-     "table:delinquent_units",
      "table:lockbox_batches",
      "table:occupancies",
      "table:owners",
      "table:receivable_payments_ledger",
      "table:unit_owners",
      "table:units",
-     "table:v_charge_balances",
-     "table:v_charges_by_category"
+     "table:v_charge_balances"
     ],
     "guard": [
      "requireStaff"
