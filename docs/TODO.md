@@ -74,8 +74,22 @@ Every AppFolio page is built; these need access, accounts or decisions first.
         valid .xlsx (spreadsheetml type, 1 sheet, 21 rows: title lines,
         headers, 17 owners). A refused run now returns to the same report
         with the reason above the form (was: the Reports list).
-  - [ ] End-to-end checks of the 2026-10-04 work: batch letters print, Forms
-        upload + owner-portal download, Inbox saved replies/search.
+  - [x] End-to-end checks of the 2026-10-04 work. DONE 2026-10-10 on
+        production data (local server on main):
+        - Batch letters: Randolph Station -> "Print 17 letters", one per
+          homeowner; clear warnings for empty merge fields and the 17
+          homeowners with no mailing address. Nothing printed or saved.
+        - Forms: manager uploaded a test PDF (browser -> storage), saved as a
+          Homeowners form; signed in as owner2 the portal's Download link
+          (signed, time-limited) returned the same PDF. Then archived (the
+          app archives; the record and file stay).
+        - Saved replies: created an email template; stored in the company
+          with channel email, which is what the Inbox reply box loads. Then
+          deleted. Not seen inside a conversation: production has none.
+        - Inbox search: loads without errors; nothing to find (0 threads).
+  - [ ] Inbox with a real conversation (saved reply in the reply box, search
+        results). Starting one sends a message to a homeowner: needs a test
+        address from Mirsad.
 
 ### Known issue to fix
 - [x] **Forms upload size on Vercel.** FIXED 2026-10-04: the file now goes
