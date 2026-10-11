@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SegmentedLinks } from '@/components/ui/segmented';
 import { Wrench } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireVendor } from '@/lib/auth/me';
@@ -48,20 +49,8 @@ export default async function VendorWorkOrders({
       {error && <Alert tone="danger" title="Could not load work orders:" className="mb-4">{error.message}</Alert>}
       {sp.error && <Alert tone="danger" className="mb-4">{sp.error}</Alert>}
 
-      <div className="mb-4 inline-flex rounded-xl border border-gray-200/80 bg-white p-1 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        {FILTERS.map((f) => (
-          <Link
-            key={f.id}
-            href={`/vendor/work-orders?f=${f.id}`}
-            className={
-              'flex h-10 items-center justify-center rounded-lg px-4 text-[13px] font-medium transition-colors ' +
-              (filter === f.id ? 'bg-gray-950 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900')
-            }
-          >
-            {f.label}
-          </Link>
-        ))}
-      </div>
+      <SegmentedLinks label="Show work orders" className="mb-4" current={filter}
+        items={FILTERS.map((f) => ({ id: f.id, label: f.label, href: `/vendor/work-orders?f=${f.id}` }))} />
 
       <Surface padded={false}>
         {rows.length === 0 ? (

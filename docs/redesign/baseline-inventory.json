@@ -17343,7 +17343,7 @@
    "caps": {
     "link": [
      "/vendor/compliance?:paramsaved_document=1",
-     "/vendor/compliance?record=:param"
+     ":param?record=:param"
     ],
     "action": [
      "createVendorUpload",

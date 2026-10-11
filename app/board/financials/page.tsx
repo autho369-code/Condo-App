@@ -1,4 +1,5 @@
 import { glDebitBalances, incomeExpenseTotals } from '@/lib/finance/totals'
+import { StatTile, type StatTone } from '@/components/ui/stat-tile'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
@@ -24,28 +25,15 @@ function StatCard({
   value,
   sub,
   icon: Icon,
-  valueClass = 'text-gray-950',
+  tone,
 }: {
   label: string
   value: React.ReactNode
   sub?: React.ReactNode
   icon: React.ElementType
-  valueClass?: string
+  tone?: StatTone
 }) {
-  return (
-    <div className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-      <div className="flex items-start justify-between">
-        <div className="min-w-0">
-          <div className="text-[13px] font-medium text-gray-500">{label}</div>
-          <div className={`mt-1.5 text-lg font-semibold tabular-nums [overflow-wrap:anywhere] sm:text-2xl ${valueClass}`}>{value}</div>
-          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
-        </div>
-        <div className="hidden h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70 sm:flex">
-          <Icon className="h-4.5 w-4.5 text-gray-400" />
-        </div>
-      </div>
-    </div>
-  )
+  return <StatTile label={label} value={value} sub={sub} icon={Icon} tone={tone} />
 }
 
 export default async function BoardFinancialsPage() {
@@ -316,7 +304,7 @@ export default async function BoardFinancialsPage() {
           value={ytdFailed ? '—' : money(netOperatingIncome)}
           sub={`${fyLabel} year-to-date`}
           icon={DollarSign}
-          valueClass={netOperatingIncome >= 0 ? 'text-emerald-700' : 'text-red-700'}
+          tone={netOperatingIncome >= 0 ? 'success' : 'danger'}
         />
         <StatCard
           label="Bank Balance"
@@ -335,7 +323,7 @@ export default async function BoardFinancialsPage() {
           value={varianceFailed ? '—' : `${budgetVariancePct >= 0 ? '+' : ''}${budgetVariancePct}%`}
           sub={`vs. ${fyLabel} budget to date`}
           icon={AlertTriangle}
-          valueClass={Math.abs(budgetVariancePct) <= 5 ? 'text-emerald-700' : Math.abs(budgetVariancePct) <= 15 ? 'text-amber-700' : 'text-red-700'}
+          tone={Math.abs(budgetVariancePct) <= 5 ? 'success' : Math.abs(budgetVariancePct) <= 15 ? 'warning' : 'danger'}
         />
       </div>
 

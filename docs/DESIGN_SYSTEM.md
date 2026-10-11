@@ -38,6 +38,10 @@ or `StatusChip` (`components/operations/status-chip.tsx`). Never hand-pick statu
 - `Surface`, `SectionTitle`, `MetricStrip`/`Metric`, `EmptyState`, `Alert`,
   `Badge` — `components/ui/shell.tsx`
 - `MetricStrip` (data-driven variant) — `components/operations/metric-strip.tsx`
+- `StatTile` — `components/ui/stat-tile.tsx` — one figure in a dashboard
+  grid that needs a tone (danger/warning/success), an icon or a whole-tile
+  link. Use `MetricStrip`/`Metric` for plain list-page summary strips.
+  Smaller value and no icon on phones, so amounts fit a 2-column grid.
 - `DataTable` / `Table,THead,TR,TH,TD` — `components/ui/table.tsx`
 - `FilterBar` + `FilterSelect` — `components/operations/filter-bar.tsx`
 
@@ -55,9 +59,15 @@ or `StatusChip` (`components/operations/status-chip.tsx`). Never hand-pick statu
   `association_id` field and offers only that association's owners (before
   one is chosen, pass `associationNames` so each option names its
   association). Put the association field before the owner field.
-- `RecordSwitcher` — `components/ui/record-switcher.tsx` — owner portal
-  pages that work on one record at a time (insurance, contact details):
-  pills linking `?record=<id>`, shown only when the login has 2+ records.
+- `SegmentedLinks` / `SegmentedButtons` — `components/ui/segmented.tsx` —
+  every pill switcher: links for choices that are URLs (filters, aria-current),
+  buttons for choices handled in the page (views, tabs; aria-pressed). 40px
+  pills, the current one filled. Not for section navigation (that is
+  `AssociationTabs`).
+- `RecordSwitcher` — `components/ui/record-switcher.tsx` — portal pages that
+  work on one record at a time (insurance, contact details, vendor
+  compliance): `SegmentedLinks` to `?record=<id>`, shown only when the login
+  has 2+ records.
 - Forms live inside `Surface`; one column on mobile, `sm:grid-cols-2` where
   fields pair naturally; primary action bottom-left, `Button` md size.
 

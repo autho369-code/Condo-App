@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Design follow-ups (claude/design-followups; no migration): shared StatTile
+  replaces 12 hand-built figure tiles; shared segmented control for every
+  pill switcher (vendor filter, calendar views, platform-request tabs,
+  RecordSwitcher, vendor compliance); vendor forms on the shared form kit.
+  Documented in DESIGN_SYSTEM.md.
 - Board, vendor and company admin at phone width
   (claude/board-vendor-admin-tap-targets; no migration): signed in per role
   at 375 px, 37 pages, no horizontal overflow. Tap targets raised to 40 px;

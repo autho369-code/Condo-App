@@ -1,4 +1,5 @@
 import { glDebitBalances, incomeExpenseTotals, receivableAgingBuckets, unpaidBillsTotal } from '@/lib/finance/totals'
+import { StatTile } from '@/components/ui/stat-tile'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { fiscalMonthsElapsed, fiscalYearFor } from '@/lib/budget/fiscal'
 import Link from 'next/link'
@@ -37,20 +38,7 @@ function StatCard({
   icon: React.ElementType
   tone?: 'danger' | 'warning' | 'success'
 }) {
-  return (
-    <div className={`${card} px-4 py-3.5`}>
-      <div className="flex items-start justify-between">
-        <div className="min-w-0">
-          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
-          <div className={`mt-1.5 text-lg font-semibold tabular-nums [overflow-wrap:anywhere] sm:text-2xl ${tone === 'danger' ? 'text-red-700' : tone === 'warning' ? 'text-amber-700' : tone === 'success' ? 'text-emerald-700' : 'text-gray-950'}`}>{value}</div>
-          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
-        </div>
-        <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70 sm:flex">
-          <Icon className="h-4.5 w-4.5 text-gray-400" />
-        </div>
-      </div>
-    </div>
-  )
+  return <StatTile label={label} value={value} sub={sub} icon={Icon} tone={tone} />
 }
 
 export default async function FinancialOversightPage() {

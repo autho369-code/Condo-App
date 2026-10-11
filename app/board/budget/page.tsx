@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { StatTile } from '@/components/ui/stat-tile'
 import { requireBoard } from '@/lib/auth/me'
 import { ExportActions, type ExportTable } from '@/components/export/export-actions'
 import { money } from '@/lib/utils'
@@ -126,15 +127,12 @@ export default async function BoardBudgetPage() {
             {/* Summary cards */}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {[
-                { label: `YTD Budget (thru ${report.labels[report.elapsed - 1]})`, value: money(ytdNetBudget), cls: 'text-gray-950' },
-                { label: 'YTD Actual', value: money(ytdNetActual), cls: ytdNetActual >= ytdNetBudget ? 'text-emerald-700' : 'text-red-700' },
-                { label: 'Variance', value: money(ytdNetActual - ytdNetBudget), cls: (ytdNetActual - ytdNetBudget) >= 0 ? 'text-emerald-700' : 'text-red-700' },
-                { label: 'Variance %', value: ytdNetBudget !== 0 ? `${(((ytdNetActual - ytdNetBudget) / ytdNetBudget) * 100).toFixed(1)}%` : '—', cls: (ytdNetActual - ytdNetBudget) >= 0 ? 'text-emerald-700' : 'text-red-700' },
+                { label: `YTD Budget (thru ${report.labels[report.elapsed - 1]})`, value: money(ytdNetBudget), tone: 'default' as const },
+                { label: 'YTD Actual', value: money(ytdNetActual), tone: ytdNetActual >= ytdNetBudget ? 'success' as const : 'danger' as const },
+                { label: 'Variance', value: money(ytdNetActual - ytdNetBudget), tone: (ytdNetActual - ytdNetBudget) >= 0 ? 'success' as const : 'danger' as const },
+                { label: 'Variance %', value: ytdNetBudget !== 0 ? `${(((ytdNetActual - ytdNetBudget) / ytdNetBudget) * 100).toFixed(1)}%` : '—', tone: (ytdNetActual - ytdNetBudget) >= 0 ? 'success' as const : 'danger' as const },
               ].map(s => (
-                <div key={s.label} className={`${card} px-4 py-3.5`}>
-                  <div className="text-[13px] font-medium leading-5 text-gray-500">{s.label}</div>
-                  <div className={`mt-1.5 text-lg font-semibold tabular-nums [overflow-wrap:anywhere] sm:text-2xl ${s.cls}`}>{s.value}</div>
-                </div>
+                <StatTile key={s.label} label={s.label} value={s.value} tone={s.tone} />
               ))}
             </div>
 

@@ -1,13 +1,15 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { Field, Input, Select } from '@/components/ui/input';
+import { Alert } from '@/components/ui/shell';
+import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 
 import { createVendorUpload, saveVendorComplianceDocument } from '@/lib/rpcs/vendor-submissions';
 import { createClient } from '@/lib/supabase/client';
 
 const BUCKET = 'association-documents';
-const inputClass = 'mt-1 block min-h-10 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15';
 
 export function ComplianceDocumentForm({
   requests,
@@ -60,10 +62,10 @@ export function ComplianceDocumentForm({
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <Alert tone="danger">{error}</Alert>}
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Document type</span>
-          <select name="document_type" required className={inputClass}>
+        <Field label="Document type" htmlFor="vc-document-type" required>
+          <Select id="vc-document-type" name="document_type" required>
             <option value="workers_comp">Workers compensation</option>
             <option value="general_liability">General liability</option>
             <option value="auto_insurance">Auto insurance</option>
@@ -72,28 +74,28 @@ export function ComplianceDocumentForm({
             <option value="contract">Contract</option>
             <option value="w9">W-9</option>
             <option value="other">Other</option>
-          </select>
-        </label>
-        <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Expiration date</span>
-          <input type="date" name="expires_at" className={inputClass} />
-        </label>
+          </Select>
+        </Field>
+        <Field label="Expiration date" htmlFor="vc-expires-at">
+          <Input id="vc-expires-at" type="date" name="expires_at" />
+        </Field>
       </div>
       {requests.length > 0 && (
-        <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Related request</span>
-          <select name="request_id" className={inputClass}>
+        <Field label="Related request" htmlFor="vc-request">
+          <Select id="vc-request" name="request_id">
             <option value="">Not tied to a request</option>
             {requests.map((request) => <option key={request.id} value={request.id}>{request.name} ({request.doc_type.replace(/_/g, ' ')})</option>)}
-          </select>
-        </label>
+          </Select>
+        </Field>
       )}
       <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Document</span>
         <input ref={fileRef} type="file" required accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx" disabled={busy}
           className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white disabled:opacity-50" />
         <span className="mt-1 block text-xs text-gray-400">Private upload, maximum 25 MB.</span>
       </label>
-      <button type="submit" disabled={busy} className="rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60">
+      <Button type="submit" disabled={busy}>
         {busy ? 'Uploading…' : 'Upload document'}
-      </button>
+      </Button>
     </form>
   );
 }
