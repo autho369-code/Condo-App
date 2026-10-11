@@ -6,7 +6,7 @@ import { FilterSelect } from '@/components/operations/filter-bar';
 import { ReportingTabs } from '@/components/reports/reporting-tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Alert } from '@/components/ui/shell';
+import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { REPORT_CATALOG, type CatalogReport } from '@/lib/reports/appfolio-catalog';
 import { createClient } from '@/lib/supabase/server';
@@ -146,7 +146,7 @@ export default async function ReportsIndex({
         {sp.saved_report && <Alert tone="success">Custom report saved.</Alert>}
         {sp.deleted && <Alert tone="success">Custom report deleted.</Alert>}
 
-        <div className="rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <Surface padded={false} className="p-4">
           <form action="/reports" method="get" className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input type="search" name="q" defaultValue={q} placeholder="Search reports, e.g. delinquency, 1099, trial balance" aria-label="Search reports" className="h-11 min-w-0 text-[15px] sm:flex-1" />
             <Button type="submit" size="lg">Search</Button>
@@ -159,7 +159,7 @@ export default async function ReportsIndex({
               <CategoryChip href="#saved" label="Saved" count={savedVisible.length} />
             </nav>
           )}
-        </div>
+        </Surface>
 
         {(favorites.length > 0 || pinnedSaved.length > 0) && (
           <ReportSection id="favorites" title="Favorite Reports" count={favorites.length + pinnedSaved.length}>

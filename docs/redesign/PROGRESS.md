@@ -82,9 +82,10 @@ no Supabase schema, policy, RPC or integration change; the parity test
   - Print / CSV / PDF export buttons 33 px, report category chips 36 px,
     calendar Month/Week/Day/Agenda 29 px, its filters 36 px and its "Clear
     filters" link: all 40 px.
-- Design debt noted by design-reviewer (unchanged): the calendar filters
-  are hand-made selects, not the shared Select; export buttons are
-  hand-made, not Button; two hand-made cards on Reports and Managers.
+- Design debt noted by design-reviewer: FIXED 2026-10-11
+  (claude/shared-components-cleanup): calendar filters use the shared
+  Select, export buttons the shared Button (secondary, sm), and the Reports
+  search card and Company admin invite card the shared Surface.
 - Left as is: the calendar's own previous/next/today buttons (38-39 px,
   from the calendar library's styles).
 - Still to check at phone width: owner, board, vendor and company-admin

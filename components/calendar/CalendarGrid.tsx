@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { Select } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -118,16 +119,16 @@ export default function CalendarGrid({ associations, initialAssocId, initialType
           ))}
         </div>
         <div className="h-6 w-px bg-gray-200" />
-        <select value={assocId} onChange={(e) => { setAssocId(e.target.value); navigate(e.target.value, typeFilter); }}
-          className="h-10 rounded border border-gray-200 bg-white px-3 text-xs text-gray-700">
+        <Select value={assocId} onChange={(e) => { setAssocId(e.target.value); navigate(e.target.value, typeFilter); }}
+          aria-label="Association" className="w-auto max-w-full text-xs">
           <option value="">All associations</option>
           {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
-        <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); navigate(assocId, e.target.value); }}
-          className="h-10 rounded border border-gray-200 bg-white px-3 text-xs text-gray-700">
+        </Select>
+        <Select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); navigate(assocId, e.target.value); }}
+          aria-label="Event type" className="w-auto max-w-full text-xs">
           <option value="">All event types</option>
           {EVENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
+        </Select>
         {hasFilter && <Link href="/calendar" className="inline-flex min-h-10 items-center text-xs text-gray-500 hover:text-gray-700">Clear filters</Link>}
       </div>
 

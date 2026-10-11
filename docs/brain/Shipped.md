@@ -3,6 +3,13 @@
 Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
+## 2026-10-11
+- Shared components (claude/shared-components-cleanup; no migration):
+  calendar filters -> Select, Print/CSV/PDF export buttons -> Button
+  (secondary, sm; on ~19 list pages), Reports search card and Company admin
+  invite card -> Surface. Checked at 375 px and desktop: 40 px controls,
+  no horizontal overflow, same card padding and radius.
+
 ## 2026-10-10
 - Receivables page totals in one call (claude/receivables-page-totals;
   migration 20261011100000, LIVE): /charges ran six queries at once over

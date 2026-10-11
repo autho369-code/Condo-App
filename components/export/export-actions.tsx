@@ -8,6 +8,7 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { Download, FileText, Printer } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export type ExportTable = {
   /** Optional section heading shown above the table in PDF/CSV */
@@ -107,20 +108,17 @@ export function ExportActions({
     doc.save(`${filename}.pdf`);
   }
 
-  const btn =
-    'inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-[13px] font-medium text-gray-800 shadow-sm transition hover:bg-gray-50';
-
   return (
     <div className="flex flex-wrap gap-2 print:hidden">
-      <button type="button" onClick={() => window.print()} className={btn}>
+      <Button type="button" variant="secondary" size="sm" onClick={() => window.print()}>
         <Printer className="h-3.5 w-3.5 text-gray-400" /> Print
-      </button>
-      <button type="button" onClick={downloadCsv} className={btn}>
+      </Button>
+      <Button type="button" variant="secondary" size="sm" onClick={downloadCsv}>
         <Download className="h-3.5 w-3.5 text-gray-400" /> CSV
-      </button>
-      <button type="button" onClick={downloadPdf} className={btn}>
+      </Button>
+      <Button type="button" variant="secondary" size="sm" onClick={downloadPdf}>
         <FileText className="h-3.5 w-3.5 text-gray-400" /> PDF
-      </button>
+      </Button>
     </div>
   );
 }
