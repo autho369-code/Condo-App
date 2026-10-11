@@ -9,6 +9,15 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   (secondary, sm; on ~19 list pages), Reports search card and Company admin
   invite card -> Surface. Checked at 375 px and desktop: 40 px controls,
   no horizontal overflow, same card padding and radius.
+- Supabase compute upgraded by Mirsad (2026-10-11). Re-measured: cold
+  connection totals 378 ms (was 5.5 s), with homeowner filter 278 ms (was
+  12 s); Receivables page 1.2-2.4 s, no errors (was 15-29 s with errors);
+  dashboard, accounting, command center, units, owners, management fees
+  2-3 s, no errors.
+- Metrics page two months at a time (claude/metrics-fewer-parallel; no
+  migration): it fired 72 queries at once (6 per month x 12) and timed out
+  after ~18 s even after the upgrade. New lib/db/map-limit.ts (tested);
+  now 5-9 s with no errors. Three at a time had a 35 s outlier.
 - Receivables plan cache (claude/receivables-plan-cache; migration
   20261011110000, LIVE): receivables_page_totals and receivable_unit_totals
   use plan_cache_mode = force_generic_plan, so a connection plans their
