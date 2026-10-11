@@ -4,6 +4,15 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Owner portal at phone width (claude/owner-portal-tap-targets; no
+  migration): signed in as owner2 at 375 px, all 24 portal pages plus a
+  work order: no horizontal overflow. Raised to 40 px: dashboard and
+  Emergency contact/action links, "Back to work orders", assistant
+  suggestion chips (shared by every role's assistant), ledger Print/CSV/PDF
+  (shared Button), file-upload buttons (8 forms), reminder checkbox
+  labels, insurance certificate link, attachments Upload (shared Button).
+  Finding for Mirsad: Stellar has no support phone/email set, so owners'
+  Emergency page shows no contact for the management company.
 - Shared components (claude/shared-components-cleanup; no migration):
   calendar filters -> Select, Print/CSV/PDF export buttons -> Button
   (secondary, sm; on ~19 list pages), Reports search card and Company admin
