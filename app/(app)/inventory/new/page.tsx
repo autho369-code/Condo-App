@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -50,7 +50,7 @@ export default async function NewInventoryItemPage({ searchParams }: { searchPar
     <DataWorkspace
       title="New inventory item"
       description="Add a part, supply, or consumable to the managed inventory."
-      actions={<Link href="/inventory"><Button variant="secondary">Back to inventory</Button></Link>}
+      actions={<Link href="/inventory" className={buttonClass('secondary')}>Back to inventory</Link>}
     >
       <div className="max-w-3xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not create item">{sp.error}</Alert>}

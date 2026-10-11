@@ -7,7 +7,7 @@ import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { describeSchedule } from '@/lib/reports/schedule';
 import { archiveSchedule, setScheduleActive } from '@/lib/rpcs/scheduled-reports';
@@ -71,8 +71,8 @@ export default async function ScheduledReportsPage({
       description="Reports that run automatically on a schedule and are emailed to the people you choose. Each runs with the access of the person who last set its report or recipients."
       actions={
         <>
-          <Link href="/reports/runs"><Button variant="secondary">Report history</Button></Link>
-          <Link href="/scheduled-reports/new"><Button><Plus className="h-4 w-4" /> New scheduled report</Button></Link>
+          <Link href="/reports/runs" className={buttonClass('secondary')}>Report history</Link>
+          <Link href="/scheduled-reports/new" className={buttonClass()}><Plus className="h-4 w-4" /> New scheduled report</Link>
         </>
       }
     >
@@ -134,7 +134,7 @@ export default async function ScheduledReportsPage({
                     </TD>
                     <TD>
                       <div className="flex items-center justify-end gap-1">
-                        <Link href={`/scheduled-reports/${s.id}`}><Button variant="secondary" size="sm">Edit</Button></Link>
+                        <Link href={`/scheduled-reports/${s.id}`} className={buttonClass('secondary', 'sm')}>Edit</Link>
                         {s.active && (
                           <form action={runScheduleNow as any}>
                             <input type="hidden" name="id" value={s.id} />

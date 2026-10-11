@@ -7,7 +7,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
@@ -383,17 +383,11 @@ export default async function ChargesPage({
             tables={[exportTable]}
             footerLine={exportFooter}
           />
-          <Link href="/charges/new">
-            <Button><Plus className="h-4 w-4" /> New charge</Button>
-          </Link>
+          <Link href="/charges/new" className={buttonClass()}><Plus className="h-4 w-4" /> New charge</Link>
           {(me.is_finance_staff || me.is_platform_operator) && (
-            <Link href="/charges/tasks">
-              <Button variant="secondary">Apply credits · Late fees</Button>
-            </Link>
+            <Link href="/charges/tasks" className={buttonClass('secondary')}>Apply credits · Late fees</Link>
           )}
-          <Link href="/reports/ar-aging">
-            <Button variant="secondary">AR aging report</Button>
-          </Link>
+          <Link href="/reports/ar-aging" className={buttonClass('secondary')}>AR aging report</Link>
         </>
       }
     >

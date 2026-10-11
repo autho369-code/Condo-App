@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Landmark, Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { StatusChip } from '@/components/operations/status-chip';
@@ -33,8 +33,8 @@ export default async function BankDepositsPage({
       description="Receipts grouped into the deposits taken to the bank. Each deposit matches one line on the bank statement."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/bank-accounts/deposits/other"><Button variant="secondary">Other deposit</Button></Link>
-          <Link href="/bank-accounts/deposits/new"><Button><Plus className="h-4 w-4" /> New bank deposit</Button></Link>
+          <Link href="/bank-accounts/deposits/other" className={buttonClass('secondary')}>Other deposit</Link>
+          <Link href="/bank-accounts/deposits/new" className={buttonClass()}><Plus className="h-4 w-4" /> New bank deposit</Link>
         </div>
       }
     >
@@ -48,7 +48,7 @@ export default async function BankDepositsPage({
               icon={Landmark}
               title="No bank deposits yet"
               description="Group the receipts you take to the bank into a deposit."
-              action={<Link href="/bank-accounts/deposits/new"><Button><Plus className="h-4 w-4" /> New bank deposit</Button></Link>}
+              action={<Link href="/bank-accounts/deposits/new" className={buttonClass()}><Plus className="h-4 w-4" /> New bank deposit</Link>}
             />
           </Surface>
         ) : (

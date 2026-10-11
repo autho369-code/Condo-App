@@ -9,7 +9,7 @@
 // balances importer reuse it without modification.
 import * as React from 'react';
 import Papa from 'papaparse';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 
 export type RowValidation = { ok: boolean; reason?: string };
 
@@ -126,9 +126,7 @@ export function CsvUploader({
             </p>
           </div>
           {templateHref && (
-            <a href={templateHref} download>
-              <Button variant="secondary" size="sm" type="button">Download template</Button>
-            </a>
+            <a href={templateHref} download className={buttonClass('secondary', 'sm')}>Download template</a>
           )}
         </div>
 

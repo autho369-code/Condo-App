@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -70,7 +70,7 @@ export default async function OwnerAchPage({
     <DataWorkspace
       title="Owner ACH Setup"
       description="Review owner payment methods, autopay mandates, verification status, and ACH readiness before enabling payment workflows."
-      actions={<Link href="/owners"><Button variant="secondary">Back to homeowners</Button></Link>}
+      actions={<Link href="/owners" className={buttonClass('secondary')}>Back to homeowners</Link>}
     >
       <div className="space-y-4">
         <MetricStrip

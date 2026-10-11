@@ -5,7 +5,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -144,13 +144,11 @@ export default async function VendorsPage({
       actions={
         <>
           {canManageBank && (
-            <Link href="/vendors/ach"><Button variant="secondary">Vendor ACH setup</Button></Link>
+            <Link href="/vendors/ach" className={buttonClass('secondary')}>Vendor ACH setup</Link>
           )}
-          <Link href="/vendors/forms"><Button variant="secondary">Request documents</Button></Link>
-          <Link href="/vendors/w9"><Button variant="secondary">Request W-9</Button></Link>
-          <Link href="/vendors/new">
-            <Button><Plus className="h-4 w-4" /> New vendor</Button>
-          </Link>
+          <Link href="/vendors/forms" className={buttonClass('secondary')}>Request documents</Link>
+          <Link href="/vendors/w9" className={buttonClass('secondary')}>Request W-9</Link>
+          <Link href="/vendors/new" className={buttonClass()}><Plus className="h-4 w-4" /> New vendor</Link>
         </>
       }
     >

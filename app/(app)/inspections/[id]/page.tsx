@@ -8,7 +8,7 @@ import { mergePrivateFieldsOne, savePrivateFields } from '@/lib/private-fields';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Alert, Badge } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
@@ -173,7 +173,7 @@ export default async function InspectionDetailPage({
   const critical = unresolved.filter((finding: any) => ['major', 'critical'].includes(finding.severity));
 
   return (
-    <Workspace header={<WorkspaceHeader eyebrow={<><Link href="/inspections" className="hover:text-gray-700">Inspections</Link> · {inspection.associations?.name}</>} title={inspection.inspection_type ?? 'Property inspection'} subtitle={`${inspection.units?.unit_number ? `Unit ${inspection.units.unit_number}` : 'Common area / property-wide'} · scheduled ${date(inspection.scheduled_date)}`} actions={<><Badge status={inspection.status} /><Link href={`/inspections/${id}/field`}><Button variant="secondary">Open field mode</Button></Link></>} />}>
+    <Workspace header={<WorkspaceHeader eyebrow={<><Link href="/inspections" className="hover:text-gray-700">Inspections</Link> · {inspection.associations?.name}</>} title={inspection.inspection_type ?? 'Property inspection'} subtitle={`${inspection.units?.unit_number ? `Unit ${inspection.units.unit_number}` : 'Common area / property-wide'} · scheduled ${date(inspection.scheduled_date)}`} actions={<><Badge status={inspection.status} /><Link href={`/inspections/${id}/field`} className={buttonClass('secondary')}>Open field mode</Link></>} />}>
       {sp.error && <Alert className="mb-5" title="Could not update inspection">{sp.error}</Alert>}
       {sp.saved && <Alert className="mb-5" tone="success">{sp.saved}</Alert>}
 

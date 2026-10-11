@@ -5,7 +5,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -124,8 +124,8 @@ export default async function InventoryPage({
       description="Consumables and parts kept on-hand for common maintenance — filters, bulbs, paint, hardware."
       actions={
         <>
-          <Link href="/inventory/bulk"><Button variant="secondary">Bulk add items</Button></Link>
-          <Link href="/inventory/new"><Button>New Inventory Item</Button></Link>
+          <Link href="/inventory/bulk" className={buttonClass('secondary')}>Bulk add items</Link>
+          <Link href="/inventory/new" className={buttonClass()}>New Inventory Item</Link>
         </>
       }
     >

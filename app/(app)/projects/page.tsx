@@ -6,7 +6,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -87,7 +87,7 @@ export default async function ProjectsPage({
     <DataWorkspace
       title="Capital Projects"
       description="Control multi-work-order projects with independent budgets, milestones, board approval, and cost visibility."
-      actions={<Link href="/projects/new"><Button><Plus className="h-4 w-4" /> New project</Button></Link>}
+      actions={<Link href="/projects/new" className={buttonClass()}><Plus className="h-4 w-4" /> New project</Link>}
     >
       <div className="space-y-6">
         {loadError && <Alert tone="danger" title="Could not load every project">{loadError}</Alert>}

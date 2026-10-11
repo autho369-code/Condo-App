@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -89,8 +89,8 @@ export default async function SurveyPage({
       description={survey.description || `${survey.associations?.name ?? 'Every association'} · ${questions.length} question${questions.length === 1 ? '' : 's'}`}
       actions={
         <>
-          <Link href="/surveys"><Button variant="secondary">Back to surveys</Button></Link>
-          {canEdit && <Link href={`/surveys/${id}/edit`}><Button variant="secondary">Edit</Button></Link>}
+          <Link href="/surveys" className={buttonClass('secondary')}>Back to surveys</Link>
+          {canEdit && <Link href={`/surveys/${id}/edit`} className={buttonClass('secondary')}>Edit</Link>}
           {canEdit && (
             <form action={setSurveyActive}>
               <input type="hidden" name="survey_id" value={id} />

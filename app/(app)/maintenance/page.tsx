@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff, requireWorkspaceStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { Alert, EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -314,7 +314,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                 {sp.assoc && <a href="/maintenance?tab=tasks" className="self-center text-sm font-medium text-gray-500 hover:text-gray-900">Clear</a>}
               </form>
               <div className="flex-1" />
-              <a href={sp.assoc ? `/maintenance?tab=tasks&assoc=${sp.assoc}&add=1` : '/maintenance?tab=tasks&add=1'}><Button>+ Add task</Button></a>
+              <a href={sp.assoc ? `/maintenance?tab=tasks&assoc=${sp.assoc}&add=1` : '/maintenance?tab=tasks&add=1'} className={buttonClass()}>+ Add task</a>
             </div>
 
             {(sp.edit || sp.add) && (
@@ -352,8 +352,8 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                   description="Clone a template group or add your first preventive maintenance task."
                   action={
                     <div className="flex justify-center gap-2">
-                      <a href="/maintenance?tab=templates"><Button variant="secondary">Browse templates</Button></a>
-                      <a href="/maintenance?tab=tasks&add=1"><Button>Add first task</Button></a>
+                      <a href="/maintenance?tab=templates" className={buttonClass('secondary')}>Browse templates</a>
+                      <a href="/maintenance?tab=tasks&add=1" className={buttonClass()}>Add first task</a>
                     </div>
                   }
                 />
@@ -375,7 +375,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                         <TD>{t.next_due_date ? <span className={over ? 'font-medium text-red-700' : 'text-gray-700'}>{date(t.next_due_date)}</span> : <span className="text-gray-400">—</span>}</TD>
                         <TD>
                           <div className="flex items-center gap-1">
-                            <a href={`/maintenance?tab=tasks&edit=${t.id}${sp.assoc ? `&assoc=${sp.assoc}` : ''}`}><Button variant="secondary" size="sm">Edit</Button></a>
+                            <a href={`/maintenance?tab=tasks&edit=${t.id}${sp.assoc ? `&assoc=${sp.assoc}` : ''}`} className={buttonClass('secondary', 'sm')}>Edit</a>
                             <form action={completeTask} className="inline"><input type="hidden" name="id" value={t.id} /><input type="hidden" name="seen_completed_at" value={t.last_completed_at ?? ''} /><input type="hidden" name="seen_due" value={t.next_due_date ?? ''} /><Button type="submit" variant="secondary" size="sm">Done</Button></form>
                             <form action={deleteTask} className="inline"><input type="hidden" name="id" value={t.id} /><PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Deleting…" confirm="Delete this maintenance task?">Delete</PendingSubmit></form>
                           </div>

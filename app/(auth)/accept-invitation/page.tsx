@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { acceptInvitation } from '@/lib/auth/actions';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
@@ -22,7 +22,7 @@ export default async function AcceptInvitationPage({
         <CardHeader><CardTitle>Invitation link incomplete</CardTitle></CardHeader>
         <CardBody>
           <p className="text-sm text-gray-600">This link has no invitation code. Open the link from your invitation email again.</p>
-          <div className="mt-4"><Link href="/login"><Button variant="secondary">Go to sign in</Button></Link></div>
+          <div className="mt-4"><Link href="/login" className={buttonClass('secondary')}>Go to sign in</Link></div>
         </CardBody>
       </Card>
     );
@@ -51,7 +51,7 @@ export default async function AcceptInvitationPage({
         <CardHeader><CardTitle>This invitation isn&apos;t valid here</CardTitle></CardHeader>
         <CardBody>
           <p className="text-sm text-gray-600">It may have been used or replaced, or it belongs to a different company. Open the link from your most recent invitation email.</p>
-          <div className="mt-4"><Link href="/login"><Button variant="secondary">Go to sign in</Button></Link></div>
+          <div className="mt-4"><Link href="/login" className={buttonClass('secondary')}>Go to sign in</Link></div>
         </CardBody>
       </Card>
     );
@@ -72,9 +72,7 @@ export default async function AcceptInvitationPage({
           </p>
           <div className="mt-4">
             {/* Signing in with the invited account comes back here to accept. */}
-            <Link href={expired ? '/login' : `/login?next=${encodeURIComponent(`/accept-invitation?token=${encodeURIComponent(token)}`)}`}>
-              <Button variant="secondary">{expired ? 'Go to sign in' : 'Sign in with that account'}</Button>
-            </Link>
+            <Link href={expired ? '/login' : `/login?next=${encodeURIComponent(`/accept-invitation?token=${encodeURIComponent(token)}`)}`} className={buttonClass('secondary')}>{expired ? 'Go to sign in' : 'Sign in with that account'}</Link>
           </div>
         </CardBody>
       </Card>
@@ -97,7 +95,7 @@ export default async function AcceptInvitationPage({
         <form action={acceptInvitation} className="mt-5 flex flex-wrap gap-2">
           <input type="hidden" name="token" value={token} />
           <Button type="submit">Accept invitation</Button>
-          <Link href="/login"><Button type="button" variant="secondary">Not now</Button></Link>
+          <Link href="/login" className={buttonClass('secondary')}>Not now</Link>
         </form>
       </CardBody>
     </Card>

@@ -8,7 +8,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
@@ -172,9 +172,7 @@ export default async function BankFeedsPage({
       title="Bank feed"
       description="Transactions imported from your bank. Match each one to the ledger entry it belongs to, post it if the books don't have it yet (bank fees, interest), or ignore it. Matched transactions start cleared on the next reconciliation."
       actions={plaidConfigured ? (
-        <Link href="/bank-accounts/link-bank">
-          <Button variant="secondary">Connect bank</Button>
-        </Link>
+        <Link href="/bank-accounts/link-bank" className={buttonClass('secondary')}>Connect bank</Link>
       ) : undefined}
     >
       <div className="space-y-6">
@@ -337,9 +335,7 @@ export default async function BankFeedsPage({
                 ? 'Link a bank account securely to start importing transactions.'
                 : 'Automatic bank connections are not enabled. Manual bank-account and reconciliation workflows remain available.'}
               action={plaidConfigured ? (
-                <Link href="/bank-accounts/link-bank">
-                  <Button>Connect bank</Button>
-                </Link>
+                <Link href="/bank-accounts/link-bank" className={buttonClass()}>Connect bank</Link>
               ) : undefined}
             />
           </div>

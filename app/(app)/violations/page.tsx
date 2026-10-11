@@ -5,7 +5,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { SelectAllCheckbox } from '@/components/ui/select-all';
 import { bulkViolationAction } from '@/lib/rpcs/violation-rules';
@@ -287,21 +287,11 @@ export default async function ViolationsPage({
             filename={`violations-${exportStamp}`}
             tables={[exportTable]}
           />
-          <Link href="/violations/reports">
-            <Button variant="secondary"><Inbox className="h-4 w-4" /> Resident reports{reportsToReview ? ` (${reportsToReview})` : ''}</Button>
-          </Link>
-          <Link href="/violations/letters">
-            <Button variant="secondary"><Mail className="h-4 w-4" /> Letters to mail{lettersToMail ? ` (${lettersToMail})` : ''}</Button>
-          </Link>
-          <Link href="/violations/rules">
-            <Button variant="secondary"><BookOpenCheck className="h-4 w-4" /> Rules & fines</Button>
-          </Link>
-          <Link href="/violations/field">
-            <Button variant="secondary"><Smartphone className="h-4 w-4" /> Field capture</Button>
-          </Link>
-          <Link href="/violations/new">
-            <Button><Plus className="h-4 w-4" /> New violation</Button>
-          </Link>
+          <Link href="/violations/reports" className={buttonClass('secondary')}><Inbox className="h-4 w-4" /> Resident reports{reportsToReview ? ` (${reportsToReview})` : ''}</Link>
+          <Link href="/violations/letters" className={buttonClass('secondary')}><Mail className="h-4 w-4" /> Letters to mail{lettersToMail ? ` (${lettersToMail})` : ''}</Link>
+          <Link href="/violations/rules" className={buttonClass('secondary')}><BookOpenCheck className="h-4 w-4" /> Rules & fines</Link>
+          <Link href="/violations/field" className={buttonClass('secondary')}><Smartphone className="h-4 w-4" /> Field capture</Link>
+          <Link href="/violations/new" className={buttonClass()}><Plus className="h-4 w-4" /> New violation</Link>
         </>
       }
     >
@@ -438,9 +428,7 @@ export default async function ViolationsPage({
               title="No violations match the current filters"
               description="Track rule enforcement from observation through notices, hearings, fines, and resolution."
               action={
-                <Link href="/violations/new">
-                  <Button><Plus className="h-4 w-4" /> New violation</Button>
-                </Link>
+                <Link href="/violations/new" className={buttonClass()}><Plus className="h-4 w-4" /> New violation</Link>
               }
             />
           </div>

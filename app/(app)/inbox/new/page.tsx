@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Alert } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label, Textarea } from '@/components/ui/input';
 import { startStaffConversation } from '@/lib/rpcs/messages';
 
@@ -65,7 +65,7 @@ export default async function NewConversationPage({
           <div><Label htmlFor="subject">Subject</Label><Input id="subject" name="subject" required maxLength={150} /></div>
           <div><Label htmlFor="body">Message</Label><Textarea id="body" name="body" required maxLength={5000} rows={8} /></div>
           <div className="flex justify-end gap-2">
-            <Link href={ownerId ? `/owners/${ownerId}` : '/inbox'}><Button type="button" variant="secondary">Cancel</Button></Link>
+            <Link href={ownerId ? `/owners/${ownerId}` : '/inbox'} className={buttonClass('secondary')}>Cancel</Link>
             <Button type="submit">Send</Button>
           </div>
         </form>

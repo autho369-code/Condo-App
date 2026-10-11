@@ -7,7 +7,7 @@ import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -37,8 +37,8 @@ export default async function LettersPage() {
       title="Letters"
       description="Document templates with merge fields for owner notices, vendor correspondence, statements, and more."
       actions={<>
-        <Link href="/letters/mail"><Button variant="secondary">Physical mail</Button></Link>
-        <Link href="/letters/new"><Button><Plus className="h-4 w-4" /> New template</Button></Link>
+        <Link href="/letters/mail" className={buttonClass('secondary')}>Physical mail</Link>
+        <Link href="/letters/new" className={buttonClass()}><Plus className="h-4 w-4" /> New template</Link>
       </>}
     >
       <div className="space-y-6">
@@ -70,9 +70,7 @@ export default async function LettersPage() {
               title="No letter templates yet"
               description="Create your first template with merge fields to start generating letters, notices, and statements."
               action={
-                <Link href="/letters/new">
-                  <Button><Plus className="h-4 w-4" /> Create first template</Button>
-                </Link>
+                <Link href="/letters/new" className={buttonClass()}><Plus className="h-4 w-4" /> Create first template</Link>
               }
             />
           </div>

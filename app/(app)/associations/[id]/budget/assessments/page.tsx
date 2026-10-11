@@ -5,7 +5,7 @@ import { requireFinanceOrPortfolioAdmin } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { THead, TR, TH, TD } from '@/components/ui/table';
 import { Alert, Badge, EmptyState } from '@/components/ui/shell';
@@ -122,7 +122,7 @@ export default async function UpdateAssessmentsPage({ params, searchParams }: { 
         <Section title="Allocation" padded>
           {incomeLines.length === 0 ? (
             <EmptyState icon={Calculator} title={`No income lines in the FY${fy} budget`} description="Add the assessment income line to the budget worksheet first."
-              action={<Link href={`/associations/${ref}/budget?fiscal_year=${fy}`}><Button>Open the worksheet</Button></Link>} />
+              action={<Link href={`/associations/${ref}/budget?fiscal_year=${fy}`} className={buttonClass()}>Open the worksheet</Link>} />
           ) : categories.length === 0 ? (
             <Alert tone="warning">There is no active assessment charge category. <Link href="/charge-categories" className="font-semibold underline">Create one</Link> (charge type “assessment”).</Alert>
           ) : (

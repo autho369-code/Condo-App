@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PageShell, PageHeader, SectionTitle, Surface } from '@/components/ui/shell';
 import { createClient } from '@/lib/supabase/client';
@@ -211,9 +211,7 @@ export default function GenerateDocumentPage() {
         title="Generate document"
         description="Create violation notices, welcome letters, assessment letters, and board packets from templates."
         actions={
-          <Link href="/documents">
-            <Button variant="secondary">Back to documents</Button>
-          </Link>
+          <Link href="/documents" className={buttonClass('secondary')}>Back to documents</Link>
         }
       />
 
@@ -441,9 +439,7 @@ export default function GenerateDocumentPage() {
             {sendAsNotice ? 'The PDF is saved and the notice draft is ready for review.' : 'The PDF has been saved securely.'}
           </p>
           <div className="mt-6 flex justify-center gap-2">
-            <Link href={sendAsNotice ? '/documents?tab=notices' : '/documents?tab=generated'}>
-              <Button>{sendAsNotice ? 'View notices' : 'View generated documents'}</Button>
-            </Link>
+            <Link href={sendAsNotice ? '/documents?tab=notices' : '/documents?tab=generated'} className={buttonClass()}>{sendAsNotice ? 'View notices' : 'View generated documents'}</Link>
             <Button variant="secondary" onClick={() => {
               setStep('select');
               setSelectedTemplate(null);

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { SectionTitle, Surface } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { saveRecurringJournalEntry } from '@/lib/rpcs/recurring';
 
@@ -93,7 +93,7 @@ export function RecurringJournalEntryForm({
         </Surface>
 
         <div className="flex flex-wrap justify-end gap-2">
-          <Link href="/journal-entries/recurring"><Button type="button" variant="secondary">Cancel</Button></Link>
+          <Link href="/journal-entries/recurring" className={buttonClass('secondary')}>Cancel</Link>
           <Button type="submit">{entry ? 'Save changes' : 'Create recurring entry'}</Button>
         </div>
       </form>

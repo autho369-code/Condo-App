@@ -5,7 +5,7 @@ import { YearEndStatements } from '@/components/accounting/year-end-statements';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Section } from '@/components/workspace/shell';
 import { Alert } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PrintButton } from '@/components/ui/print-button';
 import { hasPortfolioAdminAccess, requireFinanceOrPortfolioAdmin } from '@/lib/auth/me';
@@ -45,9 +45,9 @@ export default async function YearEndPackagePage({
           <Link href={`/accounting/year-end?association_id=${pkg.association_id}&year=${pkg.fiscal_year}`} className="text-sm text-gray-500 hover:text-gray-900">← Year-end close</Link>
           <div className="flex flex-wrap gap-2">
             {pkg.status === 'finalized' && !pkg.signature_request_id && (
-              <Link href={`/signatures/new?subject_type=year_end_package&subject_id=${pkg.id}`}><Button variant="secondary">Send to board for acceptance</Button></Link>
+              <Link href={`/signatures/new?subject_type=year_end_package&subject_id=${pkg.id}`} className={buttonClass('secondary')}>Send to board for acceptance</Link>
             )}
-            {pkg.signature_request_id && <Link href={`/signatures/${pkg.signature_request_id}`}><Button variant="secondary">Board acceptance</Button></Link>}
+            {pkg.signature_request_id && <Link href={`/signatures/${pkg.signature_request_id}`} className={buttonClass('secondary')}>Board acceptance</Link>}
             <PrintButton label="Print / save PDF" />
           </div>
         </div>

@@ -3,7 +3,7 @@ import { Mail } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -52,7 +52,7 @@ export default async function ViolationLettersPage({
     <DataWorkspace
       title="Violation letters to mail"
       description="Step letters whose follow-up step includes mail. Print each one, post it, then mark it mailed — the date is kept as proof of notice."
-      actions={<Link href="/violations"><Button variant="secondary">Back to violations</Button></Link>}
+      actions={<Link href="/violations" className={buttonClass('secondary')}>Back to violations</Link>}
     >
       <div className="space-y-4">
         {sp.error && <Alert tone="danger" title="Could not update letter">{sp.error}</Alert>}
@@ -112,7 +112,7 @@ export default async function ViolationLettersPage({
                     </TD>
                     <TD className="text-right">
                       <div className="flex justify-end gap-2">
-                        {href && <a href={href} target="_blank" rel="noopener noreferrer"><Button variant="secondary" size="sm">Print PDF</Button></a>}
+                        {href && <a href={href} target="_blank" rel="noopener noreferrer" className={buttonClass('secondary', 'sm')}>Print PDF</a>}
                         {l.mail_status === 'to_mail' && (
                           <form action={markViolationLetterMailed}>
                             <input type="hidden" name="letter_id" value={l.id} />

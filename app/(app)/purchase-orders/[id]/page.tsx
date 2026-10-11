@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert, EmptyState } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { Field, Input, Select } from '@/components/ui/input';
@@ -111,7 +111,7 @@ export default async function PurchaseOrderDetailPage({
           subtitle={<span className="inline-flex flex-wrap items-center gap-2"><ApprovalStatusChip po={po} /><OrderStatusChip status={po.status} /></span>}
           actions={
             <>
-              {editable && <Link href={`/purchase-orders/${id}/edit`}><Button variant="secondary">Edit</Button></Link>}
+              {editable && <Link href={`/purchase-orders/${id}/edit`} className={buttonClass('secondary')}>Edit</Link>}
               {editable && (
                 <form action={submitPurchaseOrder}>
                   <input type="hidden" name="id" value={id} />

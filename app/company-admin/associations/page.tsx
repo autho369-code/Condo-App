@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
-import { Button } from '@/components/ui/button'
+import { buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { Building2, Eye } from 'lucide-react'
@@ -113,9 +113,7 @@ export default async function CompanyAdminAssociationsPage({
           <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Associations</h1>
           <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Manage all associations in your portfolio</p>
         </div>
-        <Link href="/onboard">
-          <Button className="gap-2"><Building2 className="h-4 w-4" /> Add Association</Button>
-        </Link>
+        <Link href="/onboard" className={buttonClass('primary', 'md', 'gap-2')}><Building2 className="h-4 w-4" /> Add Association</Link>
       </div>
 
       {associationsError && <Alert title="Could not load associations">{associationsError.message}</Alert>}

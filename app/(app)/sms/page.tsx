@@ -4,7 +4,7 @@ import { MessageCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { SmsForm } from './_sms-form';
@@ -76,8 +76,8 @@ export default async function SmsPage({
       description="Send consent-checked text messages to owners and vendors with live delivery status and retry history."
       actions={
         <>
-          <Link href="/sms/templates"><Button variant="secondary">Templates</Button></Link>
-          <Link href="/sms/opt-ins"><Button variant="secondary">Opt-Ins</Button></Link>
+          <Link href="/sms/templates" className={buttonClass('secondary')}>Templates</Link>
+          <Link href="/sms/opt-ins" className={buttonClass('secondary')}>Opt-Ins</Link>
         </>
       }
     >

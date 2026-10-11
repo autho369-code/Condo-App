@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import MergeFieldEditor, { MERGE_FIELDS } from '@/components/letters/merge-field-editor';
 
 const CATEGORIES = ['association', 'owner', 'vendor', 'applicant', 'statement', 'generic'];
@@ -154,9 +154,7 @@ export default function NewLetterPage() {
 
         {/* Actions */}
         <div className="flex items-center justify-between border-t border-gray-200 pt-6">
-          <Link href="/letters">
-            <Button variant="ghost">Cancel</Button>
-          </Link>
+          <Link href="/letters" className={buttonClass('ghost')}>Cancel</Link>
           <div className="flex gap-3">
             <Button
               variant="secondary"

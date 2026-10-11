@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
@@ -47,12 +47,8 @@ export default async function TemplateDetailPage({
       description={`${(template.letter_type ?? 'general').replace(/_/g, ' ')} template`}
       actions={
         <div className="flex gap-2">
-          <Link href={`/documents/generate?template=${id}`}>
-            <Button>Use Template</Button>
-          </Link>
-          <Link href={`/documents/templates/${id}/edit`}>
-            <Button variant="secondary">Edit</Button>
-          </Link>
+          <Link href={`/documents/generate?template=${id}`} className={buttonClass()}>Use Template</Link>
+          <Link href={`/documents/templates/${id}/edit`} className={buttonClass('secondary')}>Edit</Link>
         </div>
       }
     >
@@ -118,9 +114,7 @@ export default async function TemplateDetailPage({
         </div>
 
         <div className="flex gap-2 pb-8">
-          <Link href="/documents?tab=templates">
-            <Button variant="secondary">Back to Templates</Button>
-          </Link>
+          <Link href="/documents?tab=templates" className={buttonClass('secondary')}>Back to Templates</Link>
         </div>
       </div>
     </DataWorkspace>

@@ -2,7 +2,7 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { VendorSelect } from '@/components/vendors/vendor-select';
@@ -86,7 +86,7 @@ export default async function EditRecurringWorkOrderPage({
     <DataWorkspace
       title="Edit Recurring Work Order"
       description="Update this scheduled maintenance template."
-      actions={<Link href="/recurring-work-orders"><Button variant="secondary">Back to recurring work orders</Button></Link>}
+      actions={<Link href="/recurring-work-orders" className={buttonClass('secondary')}>Back to recurring work orders</Link>}
     >
       <form action={updateRecurring} className="max-w-3xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not update recurring work order">{sp.error}</Alert>}

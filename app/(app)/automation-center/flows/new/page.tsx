@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -45,9 +45,7 @@ export default async function NewAutomationFlowPage({
       title="New flow"
       description="Pick a trigger, set the threshold, and choose what happens. The flow runs hourly and fires at most once per matching record."
       actions={
-        <Link href="/automation-center/flows">
-          <Button variant="secondary">Cancel</Button>
-        </Link>
+        <Link href="/automation-center/flows" className={buttonClass('secondary')}>Cancel</Link>
       }
     >
       <div className="mx-auto max-w-3xl space-y-6">
@@ -60,11 +58,9 @@ export default async function NewAutomationFlowPage({
           />
           <div className="flex flex-wrap gap-2">
             {TRIGGER_TYPES.map((t) => (
-              <Link key={t} href={`/automation-center/flows/new?trigger=${t}`}>
-                <Button type="button" size="sm" variant={t === trigger ? 'primary' : 'secondary'}>
+              <Link key={t} href={`/automation-center/flows/new?trigger=${t}`} className={buttonClass(t === trigger ? 'primary' : 'secondary', 'sm')}>
                   {TRIGGER_DEFS[t].label}
-                </Button>
-              </Link>
+                </Link>
             ))}
           </div>
           <p className="mt-3 text-[13px] leading-5 text-gray-500">{triggerDef.summary(triggerDef.defaultDays)} — adjust the day threshold below.</p>
@@ -153,9 +149,7 @@ export default async function NewAutomationFlowPage({
 
             <div className="flex items-center gap-2">
               <Button type="submit">Create flow</Button>
-              <Link href="/automation-center/flows">
-                <Button type="button" variant="ghost">Cancel</Button>
-              </Link>
+              <Link href="/automation-center/flows" className={buttonClass('ghost')}>Cancel</Link>
             </div>
           </div>
         </form>

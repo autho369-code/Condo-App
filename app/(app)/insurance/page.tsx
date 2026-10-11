@@ -7,7 +7,7 @@ import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { date } from '@/lib/utils';
 import { toggleReminder } from './actions';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
@@ -81,9 +81,7 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
       title="Insurance policies"
       description="Track HO6 certificates, coverage, and policy periods. Owners and managers get email reminders 30 and 15 days before expiry."
       actions={
-        <Link href="/insurance/new">
-          <Button><Plus className="h-4 w-4" /> Add policy</Button>
-        </Link>
+        <Link href="/insurance/new" className={buttonClass()}><Plus className="h-4 w-4" /> Add policy</Link>
       }
     >
       <div className="space-y-6">
@@ -105,9 +103,7 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
               title="No insurance policies yet"
               description="Add your first HO6 policy to start tracking coverage and expiration dates."
               action={
-                <Link href="/insurance/new">
-                  <Button><Plus className="h-4 w-4" /> Add first policy</Button>
-                </Link>
+                <Link href="/insurance/new" className={buttonClass()}><Plus className="h-4 w-4" /> Add first policy</Link>
               }
             />
           </div>

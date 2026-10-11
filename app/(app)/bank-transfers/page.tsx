@@ -5,7 +5,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { SelectAllCheckbox } from '@/components/ui/select-all';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -179,10 +179,8 @@ export default async function BankTransfersPage({
       description="Transfers between an association's operating, reserve and trust accounts. Incomplete transfers are not yet in the ledger; complete them one by one or as a group."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/bank-accounts/activity"><Button variant="secondary">Bank account activity</Button></Link>
-          <Link href="/bank-transfers/new">
-            <Button><Plus className="h-4 w-4" /> New bank transfer</Button>
-          </Link>
+          <Link href="/bank-accounts/activity" className={buttonClass('secondary')}>Bank account activity</Link>
+          <Link href="/bank-transfers/new" className={buttonClass()}><Plus className="h-4 w-4" /> New bank transfer</Link>
         </div>
       }
     >
@@ -264,9 +262,7 @@ export default async function BankTransfersPage({
               }
               description="Transfers between operating, reserve, and trust accounts will appear here."
               action={
-                <Link href="/bank-transfers/new">
-                  <Button><Plus className="h-4 w-4" /> New bank transfer</Button>
-                </Link>
+                <Link href="/bank-transfers/new" className={buttonClass()}><Plus className="h-4 w-4" /> New bank transfer</Link>
               }
             />
           </div>

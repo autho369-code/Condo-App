@@ -6,7 +6,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import type { Database } from '@/lib/types/database';
 import { SafeRichText } from '@/components/security/safe-rich-text';
@@ -151,9 +151,7 @@ export default async function AmenitiesTab({
             title="Amenity Settings"
             subtitle={assoc.name}
             actions={
-              <Link href={`/associations/${id}/amenities?new=1`}>
-                <Button size="sm">+ Create Amenity</Button>
-              </Link>
+              <Link href={`/associations/${id}/amenities?new=1`} className={buttonClass('primary', 'sm')}>+ Create Amenity</Link>
             }
           />
         </>
@@ -301,9 +299,7 @@ export default async function AmenitiesTab({
 
             <div className="flex items-center gap-2 pt-2">
               <Button type="submit" size="sm">Create</Button>
-              <Link href={`/associations/${id}/amenities`}>
-                <Button type="button" size="sm" variant="secondary">Cancel</Button>
-              </Link>
+              <Link href={`/associations/${id}/amenities`} className={buttonClass('secondary', 'sm')}>Cancel</Link>
             </div>
           </form>
         </Section>

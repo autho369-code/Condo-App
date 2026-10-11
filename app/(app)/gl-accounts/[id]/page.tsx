@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireFinanceStaff } from '@/lib/auth/me';
@@ -101,7 +101,7 @@ export default async function EditGlAccountPage({
     <DataWorkspace
       title={`${account.number} · ${account.name}`}
       description="Edit this general ledger account, or mark it inactive so it is no longer offered for new entries."
-      actions={<Link href="/gl-accounts"><Button variant="secondary">Back to GL accounts</Button></Link>}
+      actions={<Link href="/gl-accounts" className={buttonClass('secondary')}>Back to GL accounts</Link>}
     >
       <form action={updateGlAccount} className="max-w-2xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not save the account">{sp.error}</Alert>}

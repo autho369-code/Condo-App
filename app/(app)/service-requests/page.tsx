@@ -8,7 +8,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
@@ -223,9 +223,9 @@ export default async function ServiceRequestsPage({
                     </TD>
                     <TD className="text-right">
                       {workOrder ? (
-                        <Link href={`/work-orders/${workOrder.id}`}><Button size="sm" variant="secondary">Open <ArrowUpRight className="h-3.5 w-3.5" /></Button></Link>
+                        <Link href={`/work-orders/${workOrder.id}`} className={buttonClass('secondary', 'sm')}>Open <ArrowUpRight className="h-3.5 w-3.5" /></Link>
                       ) : isOpen(request) && (request.request_kind === 'admin' || isDuplicate(request)) ? (
-                        <Link href={`/service-requests/${request.id}`}><Button size="sm" variant="secondary">{isDuplicate(request) ? 'Review' : 'Answer'}</Button></Link>
+                        <Link href={`/service-requests/${request.id}`} className={buttonClass('secondary', 'sm')}>{isDuplicate(request) ? 'Review' : 'Answer'}</Link>
                       ) : isOpen(request) ? (
                         <form action={triageServiceRequest.bind(null, request.id)}>
                           <Button type="submit" size="sm"><Wrench className="h-3.5 w-3.5" /> Create work order</Button>

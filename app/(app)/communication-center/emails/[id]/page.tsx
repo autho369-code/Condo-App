@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -79,7 +79,7 @@ export default async function SentEmailPage({ params }: { params: Promise<{ id: 
     <DataWorkspace
       title={email.subject || 'No subject'}
       description={`Email to ${email.to_name || email.to_email}`}
-      actions={<Link href="/communication-center"><Button variant="secondary">Back to Communication Center</Button></Link>}
+      actions={<Link href="/communication-center" className={buttonClass('secondary')}>Back to Communication Center</Link>}
     >
       <div className="space-y-4">
         <Surface>

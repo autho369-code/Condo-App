@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PrintButton } from '@/components/ui/print-button';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { SUBJECT_LABEL, fmtDateTime } from '../../status';
@@ -22,7 +22,7 @@ export default async function SignatureCertificatePage({ params }: { params: Pro
   return (
     <div className="min-h-full bg-[#f6f7f9] px-4 py-6 print:bg-white print:p-0">
       <div className="mx-auto mb-4 flex max-w-3xl justify-between print:hidden">
-        <Link href={`/signatures/${id}`}><Button variant="secondary">Back</Button></Link>
+        <Link href={`/signatures/${id}`} className={buttonClass('secondary')}>Back</Link>
         <PrintButton label="Print / save as PDF" />
       </div>
       <article className="mx-auto max-w-3xl rounded-2xl border border-gray-200/70 bg-white p-8 shadow-[0_1px_2px_rgba(16,24,40,0.04)] print:border-0 print:shadow-none">

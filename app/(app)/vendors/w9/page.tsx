@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -58,7 +58,7 @@ export default async function VendorW9Page({
     <DataWorkspace
       title="Request Vendor W-9s"
       description="Find 1099 vendors missing taxpayer information and stage W-9 document requests."
-      actions={<Link href="/vendors/forms?template=w9_request"><Button>Prepare W-9 request</Button></Link>}
+      actions={<Link href="/vendors/forms?template=w9_request" className={buttonClass()}>Prepare W-9 request</Link>}
     >
       <div className="space-y-4">
         <MetricStrip metrics={[

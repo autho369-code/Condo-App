@@ -3,7 +3,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Alert } from '@/components/ui/shell';
@@ -38,7 +38,7 @@ export default async function GlAccountMapPage({
     <DataWorkspace
       title="GL Account Map"
       description="Choose the default accounts that charges, receipts, assessments, late fees, bills and checks post to."
-      actions={<Link href="/gl-accounts"><Button variant="secondary">Back to GL accounts</Button></Link>}
+      actions={<Link href="/gl-accounts" className={buttonClass('secondary')}>Back to GL accounts</Link>}
     >
       <div className="space-y-5">
         {sp.error && <Alert tone="danger" title="Could not save the default">{sp.error}</Alert>}

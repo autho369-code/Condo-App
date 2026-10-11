@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -84,7 +84,7 @@ export default async function VendorCompliancePage({
     <DataWorkspace
       title="Vendor compliance"
       description="Insurance, license and W-9 status for every vendor. Request a document and the vendor gets a secure upload link; you approve what comes back."
-      actions={<Link href="/vendors/forms"><Button>Request a document</Button></Link>}
+      actions={<Link href="/vendors/forms" className={buttonClass()}>Request a document</Link>}
     >
       <div className="space-y-5">
         {sp.error && <Alert tone="danger">{sp.error}</Alert>}

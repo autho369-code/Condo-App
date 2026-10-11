@@ -6,7 +6,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterSelect } from '@/components/operations/filter-bar';
 import { EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { money } from '@/lib/utils';
 import { recordIdsWithTag, tagsInUse } from '@/lib/records/load';
 
@@ -41,9 +41,7 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
       title="Units"
       description={`${filtered.length} units · ${money(outstanding)} outstanding.`}
       actions={
-        <Link href="/units/new">
-          <Button><Plus className="h-4 w-4" /> New unit</Button>
-        </Link>
+        <Link href="/units/new" className={buttonClass()}><Plus className="h-4 w-4" /> New unit</Link>
       }
     >
       <div className="space-y-4">
@@ -95,9 +93,7 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
               title="No units match this filter"
               description="Adjust the filters or add a new unit."
               action={
-                <Link href="/units/new">
-                  <Button><Plus className="h-4 w-4" /> New unit</Button>
-                </Link>
+                <Link href="/units/new" className={buttonClass()}><Plus className="h-4 w-4" /> New unit</Link>
               }
             />
           </div>

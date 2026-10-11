@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Alert } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { remindSigner, voidSignatureRequest } from '@/lib/rpcs/esignatures';
@@ -55,7 +55,7 @@ export default async function SignatureRequestPage({
           eyebrow={<><Link href="/signatures" className="transition-colors hover:text-gray-700">E-signatures</Link>{' · '}{SUBJECT_LABEL[r.subject_type] ?? 'Document'}</>}
           title={r.title}
           subtitle={<span className="inline-flex flex-wrap items-center gap-2"><RequestStatus status={r.status} expiresAt={r.expires_at} /><span>{r.associations?.name ?? 'Company-level'}</span>{subjectHref && <Link href={subjectHref} className="font-medium text-gray-600 hover:text-gray-950">Open linked record</Link>}</span>}
-          actions={r.status === 'completed' ? <Link href={`/signatures/${id}/certificate`}><Button>Certificate of completion</Button></Link> : undefined}
+          actions={r.status === 'completed' ? <Link href={`/signatures/${id}/certificate`} className={buttonClass()}>Certificate of completion</Link> : undefined}
         />
       }
     >

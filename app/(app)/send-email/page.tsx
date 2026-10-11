@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { sendEmail } from '@/lib/rpcs/notifications';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Field, Input, Textarea } from '@/components/ui/input';
 import { Alert, PageShell, Surface } from '@/components/ui/shell';
@@ -171,9 +171,7 @@ export default async function SendEmailPage({
           <div className="flex items-center justify-between border-t border-gray-100 pt-4">
             <div className="flex gap-2">
               <PendingSubmit pendingLabel="Sending…">Send</PendingSubmit>
-              <Link href={closeHref}>
-                <Button variant="secondary" type="button">Cancel</Button>
-              </Link>
+              <Link href={closeHref} className={buttonClass('secondary')}>Cancel</Link>
             </div>
             <p className="text-sm text-gray-500">Sent under your company&apos;s name.</p>
           </div>

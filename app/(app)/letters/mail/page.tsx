@@ -4,7 +4,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, Badge, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
@@ -16,7 +16,7 @@ export default async function PhysicalMailPage() {
   const { data: rows } = await (await createClient() as any).from('physical_mail_deliveries').select('id, description, recipient_name, address_city, address_state, mail_class, status, provider, provider_piece_id, provider_url, expected_delivery_date, delivered_at, delivery_verified_at, manual_delivery_note, attempt_count, error_message, created_at, associations(name)').order('created_at', { ascending: false }).limit(500);
   const pieces = rows ?? [];
   const enabled = process.env.PHYSICAL_MAIL_DELIVERY_ENABLED === 'true';
-  return <DataWorkspace title="Physical Mail Fulfillment" description="Queue owner letters for provider submission with retry history and delivery evidence." actions={<><Link href="/letters"><Button variant="secondary">Letter templates</Button></Link><Link href="/letters/mail/new"><Button><MailPlus className="h-4 w-4" /> New mail piece</Button></Link></>}>
+  return <DataWorkspace title="Physical Mail Fulfillment" description="Queue owner letters for provider submission with retry history and delivery evidence." actions={<><Link href="/letters" className={buttonClass('secondary')}>Letter templates</Link><Link href="/letters/mail/new" className={buttonClass()}><MailPlus className="h-4 w-4" /> New mail piece</Link></>}>
     <div className="space-y-5">
       {!enabled && <Alert tone="info" title="Provider activation required.">Queueing is available, but fulfillment remains fail-closed until Lob credentials, the return address, and PHYSICAL_MAIL_DELIVERY_ENABLED=true are configured.</Alert>}
       <MetricStrip metrics={[

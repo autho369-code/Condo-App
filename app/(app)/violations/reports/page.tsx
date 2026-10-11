@@ -4,7 +4,7 @@ import { Inbox } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -68,7 +68,7 @@ export default async function ViolationReportsPage({
     <DataWorkspace
       title="Resident violation reports"
       description="Reports submitted through the public violation form. Open a violation when a report checks out, or dismiss it with a reason. The reporter's name and contact stay with staff — owners never see who reported them."
-      actions={<Link href="/violations"><Button variant="secondary">Back to violations</Button></Link>}
+      actions={<Link href="/violations" className={buttonClass('secondary')}>Back to violations</Link>}
     >
       <div className="space-y-4">
         {sp.error && <Alert tone="danger" title="Could not update report">{sp.error}</Alert>}

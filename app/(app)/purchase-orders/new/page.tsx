@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { PurchaseOrderForm } from '@/components/purchase-orders/po-form';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { loadPurchaseOrderFormOptions } from '@/lib/purchase-orders/form-options';
 import { savePurchaseOrder } from '@/lib/rpcs/purchase-orders';
@@ -23,7 +23,7 @@ export default async function NewPurchaseOrderPage({
     <DataWorkspace
       title="New Purchase Order"
       description="Itemize the work, then submit. Orders at or above the association's board threshold go to the board for a vote."
-      actions={<Link href="/purchase-orders"><Button variant="secondary">Back to purchase orders</Button></Link>}
+      actions={<Link href="/purchase-orders" className={buttonClass('secondary')}>Back to purchase orders</Link>}
     >
       <div className="max-w-4xl">
         <PurchaseOrderForm

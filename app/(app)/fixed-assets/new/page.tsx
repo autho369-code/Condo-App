@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { AssetFields } from '@/components/fixed-assets/asset-fields';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { loadAssetOptions } from '@/lib/fixed-assets/options';
@@ -20,7 +20,7 @@ export default async function NewFixedAssetPage({ searchParams }: { searchParams
     <DataWorkspace
       title="Add fixed asset"
       description="Record an association's equipment, appliance or other capital asset."
-      actions={<Link href="/fixed-assets"><Button variant="secondary">Back to fixed assets</Button></Link>}
+      actions={<Link href="/fixed-assets" className={buttonClass('secondary')}>Back to fixed assets</Link>}
     >
       <div className="max-w-3xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not add asset">{sp.error}</Alert>}

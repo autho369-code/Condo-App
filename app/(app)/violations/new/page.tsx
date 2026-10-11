@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { OpenViolationForm } from '@/components/violations/open-violation-form';
 import { Alert, Surface } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { openViolation } from '@/lib/rpcs/violation-rules';
 import { createClient } from '@/lib/supabase/server';
@@ -46,7 +46,7 @@ export default async function NewViolationPage({
     <DataWorkspace
       title="New violation"
       description="Pick the rule that was broken. The owner of record, cure deadline, and follow-up schedule are set automatically."
-      actions={<Link href="/violations/field"><Button variant="secondary">Field capture with photos</Button></Link>}
+      actions={<Link href="/violations/field" className={buttonClass('secondary')}>Field capture with photos</Link>}
     >
       <div className="max-w-3xl space-y-4">
         {sp.error && <Alert tone="danger" title="Could not open violation:">{sp.error}</Alert>}

@@ -4,7 +4,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
 import { SectionTitle, EmptyState } from '@/components/ui/shell';
 import { StatusChip } from '@/components/operations/status-chip';
@@ -126,9 +126,7 @@ export default async function Tax1099Page({
             <Button type="submit" variant="secondary">View</Button>
           </form>
           {vendorsOverThreshold > 0 && (
-            <Link href={`/accounting/1099/print?year=${taxYear}`}>
-              <Button>Generate 1099 forms</Button>
-            </Link>
+            <Link href={`/accounting/1099/print?year=${taxYear}`} className={buttonClass()}>Generate 1099 forms</Link>
           )}
         </>
       }
@@ -207,10 +205,9 @@ export default async function Tax1099Page({
                       <TD className="text-right">
                         <Link
                           href={`/accounting/1099/print?year=${taxYear}&vendor=${v.vendor_id}${v.association_id ? `&association=${v.association_id}` : ''}`}
+                          className={buttonClass('secondary', 'sm')}
                         >
-                          <Button variant="secondary" size="sm">
                             Print
-                          </Button>
                         </Link>
                       </TD>
                     </TR>

@@ -2,7 +2,7 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Alert } from '@/components/ui/shell';
@@ -67,7 +67,7 @@ export default async function NewChargePage({ searchParams }: { searchParams: Pr
     <DataWorkspace
       title="New Charge"
       description="Post a one-time charge to a unit — assessments, fees, fines, or other line items."
-      actions={<Link href="/charges"><Button variant="secondary">Back to receivables</Button></Link>}
+      actions={<Link href="/charges" className={buttonClass('secondary')}>Back to receivables</Link>}
     >
       <form action={createCharge} className="max-w-2xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not post charge">{sp.error}</Alert>}

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
@@ -73,8 +73,8 @@ export default async function PaymentPage({
       description={`Unit ${p.units?.unit_number ?? '—'} · ${assoc?.name ?? 'Association'} · ${receiptMethodLabel(p.method)}${p.reference ? ` ${p.reference}` : ''} · received ${date(p.payment_date)}`}
       actions={
         <>
-          <Link href={`/units/${p.unit_id}`}><Button variant="secondary">Back to unit</Button></Link>
-          <Link href={`/payments/${id}/receipt`}><Button variant="secondary">Receipt</Button></Link>
+          <Link href={`/units/${p.unit_id}`} className={buttonClass('secondary')}>Back to unit</Link>
+          <Link href={`/payments/${id}/receipt`} className={buttonClass('secondary')}>Receipt</Link>
         </>
       }
     >

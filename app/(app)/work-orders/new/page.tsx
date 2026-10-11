@@ -2,7 +2,7 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { VendorSelect } from '@/components/vendors/vendor-select';
@@ -107,7 +107,7 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
     <DataWorkspace
       title="New Work Order"
       description="Create a maintenance or repair work order for a unit or common area."
-      actions={<Link href="/work-orders"><Button variant="secondary">Back to work orders</Button></Link>}
+      actions={<Link href="/work-orders" className={buttonClass('secondary')}>Back to work orders</Link>}
     >
       <form action={createWorkOrder} className="max-w-4xl space-y-6 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create work order">{sp.error}</Alert>}

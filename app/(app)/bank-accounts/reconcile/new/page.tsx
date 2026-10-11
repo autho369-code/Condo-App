@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { SectionTitle, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -121,9 +121,7 @@ export default async function NewReconciliationPage({
             {/* Submit */}
             <div className="flex gap-2 pt-2">
               <Button type="submit">Start reconciliation</Button>
-              <Link href={`/bank-accounts/reconcile${account_id ? `?account_id=${encodeURIComponent(account_id)}` : ''}`}>
-                <Button variant="secondary" type="button">Cancel</Button>
-              </Link>
+              <Link href={`/bank-accounts/reconcile${account_id ? `?account_id=${encodeURIComponent(account_id)}` : ''}`} className={buttonClass('secondary')}>Cancel</Link>
             </div>
           </form>
         </Surface>

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { SectionTitle, Surface } from '@/components/ui/shell';
 import { createBill } from '@/lib/rpcs/bills';
@@ -333,7 +333,7 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
 
           <div className="flex gap-2 sm:col-span-2">
             <PendingSubmit pendingLabel="Saving…">Save bill</PendingSubmit>
-            <Link href="/bills"><Button variant="secondary" type="button">Cancel</Button></Link>
+            <Link href="/bills" className={buttonClass('secondary')}>Cancel</Link>
           </div>
         </form>
       </Surface>

@@ -5,7 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, Surface, SectionTitle } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
@@ -138,9 +138,9 @@ export default async function VendorDetailPage({
       description={`${vendor.is_management_company ? 'Management company' : (vendor.associations?.name ?? 'No association')} · ${tradeLabel(vendor.trade)} · ${(vendor.vendor_type ?? 'general').replace(/_/g, ' ')}`}
       actions={
         <div className="flex items-center gap-2">
-          <Link href="/vendors"><Button variant="secondary"><ArrowLeft className="h-4 w-4" /> Vendors</Button></Link>
-          <Link href={`/vendors/compliance?vendor=${vendor.id}`}><Button variant="secondary">Compliance docs</Button></Link>
-          <Link href={`/vendors/${vendor.id}/edit`}><Button>Edit</Button></Link>
+          <Link href="/vendors" className={buttonClass('secondary')}><ArrowLeft className="h-4 w-4" /> Vendors</Link>
+          <Link href={`/vendors/compliance?vendor=${vendor.id}`} className={buttonClass('secondary')}>Compliance docs</Link>
+          <Link href={`/vendors/${vendor.id}/edit`} className={buttonClass()}>Edit</Link>
         </div>
       }
     >

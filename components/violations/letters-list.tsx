@@ -1,5 +1,5 @@
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { date } from '@/lib/utils';
 import type { ViolationLetterRow } from '@/lib/violations/letter-links';
 
@@ -46,9 +46,7 @@ export function ViolationLettersList({ letters, links, markMailed, back }: Props
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {href && (
-                <a href={href} target="_blank" rel="noopener noreferrer">
-                  <Button variant="secondary" size="sm">Open PDF</Button>
-                </a>
+                <a href={href} target="_blank" rel="noopener noreferrer" className={buttonClass('secondary', 'sm')}>Open PDF</a>
               )}
               {markMailed && l.mail_status === 'to_mail' && (
                 <form action={markMailed}>

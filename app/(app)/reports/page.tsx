@@ -4,7 +4,7 @@ import { CalendarClock, Star } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterSelect } from '@/components/operations/filter-bar';
 import { ReportingTabs } from '@/components/reports/reporting-tabs';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -137,7 +137,7 @@ export default async function ReportsIndex({
     <DataWorkspace
       title="Reports"
       description={`${totalReports} reports. Search by name or what a report shows, star the ones you use, and schedule any of them.`}
-      actions={<Link href="/reports/builder"><Button variant="secondary">Report Builder</Button></Link>}
+      actions={<Link href="/reports/builder" className={buttonClass('secondary')}>Report Builder</Link>}
     >
       <ReportingTabs current="reports" />
       <div className="space-y-5">
@@ -290,7 +290,7 @@ function SavedReports({ rows, returnTo }: { rows: SavedReport[]; returnTo: strin
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <Link href={`/scheduled-reports/new?custom=${report.id}`}><Button variant="secondary" size="sm">Schedule</Button></Link>
+              <Link href={`/scheduled-reports/new?custom=${report.id}`} className={buttonClass('secondary', 'sm')}>Schedule</Link>
               <form action={toggleSavedReportPin}>
                 <input type="hidden" name="saved_report_id" value={report.id} />
                 <input type="hidden" name="pinned" value={report.pinned ? '0' : '1'} />

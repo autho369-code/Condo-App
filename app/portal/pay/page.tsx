@@ -3,7 +3,7 @@ import { requireOwner } from '@/lib/auth/me';
 import { loadOwnPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Alert } from '@/components/ui/shell';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { money } from '@/lib/utils';
 import Link from 'next/link';
 import { CreditCard } from 'lucide-react';
@@ -104,7 +104,7 @@ export default async function PayPage({
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">How to pay</h1>
-          <Link href="/portal"><Button variant="secondary">Back</Button></Link>
+          <Link href="/portal" className={buttonClass('secondary')}>Back</Link>
         </div>
         <Alert tone="danger" title="Payment options are unavailable right now:">
           {loadError}. To avoid paying twice, please refresh the page or try again later before making a payment.
@@ -121,7 +121,7 @@ export default async function PayPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">How to pay</h1>
-        <Link href="/portal"><Button variant="secondary">Back</Button></Link>
+        <Link href="/portal" className={buttonClass('secondary')}>Back</Link>
       </div>
 
       {sp.error && (
@@ -224,7 +224,7 @@ export default async function PayPage({
                 </div>
               )}
               <div className="mt-5 flex justify-end gap-2">
-                <Link href="/portal/ledger"><Button variant="secondary" type="button">View ledger</Button></Link>
+                <Link href="/portal/ledger" className={buttonClass('secondary')}>View ledger</Link>
               </div>
             </CardBody>
           </Card>

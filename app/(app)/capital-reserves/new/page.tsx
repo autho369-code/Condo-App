@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { Alert, Breadcrumb, PageHeader, PageShell, SectionTitle, Surface } from '@/components/ui/shell';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
@@ -106,7 +106,7 @@ export default async function NewReserveStudyPage({
           </div>
           <div className="flex flex-wrap gap-2 sm:col-span-2">
             <Button type="submit">Create study</Button>
-            <Link href="/capital-reserves"><Button type="button" variant="secondary">Cancel</Button></Link>
+            <Link href="/capital-reserves" className={buttonClass('secondary')}>Cancel</Link>
           </div>
         </form>
       </Surface>

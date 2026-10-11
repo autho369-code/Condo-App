@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- No more buttons inside links (claude/link-button-nesting): 367 spots in
+  200 files (`<Link><Button/></Link>`, `<a><Button/></a>`) are one link
+  styled by buttonClass() - valid HTML, one Tab stop and one accessible name
+  each; looks identical (measured against main on four pages).
 - Platform operator at phone width (claude/operator-tap-targets): 40px tap
   targets on 10 operator pages (filters, invoice fields, row actions on
   Support and Piper, links); Companies View/Billing were <Button> inside

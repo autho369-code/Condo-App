@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Alert, Surface } from '@/components/ui/shell';
@@ -53,7 +53,7 @@ export default async function NewPaymentPlanPage({ searchParams }: { searchParam
     <DataWorkspace
       title="New payment plan"
       description="Split a homeowner's past-due balance into installments. Their collection case pauses while the plan is current."
-      actions={<Link href="/payment-plans"><Button variant="secondary">Back to payment plans</Button></Link>}
+      actions={<Link href="/payment-plans" className={buttonClass('secondary')}>Back to payment plans</Link>}
     >
       <div className="max-w-3xl space-y-4">
         {sp.error && <Alert tone="danger" title="Could not create the plan">{sp.error}</Alert>}

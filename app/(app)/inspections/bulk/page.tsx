@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -37,7 +37,7 @@ export default async function ScheduleFromTemplatePage({
     <DataWorkspace
       title="Schedule from a template"
       description="Create one property-wide inspection, or one inspection for every unit in the association, each with the template's checklist."
-      actions={<Link href="/inspections/templates"><Button variant="secondary">Manage templates</Button></Link>}
+      actions={<Link href="/inspections/templates" className={buttonClass('secondary')}>Manage templates</Link>}
     >
       <div className="max-w-2xl space-y-4">
         {sp.error && <Alert tone="danger" title="Could not schedule">{sp.error}</Alert>}

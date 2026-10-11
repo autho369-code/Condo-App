@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label, Textarea } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
@@ -84,7 +84,7 @@ export default async function EditVendorPage({
     <DataWorkspace
       title={`Edit ${v.name}`}
       description="Contact, tax, accounting defaults, payment method and compliance dates."
-      actions={<Link href={`/vendors/${id}`}><Button variant="secondary">Cancel</Button></Link>}
+      actions={<Link href={`/vendors/${id}`} className={buttonClass('secondary')}>Cancel</Link>}
     >
       {sp.error && <Alert className="mb-6 max-w-5xl" title="Could not save vendor:">{sp.error}</Alert>}
 

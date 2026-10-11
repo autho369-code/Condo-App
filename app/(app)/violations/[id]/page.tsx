@@ -6,7 +6,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { ViolationLetterDrafter } from '@/components/ai/violation-letter-drafter';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
@@ -109,7 +109,7 @@ export default async function ViolationDetailPage({
     <DataWorkspace
       title={violation.title}
       description={`${violation.associations?.name ?? 'Association'}${violation.units?.unit_number ? ` - Unit ${violation.units.unit_number}` : ''}${violation.owners?.full_name ? ` - ${violation.owners.full_name}` : ''}`}
-      actions={<><Link href="/violations"><Button variant="secondary">Back</Button></Link><Link href="/documents/generate?type=violation_notice"><Button>Generate notice</Button></Link></>}
+      actions={<><Link href="/violations" className={buttonClass('secondary')}>Back</Link><Link href="/documents/generate?type=violation_notice" className={buttonClass()}>Generate notice</Link></>}
       rail={<DetailRail />}
     >
       <div className="space-y-6">

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { Alert, PageShell, PageHeader, Breadcrumb, Surface, SectionTitle } from '@/components/ui/shell';
 import { Input, Field, Select } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { SelectAllCheckbox } from '@/components/ui/select-all';
 import { recordBillPayments, writeChecks } from '@/lib/rpcs/bills';
@@ -54,7 +54,7 @@ export default async function CheckRunPage({
       <PageHeader
         title="Pay bills"
         description="Print checks for vendors paid by check, and record payments made by eCheck, ACH, online or auto-pay."
-        actions={<Link href="/bills"><Button variant="secondary">Cancel</Button></Link>}
+        actions={<Link href="/bills" className={buttonClass('secondary')}>Cancel</Link>}
       />
 
       {sp.error && (
@@ -144,7 +144,7 @@ export default async function CheckRunPage({
         </Surface>
 
         <div className="flex justify-end gap-2">
-          <Link href="/bills"><Button variant="secondary" type="button">Cancel</Button></Link>
+          <Link href="/bills" className={buttonClass('secondary')}>Cancel</Link>
           <Button type="submit">Write checks</Button>
         </div>
       </form>

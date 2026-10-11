@@ -5,7 +5,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { toggleOptIn } from '@/lib/rpcs/sms';
@@ -126,7 +126,7 @@ export default async function SmsOptInsPage({
     <DataWorkspace
       title="SMS Opt-In Management"
       description="Manage which owners and vendors have consented to receive SMS text messages."
-      actions={<Link href="/sms"><Button variant="secondary">Back to SMS</Button></Link>}
+      actions={<Link href="/sms" className={buttonClass('secondary')}>Back to SMS</Link>}
     >
       <div className="space-y-6">
         {sp.error && (

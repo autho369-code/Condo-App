@@ -5,7 +5,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -246,7 +246,7 @@ export default async function MetricsPage({
     <DataWorkspace
       title="Metrics"
       description="Collections, delinquency, finances and maintenance by month, for the company or one association."
-      actions={<Link href="/reports"><Button variant="secondary">View all reports</Button></Link>}
+      actions={<Link href="/reports" className={buttonClass('secondary')}>View all reports</Link>}
     >
       <ReportingTabs current="metrics" />
       <MetricsTabs current="performance" />

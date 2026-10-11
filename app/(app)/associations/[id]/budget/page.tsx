@@ -6,7 +6,7 @@ import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shel
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
 import { BudgetWorksheet, type WorksheetAccount } from '@/components/budget/budget-worksheet';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Badge } from '@/components/ui/shell';
 import { adoptBudget, reopenBudget } from '@/lib/rpcs/budget-worksheet';
@@ -100,15 +100,9 @@ export default async function BudgetTab({
                   </Select>
                   <Button type="submit" size="sm" variant="secondary">Go</Button>
                 </form>
-                <Link href={`/budget-vs-actuals?association=${id}&year=${fiscalYear}`}>
-                  <Button size="sm" variant="secondary">Budget vs actual</Button>
-                </Link>
-                <Link href={`/associations/${ref}/budget/dues-increase`}>
-                  <Button size="sm" variant="secondary">Dues increase</Button>
-                </Link>
-                <Link href={`/associations/${ref}/budget/assessments?fiscal_year=${fiscalYear}`}>
-                  <Button size="sm">Update assessments</Button>
-                </Link>
+                <Link href={`/budget-vs-actuals?association=${id}&year=${fiscalYear}`} className={buttonClass('secondary', 'sm')}>Budget vs actual</Link>
+                <Link href={`/associations/${ref}/budget/dues-increase`} className={buttonClass('secondary', 'sm')}>Dues increase</Link>
+                <Link href={`/associations/${ref}/budget/assessments?fiscal_year=${fiscalYear}`} className={buttonClass('primary', 'sm')}>Update assessments</Link>
               </>
             }
           />

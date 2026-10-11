@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { Alert, Breadcrumb, PageHeader, PageShell, SectionTitle, Surface } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { createOwnerPayable } from '@/lib/rpcs/owner-payables';
@@ -57,7 +57,7 @@ export default async function NewOwnerPayablePage({
       <Breadcrumb items={[{ label: 'Homeowner payables', href: '/bills/owner-payable' }, { label: 'New homeowner payable' }]} />
       <PageHeader
         title="New homeowner payable"
-        actions={<Link href="/bills/owner-payable"><Button variant="secondary">Cancel</Button></Link>}
+        actions={<Link href="/bills/owner-payable" className={buttonClass('secondary')}>Cancel</Link>}
       />
 
       {sp.error && <Alert tone="danger" title="Could not save homeowner payable" className="mb-6">{sp.error}</Alert>}
@@ -152,7 +152,7 @@ export default async function NewOwnerPayablePage({
 
               <div className="flex gap-2 sm:col-span-2">
                 <PendingSubmit pendingLabel="Saving…">Save homeowner payable</PendingSubmit>
-                <Link href="/bills/owner-payable"><Button variant="secondary" type="button">Cancel</Button></Link>
+                <Link href="/bills/owner-payable" className={buttonClass('secondary')}>Cancel</Link>
               </div>
             </form>
       </Surface>

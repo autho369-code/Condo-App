@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label, Textarea } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -58,7 +58,7 @@ export default async function NewLockBoxPage({
     <DataWorkspace
       title="Add Lock Box"
       description="Register a lock box: where it lives, its combination, and the keys inside."
-      actions={<Link href="/lock-boxes"><Button variant="secondary">Cancel</Button></Link>}
+      actions={<Link href="/lock-boxes" className={buttonClass('secondary')}>Cancel</Link>}
     >
       <div className="max-w-2xl space-y-4">
         {sp.error && <Alert tone="danger" title="Could not add lock box">{sp.error}</Alert>}

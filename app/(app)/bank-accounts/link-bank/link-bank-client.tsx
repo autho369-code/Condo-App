@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle2, Landmark, XCircle } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Select } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { createClient } from '@/lib/supabase/client';
@@ -150,9 +150,7 @@ export function LinkBankClient({ configured }: { configured: boolean }) {
             <Alert tone="warning" className="mt-5 text-left">
               No bank credentials are requested or transmitted while this service is unavailable.
             </Alert>
-            <Link href="/bank-accounts" className="mt-5 inline-flex">
-              <Button variant="secondary">Back to bank accounts</Button>
-            </Link>
+            <Link href="/bank-accounts" className={buttonClass('secondary', 'md', 'mt-5')}>Back to bank accounts</Link>
           </Surface>
         </div>
       </DataWorkspace>

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Select } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -36,7 +36,7 @@ export default async function ReceivablesTasksPage({
     <DataWorkspace
       title="Receivables tasks"
       description="Apply homeowner credits to open charges and charge late fees on demand."
-      actions={<Link href="/charges"><Button variant="secondary">Back to receivables</Button></Link>}
+      actions={<Link href="/charges" className={buttonClass('secondary')}>Back to receivables</Link>}
     >
       <div className="space-y-4">
         {sp.error && <Alert tone="danger" title="Could not run the task">{sp.error}</Alert>}

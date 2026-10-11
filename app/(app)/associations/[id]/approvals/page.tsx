@@ -6,7 +6,7 @@ import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shel
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
 import { Badge } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,9 +44,7 @@ export default async function ApprovalsTab({
             title="Approvals"
             subtitle={assoc.name}
             actions={
-              <Link href={`/associations/${id}/approvals/new`}>
-                <Button size="sm">+ New Approval</Button>
-              </Link>
+              <Link href={`/associations/${id}/approvals/new`} className={buttonClass('primary', 'sm')}>+ New Approval</Link>
             }
           />
         </>

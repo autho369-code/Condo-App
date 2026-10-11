@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, Badge, EmptyState, Surface, SectionTitle } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -106,7 +106,7 @@ export default async function ManagementFeesPage({
     <DataWorkspace
       title="Pay management fees"
       description="Calculate each association's management fee from its fee policy and bill it to the association, ready for the check run."
-      actions={<Link href="/bills/check-run"><Button variant="secondary">Check run</Button></Link>}
+      actions={<Link href="/bills/check-run" className={buttonClass('secondary')}>Check run</Link>}
     >
       <div className="space-y-4">
         {sp.billed && <Alert tone="success" title={`${sp.billed} management fee bill${sp.billed === '1' ? '' : 's'} created`}>They are approved and posted to Accounts Payable. Pay them from the check run.</Alert>}
@@ -178,7 +178,7 @@ export default async function ManagementFeesPage({
               icon={Briefcase}
               title="No management fee policies yet"
               description="Set a fee (per door, flat monthly or % of assessments) on each association's profile, then come back here each month."
-              action={<Link href="/associations"><Button>Go to associations</Button></Link>}
+              action={<Link href="/associations" className={buttonClass()}>Go to associations</Link>}
             />
           </Surface>
         ) : (

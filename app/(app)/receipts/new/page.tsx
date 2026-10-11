@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Badge, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -84,7 +84,7 @@ export default async function NewHomeownerReceiptPage({
     <DataWorkspace
       title="Homeowner receipt"
       description="Record a payment received from a homeowner. It is applied to the oldest open charges first and posted to the ledger immediately."
-      actions={<Link href="/receipts"><Button variant="secondary">Back to receipts</Button></Link>}
+      actions={<Link href="/receipts" className={buttonClass('secondary')}>Back to receipts</Link>}
     >
       <div className="max-w-4xl space-y-5">
         {sp.error && <Alert tone="danger" title="Receipt not recorded">{sp.error}</Alert>}

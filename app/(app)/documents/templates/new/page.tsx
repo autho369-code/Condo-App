@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 
 const LETTER_TYPES = [
@@ -151,9 +151,7 @@ export default function NewTemplatePage() {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Link href="/documents?tab=templates">
-              <Button variant="secondary">Cancel</Button>
-            </Link>
+            <Link href="/documents?tab=templates" className={buttonClass('secondary')}>Cancel</Link>
           </div>
         </div>
 
@@ -330,9 +328,7 @@ This letter serves as formal notice..."
             <Button onClick={handleSave} disabled={saving}>
               {saving ? 'Saving...' : 'Create Template'}
             </Button>
-            <Link href="/documents?tab=templates">
-              <Button variant="secondary">Cancel</Button>
-            </Link>
+            <Link href="/documents?tab=templates" className={buttonClass('secondary')}>Cancel</Link>
           </div>
         </div>
       </main>

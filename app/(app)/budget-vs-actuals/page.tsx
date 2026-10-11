@@ -6,7 +6,7 @@ import { money } from '@/lib/utils';
 import { BarChart3 } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { fiscalMonthLabels, fiscalMonthsElapsed, fiscalYearFor } from '@/lib/budget/fiscal';
@@ -84,9 +84,7 @@ export default async function BudgetVsActualsPage({
       description="Compare budgeted amounts against actual financial activity per GL account. Actuals come from posted general-ledger entries, by month of the association’s fiscal year; variance = actual − budget."
       actions={
         selectedAssociation && (
-          <Link href={`/budget?association=${selectedAssociation}&year=${selectedYear}`}>
-            <Button variant="secondary"><BarChart3 className="h-4 w-4" /> Manage budget</Button>
-          </Link>
+          <Link href={`/budget?association=${selectedAssociation}&year=${selectedYear}`} className={buttonClass('secondary')}><BarChart3 className="h-4 w-4" /> Manage budget</Link>
         )
       }
     >
@@ -171,9 +169,7 @@ export default async function BudgetVsActualsPage({
                 title={`No budget or activity for FY${selectedYear}`}
                 description="Set up budget lines first to compare them against actual activity."
                 action={
-                  <Link href={`/budget?association=${selectedAssociation}&year=${selectedYear}`}>
-                    <Button variant="secondary">Set up budget lines</Button>
-                  </Link>
+                  <Link href={`/budget?association=${selectedAssociation}&year=${selectedYear}`} className={buttonClass('secondary')}>Set up budget lines</Link>
                 }
               />
             ) : (

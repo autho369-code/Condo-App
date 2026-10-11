@@ -1,12 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#303 merged; open PR: claude/operator-tap-targets; next: operator screens at 375 px once Mirsad signs in as operator).
+Back to [[Home]]. Updated 2026-10-11 (#279-#304 merged; open PR: #305 claude/link-button-nesting; next: operator screens at 375 px once Mirsad signs in as operator).
 
 ## Open PR
-- claude/operator-tap-targets: 40px tap targets on 10 platform-operator
-  pages; Companies View/Billing were buttons nested in links, now links
-  styled by the new shared buttonClass(); not yet checked in the browser
-  (operator sign-in needs Mirsad).
+- #305 claude/link-button-nesting: every button nested in a link (352
+  `<Link><Button/></Link>` + 15 `<a><Button/></a>`, 200 files) is now one
+  link styled by buttonClass(); same size and position (checked on
+  Bank accounts, Owners, Calendar, Vendors against main).
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
@@ -19,6 +19,7 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#303 merged; open PR: claude/operator
   one call (metrics_monthly_trend 20261011120000) with month-end
   receivables in one pass (receivable_summary_by_months 20261011130000);
   /metrics 1.7-2.1 s (was 4.6-5.2 s). #299-#302 closed as included.
+- #304 platform operator 40px tap targets; shared buttonClass().
 
 ## Merged 2026-10-10 (late)
 - #282 query probe + refused report runs return to the report; #283
@@ -391,9 +392,6 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#303 merged; open PR: claude/operator
   2026-10-11: 40px tap targets on 10 operator pages; View/Billing were
   buttons nested in links). Owner (#298), board, vendor and company admin
   (#299, merged inside #303) DONE 2026-10-11; manager 2026-10-10.
-- NEXT (code): 357 buttons nested in links (`<Link><Button/></Link>`, 195
-  files; invalid HTML, two tab stops) -> `<Link className={buttonClass()}>`
-  (components/ui/button.tsx, added 2026-10-11).
 - DONE 2026-10-11: speed check of 85 manager pages after the compute
   upgrade, signed in: no errors or timeouts; median 2.4 s on a first visit
   (incl. local compiling), all under ~3.2 s once compiled (Command Center

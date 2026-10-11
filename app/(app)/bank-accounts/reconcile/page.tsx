@@ -3,7 +3,7 @@ import { Landmark } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Select } from '@/components/ui/input';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -347,9 +347,7 @@ export default async function BankReconciliationPage({
                         <Button type="submit">Complete reconciliation</Button>
                       </form>
                     )}
-                    <Link href={`/bank-accounts/reconcile/new?account_id=${encodeURIComponent(selectedAccount.id)}`}>
-                      <Button variant="secondary">New reconciliation</Button>
-                    </Link>
+                    <Link href={`/bank-accounts/reconcile/new?account_id=${encodeURIComponent(selectedAccount.id)}`} className={buttonClass('secondary')}>New reconciliation</Link>
                   </div>
                 </div>
               </Surface>
@@ -362,9 +360,7 @@ export default async function BankReconciliationPage({
                   title="No reconciliation found"
                   description="No reconciliation found for this bank account."
                   action={
-                    <Link href={`/bank-accounts/reconcile/new?account_id=${encodeURIComponent(selectedAccount.id)}`}>
-                      <Button>Start new reconciliation</Button>
-                    </Link>
+                    <Link href={`/bank-accounts/reconcile/new?account_id=${encodeURIComponent(selectedAccount.id)}`} className={buttonClass()}>Start new reconciliation</Link>
                   }
                 />
               </Surface>

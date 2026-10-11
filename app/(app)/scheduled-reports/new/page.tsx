@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { ScheduleFields } from '@/components/reports/schedule-fields';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { loadScheduleOptions } from '@/lib/reports/schedule-options';
@@ -33,7 +33,7 @@ export default async function NewScheduledReportPage({
     <DataWorkspace
       title="New scheduled report"
       description="Run a report automatically and email it, on the schedule you choose."
-      actions={<Link href="/scheduled-reports"><Button variant="secondary">Back to scheduled reports</Button></Link>}
+      actions={<Link href="/scheduled-reports" className={buttonClass('secondary')}>Back to scheduled reports</Link>}
     >
       <div className="max-w-3xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not schedule report">{sp.error}</Alert>}

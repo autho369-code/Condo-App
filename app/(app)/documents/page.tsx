@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { findMisplacedAssociationDocuments } from '@/lib/documents/misplaced';
 import { repairMisplacedAssociationDocuments } from '@/lib/rpcs/document-repair';
@@ -165,12 +165,8 @@ export default async function DocumentsPage({
       description="Create, manage, and send violation notices, welcome letters, assessment letters, and board packets."
       actions={
         <>
-          <Link href="/documents/generate">
-            <Button>Generate document</Button>
-          </Link>
-          <Link href="/documents/templates/new">
-            <Button variant="secondary">New template</Button>
-          </Link>
+          <Link href="/documents/generate" className={buttonClass()}>Generate document</Link>
+          <Link href="/documents/templates/new" className={buttonClass('secondary')}>New template</Link>
         </>
       }
     >
@@ -282,9 +278,7 @@ export default async function DocumentsPage({
                   title="No document templates found"
                   description="Templates will appear here once created."
                   action={
-                    <Link href="/documents/templates/new">
-                      <Button>Create your first template</Button>
-                    </Link>
+                    <Link href="/documents/templates/new" className={buttonClass()}>Create your first template</Link>
                   }
                 />
               </div>
@@ -337,9 +331,7 @@ export default async function DocumentsPage({
                   title="No generated documents yet"
                   description="Generated documents will appear here once created from templates."
                   action={
-                    <Link href="/documents/generate">
-                      <Button>Generate a document</Button>
-                    </Link>
+                    <Link href="/documents/generate" className={buttonClass()}>Generate a document</Link>
                   }
                 />
               </div>
@@ -395,9 +387,7 @@ export default async function DocumentsPage({
                   title="No notices have been sent yet"
                   description="Notices will appear here once generated and sent."
                   action={
-                    <Link href="/documents/generate">
-                      <Button>Generate a notice</Button>
-                    </Link>
+                    <Link href="/documents/generate" className={buttonClass()}>Generate a notice</Link>
                   }
                 />
               </div>

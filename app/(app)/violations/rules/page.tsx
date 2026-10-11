@@ -6,7 +6,7 @@ import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Section } from '@/components/workspace/shell';
 import { Alert, EmptyState } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { copyHouseRules, installStarterRules } from '@/lib/rpcs/violation-rules';
@@ -67,8 +67,8 @@ export default async function ViolationRulesPage({
       description="Each association's governing-document rules, the follow-up ladder violations move through, and the fines it posts."
       actions={
         <>
-          <Link href={`/violations/rules/schedule?association_id=${selected.id}`}><Button variant="secondary">Schedule & fining policy</Button></Link>
-          <Link href={`/violations/rules/new?association_id=${selected.id}`}><Button><Plus className="h-4 w-4" /> New rule</Button></Link>
+          <Link href={`/violations/rules/schedule?association_id=${selected.id}`} className={buttonClass('secondary')}>Schedule & fining policy</Link>
+          <Link href={`/violations/rules/new?association_id=${selected.id}`} className={buttonClass()}><Plus className="h-4 w-4" /> New rule</Link>
         </>
       }
     >
@@ -103,7 +103,7 @@ export default async function ViolationRulesPage({
                     <input type="hidden" name="association_id" value={selected.id} />
                     <Button type="submit">Install starter rules</Button>
                   </form>
-                  <Link href={`/violations/rules/new?association_id=${selected.id}`}><Button variant="secondary">Write a rule</Button></Link>
+                  <Link href={`/violations/rules/new?association_id=${selected.id}`} className={buttonClass('secondary', 'md', 'self-start')}>Write a rule</Link>
                 </div>
               }
             />

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FormTemplateFields } from '@/components/forms/form-template-fields';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -34,14 +34,14 @@ export default async function EditFormTemplatePage({
   const links = await signFormFiles([form]);
 
   return (
-    <DataWorkspace title={form.name} description="Edit the form, replace its file, or take it out of the owner portal." actions={<Link href="/forms"><Button variant="secondary">Back to forms</Button></Link>}>
+    <DataWorkspace title={form.name} description="Edit the form, replace its file, or take it out of the owner portal." actions={<Link href="/forms" className={buttonClass('secondary')}>Back to forms</Link>}>
       <div className="max-w-2xl space-y-4">
         {sp.error && <Alert tone="danger" title="Could not save:">{sp.error}</Alert>}
         <form action={saveFormTemplate} className="space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <FormTemplateFields form={form} fileHref={links.get(form.id)} />
           <div className="flex items-center gap-3 border-t border-gray-100 pt-5">
             <Button type="submit">Save changes</Button>
-            <Link href="/forms"><Button type="button" variant="ghost">Cancel</Button></Link>
+            <Link href="/forms" className={buttonClass('ghost')}>Cancel</Link>
           </div>
         </form>
         <form action={archiveFormTemplate} className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:flex-row sm:items-center">

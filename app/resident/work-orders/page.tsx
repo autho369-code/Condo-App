@@ -3,7 +3,7 @@ import { Wrench } from 'lucide-react';
 import { requireTenant } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { Badge, EmptyState, PageHeader, Surface } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -23,7 +23,7 @@ export default async function ResidentWorkOrdersPage() {
       <PageHeader
         title="Work orders"
         description="Track maintenance work authorized for your unit."
-        actions={<Link href="/resident/requests"><Button><Wrench className="h-4 w-4" /> New request</Button></Link>}
+        actions={<Link href="/resident/requests" className={buttonClass()}><Wrench className="h-4 w-4" /> New request</Link>}
       />
       <Surface padded={false}>
         {(workOrders ?? []).length === 0 ? (

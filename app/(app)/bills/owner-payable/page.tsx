@@ -8,7 +8,7 @@ import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { todayInZone } from '@/lib/time/zoned';
@@ -114,9 +114,7 @@ export default async function OwnerPayablePage({
       title="Homeowner payables"
       description="Refunds, settlements and other payments owed to homeowners. Approving posts the payable to the ledger; paying records the check or transfer."
       actions={
-        <Link href="/bills/owner-payable/new">
-          <Button><Plus className="h-4 w-4" /> New homeowner payable</Button>
-        </Link>
+        <Link href="/bills/owner-payable/new" className={buttonClass()}><Plus className="h-4 w-4" /> New homeowner payable</Link>
       }
     >
       <div className="space-y-6">
@@ -251,9 +249,7 @@ export default async function OwnerPayablePage({
               }
               description="Homeowner refunds, settlements and distributions will appear here once entered."
               action={
-                <Link href="/bills/owner-payable/new">
-                  <Button><Plus className="h-4 w-4" /> New homeowner payable</Button>
-                </Link>
+                <Link href="/bills/owner-payable/new" className={buttonClass()}><Plus className="h-4 w-4" /> New homeowner payable</Link>
               }
             />
           </div>

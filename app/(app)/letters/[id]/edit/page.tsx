@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import MergeFieldEditor, { MERGE_FIELDS } from '@/components/letters/merge-field-editor';
 import { Alert } from '@/components/ui/shell';
 
@@ -195,17 +195,13 @@ export default function EditLetterPage() {
 
         <div className="flex items-center justify-between border-t border-gray-200 pt-6">
           <div className="flex gap-2">
-            <Link href="/letters">
-              <Button variant="ghost">Cancel</Button>
-            </Link>
+            <Link href="/letters" className={buttonClass('ghost')}>Cancel</Link>
             <Button variant="ghost" onClick={handleArchive} className="text-red-600 hover:bg-red-50 hover:text-red-700">
               Archive
             </Button>
           </div>
           <div className="flex gap-3">
-            <Link href={`/letters/${id}/preview`}>
-              <Button variant="secondary">Preview &amp; send</Button>
-            </Link>
+            <Link href={`/letters/${id}/preview`} className={buttonClass('secondary')}>Preview &amp; send</Link>
             <Button onClick={() => handleSave(active)} disabled={saving}>
               {saving ? 'Saving...' : 'Save changes'}
             </Button>

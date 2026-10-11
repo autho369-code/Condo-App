@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { deleteTemplate } from '@/lib/rpcs/sms';
@@ -42,9 +42,7 @@ export default async function SmsTemplatesPage({
       title="Message Templates"
       description={`Reusable SMS text templates for common messages. Use merge fields like {{owner_name}} to personalize.`}
       actions={
-        <Link href="/sms/templates/new">
-          <Button><Plus className="h-4 w-4" /> New template</Button>
-        </Link>
+        <Link href="/sms/templates/new" className={buttonClass()}><Plus className="h-4 w-4" /> New template</Link>
       }
     >
       <div className="space-y-4">
@@ -73,9 +71,7 @@ export default async function SmsTemplatesPage({
               title="No templates yet"
               description="Create your first SMS template to speed up common communications."
               action={
-                <Link href="/sms/templates/new">
-                  <Button><Plus className="h-4 w-4" /> Create first template</Button>
-                </Link>
+                <Link href="/sms/templates/new" className={buttonClass()}><Plus className="h-4 w-4" /> Create first template</Link>
               }
             />
           </div>
@@ -105,7 +101,7 @@ export default async function SmsTemplatesPage({
                   <TD className="text-gray-500">{formatDate(t.updated_at)}</TD>
                   <TD>
                     <div className="flex items-center gap-1">
-                      <Link href={`/sms/templates/${t.id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>
+                      <Link href={`/sms/templates/${t.id}/edit`} className={buttonClass('secondary', 'sm')}>Edit</Link>
                       <form action={deleteTemplate as any} className="inline">
                         <input type="hidden" name="id" value={t.id} />
                         <PendingSubmit variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" pendingLabel="Deleting…" confirm="Delete this SMS template?">

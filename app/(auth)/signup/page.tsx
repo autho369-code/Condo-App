@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 
 // Portier369 accounts are invitation-only: a company is set up by Portier369,
 // and its staff, boards, owners and vendors are invited from inside it. A
@@ -24,8 +24,8 @@ export default function SignupPage() {
           </p>
         </div>
         <div className="mt-5 flex flex-col gap-2">
-          <Link href="/demo"><Button className="w-full">Request a demo</Button></Link>
-          <Link href="/login"><Button variant="secondary" className="w-full">Sign in</Button></Link>
+          <Link href="/demo" className={buttonClass('primary', 'md', 'w-full')}>Request a demo</Link>
+          <Link href="/login" className={buttonClass('secondary', 'md', 'w-full')}>Sign in</Link>
         </div>
       </CardBody>
     </Card>

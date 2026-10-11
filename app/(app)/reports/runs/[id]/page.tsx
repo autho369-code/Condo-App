@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Workspace, WorkspaceHeader, Section } from '@/components/reports/workspace';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { cancelReportRun } from '@/lib/rpcs/reports';
 import { date } from '@/lib/utils';
 import { PendingSubmit } from '@/components/ui/pending-submit';
@@ -42,9 +42,7 @@ export default async function ReportRunDetail({ params, searchParams }: { params
             subtitle={def?.description}
             actions={
               run.status === 'succeeded' && run.output_url ? (
-                <a href={run.output_url} target="_blank" rel="noopener">
-                  <Button>Download {run.output_format?.toUpperCase()}</Button>
-                </a>
+                <a href={run.output_url} target="_blank" rel="noopener" className={buttonClass()}>Download {run.output_format?.toUpperCase()}</a>
               ) : isInFlight ? (
                 <form action={cancelReportRun.bind(null, run.id) as any}>
                   <PendingSubmit variant="secondary" size="sm" pendingLabel="Cancelling…" confirm="Cancel this report run?">Cancel run</PendingSubmit>

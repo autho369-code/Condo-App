@@ -4,7 +4,7 @@ import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shel
 import { RuleForm } from '@/components/violations/rule-form';
 import { ScheduleEditor } from '@/components/violations/schedule-editor';
 import { Alert } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { archiveHouseRule, saveViolationSchedule } from '@/lib/rpcs/violation-rules';
 import { createClient } from '@/lib/supabase/server';
@@ -51,7 +51,7 @@ export default async function RuleDetailPage({
           eyebrow={<><Link href={`/violations/rules?association_id=${rule.association_id}`} className="transition-colors hover:text-gray-700">Rules & fines</Link>{' · '}{rule.associations?.name}</>}
           title={`${rule.rule_number} — ${rule.title}`}
           subtitle={`${openCount ?? 0} open violation${openCount === 1 ? '' : 's'} under this rule`}
-          actions={<Link href={`/violations/new?association_id=${rule.association_id}&house_rule_id=${rule.id}`}><Button>Open violation</Button></Link>}
+          actions={<Link href={`/violations/new?association_id=${rule.association_id}&house_rule_id=${rule.id}`} className={buttonClass()}>Open violation</Link>}
         />
       }
     >

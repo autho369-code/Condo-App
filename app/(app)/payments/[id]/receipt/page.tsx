@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { PrintButton } from '@/components/ui/print-button';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { receiptMethodLabel } from '@/lib/payments/methods';
 import { money } from '@/lib/utils';
@@ -40,7 +40,7 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 print:max-w-none print:p-0">
       <div className="mb-4 flex items-center justify-between gap-2 print:hidden">
-        <Link href={`/units/${p.unit_id}`}><Button variant="secondary">Back to unit</Button></Link>
+        <Link href={`/units/${p.unit_id}`} className={buttonClass('secondary')}>Back to unit</Link>
         <PrintButton label="Print receipt" />
       </div>
 

@@ -2,7 +2,7 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { VendorSelect } from '@/components/vendors/vendor-select';
@@ -67,7 +67,7 @@ export default async function NewRecurringWorkOrderPage({ searchParams }: { sear
   }
 
   return (
-    <DataWorkspace title="New Recurring Work Order" description="Set up a maintenance task that regenerates on a schedule." actions={<Link href="/recurring-work-orders"><Button variant="secondary">Back to recurring work orders</Button></Link>}>
+    <DataWorkspace title="New Recurring Work Order" description="Set up a maintenance task that regenerates on a schedule." actions={<Link href="/recurring-work-orders" className={buttonClass('secondary')}>Back to recurring work orders</Link>}>
       <form action={createRecurring} className="max-w-3xl space-y-5 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create recurring work order">{sp.error}</Alert>}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

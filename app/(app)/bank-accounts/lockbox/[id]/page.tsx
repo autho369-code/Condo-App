@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
 import { Alert, Badge } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -56,7 +56,7 @@ export default async function LockboxBatchPage({
     <DataWorkspace
       title={`Lockbox · ${date(batch.batch_date)}`}
       description={`${batch.bank_accounts?.name ?? ''}${batch.deposit_reference ? ` · ${batch.deposit_reference}` : ''}`}
-      actions={<Link href="/bank-accounts/lockbox"><Button variant="secondary">All batches</Button></Link>}
+      actions={<Link href="/bank-accounts/lockbox" className={buttonClass('secondary')}>All batches</Link>}
     >
       <div className="space-y-4">
         {sp.error && <Alert tone="danger" title="Could not update">{sp.error}</Alert>}

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { Alert } from '@/components/ui/shell';
 
@@ -166,9 +166,7 @@ export default function EditTemplatePage() {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Link href={`/documents/templates/${id}`}>
-              <Button variant="secondary">Cancel</Button>
-            </Link>
+            <Link href={`/documents/templates/${id}`} className={buttonClass('secondary')}>Cancel</Link>
           </div>
         </div>
 
@@ -313,9 +311,7 @@ export default function EditTemplatePage() {
             <Button onClick={handleSave} disabled={saving}>
               {saving ? 'Saving...' : 'Save Changes'}
             </Button>
-            <Link href={`/documents/templates/${id}`}>
-              <Button variant="secondary">Cancel</Button>
-            </Link>
+            <Link href={`/documents/templates/${id}`} className={buttonClass('secondary')}>Cancel</Link>
           </div>
         </div>
       </main>

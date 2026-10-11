@@ -12,7 +12,7 @@ import { sanitizeSearchTerm } from '@/lib/search/global';
 import { zonedWallTimeToUtc } from '@/lib/time/zoned';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { date, money } from '@/lib/utils';
 import { ApprovalStatusChip, OrderStatusChip } from './status-chips';
 
@@ -152,10 +152,8 @@ export default async function PurchaseOrdersPage({
       description="Commit spend before work starts. Orders over an association's threshold go to its board for a vote."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/purchase-orders/recurring"><Button variant="secondary">Recurring POs</Button></Link>
-          <Link href="/purchase-orders/new">
-            <Button><Plus className="h-4 w-4" /> New PO</Button>
-          </Link>
+          <Link href="/purchase-orders/recurring" className={buttonClass('secondary')}>Recurring POs</Link>
+          <Link href="/purchase-orders/new" className={buttonClass()}><Plus className="h-4 w-4" /> New PO</Link>
         </div>
       }
     >
@@ -251,7 +249,7 @@ export default async function PurchaseOrdersPage({
               icon={FileSpreadsheet}
               title={q || filter !== 'all' ? 'No purchase orders match this filter' : 'No purchase orders yet'}
               description="Create a purchase order to commit spend with a vendor before work begins."
-              action={<Link href="/purchase-orders/new"><Button><Plus className="h-4 w-4" /> New PO</Button></Link>}
+              action={<Link href="/purchase-orders/new" className={buttonClass()}><Plus className="h-4 w-4" /> New PO</Link>}
             />
           </div>
         )}

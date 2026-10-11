@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { Badge, Alert } from '@/components/ui/shell'
 import { StatusChip } from '@/components/operations/status-chip'
-import { Button } from '@/components/ui/button'
+import { buttonClass } from '@/components/ui/button';
 import { money, date } from '@/lib/utils'
 import { htmlToPlainText } from '@/lib/security/rich-text'
 import { CreditCard, Wrench, MessageSquare, Shield, FileText, Calendar, Siren, Phone, Mail, Sparkles } from 'lucide-react'
@@ -118,12 +118,8 @@ export default async function OwnerDashboard() {
           <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">{me.profile?.full_name ?? 'Owner'}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/portal/ledger">
-            <Button variant="secondary">Account Ledger</Button>
-          </Link>
-          <Link href="/portal/pay">
-            <Button><CreditCard className="h-4 w-4" /> Pay Assessments</Button>
-          </Link>
+          <Link href="/portal/ledger" className={buttonClass('secondary')}>Account Ledger</Link>
+          <Link href="/portal/pay" className={buttonClass()}><CreditCard className="h-4 w-4" /> Pay Assessments</Link>
         </div>
       </div>
 

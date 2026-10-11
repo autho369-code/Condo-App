@@ -3,7 +3,7 @@ import { PenLine, Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { EmptyState } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -39,7 +39,7 @@ export default async function SignaturesPage({ searchParams }: { searchParams: P
     <DataWorkspace
       title="E-signatures"
       description="Board resolutions, architectural decisions, and agreements signed electronically with a tamper-evident audit trail."
-      actions={<Link href="/signatures/new"><Button><Plus className="h-4 w-4" /> Request signatures</Button></Link>}
+      actions={<Link href="/signatures/new" className={buttonClass()}><Plus className="h-4 w-4" /> Request signatures</Link>}
     >
       <div className="space-y-6">
         <MetricStrip metrics={[
@@ -79,7 +79,7 @@ export default async function SignaturesPage({ searchParams }: { searchParams: P
         ) : (
           <div className="rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState icon={PenLine} title="No signature requests yet" description="Send a board resolution, architectural decision, or agreement for electronic signature."
-              action={<Link href="/signatures/new"><Button><Plus className="h-4 w-4" /> Request signatures</Button></Link>} />
+              action={<Link href="/signatures/new" className={buttonClass()}><Plus className="h-4 w-4" /> Request signatures</Link>} />
           </div>
         )}
       </div>

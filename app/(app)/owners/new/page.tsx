@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
@@ -29,7 +29,7 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
     <DataWorkspace
       title="New Owner"
       description="Create the owner, assign the unit, set up the full fee schedule, and capture tenant/lease details if the unit is rented."
-      actions={<Link href="/owners"><Button variant="secondary">Back to owners</Button></Link>}
+      actions={<Link href="/owners" className={buttonClass('secondary')}>Back to owners</Link>}
     >
       <form action={createOwnerWithDetails} className="max-w-5xl space-y-6 rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create owner">{sp.error}</Alert>}

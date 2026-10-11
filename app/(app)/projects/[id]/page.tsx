@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { hasPortfolioAdminAccess, requirePortfolioAdmin, requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Alert, Badge } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
@@ -265,7 +265,7 @@ export default async function ProjectDetailPage({
               return <TR key={link.work_order_id}><TD><Link href={`/work-orders/${link.work_order_id}`} className="font-medium text-gray-900 hover:text-blue-700">#{wo?.number ?? link.work_order_id.slice(0, 8)} · {wo?.title}</Link></TD><TD><Badge status={wo?.status} /></TD><TD className="capitalize">{wo?.priority ?? '—'}</TD><TD><form action={unlinkWorkOrder}><input type="hidden" name="project_id" value={id} /><input type="hidden" name="work_order_id" value={link.work_order_id} /><Button type="submit" variant="ghost">Unlink</Button></form></TD></TR>;
             })}</tbody></Table> : <p className="text-sm text-gray-500">No work orders linked yet.</p>}
             <form action={linkWorkOrder} className="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row">
-              <input type="hidden" name="project_id" value={id} /><Select name="work_order_id" className="flex-1"><option value="">Select an existing association work order</option>{availableWorkOrders.map((wo: any) => <option key={wo.id} value={wo.id}>#{wo.number ?? wo.id.slice(0, 8)} · {wo.title}</option>)}</Select><Button type="submit">Link work order</Button><Link href={`/work-orders/new?association=${project.association_id}`}><Button type="button" variant="secondary">Create work order</Button></Link>
+              <input type="hidden" name="project_id" value={id} /><Select name="work_order_id" className="flex-1"><option value="">Select an existing association work order</option>{availableWorkOrders.map((wo: any) => <option key={wo.id} value={wo.id}>#{wo.number ?? wo.id.slice(0, 8)} · {wo.title}</option>)}</Select><Button type="submit">Link work order</Button><Link href={`/work-orders/new?association=${project.association_id}`} className={buttonClass('secondary')}>Create work order</Link>
             </form>
           </Section>
         </div>
