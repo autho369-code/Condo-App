@@ -4,6 +4,12 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-10
+- receivable_unit_totals split (claude/receivables-totals-speed; migration
+  20261011090000, LIVE): one SQL statement over aged_receivables,
+  v_unapplied_credits and delinquent_units (900+ RLS sub-plans) took 13-25 s;
+  now PL/pgSQL, one query per total, separate filtered/unfiltered queries:
+  45-600 ms, identical results for every role. The Receivables page
+  (/charges) still times out under load: see Status, Next gaps.
 - Projects list spend (claude/project-spend-list; migration 20261011080000,
   live): /projects read capital_project_financials, a security_invoker view
   over payable_bills, so staff without a finance role saw $0 spent on every
