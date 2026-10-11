@@ -1,36 +1,33 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import * as React from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Alert } from '@/components/ui/shell';
 
 // Shows a refused report run (queueReport redirects back with ?error=...)
-// right above the run form, and puts back the output format and unit the
-// user had chosen. The server page already restores scope, association,
-// period and account from the same URL; these two selects have no server
-// default from the URL, so they are set here, and only to an option the
-// select really has.
+// right above the run form.
 export function ReportRunError() {
-  const params = useSearchParams();
-  const error = params.get('error');
-  const anchor = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (!error) return;
-    const form = anchor.current?.closest('form');
-    if (!form) return;
-    for (const [param, name] of [['format', 'output_format'], ['unit', 'param_unit_id']] as const) {
-      const value = params.get(param);
-      const select = form.querySelector<HTMLSelectElement>(`select[name="${name}"]`);
-      if (value && select && [...select.options].some((o) => o.value === value)) select.value = value;
-    }
-  }, [error, params]);
-
+  const error = useSearchParams().get('error');
   if (!error) return null;
-  return (
-    <>
-      <span ref={anchor} hidden />
-      <Alert tone="danger" title="The report did not run.">{error}</Alert>
-    </>
-  );
+  return <Alert tone="danger" title="The report did not run.">{error}</Alert>;
+}
+
+// A run-form select whose starting value can come back in the URL after a
+// refused run (?format=, ?unit=). The default value is used on the server
+// and in the browser alike, so React's reset of the form after the action
+// lands on the user's choice, not on the page default. Only a value that is
+// one of `allowed` is taken from the URL.
+export function ReportChoiceSelect({
+  param,
+  allowed,
+  fallback,
+  ...props
+}: Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'defaultValue'> & {
+  param: string;
+  allowed: string[];
+  fallback: string;
+}) {
+  const fromUrl = useSearchParams().get(param);
+  const value = fromUrl && allowed.includes(fromUrl) ? fromUrl : fallback;
+  return <select {...props} defaultValue={value} />;
 }
