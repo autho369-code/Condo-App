@@ -14,6 +14,12 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   at 375 px, 37 pages, no horizontal overflow. Tap targets raised to 40 px;
   figure tiles fixed where large amounts spilled out (12 hand-built copies
   plus the shared Metric/MetricStrip). Follow-ups in docs/redesign/PROGRESS.md.
+- Per-row database calls limited (claude/limit-per-row-rpcs; no
+  migration): Payment plans read one schedule per plan (up to 500 at once)
+  and Delinquencies one referral-readiness check per case, all at once;
+  now four at a time via lib/db/map-limit.ts. Same figures. Production has
+  few such records today, so this prevents the Metrics-style timeout
+  before it happens.
 - Shared components (claude/shared-components-cleanup; no migration):
   calendar filters -> Select, Print/CSV/PDF export buttons -> Button
   (secondary, sm; on ~19 list pages), Reports search card and Company admin
