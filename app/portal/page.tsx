@@ -304,19 +304,19 @@ export default async function OwnerDashboard() {
         <div className={card}>
           <h2 className="mb-4 text-sm font-semibold text-gray-950">Your Management Company</h2>
           {support ? (
-            <div className="space-y-2.5">
+            <div className="space-y-1">
               {support.name && <div className="text-sm font-medium text-gray-900">{support.name}</div>}
               {support.email && (
-                <a href={`mailto:${support.email}`} className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-950 hover:underline">
+                <a href={`mailto:${support.email}`} className="flex min-h-10 items-center gap-2 text-sm text-gray-700 hover:text-gray-950 hover:underline">
                   <Mail className="h-4 w-4 text-gray-400" /> {support.email}
                 </a>
               )}
               {support.phone && (
-                <a href={`tel:${support.phone}`} className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-950 hover:underline">
+                <a href={`tel:${support.phone}`} className="flex min-h-10 items-center gap-2 text-sm text-gray-700 hover:text-gray-950 hover:underline">
                   <Phone className="h-4 w-4 text-gray-400" /> {support.phone}
                 </a>
               )}
-              <Link href="/portal/communications" className="inline-flex items-center gap-1.5 pt-1 text-sm font-medium text-gray-600 hover:text-gray-950 hover:underline">
+              <Link href="/portal/communications" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-950 hover:underline">
                 <MessageSquare className="h-4 w-4 text-gray-400" /> Send a message
               </Link>
             </div>

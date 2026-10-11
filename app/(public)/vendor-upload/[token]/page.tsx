@@ -72,7 +72,7 @@ export default async function VendorUploadPage({
             <input type="hidden" name="token" value={token} />
             <Field label="File (PDF, image or Word, up to 10 MB)" htmlFor="file">
               <input id="file" name="file" type="file" required accept=".pdf,.png,.jpg,.jpeg,.heic,.webp,.doc,.docx"
-                className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-3.5 file:py-2 file:text-[13px] file:font-medium file:text-white" />
+                className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-3.5 file:py-2.5 file:text-[13px] file:font-medium file:text-white" />
             </Field>
             {needsDate && (
               <Field label="Expiration date on the document" htmlFor="expires_on">
