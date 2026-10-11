@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { StatTile } from '@/components/ui/stat-tile'
 import { createClient } from '@/lib/supabase/server'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
@@ -47,20 +48,7 @@ function StatCard({
   icon: React.ElementType
   tone?: 'danger' | 'warning'
 }) {
-  return (
-    <div className={`${card} px-4 py-3.5`}>
-      <div className="flex items-start justify-between">
-        <div className="min-w-0">
-          <div className="text-[13px] font-medium leading-5 text-gray-500">{label}</div>
-          <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${tone === 'danger' ? 'text-red-700' : tone === 'warning' ? 'text-amber-700' : 'text-gray-950'}`}>{value}</div>
-          {sub && <div className="mt-1 text-[13px] text-gray-500">{sub}</div>}
-        </div>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
-          <Icon className="h-4.5 w-4.5 text-gray-400" />
-        </div>
-      </div>
-    </div>
-  )
+  return <StatTile label={label} value={value} sub={sub} icon={Icon} tone={tone} />
 }
 
 function QuickActionButton({ children, href }: { children: React.ReactNode; href: string }) {
@@ -235,7 +223,7 @@ export default async function OverviewPage() {
             <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Manager Workload</h2>
             <p className="mt-0.5 text-[13px] text-gray-500">Assigned properties and open work per manager</p>
           </div>
-          <Link href="/company-admin/performance" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
+          <Link href="/company-admin/performance" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
             Performance rankings <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
@@ -329,7 +317,7 @@ export default async function OverviewPage() {
             <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Property Health Scores</h2>
             <p className="mt-0.5 text-[13px] text-gray-500">Live health score per association — computed from open work, overdue items, emergencies, and violations</p>
           </div>
-          <Link href="/company-admin/portfolio-health" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
+          <Link href="/company-admin/portfolio-health" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
             View full report <ArrowRight className="h-3 w-3" />
           </Link>
         </div>

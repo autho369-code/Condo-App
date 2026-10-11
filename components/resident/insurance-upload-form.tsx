@@ -75,7 +75,7 @@ export function ResidentInsuranceUploadForm({
       </div>
       <label className="block">
         <span className="text-[13.5px] font-medium text-gray-700">Insurance document</span>
-        <input ref={fileRef} type="file" required accept=".pdf,.png,.jpg,.jpeg,.webp,.heic" disabled={busy} className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white disabled:opacity-50" />
+        <input ref={fileRef} type="file" required accept=".pdf,.png,.jpg,.jpeg,.webp,.heic" disabled={busy} className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-white disabled:opacity-50" />
         <span className="mt-1 block text-xs text-gray-400">Private browser upload, maximum 25 MB.</span>
       </label>
       <Button type="submit" size="lg" disabled={busy}>{busy ? (phase ?? 'Saving…') : 'Upload insurance'}</Button>
