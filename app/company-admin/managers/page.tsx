@@ -142,7 +142,7 @@ export default async function CompanyAdminManagersPage({
       <form action={inviteManager} className="max-w-2xl rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <h2 className="mb-3 font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Invite a manager</h2>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Input name="email" type="email" required placeholder="manager@email.com" className="flex-1" aria-label="Manager email" />
+            <Input name="email" type="email" required placeholder="manager@email.com" className="sm:flex-1" aria-label="Manager email" />
             <PendingSubmit pendingLabel="Inviting…"><UserPlus className="h-4 w-4" /> Invite</PendingSubmit>
           </div>
           {(portfolioAssocs ?? []).length > 0 && (

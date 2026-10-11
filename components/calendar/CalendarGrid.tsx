@@ -112,23 +112,23 @@ export default function CalendarGrid({ associations, initialAssocId, initialType
         <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
           {[{ key: 'dayGridMonth', label: 'Month' }, { key: 'timeGridWeek', label: 'Week' }, { key: 'timeGridDay', label: 'Day' }, { key: 'listMonth', label: 'Agenda' }].map((v) => (
             <button key={v.key} type="button" onClick={() => switchView(v.key)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === v.key ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>
+              className={`min-h-10 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === v.key ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>
               {v.label}
             </button>
           ))}
         </div>
         <div className="h-6 w-px bg-gray-200" />
         <select value={assocId} onChange={(e) => { setAssocId(e.target.value); navigate(e.target.value, typeFilter); }}
-          className="h-9 rounded border border-gray-200 bg-white px-3 text-xs text-gray-700">
+          className="h-10 rounded border border-gray-200 bg-white px-3 text-xs text-gray-700">
           <option value="">All associations</option>
           {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
         <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); navigate(assocId, e.target.value); }}
-          className="h-9 rounded border border-gray-200 bg-white px-3 text-xs text-gray-700">
+          className="h-10 rounded border border-gray-200 bg-white px-3 text-xs text-gray-700">
           <option value="">All event types</option>
           {EVENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
-        {hasFilter && <Link href="/calendar" className="text-xs text-gray-500 hover:text-gray-700">Clear filters</Link>}
+        {hasFilter && <Link href="/calendar" className="inline-flex min-h-10 items-center text-xs text-gray-500 hover:text-gray-700">Clear filters</Link>}
       </div>
 
       {/* Legend */}
