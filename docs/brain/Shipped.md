@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Metrics: monthly call runs alongside the snapshot (claude/metrics-parallel;
+  on #301): measured signed in as a manager, /metrics 4.6-5.2 s before #301,
+  3.6-3.8 s with #301, 2.7-2.8 s with this. Remaining: the 12-month
+  receivables (about 1.3 of the 1.5 s call).
 - Metrics in one call (claude/metrics-one-call; migration 20261011120000,
   LIVE): the page's month-by-month figures (6 requests per month, 72 a year)
   come from one security-invoker function, metrics_monthly_trend, using the
