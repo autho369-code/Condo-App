@@ -190,3 +190,8 @@
   a Merged/"Where things stand" entry. Open PR holds only the open PR.
   Also: when a PR leaves an object unused (capital_project_financials view),
   the drop is Mirsad's (DROP rule) - list it in docs/TODO.md Mirsad's list.
+- Recurring 5th time (operator tap targets pre-PR, 2026-10-11): Status
+  header still "open PR: #296" and Open PR still held merged #288
+  (project-spend-list) while #296-#303 merged; the PR edited only Next gaps
+  + Shipped. Every pre-PR: diff Status line 3 + "## Open PR" against
+  `gh pr list --state open`, and add merged PRs to "Where things stand".

@@ -183,7 +183,7 @@ export default async function CompanyDetailPage({
 
       <header className="space-y-2">
         <div className="text-sm">
-          <Link href="/platform-operator/companies" className="text-gray-500 hover:text-gray-950 hover:underline">
+          <Link href="/platform-operator/companies" className="inline-flex min-h-10 items-center text-gray-500 hover:text-gray-950 hover:underline">
             Companies
           </Link>
           <span className="px-2 text-gray-300">/</span>
@@ -196,7 +196,7 @@ export default async function CompanyDetailPage({
               Account management, subscription, invitations, and billing. Property operations stay with the company.
             </p>
             {portfolio.slug && (
-              <a href={workspaceUrl} target="_blank" rel="noreferrer" className="mt-1.5 inline-block text-sm font-medium text-blue-700 hover:underline">
+              <a href={workspaceUrl} target="_blank" rel="noreferrer" className="mt-0.5 inline-flex min-h-10 items-center text-sm font-medium text-blue-700 hover:underline">
                 {new URL(workspaceUrl).hostname}
               </a>
             )}
@@ -216,7 +216,7 @@ export default async function CompanyDetailPage({
                   <form action={suspendCompany as any} className="flex items-center gap-2">
                     <input type="hidden" name="portfolio_id" value={id} />
                     <input type="hidden" name="return_to" value={returnTo} />
-                    <Input name="reason" placeholder="Suspension reason (optional)" className="h-9 w-56 text-xs" />
+                    <Input name="reason" placeholder="Suspension reason (optional)" className="w-56 text-xs" />
                     <PendingSubmit variant="danger" size="sm" confirm={`Suspend ${portfolio.company_name}? Every user loses access until it is reactivated.`}>Suspend</PendingSubmit>
                   </form>
                 )}
@@ -628,15 +628,15 @@ export default async function CompanyDetailPage({
                 <Label htmlFor="inv_amount" className="text-xs">Amount ($)</Label>
                 <Input id="inv_amount" name="amount" type="number" step="0.01" min="0"
                   defaultValue={subscription?.price_monthly_cents ? (subscription.price_monthly_cents / 100).toFixed(2) : ''}
-                  placeholder="Plan price" className="h-9 w-28" />
+                  placeholder="Plan price" className="w-28" />
               </div>
               <div>
                 <Label htmlFor="inv_start" className="text-xs">Period start</Label>
-                <Input id="inv_start" name="period_start" type="date" className="h-9 w-36" />
+                <Input id="inv_start" name="period_start" type="date" className="w-36" />
               </div>
               <div>
                 <Label htmlFor="inv_end" className="text-xs">Period end</Label>
-                <Input id="inv_end" name="period_end" type="date" className="h-9 w-36" />
+                <Input id="inv_end" name="period_end" type="date" className="w-36" />
               </div>
               <PendingSubmit size="sm" pendingLabel="Generating…">Generate invoice</PendingSubmit>
             </form>

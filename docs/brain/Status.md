@@ -1,12 +1,24 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#295 merged; open PR: #296 per-row calls four at a time; next: phone-width check of the owner, board, vendor and company-admin screens).
+Back to [[Home]]. Updated 2026-10-11 (#279-#303 merged; open PR: claude/operator-tap-targets; next: operator screens at 375 px once Mirsad signs in as operator).
 
 ## Open PR
-- claude/project-spend-list: the projects list showed "$0 spent" to staff
-  without a finance role (it summed finance-only bills through RLS). New
-  function capital_project_spend_totals (migration 20261011080000, LIVE on
-  production) gives the list the same totals as the project page.
+- claude/operator-tap-targets: 40px tap targets on 10 platform-operator
+  pages; Companies View/Billing were buttons nested in links, now links
+  styled by the new shared buttonClass(); not yet checked in the browser
+  (operator sign-in needs Mirsad).
+
+## Merged 2026-10-11
+- #288 projects list spend for all staff (capital_project_spend_totals,
+  20261011080000); #289 Piper unguessable web session id; #290 Reports
+  phone width; #291-#293 Receivables page speed (1.2-2.4 s, was 15-29 s);
+  #294/#296 per-row calls a few at a time (lib/db/map-limit.ts); #295
+  shared components; #297 vault; #298 owner portal tap targets.
+- #303 (squash, 1748bc02) carried the stacked #299-#302: board, vendor and
+  company-admin tap targets; StatTile + SegmentedLinks/Buttons; Metrics in
+  one call (metrics_monthly_trend 20261011120000) with month-end
+  receivables in one pass (receivable_summary_by_months 20261011130000);
+  /metrics 1.7-2.1 s (was 4.6-5.2 s). #299-#302 closed as included.
 
 ## Merged 2026-10-10 (late)
 - #282 query probe + refused report runs return to the report; #283
@@ -374,11 +386,14 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#295 merged; open PR: #296 per-row ca
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- NEXT: phone-width (375 px) check of the owner, board, vendor and
-  company-admin screens, signed in, in the in-app browser (it emulates a
-  phone; Chrome's window cannot be resized). Manager screens done
-  2026-10-10 (#290, #295). Needs Mirsad to sign in per role in the Browser
-  pane (Chrome's saved passwords are not available there).
+- NEXT: confirm the platform-operator screens at 375 px in the in-app
+  browser once Mirsad signs in there as operator (code pass done
+  2026-10-11: 40px tap targets on 10 operator pages; View/Billing were
+  buttons nested in links). Owner (#298), board, vendor and company admin
+  (#299, merged inside #303) DONE 2026-10-11; manager 2026-10-10.
+- NEXT (code): 357 buttons nested in links (`<Link><Button/></Link>`, 195
+  files; invalid HTML, two tab stops) -> `<Link className={buttonClass()}>`
+  (components/ui/button.tsx, added 2026-10-11).
 - DONE 2026-10-11: speed check of 85 manager pages after the compute
   upgrade, signed in: no errors or timeouts; median 2.4 s on a first visit
   (incl. local compiling), all under ~3.2 s once compiled (Command Center

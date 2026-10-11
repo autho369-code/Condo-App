@@ -1,6 +1,6 @@
+import { buttonClass } from '@/components/ui/button';
 import Link from 'next/link';
 
-import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -274,12 +274,8 @@ export default async function CompaniesPage({
                     <TD><StatusChip tone={status.tone}>{status.label}</StatusChip></TD>
                     <TD>
                       <div className="flex flex-wrap items-center gap-1">
-                        <Link href={`/platform-operator/companies/${p.id}`}>
-                          <Button variant="ghost" size="sm">View</Button>
-                        </Link>
-                        <Link href={`/platform-operator/companies/${p.id}#billing`}>
-                          <Button variant="ghost" size="sm">Billing</Button>
-                        </Link>
+                        <Link href={`/platform-operator/companies/${p.id}`} className={buttonClass('ghost', 'sm')}>View</Link>
+                        <Link href={`/platform-operator/companies/${p.id}#billing`} className={buttonClass('ghost', 'sm')}>Billing</Link>
                         {!isArchived && (
                           isSuspended ? (
                             <form action={reactivateCompany as any}>

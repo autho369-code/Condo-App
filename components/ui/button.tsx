@@ -17,14 +17,17 @@ const styles: Record<Variant, string> = {
 };
 const sizes = { sm: 'h-10 px-3.5 text-[13.5px] rounded-[10px]', md: 'h-10 px-4 text-sm rounded-[10px]', lg: 'h-11 px-5 text-[15px] rounded-xl' };
 
+/** Button look for elements that are not <button>, e.g. a Link that should look like a button (never nest a Button inside a Link). */
+export function buttonClass(variant: Variant = 'primary', size: 'sm' | 'md' | 'lg' = 'md', className?: string) {
+  return cn(
+    'inline-flex items-center justify-center gap-1.5 font-semibold transition-colors outline-none',
+    'focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none',
+    styles[variant], variant !== 'link' && sizes[size], className);
+}
+
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'primary', size = 'md', className, ...p }, ref) => (
-    <button ref={ref}
-      className={cn(
-        'inline-flex items-center justify-center gap-1.5 font-semibold transition-colors outline-none',
-        'focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none',
-        styles[variant], variant !== 'link' && sizes[size], className)}
-      {...p} />
+    <button ref={ref} className={buttonClass(variant, size, className)} {...p} />
   ),
 );
 Button.displayName = 'Button';

@@ -173,7 +173,7 @@ export default async function SecurityCenterPage() {
             <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Sensitive Account Activity (30 days)</h2>
             <p className="mt-0.5 text-[13px] text-gray-500">Password resets, suspensions, role and plan changes</p>
           </div>
-          <Link href="/platform-operator/audit-logs" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
+          <Link href="/platform-operator/audit-logs" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
             Full audit log <Eye className="h-3 w-3" />
           </Link>
         </div>

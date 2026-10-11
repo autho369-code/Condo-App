@@ -126,7 +126,7 @@ export default async function UsersPage({
           <form method="GET" action="/platform-operator/users" className="flex flex-wrap items-end gap-3">
             <div>
               <label htmlFor="f_role" className="mb-1 block text-xs font-medium text-gray-600">Role</label>
-              <select id="f_role" name="role" defaultValue={sp.role || ''} className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <select id="f_role" name="role" defaultValue={sp.role || ''} className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm">
                 <option value="">All roles</option>
                 {PROFILE_ROLE_OPTIONS.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
@@ -135,7 +135,7 @@ export default async function UsersPage({
             </div>
             <div>
               <label htmlFor="f_company" className="mb-1 block text-xs font-medium text-gray-600">Company</label>
-              <select id="f_company" name="company" defaultValue={sp.company || ''} className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <select id="f_company" name="company" defaultValue={sp.company || ''} className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm">
                 <option value="">All companies</option>
                 {(portfolios ?? []).map((p: any) => (
                   <option key={p.id} value={p.id}>{p.company_name}</option>
@@ -144,7 +144,7 @@ export default async function UsersPage({
             </div>
             <div>
               <label htmlFor="f_status" className="mb-1 block text-xs font-medium text-gray-600">Status</label>
-              <select id="f_status" name="status" defaultValue={sp.status || ''} className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <select id="f_status" name="status" defaultValue={sp.status || ''} className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm">
                 <option value="">All</option>
                 <option value="active">Active</option>
                 <option value="disabled">Disabled</option>
@@ -224,7 +224,7 @@ export default async function UsersPage({
                             <select
                               name="hoa_role"
                               defaultValue={user.hoa_role || ''}
-                              className="h-7 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 outline-none focus:border-blue-500"
+                              className="h-10 rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-700 outline-none focus:border-blue-500"
                             >
                               <option value="" disabled>Select role</option>
                               {PROFILE_ROLE_OPTIONS.map((r) => (

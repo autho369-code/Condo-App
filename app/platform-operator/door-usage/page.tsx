@@ -144,7 +144,7 @@ export default async function DoorUsagePage() {
                       {row.portfolio_id ? (
                         <Link
                           href={`/platform-operator/companies/${row.portfolio_id}`}
-                          className="text-xs font-medium text-gray-700 hover:text-gray-950 hover:underline"
+                          className="inline-flex min-h-10 items-center text-xs font-medium text-gray-700 hover:text-gray-950 hover:underline"
                         >
                           Adjust limits
                         </Link>

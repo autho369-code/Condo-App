@@ -8,7 +8,7 @@ import { addDaysToDate, zonedWallTimeToUtc } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
-const inputCls = 'rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15';
+const inputCls = 'h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15';
 
 export default async function AuditLogsPage({
   searchParams,
@@ -133,7 +133,7 @@ export default async function AuditLogsPage({
               ))}
             </select>
           </div>
-          <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl bg-gray-950 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-gray-800">
+          <button type="submit" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-gray-950 px-4 text-sm font-medium text-white transition hover:bg-gray-800">
             Apply Filters
           </button>
         </form>
