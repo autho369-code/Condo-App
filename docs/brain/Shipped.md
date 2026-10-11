@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-10
+- Phone width fixes (claude/phone-width-fixes; no migration): signed-in
+  check at 375 px of 11 manager pages, none scroll sideways. Fixed: Reports
+  search box collapsed to 19 px (flex-1 in a column form; also Company admin
+  invite email), export buttons, report chips and calendar view/filter
+  controls raised to the 40 px touch target. Notes in docs/redesign/PROGRESS.md.
 - Projects list spend (claude/project-spend-list; migration 20261011080000,
   live): /projects read capital_project_financials, a security_invoker view
   over payable_bills, so staff without a finance role saw $0 spent on every

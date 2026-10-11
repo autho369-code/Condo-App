@@ -70,6 +70,26 @@ no Supabase schema, policy, RPC or integration change; the parity test
 - **Found and fixed:** the dashboard's receivables card timed out ("canceling statement due to statement timeout") and the page took about 19 s. The `aged_receivables` view summed payment applications three times per charge, each through that table's security rules. Migration 20261011070000 does one grouped pass: identical rows for all 12 callers, and the board's receivables total went from 8.5 s to 64 ms. After the fix no board page shows an error, and the dashboard loads in 2.2 s on the dev server.
 - Checked visually: Financials (figures, income vs expenses, recent transactions).
 
+## Phone width check (2026-10-10, manager, 375 x 812 in the in-app browser)
+
+- Pages checked signed in: dashboard, associations, work orders (list and
+  new), owners, vendors, payables, journal entries, violations, reports,
+  calendar. No page scrolls sideways; tables scroll inside their own box.
+- Fixed (claude/phone-width-fixes):
+  - Reports search box collapsed to a 19 px strip: `flex-1` in a form that
+    is a column on phones. Now `sm:flex-1` (44 px). Same pattern fixed on
+    Company admin > Managers (invite email).
+  - Print / CSV / PDF export buttons 33 px, report category chips 36 px,
+    calendar Month/Week/Day/Agenda 29 px, its filters 36 px and its "Clear
+    filters" link: all 40 px.
+- Design debt noted by design-reviewer (unchanged): the calendar filters
+  are hand-made selects, not the shared Select; export buttons are
+  hand-made, not Button; two hand-made cards on Reports and Managers.
+- Left as is: the calendar's own previous/next/today buttons (38-39 px,
+  from the calendar library's styles).
+- Still to check at phone width: owner, board, vendor and company-admin
+  screens.
+
 ## Not yet verified
 
 - **Phone widths in a signed-in browser.** The Chrome window could not be resized.

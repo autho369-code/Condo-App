@@ -148,7 +148,7 @@ export default async function ReportsIndex({
 
         <div className="rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <form action="/reports" method="get" className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Input type="search" name="q" defaultValue={q} placeholder="Search reports, e.g. delinquency, 1099, trial balance" aria-label="Search reports" className="h-11 min-w-0 flex-1 text-[15px]" />
+            <Input type="search" name="q" defaultValue={q} placeholder="Search reports, e.g. delinquency, 1099, trial balance" aria-label="Search reports" className="h-11 min-w-0 text-[15px] sm:flex-1" />
             <Button type="submit" size="lg">Search</Button>
           </form>
           {categories.length > 0 && (
@@ -216,7 +216,7 @@ function sectionAnchor(key: string): string {
 
 function CategoryChip({ href, label, count }: { href: string; label: string; count: number }) {
   return (
-    <a href={href} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-line bg-white px-3 text-[13px] font-medium text-gray-700 hover:border-gray-300 hover:text-ink">
+    <a href={href} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-line bg-white px-3 text-[13px] font-medium text-gray-700 hover:border-gray-300 hover:text-ink">
       {label}<span className="tabular-nums text-gray-400">{count}</span>
     </a>
   );
