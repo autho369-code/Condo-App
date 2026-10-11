@@ -13,6 +13,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   migration): it fired 72 queries at once (6 per month x 12) and timed out
   after ~18 s even after the upgrade. New lib/db/map-limit.ts (tested);
   now 5-9 s with no errors. Three at a time had a 35 s outlier.
+- Receivables plan cache (claude/receivables-plan-cache; migration
+  20261011110000, LIVE): receivables_page_totals and receivable_unit_totals
+  use plan_cache_mode = force_generic_plan, so a connection plans their
+  queries once instead of on each of its first five calls: 786 ms first
+  call, then 72-78 ms (was 0.3-5.5 s for the first five).
 
 ## 2026-10-10
 - Receivables page totals in one call (claude/receivables-page-totals;
