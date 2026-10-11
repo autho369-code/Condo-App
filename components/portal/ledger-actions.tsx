@@ -5,6 +5,7 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { Download, FileText, Printer } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { todayInZone } from '@/lib/time/zoned';
 
 export type LedgerChargeRow = {
@@ -121,20 +122,17 @@ export function LedgerActions({
     doc.save(`${fileBase}.pdf`);
   }
 
-  const btn =
-    'inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50';
-
   return (
     <div className="flex flex-wrap gap-2 print:hidden">
-      <button type="button" onClick={() => window.print()} className={btn}>
-        <Printer className="h-4 w-4 text-gray-400" /> Print
-      </button>
-      <button type="button" onClick={downloadCsv} className={btn}>
-        <Download className="h-4 w-4 text-gray-400" /> CSV
-      </button>
-      <button type="button" onClick={downloadPdf} className={btn}>
-        <FileText className="h-4 w-4 text-gray-400" /> PDF
-      </button>
+      <Button type="button" variant="secondary" size="sm" onClick={() => window.print()}>
+        <Printer className="h-3.5 w-3.5 text-gray-400" /> Print
+      </Button>
+      <Button type="button" variant="secondary" size="sm" onClick={downloadCsv}>
+        <Download className="h-3.5 w-3.5 text-gray-400" /> CSV
+      </Button>
+      <Button type="button" variant="secondary" size="sm" onClick={downloadPdf}>
+        <FileText className="h-3.5 w-3.5 text-gray-400" /> PDF
+      </Button>
     </div>
   );
 }
