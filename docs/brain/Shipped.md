@@ -3,6 +3,13 @@
 Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
+## 2026-10-11
+- Receivables plan cache (claude/receivables-plan-cache; migration
+  20261011110000, LIVE): receivables_page_totals and receivable_unit_totals
+  use plan_cache_mode = force_generic_plan, so a connection plans their
+  queries once instead of on each of its first five calls: 786 ms first
+  call, then 72-78 ms (was 0.3-5.5 s for the first five).
+
 ## 2026-10-10
 - receivable_unit_totals split (claude/receivables-totals-speed; migration
   20261011090000, LIVE): one SQL statement over aged_receivables,
