@@ -2,6 +2,11 @@
 
 Back to [[Home]]. Don't redo these.
 
+- **Project spend totals count every account, readable or not** (2026-10-10):
+  the projects list total equals the project page total, which already adds
+  spend on restricted GL accounts as one unnamed "Restricted accounts" line.
+  Staff who can see a project see its total; bill rows stay finance-only.
+
 - **`'stripe'` stays in the `payment_processor` enum.** It is live: the Stripe
   Connect webhook saves payment methods with it and `select_payment_processor()`
   falls back to it. The old TODO item to drop it was withdrawn (2026-10-07).

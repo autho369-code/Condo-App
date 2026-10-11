@@ -179,3 +179,14 @@
   {public}/{anon} that now call a revoked function, and that the
   equivalence test includes an anon caller. Also CLAUDE.md rule 6 names the
   policy helpers - update it when the preferred form changes.
+- Start check 2026-10-10 (project spend list): Status header/Open PR still
+  said "#282 open" after #282-#287 merged (TODO/vault-only PRs skip Status).
+  Check `gh pr list --state open` vs Status header every start. For a
+  definer aggregate replacing an invoker view: totals must equal the detail
+  RPC's (incl. its "Restricted accounts" row) and use once-per-query helpers,
+  set-based, plpgsql.
+- Recurring 3rd time (project spend pre-PR, 2026-10-10): merged PRs
+  (#282-#287) written into Status -> Open PR as "Merged meanwhile" instead of
+  a Merged/"Where things stand" entry. Open PR holds only the open PR.
+  Also: when a PR leaves an object unused (capital_project_financials view),
+  the drop is Mirsad's (DROP rule) - list it in docs/TODO.md Mirsad's list.
