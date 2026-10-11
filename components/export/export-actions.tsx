@@ -108,7 +108,7 @@ export function ExportActions({
   }
 
   const btn =
-    'inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-[13px] font-medium text-gray-800 shadow-sm transition hover:bg-gray-50';
+    'inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-[13px] font-medium text-gray-800 shadow-sm transition hover:bg-gray-50';
 
   return (
     <div className="flex flex-wrap gap-2 print:hidden">
