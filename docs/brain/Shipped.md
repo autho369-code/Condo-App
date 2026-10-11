@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-10
+- Piper web chat session id (claude/piper-secure-session-id; no migration):
+  `crypto.randomUUID()` instead of `Math.random()` (CodeQL insecure
+  randomness). The id rate-limits a chat and files its lead, so it should not
+  be guessable.
 - #272 (merged, b5dde4a7; no migration): opening balances step on the import
   page. Under the trial balance tie-out (one association), a confirm-first
   "Post opening balances" posts one entry dated the as-of date with each

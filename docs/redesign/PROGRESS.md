@@ -26,7 +26,7 @@ no Supabase schema, policy, RPC or integration change; the parity test
 ## Notes
 
 - **CodeQL flags two existing patterns, kept out of this redesign.** These files are left unchanged so the redesign does not touch them; each needs its own review:
-  - `components/marketing/piper-widget.tsx:45`: chat session id from `Math.random()` (insecure randomness). Marketing widget, outside the redesign's scope.
+  - `components/marketing/piper-widget.tsx`: chat session id from `Math.random()` (insecure randomness). FIXED 2026-10-10 (claude/piper-secure-session-id): `crypto.randomUUID()`; the id still matches the server's `^[A-Za-z0-9_-]{8,64}$` check.
   - `components/violations/open-violation-form.tsx:65`: the association id goes into a link href ("DOM text reinterpreted as HTML"). It is a UUID from a select and React escapes it, so this is likely a false positive.
 
 - **18 of the 26 board pages are redirect stubs.** Sections deliberately removed from the read-only board portal, such as `/board/work-orders` and `/board/owners`, only redirect to `/board`. They have nothing to style and their behavior is unchanged.
@@ -73,4 +73,4 @@ no Supabase schema, policy, RPC or integration change; the parity test
 ## Not yet verified
 
 - **Phone widths in a signed-in browser.** The Chrome window could not be resized.
-- **Owner, board and vendor screens.** There are no logins for these roles in production.
+- ~~Owner, board and vendor screens~~ — done since: see the owner, vendor and board checks above.
