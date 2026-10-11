@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { mapLimit } from '@/lib/db/map-limit';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { AlertTriangle } from 'lucide-react';
@@ -161,11 +162,12 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
     const next = (stepsByPolicy.get(record.policy_id) ?? []).find((step) => step.step_number > record.current_step_number);
     return record.policy_id && (record.status === 'legal_review' || next?.action_type === 'legal_review');
   });
-  const readinessEntries = await Promise.all(nearReferral.map(async (record: any) => {
+  // Four cases at a time, not one database call per case all at once.
+  const readinessEntries = await mapLimit(nearReferral, 4, async (record: any) => {
     const { data, error } = await db.rpc('delinquency_referral_readiness', { p_case_id: record.id });
     if (error) loadErrors.push(`Referral readiness for ${record.owners?.full_name ?? 'a case'}: ${error.message}`);
     return [record.id, data ?? null] as const;
-  }));
+  });
   const readinessByCase = new Map<string, any>(readinessEntries);
   const overdueTotal = openCases.reduce((sum: number, record: any) => sum + Number(record.balance_snapshot ?? 0), 0);
 
