@@ -1,12 +1,18 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (after #279 and #281 merged; open PR: #282 query probe + report-run errors; next: Stripe pilot).
+Back to [[Home]]. Updated 2026-10-10 (#279-#287 merged; open PR: projects list spend; next: Stripe pilot).
 
 ## Open PR
-- #282 claude/live-query-probe: production query probe (0 broken of 1,164),
-  Excel export checked end to end, refused report runs return to the report.
+- claude/project-spend-list: the projects list showed "$0 spent" to staff
+  without a finance role (it summed finance-only bills through RLS). New
+  function capital_project_spend_totals (migration 20261011080000, LIVE on
+  production) gives the list the same totals as the project page.
 
 ## Merged 2026-10-10 (late)
+- #282 query probe + refused report runs return to the report; #283
+  aged_receivables migration; #284 report choices kept; #285 2026-10-04
+  checks done; #286 Inbox checked + production email restored; #287
+  Mirsad's action list in TODO.
 - #279 MERGED by Mirsad (f4201176): one design for all six roles
   (docs/redesign/). Signed-in checks done for owner, vendor, manager and
   company admin; operator checked signed in 2026-10-10 (21 pages + 11

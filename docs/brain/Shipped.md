@@ -9,6 +9,17 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   search box collapsed to 19 px (flex-1 in a column form; also Company admin
   invite email), export buttons, report chips and calendar view/filter
   controls raised to the 40 px touch target. Notes in docs/redesign/PROGRESS.md.
+- Projects list spend (claude/project-spend-list; migration 20261011080000,
+  live): /projects read capital_project_financials, a security_invoker view
+  over payable_bills, so staff without a finance role saw $0 spent on every
+  project while the project page showed the real figure. The list now calls
+  capital_project_spend_totals() (security definer, totals only, never bill
+  rows): same access rules and same bills as project_budget_vs_actual
+  (approved or paid, not archived, in the project's own association; the old
+  view did not check the association). Rolled-back test on production:
+  equal to the project page for every staff role incl. scoped managers and
+  the operator; nothing for board/owner/vendor/unknown; no project beyond
+  capital_projects RLS; 0.3-10 ms. The view stays (unused).
 - Piper web chat session id (claude/piper-secure-session-id; no migration):
   `crypto.randomUUID()` instead of `Math.random()` (CodeQL insecure
   randomness). The id rate-limits a chat and files its lead, so it should not

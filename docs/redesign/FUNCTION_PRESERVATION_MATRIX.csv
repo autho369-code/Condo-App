@@ -5181,7 +5181,7 @@ id,role,route,type,item,guard,redesigned_location,verification
 "manager|/projects|button|Apply","manager","/projects","Button","Apply","requireStaff","unchanged route","static parity: pending"
 "manager|/projects|button|New project","manager","/projects","Button","New project","requireStaff","unchanged route","static parity: pending"
 "manager|/projects|data|table:associations","manager","/projects","Data source","table:associations","requireStaff","unchanged route","static parity: pending"
-"manager|/projects|data|table:capital_project_financials","manager","/projects","Data source","table:capital_project_financials","requireStaff","unchanged route","static parity: pending"
+"manager|/projects|data|rpc:capital_project_spend_totals","manager","/projects","Data source","rpc:capital_project_spend_totals","requireStaff","unchanged route","static parity: pending (replaced table:capital_project_financials, 2026-10-10: same totals for every staff role)"
 "manager|/projects|data|table:capital_projects","manager","/projects","Data source","table:capital_projects","requireStaff","unchanged route","static parity: pending"
 "manager|/projects/:id|page","manager","/projects/:id","Screen","app/(app)/projects/[id]/page.tsx","hasPortfolioAdminAccess requirePortfolioAdmin requireStaff","unchanged route","static parity: pending"
 "manager|/projects/:id|link|/projects","manager","/projects/:id","Link / navigation","/projects","hasPortfolioAdminAccess requirePortfolioAdmin requireStaff","unchanged route","static parity: pending"

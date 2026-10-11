@@ -37,7 +37,9 @@ export default async function ProjectsPage({
   const db = (await createClient()) as any;
 
   // Every project and every project's totals (a 500-row cap left later
-  // projects showing $0 spent).
+  // projects showing $0 spent). Totals come from capital_project_spend_totals,
+  // the same figures as the project page: bills are finance-only, so reading
+  // them directly showed $0 to staff without a finance role.
   const [projectsRes, { data: associations }, financialsRes] = await Promise.all([
     // Status and association filters run in the query, so they reach every
     // matching project rather than only the rows already loaded.
@@ -50,7 +52,7 @@ export default async function ProjectsPage({
       return query.order('updated_at', { ascending: false }).order('id');
     }),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    fetchAllRows<any>(() => db.from('capital_project_financials').select('project_id, work_order_count, committed_spend').order('project_id')),
+    fetchAllRows<any>(() => db.rpc('capital_project_spend_totals').select('project_id, work_order_count, committed_spend').order('project_id')),
   ]);
   const projectRows = projectsRes.rows;
   const loadError = projectsRes.error;
