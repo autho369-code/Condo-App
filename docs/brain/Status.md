@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-10 (#279-#289 merged; open PRs: phone width #290, receivables totals; next: Receivables page timeouts).
+Back to [[Home]]. Updated 2026-10-11 (#279-#295 merged; open PR: #296 per-row calls four at a time; next: phone-width check of the owner, board, vendor and company-admin screens).
 
 ## Open PR
 - claude/project-spend-list: the projects list showed "$0 spent" to staff
@@ -374,6 +374,17 @@ Back to [[Home]]. Updated 2026-10-10 (#279-#289 merged; open PRs: phone width #2
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- NEXT: phone-width (375 px) check of the owner, board, vendor and
+  company-admin screens, signed in, in the in-app browser (it emulates a
+  phone; Chrome's window cannot be resized). Manager screens done
+  2026-10-10 (#290, #295). Needs Mirsad to sign in per role in the Browser
+  pane (Chrome's saved passwords are not available there).
+- DONE 2026-10-11: speed check of 85 manager pages after the compute
+  upgrade, signed in: no errors or timeouts; median 2.4 s on a first visit
+  (incl. local compiling), all under ~3.2 s once compiled (Command Center
+  0.9-1.2 s; an earlier 5.4 s reading was taken while the server was busy).
+  Fan-outs of one query per row fixed on Metrics (#294), Payment plans and
+  Delinquencies (#296).
 - CLOSED 2026-10-11: Receivables page (/charges) timeouts. Fixes:
   receivable_unit_totals split (20261011090000), four page queries in one
   call receivables_page_totals (20261011100000, #292), both reuse their

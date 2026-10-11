@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { mapLimit } from '@/lib/db/map-limit';
 import { HandCoins } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
@@ -36,8 +37,9 @@ export default async function PaymentPlansPage({ searchParams }: { searchParams:
   const { data: plans, error: plansError } = await query;
   const rows = (plans ?? []) as Plan[];
 
-  // Progress per plan (paid to date, next due, status) from the schedule.
-  const progress = await Promise.all(rows.map(async (p) => {
+  // Progress per plan (paid to date, next due, status) from the schedule,
+  // four plans at a time (up to 500 schedule reads at once timed out).
+  const progress = await mapLimit(rows, 4, async (p) => {
     const { data: sched, error: schedError } = await db.rpc('payment_plan_schedule', { p_plan_id: p.id });
     // A failed schedule read is a load failure, never "Paid off".
     if (schedError) return { paid: 0, nextDue: null as string | null, status: 'Unavailable', failed: true };
@@ -48,7 +50,7 @@ export default async function PaymentPlansPage({ searchParams }: { searchParams:
       : p.status === 'completed' || !next ? 'Paid off'
       : s.some((i) => i.status === 'behind') ? 'Behind' : 'Current';
     return { paid, nextDue: next?.due_date ?? null, status, failed: false };
-  }));
+  });
 
   const active = rows.filter((p) => p.status === 'active');
   const behind = progress.filter((p, i) => rows[i].status === 'active' && p.status === 'Behind').length;
