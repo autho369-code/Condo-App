@@ -8744,9 +8744,9 @@
     "data": [
      "rpc:billing_collection_totals",
      "rpc:journal_line_totals",
+     "rpc:metrics_monthly_trend",
      "rpc:receivable_aging_buckets",
      "rpc:receivable_summary",
-     "rpc:receivable_summary_as_of",
      "rpc:report_data_delinquency",
      "rpc:unpaid_bills_total",
      "rpc:vendor_1099_totals",
@@ -17343,7 +17343,7 @@
    "caps": {
     "link": [
      "/vendor/compliance?:paramsaved_document=1",
-     "/vendor/compliance?record=:param"
+     ":param?record=:param"
     ],
     "action": [
      "createVendorUpload",

@@ -1,4 +1,5 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { StatTile } from '@/components/ui/stat-tile'
 import { isEntityDocumentStoragePath } from '@/lib/security/storage-paths'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
@@ -90,17 +91,7 @@ export default async function GlobalDocumentsPage() {
         ].map((item: any) => {
           const Icon = item.icon
           return (
-            <div key={item.label} className={`${card} px-4 py-3.5`}>
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-[13px] font-medium text-gray-500">{item.label}</div>
-                  <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${item.warn ? 'text-red-700' : 'text-gray-950'}`}>{item.value}</div>
-                </div>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
-                  <Icon className="h-4.5 w-4.5 text-gray-400" />
-                </div>
-              </div>
-            </div>
+            <StatTile key={item.label} label={item.label} value={item.value} icon={Icon} tone={item.warn ? 'danger' : 'default'} />
           )
         })}
       </div>

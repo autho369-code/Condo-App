@@ -201,7 +201,7 @@ export default async function ManagerPerformancePage() {
               <div className="flex items-start justify-between">
                 <div>
                   {p.isManager
-                    ? <Link href={`/company-admin/managers/${p.id}`} className="text-[15px] font-semibold text-gray-950 hover:underline">{p.name}</Link>
+                    ? <Link href={`/company-admin/managers/${p.id}`} className="-my-1.5 inline-block py-1.5 text-[15px] font-semibold text-gray-950 hover:underline">{p.name}</Link>
                     : <span className="text-[14.5px] font-semibold text-ink">{p.name}</span>}
                   <div className="mt-0.5 text-[13px] text-gray-500">{p.email}</div>
                 </div>
@@ -261,7 +261,7 @@ export default async function ManagerPerformancePage() {
             <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">All Managers</h2>
             <p className="mt-0.5 text-[13px] text-gray-500">Complete performance detail — resolution times use the last 90 days of completed work</p>
           </div>
-          <Link href="/company-admin/managers" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
+          <Link href="/company-admin/managers" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
             Manage team <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
@@ -290,7 +290,7 @@ export default async function ManagerPerformancePage() {
                   <tr key={p.id} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
                     <td className="px-4 py-3.5">
                       {p.isManager
-                        ? <Link href={`/company-admin/managers/${p.id}`} className="font-medium text-gray-900 hover:underline">{p.name}</Link>
+                        ? <Link href={`/company-admin/managers/${p.id}`} className="-my-2.5 inline-block py-2.5 font-medium text-gray-900 hover:underline">{p.name}</Link>
                         : <span className="font-medium text-gray-900">{p.name}</span>}
                     </td>
                     <td className="px-4 py-3.5 text-right tabular-nums text-gray-700">{p.properties}</td>

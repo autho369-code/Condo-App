@@ -4,6 +4,33 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Metrics month-end receivables in one pass (claude/metrics-month-ends;
+  migration 20261011130000, LIVE): receivable_summary_by_months replaces
+  twelve receivable_summary_as_of calls inside metrics_monthly_trend
+  (join, not a per-row subquery, so it scales with payment applications).
+  Identical results incl. back-dated charges and partial payments; the call
+  1.6-2.9 s -> 0.16-0.33 s; /metrics 1.7-2.1 s signed in as a manager
+  (was 4.6-5.2 s before #301).
+- Metrics: monthly call runs alongside the snapshot (claude/metrics-parallel;
+  on #301): measured signed in as a manager, /metrics 4.6-5.2 s before #301,
+  3.6-3.8 s with #301, 2.7-2.8 s with this. Remaining: the 12-month
+  receivables (about 1.3 of the 1.5 s call).
+- Metrics in one call (claude/metrics-one-call; migration 20261011120000,
+  LIVE): the page's month-by-month figures (6 requests per month, 72 a year)
+  come from one security-invoker function, metrics_monthly_trend, using the
+  same functions and filters: ~1.4 s for 12 months in the database (was 5-9 s
+  for the page two months at a time). 0 differing months for manager,
+  company admin and board, with and without an association filter.
+- Design follow-ups (claude/design-followups; no migration): shared StatTile
+  replaces 12 hand-built figure tiles; shared segmented control for every
+  pill switcher (vendor filter, calendar views, platform-request tabs,
+  RecordSwitcher, vendor compliance); vendor forms on the shared form kit.
+  Documented in DESIGN_SYSTEM.md.
+- Board, vendor and company admin at phone width
+  (claude/board-vendor-admin-tap-targets; no migration): signed in per role
+  at 375 px, 37 pages, no horizontal overflow. Tap targets raised to 40 px;
+  figure tiles fixed where large amounts spilled out (12 hand-built copies
+  plus the shared Metric/MetricStrip). Follow-ups in docs/redesign/PROGRESS.md.
 - Owner portal at phone width (claude/owner-portal-tap-targets; no
   migration): signed in as owner2 at 375 px, all 24 portal pages plus a
   work order: no horizontal overflow. Raised to 40 px: dashboard and

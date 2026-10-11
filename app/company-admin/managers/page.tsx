@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { StatTile } from '@/components/ui/stat-tile'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Input } from '@/components/ui/input'
@@ -174,10 +175,7 @@ export default async function CompanyAdminManagersPage({
           { label: 'Open Work Orders', value: rows.reduce((s: number, r: any) => s + r.openWorkOrders, 0) },
           { label: 'Overdue Work Orders', value: rows.reduce((s: number, r: any) => s + r.overdueWorkOrders, 0), warn: true },
         ].map((item) => (
-          <div key={item.label} className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="text-[13px] font-medium leading-5 text-gray-500">{item.label}</div>
-            <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${item.warn ? 'text-amber-700' : 'text-gray-950'}`}>{item.value}</div>
-          </div>
+          <StatTile key={item.label} label={item.label} value={item.value} tone={item.warn ? 'warning' : 'default'} />
         ))}
       </div>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { SegmentedButtons } from '@/components/ui/segmented';
 import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Select } from '@/components/ui/input';
@@ -110,15 +111,9 @@ export default function CalendarGrid({ associations, initialAssocId, initialType
     <div className="flex h-full flex-col">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3 border-b border-gray-200 bg-white px-5 py-2.5">
-        <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-          {[{ key: 'dayGridMonth', label: 'Month' }, { key: 'timeGridWeek', label: 'Week' }, { key: 'timeGridDay', label: 'Day' }, { key: 'listMonth', label: 'Agenda' }].map((v) => (
-            <button key={v.key} type="button" onClick={() => switchView(v.key)}
-              className={`min-h-10 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === v.key ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>
-              {v.label}
-            </button>
-          ))}
-        </div>
-        <div className="h-6 w-px bg-gray-200" />
+        <SegmentedButtons label="Calendar view" value={viewMode} onChange={switchView}
+          items={[{ id: 'dayGridMonth', label: 'Month' }, { id: 'timeGridWeek', label: 'Week' }, { id: 'timeGridDay', label: 'Day' }, { id: 'listMonth', label: 'Agenda' }]} />
+        <div className="hidden h-6 w-px bg-gray-200 sm:block" />
         <Select value={assocId} onChange={(e) => { setAssocId(e.target.value); navigate(e.target.value, typeFilter); }}
           aria-label="Association" className="w-auto max-w-full text-xs">
           <option value="">All associations</option>

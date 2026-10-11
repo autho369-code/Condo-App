@@ -1,5 +1,4 @@
-import { billingCollectionTotals, glDebitBalances, incomeExpenseTotals } from '@/lib/finance/totals';
-import { mapLimit } from '@/lib/db/map-limit';
+import { glDebitBalances } from '@/lib/finance/totals';
 import { ReportingTabs } from '@/components/reports/reporting-tabs';
 import { MetricsTabs } from '@/components/reports/metrics-tabs';
 import Link from 'next/link';
@@ -122,49 +121,16 @@ export default async function MetricsPage({
 
   // ── Month-by-month figures (one set of database totals per month) ──
   let loadError: string | null = assocError;
-  // Two months at a time: all twelve at once fired 72 queries together and
-  // the ones queued behind the API's few connections timed out.
-  const trend = await mapLimit(months, 2, async (mo) => {
-    try {
-      const [billing, ar, ie, woOpened, woCompleted, violationsOpened] = await Promise.all([
-        billingCollectionTotals(db, mo.from, mo.to, assocIds),
-        // Balances as they stood at the end of the month: later charges and
-        // payments do not change an earlier month.
-        db.rpc('receivable_summary_as_of', { p_association_ids: assocIds, p_as_of: mo.to, p_cutoff: startOf(addDays(mo.to, 1)) })
-          .then(({ data, error }: any) => {
-            if (error) throw new Error(error.message);
-            const r = Array.isArray(data) ? data[0] : data;
-            return { arTotal: Number(r?.ar_total ?? 0), overdueTotal: Number(r?.overdue_total ?? 0), delinquentUnits: Number(r?.delinquent_units ?? 0) };
-          }),
-        incomeExpenseTotals(db, { portfolioId, associationIds: assocIds, from: mo.from, to: mo.to }),
-        count(withAssoc(db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null)
-          .gte('created_at', startOf(mo.from)).lt('created_at', startOf(addDays(mo.to, 1))))),
-        count(withAssoc(db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null)
-          .gte('completed_date', mo.from).lte('completed_date', mo.to))),
-        count(withAssoc(db.from('violations').select('id', { count: 'exact', head: true }).is('archived_at', null)
-          .gte('created_at', startOf(mo.from)).lt('created_at', startOf(addDays(mo.to, 1))))),
-      ]);
-      return {
-        ...mo,
-        charged: billing.charges,
-        collected: billing.payments,
-        collectionRate: pct(billing.payments, billing.charges),
-        arBalance: ar.arTotal,
-        overdue: ar.overdueTotal,
-        delinquentUnits: ar.delinquentUnits,
-        income: ie.income,
-        expense: ie.expense,
-        woOpened,
-        woCompleted,
-        violationsOpened,
-      };
-    } catch (e) {
-      loadError = loadError ?? (e instanceof Error ? e.message : String(e));
-      return null;
-    }
-  });
-  const now = trend[0];
-  const prev = trend[1] ?? null;
+  // Every month's figures in one database call (metrics_monthly_trend):
+  // six requests per month, 72 for a year, queued behind the API's few
+  // connections and timed out.
+  // Started now and read at the end: it does not depend on the snapshot
+  // below, so the two run side by side (.then() sends the request).
+  const trendRequest = db.rpc('metrics_monthly_trend', {
+    p_months: months.map((mo) => ({ from: mo.from, to: mo.to, start: startOf(mo.from), end: startOf(addDays(mo.to, 1)) })),
+    p_association_id: association || null,
+    p_portfolio_id: portfolioId,
+  }).then((res: any) => res);
 
   // ── Current snapshot ── (a failed figure shows "—" and is reported above)
   const noteFailure = (e: unknown) => {
@@ -250,6 +216,32 @@ export default async function MetricsPage({
   const fmtCount = (v: number | null | undefined) => (v == null ? '—' : v.toLocaleString());
   const scopeQuery = association ? `?association=${association}` : '';
 
+
+  const { data: trendData, error: trendError } = await trendRequest;
+  if (trendError) loadError = loadError ?? trendError.message;
+  const trendRows = (Array.isArray(trendData) ? trendData : []) as any[];
+  const trend = months.map((mo, i) => {
+    const r = trendRows[i];
+    if (!r) return null;
+    const charged = Number(r.charged ?? 0);
+    const collected = Number(r.collected ?? 0);
+    return {
+      ...mo,
+      charged,
+      collected,
+      collectionRate: pct(collected, charged),
+      arBalance: Number(r.ar_total ?? 0),
+      overdue: Number(r.overdue_total ?? 0),
+      delinquentUnits: Number(r.delinquent_units ?? 0),
+      income: Number(r.income ?? 0),
+      expense: Number(r.expense ?? 0),
+      woOpened: Number(r.wo_opened ?? 0),
+      woCompleted: Number(r.wo_completed ?? 0),
+      violationsOpened: Number(r.violations_opened ?? 0),
+    };
+  });
+  const now = trend[0];
+  const prev = trend[1] ?? null;
   return (
     <DataWorkspace
       title="Metrics"
