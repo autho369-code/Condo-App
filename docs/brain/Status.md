@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#304 merged; open PR: claude/link-button-nesting; next: operator screens at 375 px once Mirsad signs in as operator).
+Back to [[Home]]. Updated 2026-10-11 (#279-#304 merged; open PR: #305 claude/link-button-nesting; next: operator screens at 375 px once Mirsad signs in as operator).
 
 ## Open PR
-- claude/link-button-nesting: every button nested in a link (352
+- #305 claude/link-button-nesting: every button nested in a link (352
   `<Link><Button/></Link>` + 15 `<a><Button/></a>`, 200 files) is now one
   link styled by buttonClass(); same size and position (checked on
   Bank accounts, Owners, Calendar, Vendors against main).
