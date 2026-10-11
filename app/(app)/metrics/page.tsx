@@ -1,4 +1,5 @@
 import { billingCollectionTotals, glDebitBalances, incomeExpenseTotals } from '@/lib/finance/totals';
+import { mapLimit } from '@/lib/db/map-limit';
 import { ReportingTabs } from '@/components/reports/reporting-tabs';
 import { MetricsTabs } from '@/components/reports/metrics-tabs';
 import Link from 'next/link';
@@ -121,7 +122,9 @@ export default async function MetricsPage({
 
   // ── Month-by-month figures (one set of database totals per month) ──
   let loadError: string | null = assocError;
-  const trend = await Promise.all(months.map(async (mo) => {
+  // Two months at a time: all twelve at once fired 72 queries together and
+  // the ones queued behind the API's few connections timed out.
+  const trend = await mapLimit(months, 2, async (mo) => {
     try {
       const [billing, ar, ie, woOpened, woCompleted, violationsOpened] = await Promise.all([
         billingCollectionTotals(db, mo.from, mo.to, assocIds),
@@ -159,7 +162,7 @@ export default async function MetricsPage({
       loadError = loadError ?? (e instanceof Error ? e.message : String(e));
       return null;
     }
-  }));
+  });
   const now = trend[0];
   const prev = trend[1] ?? null;
 
