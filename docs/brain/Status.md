@@ -374,23 +374,18 @@ Back to [[Home]]. Updated 2026-10-10 (#279-#289 merged; open PRs: phone width #2
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- OPEN 2026-10-11: Receivables page (/charges) still times out at times.
-  Done: receivable_unit_totals split (20261011090000), four page queries
-  in one call receivables_page_totals (20261011100000, #292), both reuse
-  their plans from the first call (20261011110000). ROOT CAUSE FOUND
-  2026-10-11: cold database connections. The API (PostgREST) closes idle
-  connections quickly, so on a quiet system most page loads get a new
-  connection, which must first load every table, view, policy and helper
-  function these views touch: open-charges list 639 ms cold vs 12-16 ms
-  warm; totals 5.5 s cold vs ~75 ms warm. Several cold queries at once pass
-  the 8 s limit. Options (Mirsad decides; cost/architecture):
-  (a) bigger Supabase compute (faster cold start; costs money),
-  (b) raise the authenticated statement_timeout from 8 s (pages slow, not
-  broken), (c) keep connections warm (API pool idle time is not exposed in
-  the dashboard), (d) fewer, flatter views per page. Measure cold vs warm
-  (first call on a new connection) whenever judging a page's speed.
-  Every committed DDL (even a test function) reloads the API's schema
-  cache; test in rolled-back transactions (no reload) and not in loops.
+- CLOSED 2026-10-11: Receivables page (/charges) timeouts. Fixes:
+  receivable_unit_totals split (20261011090000), four page queries in one
+  call receivables_page_totals (20261011100000, #292), both reuse their
+  plans from the first call (20261011110000), and Mirsad upgraded the
+  Supabase compute. Cause was cold database connections (the API closes
+  idle ones; a new connection loads every table, view, policy and helper
+  these views touch): totals 5.5 s cold before the upgrade, 378 ms after.
+  Page now 1.2-2.4 s, no errors. Lessons: judge a page's speed cold (first
+  call on a new connection) and warm; pages must not fire dozens of queries
+  at once (Metrics did 72; lib/db/map-limit.ts, #294); every committed DDL
+  (even a test function) reloads the API's schema cache, so test in
+  rolled-back transactions and not in loops.
 - 2026-10-10: `npm run check:queries` against production: 0 broken of
   1,164 static queries. Excel report run checked end to end (valid .xlsx,
   17 owners); a refused run now returns to its report with the reason. All six roles checked signed in. 2026-10-04 checks done

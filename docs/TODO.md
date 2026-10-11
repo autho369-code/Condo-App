@@ -24,6 +24,12 @@ DNS or decisions). Details for the older items are further down.
       after a production redeploy.
 
 **Accounts and setup**
+- [ ] **Check the database's computer size** - Supabase dashboard ->
+      project condo-app -> Reports / Database: CPU usage graph and compute
+      size. On 2026-10-10 the same query swung from 0.08 s to 14 s and pages
+      (Receivables) timed out; a small "burstable" size runs out of CPU
+      allowance. Tell Claude what it shows; upgrading costs money, so it is
+      your call.
 - [ ] **Stripe live for one pilot association** — Stripe Connect platform keys
       in Vercel (see "Set the platform Stripe keys in Vercel" below), then the
       association connects its own Stripe account.

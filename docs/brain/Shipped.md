@@ -11,6 +11,13 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   call, then 72-78 ms (was 0.3-5.5 s for the first five).
 
 ## 2026-10-10
+- Receivables page totals in one call (claude/receivables-page-totals;
+  migration 20261011100000, LIVE): /charges ran six queries at once over
+  RLS-heavy views and timed out. Four of them (receipt count/total,
+  delinquent units, outstanding/delinquent totals, charges by category) are
+  now one security-invoker PL/pgSQL function, receivables_page_totals: same
+  views and filters, plans kept per connection (~80 ms warm). Identical
+  results for 3 staff users x 4 filter cases. Parity baseline updated.
 - receivable_unit_totals split (claude/receivables-totals-speed; migration
   20261011090000, LIVE): one SQL statement over aged_receivables,
   v_unapplied_credits and delinquent_units (900+ RLS sub-plans) took 13-25 s;
