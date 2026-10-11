@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#305 merged; open PR: claude/middleware-deadlines; next: operator screens at 375 px once Mirsad signs in as operator).
+Back to [[Home]]. Updated 2026-10-11 (#279-#305 merged; open PR: #306 claude/middleware-deadlines; next: operator screens at 375 px once Mirsad signs in as operator).
 
 ## Open PR
-- claude/middleware-deadlines: middleware database calls get time limits
+- #306 claude/middleware-deadlines: middleware database calls get time limits
   (6 s each, 9 s for the sign-in check). Production logs had 155 middleware
   timeouts (25 s, Sep 2 - Oct 8) while the database was slow: Auth retries
   a token refresh for up to 30 s. Now a slow database answers 503 "try
