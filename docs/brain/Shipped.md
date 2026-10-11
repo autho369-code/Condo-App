@@ -21,6 +21,12 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   same functions and filters: ~1.4 s for 12 months in the database (was 5-9 s
   for the page two months at a time). 0 differing months for manager,
   company admin and board, with and without an association filter.
+- Per-row database calls limited (claude/limit-per-row-rpcs; no
+  migration): Payment plans read one schedule per plan (up to 500 at once)
+  and Delinquencies one referral-readiness check per case, all at once;
+  now four at a time via lib/db/map-limit.ts. Same figures. Production has
+  few such records today, so this prevents the Metrics-style timeout
+  before it happens.
 - Shared components (claude/shared-components-cleanup; no migration):
   calendar filters -> Select, Print/CSV/PDF export buttons -> Button
   (secondary, sm; on ~19 list pages), Reports search card and Company admin
