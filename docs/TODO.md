@@ -37,6 +37,9 @@ DNS or decisions). Details for the older items are further down.
 - [ ] **Live bank feeds** — Plaid sandbox/production certification.
 - [ ] **AI features** — set an AI key at `/settings/ai`.
 - [ ] **DMARC** — move from `p=none` to `quarantine`, then `reject` (DNS).
+- [ ] **Optional cleanup:** drop the view `capital_project_financials` in the
+      SQL editor (`drop view public.capital_project_financials;`); unused
+      since migration 20261011080000 (projects list spend).
 
 **Decisions**
 - [ ] **Legal sign-off** on `/legal/*` by counsel.

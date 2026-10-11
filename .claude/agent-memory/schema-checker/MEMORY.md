@@ -59,3 +59,7 @@
 
 ## CSV import RPCs (import_journal_entry_batch / import_bills)
 - `import_journal_entry_batch(p_name text, p_rows jsonb)`: full body in 20260930122000_csv_imports_review_fixes.sql; later migrations patch it by string replace (123000 csv_money/csv_date, 132000 can_manage_association, 20261009090000 truncate). Row keys: row, entry, date, association (uuid or name), gl (uuid or number text), debit, credit, memo. Returns {ok, errors[<=50], error_count} or {ok, batch_id, entries, total}. `csv_gl_id` filters `g.active` and prefers the association's own account. `gl_accounts.active` is NOT NULL default true. Callers: lib/rpcs/imports.ts, previous-system/gl-actions.ts postOpeningBalancesFromTrialBalance (2026-10-10, clean).
+
+## Set-returning RPCs + paging
+- `db.rpc('fn').select('cols').order('col').range(a,b)` is valid PostgREST (select/order/limit/offset apply to `returns table(...)`/setof results); check:columns does not cover rpc selects, so compare against the `returns table` list by hand. Example: app/(app)/projects/page.tsx capital_project_spend_totals (2026-10-10, clean).
+- On Windows, check:columns may print "can't check statically" + "no longer in the code" pairs for the same entry (backslash vs slash path in unchecked-selects.json): a path-separator artifact, not a schema problem.
