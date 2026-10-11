@@ -9,6 +9,10 @@
 -- it: measured 786 ms on the first call, then 72-78 ms, for a manager and a
 -- company admin, with the same totals.
 --
+-- Keep it: a later CREATE OR REPLACE of either function drops this setting
+-- unless the new definition repeats `set plan_cache_mode =
+-- force_generic_plan` next to `set search_path`.
+--
 -- Safe with row-level security: policies are evaluated when the query runs
 -- (auth.uid() and the helpers are read per execution), and Postgres does not
 -- reuse a cached plan for a different role.
