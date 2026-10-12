@@ -189,16 +189,13 @@ export default async function ChargesPage({
   let lockboxBatches: any[] = [];
   let depositsTruncated = false;
   if (tab === 'bank-deposits') {
-    const [{ rows, truncated }, { data: batches }] = await Promise.all([
-      fetchAllRows<any>(() => {
-        let r = db.from('receivable_payments_ledger')
-          .select('payment_id, payment_date, amount, bank_account_id, bank_account_name, bank_name')
-          // Homeowner credits are non-cash: never part of a bank deposit.
-          .or('method.is.null,method.neq.credit');
-        if (assoc) r = r.eq('association_id', assoc);
-        if (owner) r = r.in('unit_id', unitScope);
-        return r.order('payment_id');
-      }),
+    const [{ rows, truncated, error: depositsError }, { data: batches, error: batchesError }] = await Promise.all([
+      // Grouped by date and bank account in the database (homeowner credits
+      // are non-cash: never part of a bank deposit).
+      fetchAllRows<any>(() => db.rpc('receipt_deposit_groups', {
+        p_association_id: assoc || null,
+        p_unit_ids: owner ? unitScope : null,
+      }).order('payment_date', { ascending: false }).order('bank_account_id', { nullsFirst: false })),
       (() => {
         let b = db.from('lockbox_batches')
           .select('id, batch_date, deposit_reference, status, total_amount_cents, total_items, provider, bank_accounts!inner(name, bank_name, association_id)');
@@ -207,17 +204,16 @@ export default async function ChargesPage({
       })(),
     ]);
     depositsTruncated = truncated;
-    const byKey = new Map<string, Deposit>();
-    for (const r of rows) {
-      const key = `${r.payment_date}|${r.bank_account_id ?? 'none'}`;
-      const d = byKey.get(key) ?? {
-        key, date: r.payment_date, bank: r.bank_account_name ?? 'No bank account recorded', bankName: r.bank_name ?? '', count: 0, total: 0,
-      };
-      d.count += 1;
-      d.total += Number(r.amount ?? 0);
-      byKey.set(key, d);
-    }
-    deposits = [...byKey.values()].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.bank.localeCompare(b.bank)));
+    if (depositsError) loadErrors.push(`Bank deposits: ${depositsError}`);
+    if (batchesError) loadErrors.push(`Lockbox batches: ${batchesError.message}`);
+    deposits = rows.map((r) => ({
+      key: `${r.payment_date}|${r.bank_account_id ?? 'none'}`,
+      date: r.payment_date,
+      bank: r.bank_account_name ?? 'No bank account recorded',
+      bankName: r.bank_name ?? '',
+      count: Number(r.receipt_count ?? 0),
+      total: Number(r.total ?? 0),
+    })).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.bank.localeCompare(b.bank)));
     if (q) {
       const ql = q.toLowerCase();
       deposits = deposits.filter((d) => d.bank.toLowerCase().includes(ql) || d.bankName.toLowerCase().includes(ql));
@@ -582,7 +578,7 @@ export default async function ChargesPage({
         {/* ── TAB: BANK DEPOSITS ── */}
         {tab === 'bank-deposits' && (
           <>
-            {depositsTruncated && <Alert title="Too many receipts to group.">Choose one association to see every deposit.</Alert>}
+            {depositsTruncated && <Alert title="Too many deposits to list.">Choose one association to see every deposit.</Alert>}
             {deposits.length > 0 ? (
               <Table>
                 <THead>

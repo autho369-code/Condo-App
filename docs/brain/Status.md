@@ -1,13 +1,15 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#321 merged; open PR: #322 claude/units-pages; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#322 merged; open PR: claude/deposit-groups-in-db; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #322 claude/units-pages (Codex P2 on #321): Units list pages 500 at a time
-  with Previous/Next links that keep the filters (the cap had made units
-  past 500 unreachable; the page has no search).
+- claude/deposit-groups-in-db: Receivables > Bank Deposits groups receipts
+  by date and bank account in the database (receipt_deposit_groups,
+  20261012040000, LIVE): 5,000 receipts -> 365 groups in 49 ms, one
+  request instead of every receipt. Lockbox load errors now shown.
 
 ## Merged 2026-10-12
+- #322 Units list Previous/Next pages.
 - #321 Owners/Units/Receivables at scale; chargeback_totals (live); Print
   on capped pages prints the full export.
 - #320 lists past 1,000 rows; company admin no-company notice.
@@ -412,8 +414,10 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#321 merged; open PR: #322 claude/uni
 ## Next gaps (pick up here, top first)
 - NEXT: pages that load every row into the server just to count or sum
   (correct, slow at scale). Owners, Units and the Chargebacks tile done
-  (#321). Left: Charges bank-deposits tab (loads every payment ever;
-  group by date+bank in the database), Work orders team (unbounded loop), Bills
+  (#321); Bank deposits (Open PR). Checked and left as is: company-admin
+  overview counts only open work orders / active violations (bounded by
+  workload); Receipts is always date-bounded (a month by default). Left:
+  Work orders team (unbounded loop), Bills
   unpaid totals, Receipts totals (up to 20k rows), Inspections (every
   item), company-admin overview/performance/portfolio-health/insights/
   financials and platform-operator association-health/communications
