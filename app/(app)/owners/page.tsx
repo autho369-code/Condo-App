@@ -130,7 +130,8 @@ export default async function OwnersPage({
     const balancesRes = await fetchAllRows<any>(() => (supabase as any)
       .from('unit_balances').select('unit_id, balance').order('unit_id'));
     // Without this every owner would silently show a $0 balance.
-    balanceError = balancesRes.error;
+    balanceError = balancesRes.error
+      ?? (balancesRes.truncated ? 'more units than one page can read; balances past the first 50,000 are missing' : null);
     for (const b of balancesRes.rows) balanceByUnit.set(b.unit_id, Number(b.balance ?? 0));
   }
   const balanceByOwner = new Map<string, number>();
@@ -282,6 +283,7 @@ export default async function OwnersPage({
             companyName={companyName}
             filename={`owners-${view}-${exportStamp}`}
             tables={[exportTable]}
+            printFromTables={matchCount > RENDER_CAP}
           />
           {view === 'tenants' && (
             // eslint-disable-next-line @next/next/no-html-link-for-pages -- route handler returns a CSV download, not a page

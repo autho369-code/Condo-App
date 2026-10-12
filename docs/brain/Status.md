@@ -12,6 +12,10 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#320 merged; open PR: #321 claude/pag
   Receivables: Chargebacks tile from chargeback_totals (20261012030000,
   LIVE; 31-135 ms for 3,000) instead of loading every chargeback on every
   tab.
+  Fixes on the PR: CI parity (baseline: association units no longer reads
+  owners directly); Codex P2s: Print on a capped page prints the full
+  export (ExportActions printFromTables, blob window like batch letters);
+  a truncated balance read is reported, not shown as $0.
 
 ## Merged 2026-10-12
 - #320 lists past 1,000 rows; company admin no-company notice.

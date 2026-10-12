@@ -40,6 +40,11 @@ Back to [[Home]].
   rows are the ones with no company; never share a row because of a flag
   staff can write (is_system). `npm run db:migrations:check` fails a new
   CREATE POLICY without a TO clause. (2026-10-12)
+- A page that renders fewer rows than it exports passes printFromTables to
+  ExportActions (Print otherwise prints only the rendered rows). A change to
+  a page's data sources (a table read moved into an embed or an RPC) needs
+  docs/redesign/baseline-inventory.json updated: run
+  npx vitest run tests/redesign before pushing. (2026-10-12)
 - No unbounded list query: the API stops at 1,000 rows without an error.
   Either .limit(N) with { count: 'exact' } and a "Showing the newest N of
   M" notice, or fetchAllRows (order ending in id) when every row is needed.
