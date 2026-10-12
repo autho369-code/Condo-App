@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#316 merged; open PR: claude/policies-signed-in-only; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#316 merged; open PR: #317 claude/policies-signed-in-only; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/policies-signed-in-only: maintenance_templates "Anyone can read
+- #317 claude/policies-signed-in-only: maintenance_templates "Anyone can read
   templates" (USING true, roles {public}) let signed-out callers and other
   companies read every template (on 2026-10-12 only Portier369's shared
   starter templates existed, so nothing private leaked). Switched off
