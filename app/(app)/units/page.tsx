@@ -4,7 +4,7 @@ import { Building, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterSelect } from '@/components/operations/filter-bar';
-import { Alert, EmptyState, Surface } from '@/components/ui/shell';
+import { EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button, buttonClass } from '@/components/ui/button';
 import { money } from '@/lib/utils';
@@ -12,11 +12,11 @@ import { recordIdsWithTag, tagsInUse } from '@/lib/records/load';
 
 export const dynamic = 'force-dynamic';
 
-// Rows rendered at once; the count and outstanding total use every unit.
-const RENDER_CAP = 500;
+// Units per page; the count and outstanding total use every unit.
+const PAGE_SIZE = 500;
 
-export default async function UnitsPage({ searchParams }: { searchParams: Promise<{ assoc?: string; filter?: string; tag?: string }> }) {
-  const { assoc, filter, tag: tagParam } = await searchParams;
+export default async function UnitsPage({ searchParams }: { searchParams: Promise<{ assoc?: string; filter?: string; tag?: string; page?: string }> }) {
+  const { assoc, filter, tag: tagParam, page: pageParam } = await searchParams;
   const tag = /^[0-9a-f-]{36}$/i.test(tagParam ?? '') ? tagParam! : '';
   const supabase = await createClient();
   const tagOptions = await tagsInUse(supabase, 'unit');
@@ -38,6 +38,20 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
   const { data: assocs, error: associationsError } = await (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name');
   if (associationsError) throw new Error(`Could not load association filters: ${associationsError.message}`);
   const outstanding = filtered.reduce((s, u) => s + Number(u.outstanding_balance ?? 0), 0);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const page = Math.min(pageCount, Math.max(1, Number.parseInt(pageParam ?? '1', 10) || 1));
+  const shown = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Page links keep the active filters.
+  const pageHref = (n: number) => {
+    const params = new URLSearchParams();
+    if (assoc) params.set('assoc', assoc);
+    if (filter) params.set('filter', filter);
+    if (tag) params.set('tag', tag);
+    if (n > 1) params.set('page', String(n));
+    const qs = params.toString();
+    return qs ? `/units?${qs}` : '/units';
+  };
 
   return (
     <DataWorkspace
@@ -69,17 +83,23 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
           </form>
         </Surface>
 
-        {filtered.length > RENDER_CAP && (
-          <Alert tone="warning" title={`Showing the first ${RENDER_CAP} of ${filtered.length.toLocaleString()} units`}>
-            Narrow the list by association, view or tag. The count and outstanding total above include every unit.
-          </Alert>
+        {pageCount > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-600">
+            <span>
+              Units {((page - 1) * PAGE_SIZE + 1).toLocaleString()}-{Math.min(page * PAGE_SIZE, filtered.length).toLocaleString()} of {filtered.length.toLocaleString()}. The count and outstanding total above include every unit.
+            </span>
+            <div className="flex gap-2">
+              {page > 1 && <Link href={pageHref(page - 1)} className={buttonClass('secondary')}>Previous</Link>}
+              {page < pageCount && <Link href={pageHref(page + 1)} className={buttonClass('secondary')}>Next</Link>}
+            </div>
+          </div>
         )}
 
         {filtered.length > 0 ? (
           <Table>
             <THead><tr><TH>Association</TH><TH>Unit</TH><TH className="text-right">Charged</TH><TH className="text-right">Paid</TH><TH className="text-right">Balance</TH><TH className="text-right">Credit</TH></tr></THead>
             <tbody>
-              {filtered.slice(0, RENDER_CAP).map((u: any) => (
+              {shown.map((u: any) => (
                 <TR key={u.unit_id}>
                   <TD>{u.association_name}</TD>
                   <TD className="font-medium">
