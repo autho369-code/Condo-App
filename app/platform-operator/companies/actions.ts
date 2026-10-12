@@ -666,6 +666,7 @@ export async function updateCompanyDetails(formData: FormData) {
 
   const companyName = (formData.get('company_name') as string)?.trim();
   const phone = (formData.get('phone_number') as string)?.trim();
+  const supportPhone = (formData.get('support_phone') as string | null)?.trim().slice(0, 40);
   if (!hasVisibleText(companyName)) fail(returnTo, 'Company name is required.');
   const support = normalizeSupportEmail(formData.get('support_email'));
   if ('error' in support) fail(returnTo, support.error);
@@ -674,6 +675,7 @@ export async function updateCompanyDetails(formData: FormData) {
     company_name: companyName.slice(0, 200),
     phone_number: phone || null,
     support_email: (support as { email: string | null }).email,
+    support_phone: supportPhone || null,
   };
 
   const svc = createServiceClient() as any;

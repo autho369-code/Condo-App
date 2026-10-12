@@ -1,15 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#314 merged; open PR: #315 claude/branding-operator; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
+Back to [[Home]]. Updated 2026-10-11 (#279-#315 merged; open PR: #316 claude/operator-support-phone; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
 
 ## Open PR
-- #315 claude/branding-operator: five pages crashed for a platform operator (no
-  company of its own): /settings/branding, /onboard, /settings/developer,
-  /company-admin/managers, /company-admin/vendors. They (and /settings/ai, which let an operator fill a form that could not save) now show a shared
-  "This page belongs to a management company" notice (components/workspace/
-  no-company-notice.tsx); two actions that read the company id refuse with
-  a message instead of crashing (settings/ai, onboard). CSP: Vercel Analytics' debug host allowed
-  in development only.
+- #316 claude/operator-support-phone: Mirsad's own login is the platform
+  operator (no company). The operator Company details form set the
+  company's main phone but not support_phone, which owners see on the
+  portal Emergency page and home; it now has a Support phone field.
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
@@ -35,6 +32,7 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#314 merged; open PR: #315 claude/bra
 - #311 TODO: Stellar support contact on Mirsad's list.
 - #312 accessible form labels (~45 fields, 15 forms; lint rule in CI).
 - #313 Field ties its label to a single control itself (195 Fields).
+- #315 operator-without-company pages show a notice instead of crashing.
 - #314 enforced nonce CSP on app pages (live: login works, analytics loads from our origin, no blocks).
 
 ## Merged 2026-10-10 (late)

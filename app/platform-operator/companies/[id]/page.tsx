@@ -150,7 +150,7 @@ export default async function CompanyDetailPage({
     { data: slugAliases, error: slugAliasesError },
     { data: senderDomain, error: senderDomainError },
   ] = await Promise.all([
-    db.from('portfolios').select('id, company_name, slug, custom_domain, tier, created_at, suspended_at, suspension_reason, archived_at, address_city, address_state, phone_number, support_email').eq('id', id).maybeSingle(),
+    db.from('portfolios').select('id, company_name, slug, custom_domain, tier, created_at, suspended_at, suspension_reason, archived_at, address_city, address_state, phone_number, support_email, support_phone').eq('id', id).maybeSingle(),
     db.from('subscriptions').select('id, tier, status, billing_email, seats_used, seats_included, associations_limit, units_limit, price_monthly_cents, trial_ends_at, current_period_end').eq('portfolio_id', id).maybeSingle(),
     db.from('profiles').select('id, email, full_name, display_name, hoa_role, last_login_at, mfa_enrolled_at').eq('portfolio_id', id).in('hoa_role', ['company_admin', 'manager']).order('hoa_role'),
     db.from('associations').select('id, name, city, state, unit_count, status').eq('portfolio_id', id).is('archived_at', null).order('name').limit(20),
@@ -362,6 +362,11 @@ export default async function CompanyDetailPage({
             <div>
               <Label htmlFor="support_email">Support email</Label>
               <Input id="support_email" name="support_email" type="email" defaultValue={portfolio.support_email ?? ''} className="w-64" />
+            </div>
+            <div>
+              {/* What owners see on the portal's Emergency page and home. */}
+              <Label htmlFor="support_phone">Support phone</Label>
+              <Input id="support_phone" name="support_phone" type="tel" defaultValue={portfolio.support_phone ?? ''} className="w-44" />
             </div>
             <Button type="submit" variant="secondary">Save Details</Button>
           </form>
