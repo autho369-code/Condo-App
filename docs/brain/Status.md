@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#330 merged; open PR: claude/manager-scope-children; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#330 merged; open PR: #331 claude/manager-scope-children; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/manager-scope-children (Codex P1s on #330): 72 child tables scoped
+- #331 claude/manager-scope-children (Codex P1s on #330): 72 child tables scoped
   through their required parent (owner financial details, vehicles,
   packets, portal logins, unit_pets, work-order/meeting/payment details,
   ...); parking_assignments via its required parking space.
