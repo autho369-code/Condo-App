@@ -6,7 +6,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 ## 2026-10-12
 - Platform operator Company details: Support phone field (portfolios.
   support_phone, shown to owners on the Emergency page and portal home)
-  (claude/operator-support-phone).
+  (#316).
 
 ## 2026-10-11
 - Operator without a company (#315): 5 pages showed

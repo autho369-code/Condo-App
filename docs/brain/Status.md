@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#315 merged; open PR: claude/operator-support-phone; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
+Back to [[Home]]. Updated 2026-10-11 (#279-#315 merged; open PR: #316 claude/operator-support-phone; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
 
 ## Open PR
-- claude/operator-support-phone: Mirsad's own login is the platform
+- #316 claude/operator-support-phone: Mirsad's own login is the platform
   operator (no company). The operator Company details form set the
   company's main phone but not support_phone, which owners see on the
   portal Emergency page and home; it now has a Support phone field.
