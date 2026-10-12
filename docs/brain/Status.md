@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-12 (#279-#332 merged; open PR: claude/scoped-service-reads; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/scoped-service-reads: journal entry headers and
+- #333 claude/scoped-service-reads: journal entry headers and
   recurring journal entries scoped for managers assigned to some
   associations (20261012120000 LIVE: definer helper
   rls_private.my_hidden_journal_entry_ids avoids the journal_lines
