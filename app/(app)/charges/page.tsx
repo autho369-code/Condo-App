@@ -226,9 +226,21 @@ export default async function ChargesPage({
   }
 
   // ── Chargebacks: work-order costs charged back to homeowners ──
+  // The list loads on its own tab; every other tab's tile reads the count and
+  // unpaid total from chargeback_totals.
   let chargebacks: any[] = [];
   let chargebacksTruncated = false;
-  {
+  let chargebackTileCount = 0;
+  let chargebackTileUnpaid = 0;
+  if (tab !== 'chargeback-insights') {
+    const { data: cbTotals, error: cbTotalsError } = await db.rpc('chargeback_totals', {
+      p_association_id: assoc || null,
+      p_unit_ids: owner ? unitScope : null,
+    });
+    if (cbTotalsError) loadErrors.push(`Chargebacks: ${cbTotalsError.message}`);
+    chargebackTileCount = Number(cbTotals?.count ?? 0);
+    chargebackTileUnpaid = Number(cbTotals?.unpaid ?? 0);
+  } else {
     const { rows, truncated, error: chargebacksError } = await fetchAllRows<any>(() => {
       let c = db.from('charges')
         .select('id, unit_id, amount, due_date, description, work_order_id, work_orders(id, title), units!inner(unit_number, buildings!inner(association_id))')
@@ -266,6 +278,10 @@ export default async function ChargesPage({
   const chargebackOpen = chargebacks.filter((c) => c.balance_due > 0.004);
   const chargebackTotal = chargebacks.reduce((s, c) => s + Number(c.amount ?? 0), 0);
   const chargebackOpenTotal = chargebackOpen.reduce((s, c) => s + c.balance_due, 0);
+  if (tab === 'chargeback-insights') {
+    chargebackTileCount = chargebacks.length;
+    chargebackTileUnpaid = chargebackOpenTotal;
+  }
 
   const totalOutstanding = Number(unitTotals?.outstanding_total ?? 0);
   const delinquentCount = assoc ? delinquentRows.length : Number(unitTotals?.delinquent_count ?? delinquentRows.length);
@@ -355,7 +371,7 @@ export default async function ChargesPage({
     { label: 'Receipts', value: receiptCount, sublabel: `${money(totalReceipts)} total` },
     { label: 'Outstanding', value: money(totalOutstanding), sublabel: 'Open charges less credits' },
     { label: 'Delinquent units', value: delinquentCount, sublabel: `${money(overdueBalance)} past due` },
-    { label: 'Chargebacks', value: chargebacks.length, sublabel: `${money(chargebackOpenTotal)} unpaid` },
+    { label: 'Chargebacks', value: chargebackTileCount, sublabel: `${money(chargebackTileUnpaid)} unpaid` },
   ];
 
   const tabHref = (key: Tab) => {

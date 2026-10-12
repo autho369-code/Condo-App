@@ -4,13 +4,16 @@ import { Building, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterSelect } from '@/components/operations/filter-bar';
-import { EmptyState, Surface } from '@/components/ui/shell';
+import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button, buttonClass } from '@/components/ui/button';
 import { money } from '@/lib/utils';
 import { recordIdsWithTag, tagsInUse } from '@/lib/records/load';
 
 export const dynamic = 'force-dynamic';
+
+// Rows rendered at once; the count and outstanding total use every unit.
+const RENDER_CAP = 500;
 
 export default async function UnitsPage({ searchParams }: { searchParams: Promise<{ assoc?: string; filter?: string; tag?: string }> }) {
   const { assoc, filter, tag: tagParam } = await searchParams;
@@ -39,7 +42,7 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
   return (
     <DataWorkspace
       title="Units"
-      description={`${filtered.length} units · ${money(outstanding)} outstanding.`}
+      description={`${filtered.length.toLocaleString()} units · ${money(outstanding)} outstanding.`}
       actions={
         <Link href="/units/new" className={buttonClass()}><Plus className="h-4 w-4" /> New unit</Link>
       }
@@ -66,11 +69,17 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
           </form>
         </Surface>
 
+        {filtered.length > RENDER_CAP && (
+          <Alert tone="warning" title={`Showing the first ${RENDER_CAP} of ${filtered.length.toLocaleString()} units`}>
+            Narrow the list by association, view or tag. The count and outstanding total above include every unit.
+          </Alert>
+        )}
+
         {filtered.length > 0 ? (
           <Table>
             <THead><tr><TH>Association</TH><TH>Unit</TH><TH className="text-right">Charged</TH><TH className="text-right">Paid</TH><TH className="text-right">Balance</TH><TH className="text-right">Credit</TH></tr></THead>
             <tbody>
-              {filtered.map((u: any) => (
+              {filtered.slice(0, RENDER_CAP).map((u: any) => (
                 <TR key={u.unit_id}>
                   <TD>{u.association_name}</TD>
                   <TD className="font-medium">
