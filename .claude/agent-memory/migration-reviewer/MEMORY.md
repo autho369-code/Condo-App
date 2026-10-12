@@ -13,6 +13,9 @@
 - `git show origin/main:<f> | diff - <f>` shows every line changed on Windows (CRLF checkout). Compare `git ls-tree` blob hashes or use `diff --strip-trailing-cr`.
 - Get scope from `node scripts/review-scope.mjs supabase/migrations`, not a hand-written `git diff`: merge-base diffs keep squash-merged files, tip diffs pull in main-only changes. (Codex on PR #230.)
 
+- `set plan_cache_mode = force_generic_plan` on invoker RPCs over RLS views is the house pattern (20261011110000 explains why); don't flag it. Only check a CREATE OR REPLACE keeps it.
+- RETURNS TABLE names equal to view columns are fine in plpgsql if every reference is `alias.col`; only unqualified refs conflict.
+
 ## Top lessons (missed or wrong before)
 - DELETE with no WHERE in a function body is a blocker (pg_safeupdate; #264 broke Bills/Journal uploads 2026-10-09).
 - New company-data table needs the `operator_write_guard` statement trigger (#275 missed it, 2026-10-10).
