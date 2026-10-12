@@ -89,11 +89,14 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set('x-portier-request-method', request.method.toUpperCase())
 
   let response = NextResponse.next({ request: { headers: requestHeaders } })
+  // Cancels every database call of this request once a time limit is hit, so
+  // nothing (an Auth token refresh in particular) finishes after we answered.
+  const cancel = new AbortController()
   const supabase = createServerClient<Database>(
     getSupabaseUrl(),
     getSupabaseBrowserKey(),
     {
-      global: { fetch: fetchWithTimeout(CALL_TIMEOUT_MS) },
+      global: { fetch: fetchWithTimeout(CALL_TIMEOUT_MS, cancel.signal) },
       cookies: {
         getAll() { return request.cookies.getAll() },
         setAll(items) {
@@ -117,13 +120,13 @@ export async function middleware(request: NextRequest) {
       branding = await withDeadline<any>((supabase as any).rpc('tenant_branding', {
         p_host: host.hostname,
         p_slug: host.slug,
-      }), CALL_TIMEOUT_MS, 'tenant_branding')
+      }), CALL_TIMEOUT_MS, 'tenant_branding', cancel)
     } catch (error) {
       branding = { data: null, error }
     }
     // An error is not "no such company": don't send the visitor to the
     // workspace-not-found page because the database was slow.
-    if (branding.error) return serviceUnavailable(pathname)
+    if (branding.error) return serviceUnavailable(pathname, response)
     const brandingRows = branding.data
     tenantPortfolio = brandingRows?.[0] ?? null
 
@@ -189,7 +192,7 @@ export async function middleware(request: NextRequest) {
   // still enforce roles and tenant identity; middleware is defense-in-depth.
   let authResult: { data: { user: any }; error: any }
   try {
-    authResult = await withDeadline(supabase.auth.getUser(), AUTH_DEADLINE_MS, 'auth.getUser')
+    authResult = await withDeadline(supabase.auth.getUser(), AUTH_DEADLINE_MS, 'auth.getUser', cancel)
   } catch (error) {
     authResult = { data: { user: null }, error }
   }
@@ -236,7 +239,7 @@ export async function middleware(request: NextRequest) {
   let requestIdentityError: any = null
   if (user && !isPublic) {
     try {
-      const { data, error } = await withDeadline<any>((supabase as any).rpc('me'), CALL_TIMEOUT_MS, 'me')
+      const { data, error } = await withDeadline<any>((supabase as any).rpc('me'), CALL_TIMEOUT_MS, 'me', cancel)
       requestIdentity = data
       requestIdentityError = error
     } catch (error) {

@@ -48,6 +48,31 @@ describe('fetchWithTimeout', () => {
   });
 });
 
+describe('cancelling when the time limit is hit', () => {
+  it('stops the work behind the deadline and every later request', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', (input: unknown, init: RequestInit) => {
+      return new Promise((_, reject) => {
+        if (init.signal?.aborted) return reject(init.signal.reason);
+        init.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+      });
+    });
+    const cancel = new AbortController();
+    const limited = fetchWithTimeout(6000, cancel.signal);
+    // Like Auth's refresh: a request, and a retry after a pause.
+    const work = limited('https://example.test/refresh').catch(() =>
+      new Promise((resolve) => setTimeout(resolve, 1000)).then(() => limited('https://example.test/refresh-retry')));
+    const answer = withDeadline(work, 500, 'auth.getUser', cancel);
+    const check = expect(answer).rejects.toBeInstanceOf(DeadlineError);
+    await vi.advanceTimersByTimeAsync(500);
+    await check;
+    expect(cancel.signal.aborted).toBe(true);
+    // The retry that follows fails at once instead of reaching the server.
+    await vi.advanceTimersByTimeAsync(1000);
+    await expect(work).rejects.toBeInstanceOf(DeadlineError);
+  });
+});
+
 describe('isUnavailableError', () => {
   it('treats timeouts, network failures and 5xx as "did not answer"', () => {
     expect(isUnavailableError(new DeadlineError('auth.getUser', 9000))).toBe(true);
@@ -67,14 +92,14 @@ describe('middleware uses the time limits', () => {
   const source = readFileSync('middleware.ts', 'utf8');
 
   it('limits every database call and the sign-in check', () => {
-    expect(source).toContain('global: { fetch: fetchWithTimeout(CALL_TIMEOUT_MS) }');
-    expect(source).toContain("CALL_TIMEOUT_MS, 'tenant_branding')");
-    expect(source).toContain("withDeadline(supabase.auth.getUser(), AUTH_DEADLINE_MS, 'auth.getUser')");
-    expect(source).toContain("CALL_TIMEOUT_MS, 'me')");
+    expect(source).toContain('global: { fetch: fetchWithTimeout(CALL_TIMEOUT_MS, cancel.signal) }');
+    expect(source).toContain("CALL_TIMEOUT_MS, 'tenant_branding', cancel)");
+    expect(source).toContain("withDeadline(supabase.auth.getUser(), AUTH_DEADLINE_MS, 'auth.getUser', cancel)");
+    expect(source).toContain("CALL_TIMEOUT_MS, 'me', cancel)");
   });
 
   it('answers "try again" instead of a wrong page when the database is slow', () => {
-    expect(source).toContain('if (branding.error) return serviceUnavailable(pathname)');
+    expect(source).toContain('if (branding.error) return serviceUnavailable(pathname, response)');
     expect(source).toContain('isUnavailableError(authError)');
     expect(source).toContain('if (user && !isPublic && requestIdentityError) return serviceUnavailable(pathname, response)');
   });
