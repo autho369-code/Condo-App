@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-12
+- Manager scope on journal entry headers, recurring journal entries and the
+  document repair tool (open PR, 20261012120000).
 - Manager scope on documents, notes, tags, audit and deleted-records logs,
   SMS opt-ins (#332, 20261012110000).
 - Manager scope on 72 child tables + parking (#331, 20261012100000).
