@@ -72,6 +72,10 @@ or `StatusChip` (`components/operations/status-chip.tsx`). Never hand-pick statu
   has 2+ records.
 - Forms live inside `Surface`; one column on mobile, `sm:grid-cols-2` where
   fields pair naturally; primary action bottom-left, `Button` md size.
+- `Field` ties its label to its control: a single `Input`/`Select`/`Textarea`
+  child is wrapped in the label (no id needed); with several controls pass
+  `htmlFor` + an `id` on the one it names. A bare `<label>` needs `htmlFor`
+  (`npm run lint` checks).
 
 ## Page recipes
 

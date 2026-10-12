@@ -1,14 +1,13 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#311 merged; open PR: #312 claude/a11y-form-labels; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
+Back to [[Home]]. Updated 2026-10-11 (#279-#312 merged; open PR: claude/field-auto-label; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
 
 ## Open PR
-- #312 claude/a11y-form-labels: form fields screen readers could not name
-  (labels not tied to their control): ~45 in 15 forms fixed (Field/Input/
-  Select with htmlFor, fieldset/legend for radio groups, sr-only labels),
-  ARC settings textareas named + fake "0/500" counter removed; Esc closes
-  the phone menu; two unused sidebars deleted; `jsx-a11y/label-has-
-  associated-control` now on in `npm run lint` (CI) so it can't come back.
+- claude/field-auto-label: Codex on #312 - shared Field now ties its label
+  to a single Input/Select/Textarea child by wrapping it when no htmlFor is
+  given (195 Fields had none; association profile 18 unnamed fields -> 0);
+  a Field around a group or several controls shows a plain heading instead
+  of a <label> pointing at nothing; send-email From linked explicitly.
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
@@ -32,6 +31,7 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#311 merged; open PR: #312 claude/a11
 - #309 vault: detail-page check.
 - #310 operator Overview chart labels 40px rows; all six roles checked at phone width.
 - #311 TODO: Stellar support contact on Mirsad's list.
+- #312 accessible form labels (~45 fields, 15 forms; lint rule in CI).
 
 ## Merged 2026-10-10 (late)
 - #282 query probe + refused report runs return to the report; #283

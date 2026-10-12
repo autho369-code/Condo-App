@@ -23,28 +23,56 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
 );
 Textarea.displayName = 'Textarea';
 
+const labelText = 'mb-1.5 block text-[13.5px] font-medium text-gray-700';
+
 export function Label({ className, ...p }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   // Generic wrapper: callers pass htmlFor (Field does).
   // eslint-disable-next-line jsx-a11y/label-has-associated-control
-  return <label className={cn('mb-1.5 block text-[13.5px] font-medium text-gray-700', className)} {...p} />;
+  return <label className={cn(labelText, className)} {...p} />;
 }
 
-/** Label + control wrapper with optional hint and required marker. */
+const CONTROLS: unknown[] = [Input, Select, Textarea, 'input', 'select', 'textarea'];
+
+/**
+ * Label + control wrapper with optional hint and required marker.
+ * The label is always tied to its control: by `htmlFor` when given, or, when
+ * the only child is an Input/Select/Textarea, by wrapping it (no id needed),
+ * so screen readers name the field and clicking the label focuses it.
+ * Anything else (a group, several controls) gets a plain heading: pass
+ * htmlFor and an id on the control to label one of them.
+ */
 export function Field({
   label, htmlFor, hint, required, children, className,
 }: {
   label?: string; htmlFor?: string; hint?: React.ReactNode; required?: boolean;
   children: React.ReactNode; className?: string;
 }) {
+  const text = label && (
+    <>
+      {label}
+      {required && <span className="ml-0.5 text-red-500">*</span>}
+    </>
+  );
+  const only = React.Children.toArray(children);
+  const wrapControl = Boolean(label) && !htmlFor && only.length === 1
+    && React.isValidElement(only[0]) && CONTROLS.includes(only[0].type);
   return (
     <div className={className}>
-      {label && (
-        <Label htmlFor={htmlFor}>
-          {label}
-          {required && <span className="ml-0.5 text-red-500">*</span>}
-        </Label>
+      {wrapControl ? (
+        <label className="block">
+          <span className={labelText}>{text}</span>
+          {children}
+        </label>
+      ) : (
+        <>
+          {/* No single control to tie to (a group, or several controls): a
+              heading, not a <label> pointing at nothing. */}
+          {label && (htmlFor
+            ? <Label htmlFor={htmlFor}>{text}</Label>
+            : <p className={labelText}>{text}</p>)}
+          {children}
+        </>
       )}
-      {children}
       {hint && <p className="mt-1.5 text-[13px] leading-5 text-gray-500">{hint}</p>}
     </div>
   );

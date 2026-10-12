@@ -20,6 +20,7 @@
 - Role-bounce check: companyAdminModules feeds BOTH app/company-admin/layout.tsx (unfiltered) and app/(app)/layout.tsx (filtered by NAV_ACCESS for company-admin-only users). A new entry must pass the target page's guard for company admins AND operators (requireWorkspaceStaff and requirePortfolioAdmin both do). tasks-rail.tsx no longer has a PANELS map; route panels live in lib/navigation/action-center.ts.
 - Pattern (settings/ai, 2026-10): page guard widened to requireWorkspaceStaff + read-only branch for non-admins so AI links from manager surfaces (bills/new, drafters) don't bounce; action keeps requirePortfolioAdmin. Breadcrumb must differ per branch (non-admins can't open /settings).
 - Link-as-button: `buttonClass(variant,size,cls)` (components/ui/button.tsx) on the Link/a; never `<Link><Button>`. Watch flex-col parents: the link now stretches full width where the old nested button kept intrinsic width (violations/rules:106, 2026-10-11 codemod).
+- Field (components/ui/input.tsx, 2026-10-11): single Input/Select/Textarea child + no htmlFor is wrapped in `<label class="block">`; else htmlFor -> Label, none -> `<p>`. Reviewed clean: no Field className uses space-y/gap internally, no global label/p CSS. Custom children (VendorSelect etc.) still need htmlFor+id to be named.
 - Alert (components/ui/shell.tsx) always sets role="alert"; persistent status banners ("AI is on") get announced on every load - nit, not a blocker.
 
 ## ?error= sweeps (zero-row `.select()` checks, 2026-10)

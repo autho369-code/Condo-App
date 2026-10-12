@@ -65,4 +65,4 @@ Back to [[Home]].
   pg_safeupdate refuses a DELETE with no WHERE from API sessions, even
   inside a security definer RPC. Clear a per-call temp table with
   `truncate`.
-- Every form field has a name a screen reader can read: a <label htmlFor> tied to the control (use Field + Input/Select/Textarea), a fieldset/legend for radio groups, or aria-label. `npm run lint` enforces labels (jsx-a11y/label-has-associated-control). (2026-10-11)
+- Every form field has a name a screen reader can read: a <label htmlFor> tied to the control (use Field + Input/Select/Textarea), a fieldset/legend for radio groups, or aria-label. `npm run lint` enforces labels (jsx-a11y/label-has-associated-control). Field ties its label to a single Input/Select/Textarea child itself; with several controls pass htmlFor + id. (2026-10-11)
