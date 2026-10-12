@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-12
+- Managers assigned to some associations limited to them on 43 more tables
+  (Open PR, 20261012090000).
 - Budget lines read 35-50x faster at scale (#329, 20261012080000).
 - Full bank account numbers no longer reachable by staff through an unused
   function or the deleted-records log (#328, 20261012060000/070000).
