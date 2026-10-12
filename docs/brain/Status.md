@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#327 merged; open PR: claude/unused-definer-grants; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#327 merged; open PR: #328 claude/unused-definer-grants; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/unused-definer-grants: full bank routing/account numbers are hidden
+- #328 claude/unused-definer-grants: full bank routing/account numbers are hidden
   from signed-in users (only *_last4 granted) but leaked two ways: the
   unused SECURITY DEFINER bank_account_check_numbers returned them to any
   finance staff via the API, and log_soft_delete copied the whole archived
