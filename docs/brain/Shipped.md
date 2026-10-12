@@ -5,7 +5,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 
 ## 2026-10-11
 - Enforced Content Security Policy with a per-request nonce on every app
-  page (claude/csp-nonce): an injected <script> no longer runs (verified on
+  page (#314): an injected <script> no longer runs (verified on
   a production build); Plaid allowed; print script by hash; dynamic 404;
   /api/csp-report logs blocks. Marketing pages stay report-only.
 - Field ties its own label (#313, Codex on #312): a

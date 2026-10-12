@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#313 merged; open PR: claude/csp-nonce; next: /settings/branding crash for operators; Mirsad: Auth connection pool %, Stellar support contact).
+Back to [[Home]]. Updated 2026-10-11 (#279-#313 merged; open PR: #314 claude/csp-nonce; next: /settings/branding crash for operators; Mirsad: Auth connection pool %, Stellar support contact).
 
 ## Open PR
-- claude/csp-nonce: the Content Security Policy was report-only (nothing
+- #314 claude/csp-nonce: the Content Security Policy was report-only (nothing
   blocked) and allowed inline scripts + eval; it also missed cdn.plaid.com
   (bank linking). Now app pages get an ENFORCED policy with a per-request
   nonce (middleware.ts + lib/server/csp.ts); marketing (prerendered) keeps
@@ -404,7 +404,7 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#313 merged; open PR: claude/csp-nonc
 - NEXT (code): /settings/branding crashes for a platform operator
   (app/(app)/settings/branding/page.tsx:69 reads me.portfolio.id, operators
   have no company) - found 2026-10-11, also on main.
-- AFTER RELEASE of claude/csp-nonce: watch Vercel logs for "[csp] blocked"
+- AFTER RELEASE of #314: watch Vercel logs for "[csp] blocked"
   for a few days (Stripe/Plaid flows were not exercised live).
 - DONE 2026-10-11: platform-operator screens at 375 px, signed in as
   operator (Mirsad): 20 pages + a company page, no sideways overflow; one
