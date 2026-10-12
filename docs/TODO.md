@@ -30,8 +30,8 @@ DNS or decisions). Details for the older items are further down.
       (Receivables) timed out; a small "burstable" size runs out of CPU
       allowance. Tell Claude what it shows; upgrading costs money, so it is
       your call.
-- [ ] **Stellar's support phone and email** - sign in as company admin ->
-      Settings -> support phone and support email. Owners see them on the
+- [ ] **Stellar's support phone** (support email set to hello@portier369.com on 2026-10-12) - Platform operator ->
+      Companies -> Stellar -> Company details: Support email and Support phone (or as company admin: Settings). Owners see them on the
       portal's Emergency page (today it shows no contact).
 - [ ] **Let Auth use the bigger database** - Supabase dashboard -> project
       condo-app -> Settings -> Database (or Auth) -> connection pooling for
