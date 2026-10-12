@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#326 merged; open PR: claude/receipt-coowner-search; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#326 merged; open PR: #327 claude/receipt-coowner-search; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/receipt-coowner-search (Codex P2 on #326): the receipt search
+- #327 claude/receipt-coowner-search (Codex P2 on #326): the receipt search
   matches every current co-owner, not only the primary owner.
 
 ## Merged 2026-10-12
