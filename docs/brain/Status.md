@@ -1,9 +1,10 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#308 merged; open PR: #309 claude/vault-detail-check; next: operator screens at 375 px once Mirsad signs in as operator).
+Back to [[Home]]. Updated 2026-10-11 (#279-#309 merged; open PR: #310 claude/operator-chart-labels; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
 
 ## Open PR
-- #309 claude/vault-detail-check: notes only (the detail-page check below).
+- #310 claude/operator-chart-labels: Overview chart labels are 40px rows (the
+  last control under 40px found by the operator check below).
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
@@ -24,6 +25,7 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#308 merged; open PR: #309 claude/vau
 - #307 (Codex on #306) a hit time limit cancels the request's database
   calls; every 503 keeps refreshed cookies.
 - #308 index on email_sender_domain_owners.portfolio_id (live).
+- #309 vault: detail-page check.
 
 ## Merged 2026-10-10 (late)
 - #282 query probe + refused report runs return to the report; #283
@@ -391,11 +393,10 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#308 merged; open PR: #309 claude/vau
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- NEXT: confirm the platform-operator screens at 375 px in the in-app
-  browser once Mirsad signs in there as operator (code pass done
-  2026-10-11: 40px tap targets on 10 operator pages; View/Billing were
-  buttons nested in links). Owner (#298), board, vendor and company admin
-  (#299, merged inside #303) DONE 2026-10-11; manager 2026-10-10.
+- DONE 2026-10-11: platform-operator screens at 375 px, signed in as
+  operator (Mirsad): 20 pages + a company page, no sideways overflow; one
+  control under 40px (Overview chart label), fixed. All six roles now
+  checked at phone width.
 - DONE 2026-10-11: every manager detail page checked with data, signed
   in as manager on a production build of main. Stellar had no rows for 33
   of 48 detail-page kinds, so (Mirsad OK) 28 rows tagged "QA test

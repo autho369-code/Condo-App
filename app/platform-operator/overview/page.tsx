@@ -148,16 +148,17 @@ function HorizontalBar({
   const max = Math.max(...data.map((d) => d.value), 1)
 
   return (
-    <div className="space-y-2">
+    <div>
       {data.map((d, i) => (
         <div key={i} className="flex items-center gap-3">
-          <div className="w-32 flex-shrink-0 text-xs text-gray-600 truncate">
+          {/* 40px rows so a linked label is a full tap target on phones. */}
+          <div className="w-32 flex-shrink-0 text-xs text-gray-600">
             {d.href ? (
-              <Link href={d.href} className="hover:text-gray-950 hover:underline">
+              <Link href={d.href} className="block truncate py-3 leading-4 hover:text-gray-950 hover:underline">
                 {d.label}
               </Link>
             ) : (
-              d.label
+              <span className="block truncate py-3 leading-4">{d.label}</span>
             )}
           </div>
           <div className="flex-1">
