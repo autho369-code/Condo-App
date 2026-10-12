@@ -1,19 +1,18 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#327 merged; open PR: #328 claude/unused-definer-grants; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#328 merged; open PR: #329 claude/scale-checks-2; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #328 claude/unused-definer-grants: full bank routing/account numbers are hidden
-  from signed-in users (only *_last4 granted) but leaked two ways: the
-  unused SECURITY DEFINER bank_account_check_numbers returned them to any
-  finance staff via the API, and log_soft_delete copied the whole archived
-  row into soft_delete_log (readable by full-access staff). Fixed: EXECUTE
-  revoked from signed-in users on that and 9 other unused definer
-  functions (20261012060000), and the log leaves out every column hidden
-  from signed-in users (20261012070000). Both LIVE; no bank row had been
-  logged yet.
+- #329 claude/scale-checks-2: budget lines read 35-50x faster at scale. The read
+  policy called can_read_association_budget() per row: 6,000 lines took
+  4.0-5.4 s per read for manager/company admin/board (3.6 s for owners and
+  vendors who see none). Once-per-query helper
+  rls_private.my_budget_readable_association_ids() (20261012080000, LIVE):
+  107 ms, same rows for six roles; association_budgets_read uses the same set.
 
 ## Merged 2026-10-12
+- #328 bank numbers: unused definer functions revoked; deleted-records log
+  leaves out hidden columns (20261012060000/070000, live).
 - #327 receipt search matches every co-owner.
 - #326 New homeowner receipt search.
 - #325 Inspections scores in the database (20261012050000, live).
@@ -422,7 +421,26 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#327 merged; open PR: #328 claude/unu
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- MOSTLY DONE 2026-10-12: pages that loaded every row to count or sum.
+- NEXT: aged_receivables at scale: 2,000 units / 6,000 charges / 4,000
+  applications -> 400-700 ms per read for every role (payment_applications
+  alone 56-69 ms, charges 7-14 ms; the joins to units/buildings/associations
+  and their policies cost the rest). Feeds Receivables, Delinquencies, board
+  receivables, reports. Measure EXPLAIN as manager; candidates: LATERAL
+  per-charge sum, or a set-returning invoker function.
+- NEXT: budget_lines (and possibly other association tables) has no
+  mgr_assoc_scope, so a manager assigned to some associations reads every
+  budget in the company. Audit which association_id tables lack it; add it.
+- NEXT: remaining per-row policies measured at scale: owner_attachments
+  (can_view_owner_row), bank_transfers (app_can_view_bank_account),
+  signatures (can_manage_signatures), meeting items
+  (can_access_confidential_meeting_mvp), notices, association_budgets.
+  Budget lines done (#329).
+- NEXT: ledger flows not yet exercised: recurring charges, late fees (manual,
+  cron, flows), management-fee bills, NSF reversal, finishing a bank
+  reconciliation, payment plans, owner credit application. Rolled-back
+  transactions as the manager on Randolph Station.
+- DONE 2026-10-12: pages that loaded every row to count or sum (swept
+  app/**, app/api/**, lib/**: every list is capped or uses fetchAllRows).
   Fixed: Owners, Units (pages), Chargebacks tile (#321, #322), Bank
   deposits (#323), unit pickers follow the association (#324),
   Inspections scores (#325). Checked and bounded (left as is):

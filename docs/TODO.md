@@ -1,7 +1,7 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-10-11.
+Last updated: 2026-10-12.
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
 
@@ -121,11 +121,15 @@ Everything left after the AppFolio left-navigation parity pass (#138–#182).
 Every AppFolio page is built; these need access, accounts or decisions first.
 
 ### Needs access for Claude (highest value next)
-- [ ] **Test login + Supabase network access for the cloud container.** Add a
+- [x] **Test login + Supabase network access for the cloud container.** Done
+      from the desktop session (signed-in local runs against production). Add a
       staff test account and allow `termxngysvotnfbzbgrv.supabase.co` in the
       environment's network settings (or supply a `.env.local`). Unblocks:
-  - [ ] Browser walkthroughs of every workflow on the Vercel preview (manager,
-        board, owner, vendor, company admin, platform operator).
+  - [x] Browser walkthroughs of every workflow on the Vercel preview (manager,
+        board, owner, vendor, company admin, platform operator). DONE
+        2026-10-11/12: all six roles at 375 px, 54 detail and 141 list pages
+        crawled with data, ledger flows run in rolled-back transactions.
+        Left: Stripe/Plaid flows (dormant until the keys are set).
   - [x] `npm run check:queries` against production. DONE 2026-10-10: 0 broken
         of 1,164 distinct static queries (the script now runs from
         environment variables when there is no `.env.local`). Note: it is a schema probe

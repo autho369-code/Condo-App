@@ -19,8 +19,6 @@
   owner (trigger skips them); INVOKER ones and API inserts must read the value
   back via RETURNING / `.select()`, never return a local variable. Checked
   clean for invite_* / provision_portfolio / app inserts (2026-10-07).
-- A gap the PR closes belongs under "Open PR", not still as Next gaps #1
-  ("In PR: ..."); the next session would pick it up again.
 - After a new push to an open PR, check the Codex summary's commit column
   equals the head SHA; if not, "@codex review" must be posted again (#239:
   Codex had only reviewed 71dcf09, head was baef97e).
@@ -34,10 +32,6 @@
   2026-10-07), grep every inbound link + API `hint` text for admin-only wording
   ("Set up AI in Settings → AI") still shown to non-admins, and check the save
   form uses `PendingSubmit` (+ `confirm` if it can remove access/keys).
-- The vault's Open PR line goes stale like the PR body: written in the first
-  commit, then a reviewer-fix commit widens scope (finance RPC scope PR,
-  2026-10-07: vault said "12 RPCs", final migration patches 16). Count the
-  final diff against the vault line.
 - Start-of-task: check the open PR's real state via REST
   (`gh api repos/autho369-code/Condo-App/pulls/<n> --jq .merged`) before
   accepting "open, not merged". #244 was planned as still open but had merged
@@ -51,9 +45,6 @@
 - "Only error handling changed" on `app/**` pages still triggers
   design-reviewer: the error lands in an ad-hoc red div, not `<Alert>`
   (letters/templates edit, portal/profile).
-- Recurring (2nd time, #245 after #244): the caller planned with the PR as
-  "open, not merged" but it had merged (e25b1d1d). Always check REST first and
-  remind: apply + read back the PR's migration (20261007100000) before new work.
 - Public pages (`app/(public)/*`, `lib/server/public-paths.ts`) use the
   service client: check every read is filtered by the host's tenant
   (`tenantFromHeaders().portfolioId`). /report-violation listed every
@@ -68,48 +59,22 @@
   listed in docs/DESIGN_SYSTEM.md (3rd miss: NoCompanyNotice 2026-10-11) and
   use Card, not a hand-copied card div. Grep for a pre-existing guard before
   adding one (automation-flows got a duplicate check).
-- Recurring (accept-invitation PR, 2026-10-08): vault Open PR line written in
-  the first commit, a later commit (expired/other-account states, rate limit,
-  plain errors) not added. Also: a deliberate exception to a Decisions rule
-  (accept-invitation allowed on the platform address, unlike /sign,
-  /vendor-upload) must be written into Decisions, not only a code comment.
 - A "recipient's company" / white-label fix that swaps `me.portfolio` for a
   lookup adds new `.select()`s and embeds (2026-10-08: occupancies ->
   associations(portfolio_id), owners.portfolio_id, portfolios.support_email):
   schema-checker is required even when the caller only ran security +
   white-label. Run `npm test` (static select check) and confirm the FK in
   schema-foreign-keys.json for each embed.
-- When a PR fixes a gap a reviewer had recorded, check that reviewer's memory
-  line is updated to "fixed in <migration/PR>", not left saying the hole is
-  open (2026-10-08 property-group PR: security-reviewer memory still said "no
-  DB trigger backs it" while 20261008030000 adds it).
 - Pre-PR on staged work: compare `git diff --cached --stat` with `git status`;
   a vault note edited but not staged (Shipped.md, 2026-10-08 after #253) is
   left out of the commit. Also check the Open PR entry of the PR that just
   merged was moved out of Open PR, and "pushed after #N merges" wording.
-- Recurring (vendor-login PR, 2026-10-09): the vault edit moved the gap to
-  "In PR" in Next gaps but left the Status header ("no open PR") and the
-  duplicate "Next gaps: (1) ..." bullet inside Open PR stale. grep
-  `Next gaps` and the header line on every Status edit. Also ask whether the
-  RLS rewrite was timed per role in a rolled-back tx (Product Rules: Speed).
-- Recurring 3rd time (owner-login part 1, 2026-10-09): stale "Next gaps: (1)
-  ..." bullet inside Status → Open PR (line ~83) still listed the gap now In
-  PR. Grep `Next gaps` on every Status edit. Also 2nd time: reviewer memory
-  still records holes the same PR fixed (security-reviewer: no owner
-  invite_scope, link_portal_user email linking) — must say "fixed in <mig>".
 - "No user text changed" is often wrong: new redirect `?error=` strings in
   actions are user-facing (white-label-checker scope). Check the diff for
   new string literals in redirects.
 - Status said "Claude applies once Codex is clean" — PR Rules say apply the
   additive migration as soon as the SQL is settled and put "do not merge
   until the migration is live" in the PR body. Check the wording.
-- Recurring 4th time (owner login part 2, 2026-10-09): "Next gaps: (1)"
-  bullet inside Status → Open PR still names the in-PR gap; Next gaps -1 still
-  "In PR: ..." instead of the leftover as top gap; older merged entries still
-  say "No open PR." while one is open. Also 3rd time: security-reviewer memory
-  still records the checkLinkedRecords no-association owner hole the same
-  diff fixed. And 2nd: new components/ui/* (RecordSwitcher) + OwnerSelect not
-  in docs/DESIGN_SYSTEM.md. And again: "apply after Codex is clean" wording.
 - Multi-record login PRs: diff the migration-reviewer's "still first-record
   only" follow-up list against Status Next gaps; part 2 vault listed only
   home/account, dropped owner_open_emergencies, form_submissions_owner_insert,
@@ -142,36 +107,13 @@
   {public}/{anon} that now call a revoked function, and that the
   equivalence test includes an anon caller. Also CLAUDE.md rule 6 names the
   policy helpers - update it when the preferred form changes.
-- Start check 2026-10-10 (project spend list): Status header/Open PR still
-  said "#282 open" after #282-#287 merged (TODO/vault-only PRs skip Status).
-  Check `gh pr list --state open` vs Status header every start. For a
-  definer aggregate replacing an invoker view: totals must equal the detail
-  RPC's (incl. its "Restricted accounts" row) and use once-per-query helpers,
-  set-based, plpgsql.
-- Recurring 3rd time (project spend pre-PR, 2026-10-10): merged PRs
-  (#282-#287) written into Status -> Open PR as "Merged meanwhile" instead of
-  a Merged/"Where things stand" entry. Open PR holds only the open PR.
-  Also: when a PR leaves an object unused (capital_project_financials view),
-  the drop is Mirsad's (DROP rule) - list it in docs/TODO.md Mirsad's list.
-- Recurring 5th time (operator tap targets pre-PR, 2026-10-11): Status
-  header still "open PR: #296" and Open PR still held merged #288
-  (project-spend-list) while #296-#303 merged; the PR edited only Next gaps
-  + Shipped. Every pre-PR: diff Status line 3 + "## Open PR" against
-  `gh pr list --state open`, and add merged PRs to "Where things stand".
-- Recurring 4th time (middleware-deadlines pre-PR, 2026-10-11): the
-  security-reviewer memory line added in the same diff describes the MFA
-  skip as current ("only blocks writes and SKIPS the MFA gate") although the
-  diff fixed it. Also: a new 503 body string in middleware.ts is user text -
-  white-label-checker scope even when "no brand name" was self-checked.
-- Recurring (csp-nonce pre-PR, 2026-10-11): Status line 3 said "next: no code gaps" while Next gaps got a NEXT code gap; new app/not-found.tsx (UI + text) had only security-reviewer run.
 - DROP POLICY is DROP SQL (start check 2026-10-12, signed-in-only policies):
   a migration that removes a policy outright goes to Mirsad. Neutralise with
   `alter policy ... to authenticated using (false)` + TODO the drop, or hand
   him the SQL. drop-then-create of the same policy has precedent (20261010010000).
-- Recurring 6th time (2026-10-12): Status line 3 + Open PR still "#316 open"
-  after it merged 05:23Z; `gh pr list --state open` was empty. Check it first.
-- Recurring 5th time (policies-signed-in-only pre-PR, 2026-10-12):
-  security-reviewer memory added in the same diff states the is_system
-  sharing hole as open ("write policy must forbid the flag") though the diff
-  fixed it read-side. Also Next gaps "DONE ... see Open PR" lines go stale
-  when Open PR is replaced: point them at the merged PR number.
+- Empty build queue (2026-10-12): the 1,000-row cap sweep is thorough (pages,
+  app/api crons, lib all use fetchAllRows/limit). Don't re-propose it. Status
+  "left per-row: small tables" predates the "judge RLS at scale" rule; those
+  tables (budget_lines, meetings, signatures, bank_transfers) are still unmeasured.
+- Vault staleness (recurring 7x: Status header/Open PR after merge, Next gaps "In PR"): see [vault-staleness](vault-staleness.md) - check first.
+- Reviewer memory still naming holes the same PR fixed (5x): see [reviewer-memory-staleness](reviewer-memory-staleness.md).
