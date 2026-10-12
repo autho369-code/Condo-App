@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#309 merged; open PR: claude/operator-chart-labels; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
+Back to [[Home]]. Updated 2026-10-11 (#279-#309 merged; open PR: #310 claude/operator-chart-labels; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
 
 ## Open PR
-- claude/operator-chart-labels: Overview chart labels are 40px rows (the
+- #310 claude/operator-chart-labels: Overview chart labels are 40px rows (the
   last control under 40px found by the operator check below).
 
 ## Merged 2026-10-11
