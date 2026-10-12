@@ -44,3 +44,4 @@ metadata:
 
 ## Revoke-unused-function reviews
 - Grep the whole repo per name. Hits in `lib/types/database.ts`, `graphify-out/`, `supabase/fetched-production-migrations/` and `legacy-migrations/` are types/history, not callers; the baseline (20260715040000) + later migrations are the live truth for policies. Also grep for dynamic `rpc(var)` calls (lib/rpcs/bills.ts:193 is one). service_role keeps its explicit Supabase default grant when only PUBLIC/anon/authenticated are revoked (20261012060000).
+- Child-via-parent mgr_assoc_scope sweeps (20261012100000, reviewed 2026-10-12): for each "optional link" table check whether ANOTHER required FK exists to a scoped parent. inspection_finding_events was linked via nullable work_order_id while `inspection_item_id NOT NULL` (20260801043000:371) was available, leaving most rows company-wide. Dry runs with no scoped manager only prove "no recursion / no change for others", not the scoping.
