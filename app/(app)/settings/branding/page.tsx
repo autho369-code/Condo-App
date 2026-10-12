@@ -1,3 +1,4 @@
+import { NoCompanyNotice } from '@/components/workspace/no-company-notice';
 import { createClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,7 @@ export default async function BrandingPage({
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
   const me = await requirePortfolioAdmin();
+  if (!me.portfolio?.id) return <PageShell className="max-w-3xl"><NoCompanyNotice title="Company branding" operator={me.is_platform_operator} /></PageShell>;
   const { error: errorMessage, saved } = await searchParams;
   const supabase = await createClient();
 

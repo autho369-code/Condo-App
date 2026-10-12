@@ -1,3 +1,4 @@
+import { NoCompanyNotice } from '@/components/workspace/no-company-notice';
 import { createClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { Input, Label, Select } from '@/components/ui/input';
@@ -19,6 +20,7 @@ async function createAssociation(formData: FormData) {
   const supabase = await createClient();
   const me = await (await import('@/lib/auth/me')).requirePortfolioAdmin();
   if (!me.auth_user_id) failTo('Could not determine current user.');
+  if (!me.portfolio?.id) failTo('Your account is not linked to a company.');
   const { error } = await (supabase as any).from('associations').insert({
     portfolio_id: me.portfolio.id,
     name:    formData.get('name') as string,
@@ -45,6 +47,7 @@ export default async function OnboardPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const me = await requirePortfolioAdmin();
+  if (!me.portfolio?.id) return <PageShell><NoCompanyNotice title="Welcome" operator={me.is_platform_operator} /></PageShell>;
   const { error: errorMessage } = await searchParams;
   const supabase = await createClient();
 

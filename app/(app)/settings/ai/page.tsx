@@ -1,3 +1,4 @@
+import { NoCompanyNotice } from '@/components/workspace/no-company-notice';
 import { createServiceClient } from '@/lib/supabase/server';
 import { hasPortfolioAdminAccess, requirePortfolioAdmin, requireWorkspaceStaff } from '@/lib/auth/me';
 import { encryptAICredential } from '@/lib/ai/credentials';
@@ -54,6 +55,7 @@ async function saveAIProvider(formData: FormData) {
     }
   }
 
+  if (!me.portfolio?.id) redirect('/settings/ai?error=' + encodeURIComponent('Your account is not linked to a company.'));
   const { error } = await svc.from('portfolios').update(patch).eq('id', me.portfolio.id);
   if (error) {
     redirect('/settings/ai?error=' + encodeURIComponent('AI settings could not be saved.'));
@@ -114,6 +116,10 @@ export default async function AISettingsPage({
         {status}
       </PageShell>
     );
+  }
+
+  if (!me.portfolio?.id) {
+    return <PageShell className="max-w-3xl"><NoCompanyNotice title="AI provider" operator={me.is_platform_operator} /></PageShell>;
   }
 
   return (

@@ -1,3 +1,4 @@
+import { NoCompanyNotice } from '@/components/workspace/no-company-notice';
 import Link from 'next/link';
 
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
@@ -47,7 +48,7 @@ export default async function DeveloperHubPage({ searchParams }: { searchParams:
   const sp = await searchParams;
   const me = await requirePortfolioAdmin();
   const portfolioId = me.portfolio?.id;
-  if (!portfolioId) throw new Error('A portfolio is required to open the Developer Hub.');
+  if (!portfolioId) return <PageShell><NoCompanyNotice title="Developer Hub" operator={me.is_platform_operator} /></PageShell>;
 
   const supabase = await createClient();
   // Last 30 UTC days of per-key request counts (api_key_usage_daily).

@@ -1,3 +1,4 @@
+import { NoCompanyNotice } from '@/components/workspace/no-company-notice';
 import Link from 'next/link'
 import { StatTile } from '@/components/ui/stat-tile'
 import { createClient } from '@/lib/supabase/server'
@@ -24,6 +25,7 @@ export default async function CompanyAdminManagersPage({
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
+  if (!portfolioId) return <NoCompanyNotice title="Managers" operator={me.is_platform_operator} />
   // Overdue = scheduled before today in the company's zone (not UTC).
   const today = todayInZone()
 
