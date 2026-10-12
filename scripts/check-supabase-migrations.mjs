@@ -106,6 +106,36 @@ function lineNumberAt(source, index) {
   return source.slice(0, index).split("\n").length;
 }
 
+// Blanks out -- and /* */ comments (keeping newlines, so line numbers hold)
+// and leaves '...' string literals alone.
+function withoutSqlComments(source) {
+  let result = "";
+  let index = 0;
+  while (index < source.length) {
+    const two = source.slice(index, index + 2);
+    if (source[index] === "'") {
+      const end = source.indexOf("'", index + 1);
+      const stop = end === -1 ? source.length : end + 1;
+      result += source.slice(index, stop);
+      index = stop;
+    } else if (two === "--") {
+      const end = source.indexOf("\n", index);
+      const stop = end === -1 ? source.length : end;
+      result += " ".repeat(stop - index);
+      index = stop;
+    } else if (two === "/*") {
+      const end = source.indexOf("*/", index + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      result += source.slice(index, stop).replace(/[^\n]/g, " ");
+      index = stop;
+    } else {
+      result += source[index];
+      index += 1;
+    }
+  }
+  return result;
+}
+
 function formatRelative(filename) {
   return path.posix.join("supabase", "migrations", filename);
 }
@@ -151,11 +181,12 @@ async function inspect() {
     const source = await readFile(absolutePath, "utf8");
 
     if (validMatch?.groups && validMatch.groups.version >= policyRolesRequiredFrom) {
+      const code = withoutSqlComments(source);
       const policies = new RegExp(createPolicyExpression.source, createPolicyExpression.flags);
       let policy;
-      while ((policy = policies.exec(source)) !== null) {
+      while ((policy = policies.exec(code)) !== null) {
         if (!policyRolesExpression.test(policy[0])) {
-          policiesWithoutRoles.push({ filename, line: lineNumberAt(source, policy.index) });
+          policiesWithoutRoles.push({ filename, line: lineNumberAt(code, policy.index) });
         }
       }
     }
