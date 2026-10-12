@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#321 merged; open PR: claude/units-pages; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#321 merged; open PR: #322 claude/units-pages; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/units-pages (Codex P2 on #321): Units list pages 500 at a time
+- #322 claude/units-pages (Codex P2 on #321): Units list pages 500 at a time
   with Previous/Next links that keep the filters (the cap had made units
   past 500 unreachable; the page has no search).
 
