@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#317 merged; open PR: claude/policy-check-ignores-comments; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#317 merged; open PR: #318 claude/policy-check-ignores-comments; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/policy-check-ignores-comments (Codex P2 on #317): the migration
+- #318 claude/policy-check-ignores-comments (Codex P2 on #317): the migration
   check for CREATE POLICY without a TO clause now ignores -- and /* */
   comments, so a documented example no longer swallows the next statement.
 

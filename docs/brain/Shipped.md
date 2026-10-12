@@ -5,7 +5,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 
 ## 2026-10-12
 - Migration check ignores SQL comments when looking for CREATE POLICY
-  without a TO clause (Codex P2 on #317) (Open PR).
+  without a TO clause (Codex P2 on #317) (#318).
 - RLS policies are for signed-in users only (#317, 20261012010000):
   maintenance_templates no longer readable by everyone; is_system no
   longer shares a company's templates or report definitions with every
