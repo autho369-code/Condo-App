@@ -200,3 +200,4 @@
   skip as current ("only blocks writes and SKIPS the MFA gate") although the
   diff fixed it. Also: a new 503 body string in middleware.ts is user text -
   white-label-checker scope even when "no brand name" was self-checked.
+- Recurring (csp-nonce pre-PR, 2026-10-11): Status line 3 said "next: no code gaps" while Next gaps got a NEXT code gap; new app/not-found.tsx (UI + text) had only security-reviewer run.

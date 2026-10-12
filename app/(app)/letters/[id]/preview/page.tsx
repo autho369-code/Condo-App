@@ -1,5 +1,6 @@
 'use client';
 
+import { PRINT_ON_LOAD_SCRIPT } from '@/lib/print-script';
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -184,7 +185,7 @@ export default function PreviewLetterPage() {
       <body>
         <p style="font-size: 10pt; color: #888; margin-bottom: 2rem;">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         ${safeBody}
-        <script>window.addEventListener('load', function () { window.print(); });<\/script>
+        <script>${PRINT_ON_LOAD_SCRIPT}<\/script>
       </body>
       </html>
     `;

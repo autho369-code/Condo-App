@@ -8,6 +8,7 @@ import { apexDomain, classifyTenantHost, forwardedTenantHostname, tenantAccessDe
 import { requiresMfa } from '@/lib/auth/mfa-policy'
 import { blocksOperatorWrite } from '@/lib/auth/operator-writes'
 import { fetchWithTimeout, isUnavailableError, withDeadline } from '@/lib/server/deadline'
+import { appContentSecurityPolicy, CSP_REPORT_PATH, marketingContentSecurityPolicy, newNonce } from '@/lib/server/csp'
 
 const APEX_DOMAIN = apexDomain()
 const MARKETING_PATHS = ['/pricing', '/features', '/company', '/report-card', '/local', '/hoa-laws', '/contact', '/compare', '/customers', '/onboarding', '/ai-receptionist', '/professional-services', '/demo', '/legal']
@@ -65,6 +66,25 @@ function expireAuthCookies(target: NextResponse, cookieNames: string[]) {
 }
 
 export async function middleware(request: NextRequest) {
+  // Prerendered marketing pages and public assets cannot carry a per-request
+  // nonce; every other page is rendered per request and gets the enforced
+  // policy (lib/server/csp.ts).
+  const pathname = request.nextUrl.pathname
+  // Browser violation reports: no session or tenant work (it only logs).
+  if (pathname === CSP_REPORT_PATH) return NextResponse.next()
+  const isPublicAsset = PUBLIC_ASSETS.includes(pathname) || PUBLIC_ASSET_PREFIXES.some((path) => pathname.startsWith(path))
+  const isMarketingPath = pathname === '/' || pathMatches(pathname, MARKETING_PATHS)
+  const nonce = isMarketingPath || isPublicAsset ? null : newNonce()
+  const response = await handle(request, nonce)
+  if (nonce) {
+    response.headers.set('Content-Security-Policy', appContentSecurityPolicy(nonce, process.env.NODE_ENV === 'development'))
+  } else {
+    response.headers.set('Content-Security-Policy-Report-Only', marketingContentSecurityPolicy)
+  }
+  return response
+}
+
+async function handle(request: NextRequest, nonce: string | null) {
   const host = classifyTenantHost(request.headers.get('host'), APEX_DOMAIN)
   const pathname = request.nextUrl.pathname
   const isPublicAsset = PUBLIC_ASSETS.includes(pathname) || PUBLIC_ASSET_PREFIXES.some((path) => pathname.startsWith(path))
@@ -87,6 +107,14 @@ export async function middleware(request: NextRequest) {
   // Trusted request method for server code: a server action can arrive as a
   // plain multipart POST without the Next-Action header (lib/auth/me.ts).
   requestHeaders.set('x-portier-request-method', request.method.toUpperCase())
+  // Next.js takes the nonce for its own scripts from this request header;
+  // never trust one the caller sent.
+  requestHeaders.delete('content-security-policy')
+  requestHeaders.delete('x-nonce')
+  if (nonce) {
+    requestHeaders.set('content-security-policy', appContentSecurityPolicy(nonce, process.env.NODE_ENV === 'development'))
+    requestHeaders.set('x-nonce', nonce)
+  }
 
   let response = NextResponse.next({ request: { headers: requestHeaders } })
   // Cancels every database call of this request once a time limit is hit, so

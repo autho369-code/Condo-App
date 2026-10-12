@@ -38,6 +38,7 @@ export const PUBLIC_PATHS = [
   '/api/sms/twilio/status',
   '/api/sms/twilio/inbound',
   '/api/webhooks/deliver',
+  '/api/csp-report',
   '/api/webhooks/resend',
   '/api/mail/deliver',
   '/api/tenant/domain-check',

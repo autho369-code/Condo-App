@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Enforced Content Security Policy with a per-request nonce on every app
+  page (#314): an injected <script> no longer runs (verified on
+  a production build); Plaid allowed; print script by hash; dynamic 404;
+  /api/csp-report logs blocks. Marketing pages stay report-only.
 - Field ties its own label (#313, Codex on #312): a
   Field with one Input/Select/Textarea and no htmlFor wraps it in the label;
   195 such Fields were unnamed to screen readers (profile page 18 -> 0).
