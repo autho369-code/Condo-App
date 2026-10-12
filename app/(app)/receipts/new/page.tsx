@@ -47,9 +47,13 @@ export default async function NewHomeownerReceiptPage({
   const loadErrors = [unitsRes.error, summariesRes.error, occupantsRes.error].filter(Boolean) as string[];
   if (unitsRes.truncated || summariesRes.truncated || occupantsRes.truncated) loadErrors.push('Only the first 50,000 rows were loaded.');
   const balanceByUnit = new Map<string, any>((summaries ?? []).map((s: any) => [s.unit_id, s]));
+  // The primary owner names the option; search matches every current owner.
   const ownerByUnit = new Map<string, string>();
+  const ownerNamesByUnit = new Map<string, string[]>();
   for (const o of (occupants ?? []).sort((a: any, b: any) => Number(b.is_primary) - Number(a.is_primary))) {
-    if (!ownerByUnit.has(o.unit_id) && o.owners?.full_name) ownerByUnit.set(o.unit_id, o.owners.full_name);
+    if (!o.owners?.full_name) continue;
+    if (!ownerByUnit.has(o.unit_id)) ownerByUnit.set(o.unit_id, o.owners.full_name);
+    ownerNamesByUnit.set(o.unit_id, [...(ownerNamesByUnit.get(o.unit_id) ?? []), o.owners.full_name]);
   }
   const unitOptions = (units ?? [])
     .map((u: any) => ({
@@ -58,13 +62,14 @@ export default async function NewHomeownerReceiptPage({
       associationId: u.buildings?.association_id,
       unit: u.unit_number,
       owner: ownerByUnit.get(u.id) ?? 'No current homeowner',
+      ownerNames: ownerNamesByUnit.get(u.id) ?? [],
       balance: netDue(balanceByUnit.get(u.id)),
     }))
     .sort((a: any, b: any) => a.association.localeCompare(b.association) || String(a.unit).localeCompare(String(b.unit), undefined, { numeric: true }));
   // Search narrows the dropdown to matching homeowners, units or
   // associations; one match is picked straight away.
   const matches = qLower
-    ? unitOptions.filter((u: any) => [u.association, `unit ${u.unit}`, String(u.unit), u.owner].some((v) => String(v).toLowerCase().includes(qLower)))
+    ? unitOptions.filter((u: any) => [u.association, `unit ${u.unit}`, String(u.unit), u.owner, ...u.ownerNames].some((v) => String(v).toLowerCase().includes(qLower)))
     : unitOptions;
   if (!unitId && qLower && matches.length === 1) unitId = matches[0].id;
   const grouped = new Map<string, typeof unitOptions>();
