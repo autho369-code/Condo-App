@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#318 merged; open PR: claude/policy-overlap-speed; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#318 merged; open PR: #319 claude/policy-overlap-speed; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/policy-overlap-speed: units read 70x faster at scale. The
+- #319 claude/policy-overlap-speed: units read 70x faster at scale. The
   restrictive mgr_assoc_scope on units was the last of 88 still calling
   can_view_association_row() per row: with 5,000 units every role paid
   330-390 ms per read (owner with 1 unit: 341 ms). Once-per-query form:
@@ -427,7 +427,7 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#318 merged; open PR: claude/policy-o
   payments (dormant until Stripe keys). Method: one transaction as the
   user that ends in RAISE EXCEPTION carrying the report.
 - DONE 2026-10-12: RLS at scale, measured with 5,000 extra rows in a
-  rolled-back transaction per role: units 330-390 ms (fixed, Open PR);
+  rolled-back transaction per role: units 330-390 ms (fixed, #319);
   charges 3-13 ms, journal_lines (15k) 5-16 ms. Static scan for per-row
   function calls in policies: remaining ones are resident-only branches
   (gated by a once-per-query role check) or small tables (bank_transfers,
