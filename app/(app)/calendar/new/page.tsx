@@ -8,6 +8,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { VendorSelect } from '@/components/vendors/vendor-select';
+import { UnitSelect } from '@/components/forms/unit-select';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,11 +24,13 @@ export default async function NewCalendarEventPage({
   const eventType = EVENT_TYPES.some((type) => type.value === sp.type) ? sp.type! : 'water_shutoff';
   const defaultStart = sp.start ? `${sp.start}T09:00` : '';
 
-  const [{ data: associations }, { data: vendors }, { data: owners }] = await Promise.all([
+  const [{ data: associations }, { data: vendors }, { data: owners, error: ownersError }, { data: units, error: unitsError }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     // Every vendor (one request stops at 1,000 rows); the picker narrows to the chosen association.
     fetchAllRows<any>(() => db.from('vendors').select('id, name, emails, phone_numbers, association_id, is_management_company, portfolio_id').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
-    db.from('owners').select('id, full_name, association_id').is('archived_at', null).order('full_name').limit(1000),
+    // Every owner and unit (one request stops at 1,000 rows); the pickers narrow to the chosen association.
+    fetchAllRows<any>(() => db.from('owners').select('id, full_name, association_id').is('archived_at', null).order('full_name').order('id')).then((r) => ({ data: r.rows, error: r.error })),
+    fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id, associations(name))').is('archived_at', null).order('unit_number').order('id')).then((r) => ({ data: r.rows, error: r.error })),
   ]);
 
   const reminders = DEFAULT_REMINDERS[eventType as keyof typeof DEFAULT_REMINDERS] ?? [];
@@ -49,6 +52,11 @@ export default async function NewCalendarEventPage({
         <Link href="/calendar" className={buttonClass('secondary')}>Cancel</Link>
       </div>
 
+      {(unitsError || ownersError) && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not load every unit and owner:</span> {unitsError ?? ownersError}
+        </div>
+      )}
       {sp.error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
           <span className="font-semibold">Could not create event:</span> {sp.error}
@@ -102,8 +110,8 @@ export default async function NewCalendarEventPage({
               </div>
 
               <div>
-                <Label htmlFor="unit_id">Building / unit</Label>
-                <Input id="unit_id" name="unit_id" placeholder="Optional unit id for now" />
+                <Label htmlFor="unit_id">Unit</Label>
+                <UnitSelect id="unit_id" name="unit_id" placeholder="Not applicable" units={(units ?? []).map((u: any) => ({ id: u.id, associationId: u.buildings?.association_id ?? null, label: `${u.buildings?.associations?.name ? `${u.buildings.associations.name} · ` : ''}Unit ${u.unit_number}` }))} />
               </div>
 
               <div>

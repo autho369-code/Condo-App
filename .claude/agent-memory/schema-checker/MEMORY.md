@@ -65,5 +65,8 @@
 - jsonb-returning RPCs (e.g. `receivables_page_totals`, 20261011100000): check:columns cannot see them; match every `jsonb_build_object` key and nested `to_jsonb(t)` field against what the page reads, and diff the old per-view queries' filters (e.g. `reversed_at is null`) against the function body (2026-10-10, clean).
 - On Windows, check:columns may print "can't check statically" + "no longer in the code" pairs for the same entry (backslash vs slash path in unchecked-selects.json): a path-separator artifact, not a schema problem.
 
+## Linked-record scope helper
+- `checkLinkedRecords` (lib/security/association-scope.ts) validates building/unit/vendor/owner ids vs association (unit via `buildings!inner(association_id)`); `calendar_events.unit_id` has no FK in the snapshot, so this app check is the only guard (2026-10-12, calendar/new UnitSelect clean).
+
 ## Paging / count refs
 - `fetchAllRows` (lib/supabase/fetch-all.ts) pages with `.range()`; each builder must end its order with a unique column (`.order('id')` tiebreak). `!inner` embed filters (`.eq('building.association_id')`) and `{ count: 'exact', head: true }` with `.in/.eq/.gte` are valid with range/limit; two-level `unit:units!inner(building:buildings!inner(association_id))` + `.eq('unit.building.association_id')` is fine (occupancies/tenants each have one FK to units and owners). `unit_balances` and `v_charge_balances` are one row per unit/charge, so `.order('unit_id')`/charge_id is a unique tiebreak. `violation_status` enum: open, notice_sent, hearing_pending, cured, fined, closed (2026-10-12, silent-row-cap clean).

@@ -61,6 +61,7 @@
 
 ## Dependent pickers (VendorSelect, 2026-10-09)
 - components/vendors/vendor-select.tsx reads the form's `association_id` after mount. Check field ORDER: vendor placed above association (bills/credits:81, recurring-bill-form:52, new-bill-form:230) shows "Choose the association first" above the field it needs - reorder. Also edit pages: before hydration the saved vendor has no <option>, so an early submit clears it.
+- components/forms/unit-select.tsx (UnitSelect, 2026-10-12) follows `association_id` like VendorSelect but shows ALL units while none is chosen: check labels carry the association name (calendar/new used bare `Unit 101`, duplicates across associations). Saved unit survives hydration (all units render pre-mount).
 - Swapping a control for a shared one can carry over old sizing via className (work-orders/[id]:200,214 `className="h-9"` overrides Select's h-10 through twMerge). Grep for h-8/h-9 passed to Select/Input. Tap-target sweeps miss these too (platform-operator billing:160-168, companies/[id]:219,631-639 kept `Input className="h-9"` beside a select raised to h-10, 2026-10-11).
 
 ## Multi-record vendor login (vendor portal, 2026-10-09)

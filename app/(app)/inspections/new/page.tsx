@@ -7,6 +7,7 @@ import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { UnitSelect } from '@/components/forms/unit-select';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +69,7 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
           </div>
           <div>
             <Label htmlFor="unit_id">Unit (optional)</Label>
-            <select id="unit_id" name="unit_id" className={inputCls}><option value="">Common area / whole property</option>{(units ?? []).map((u: any) => <option key={u.id} value={u.id}>{u.buildings?.associations?.name ? `${u.buildings.associations.name} · ` : ''}Unit {u.unit_number}</option>)}</select>
+            <UnitSelect id="unit_id" name="unit_id" placeholder="Common area / whole property" units={(units ?? []).map((u: any) => ({ id: u.id, associationId: u.buildings?.association_id ?? null, label: `${u.buildings?.associations?.name ? `${u.buildings.associations.name} · ` : ''}Unit ${u.unit_number}` }))} />
           </div>
           <div><Label htmlFor="inspection_type">Inspection type</Label><Input id="inspection_type" name="inspection_type" placeholder="e.g. Move-in, Annual, Move-out" /></div>
           <div><Label htmlFor="scheduled_date">Scheduled date</Label><Input id="scheduled_date" name="scheduled_date" type="date" /></div>
