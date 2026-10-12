@@ -1,38 +1,40 @@
 'use client';
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { Input, Select } from '@/components/ui/input';
 
 type GLAccount = { id: string; number: number; name: string };
 
 export default function BankAccountRows({ glAccounts }: { glAccounts: GLAccount[] }) {
   const [rows, setRows] = useState<number[]>([0]);
+  const uid = useId();
   return (
     <div className="space-y-3">
       {rows.map((i) => (
         <div key={i} className="grid grid-cols-12 items-end gap-3">
           <div className="col-span-5">
-            <label className="mb-1 block text-xs font-medium text-gray-700">
+            <label htmlFor={`${uid}-bank-gl-${i}`} className="mb-1 block text-xs font-medium text-gray-700">
               Cash GL Account <span className="text-red-500">*</span>
             </label>
-            <select
+            <Select
+              id={`${uid}-bank-gl-${i}`}
               name={`bank_gl_account_id_${i}`}
               required={i === 0}
-              className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm"
             >
               <option value="">Select…</option>
               {glAccounts.map((gl) => (
                 <option key={gl.id} value={gl.id}>{gl.number}: {gl.name}</option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="col-span-6">
-            <label className="mb-1 block text-xs font-medium text-gray-700">
+            <label htmlFor={`${uid}-bank-account-${i}`} className="mb-1 block text-xs font-medium text-gray-700">
               Bank Account <span className="text-red-500">*</span>
             </label>
-            <input
+            <Input
+              id={`${uid}-bank-account-${i}`}
               name={`bank_account_name_${i}`}
               required={i === 0}
               placeholder="Start typing to search"
-              className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm placeholder:text-gray-400"
             />
             <p className="mt-0.5 text-xs text-gray-500 text-center">(Operating and Escrow Account)</p>
           </div>

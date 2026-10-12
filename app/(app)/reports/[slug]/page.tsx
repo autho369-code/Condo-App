@@ -2391,8 +2391,9 @@ async function ReportRightRail({
         <Suspense fallback={null}><ReportRunError /></Suspense>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">Scope</label>
+          <label htmlFor="report-run-scope" className="mb-1 block text-xs font-medium text-gray-700">Scope</label>
           <select
+            id="report-run-scope"
             name="param_scope"
             defaultValue={selectedScope}
             className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
@@ -2404,8 +2405,9 @@ async function ReportRightRail({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">Association</label>
+          <label htmlFor="report-run-association" className="mb-1 block text-xs font-medium text-gray-700">Association</label>
           <select
+            id="report-run-association"
             name="param_association_id"
             defaultValue={selectedAssociation}
             className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
@@ -2420,8 +2422,9 @@ async function ReportRightRail({
         {!isLive && unitSupported && (
           <div className="grid grid-cols-1 gap-2">
             <div>
-              <label className="mb-0.5 block text-[12.5px] text-gray-500">Unit{unitRequired ? ' (required)' : ''}</label>
+              <label htmlFor="report-run-unit" className="mb-0.5 block text-[12.5px] text-gray-500">Unit{unitRequired ? ' (required)' : ''}</label>
               <ReportChoiceSelect
+                id="report-run-unit"
                 name="param_unit_id"
                 param="unit"
                 allowed={sortedUnits.map((u: any) => u.id)}
@@ -2442,7 +2445,7 @@ async function ReportRightRail({
           </div>
         ) : (
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">Period</label>
+          <p className="mb-1 block text-xs font-medium text-gray-700">Period</p>
           <div className="mb-2 flex flex-wrap gap-1">
             {presets.map((p) => (
               <Link
@@ -2461,8 +2464,9 @@ async function ReportRightRail({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="mb-0.5 block text-[12.5px] text-gray-500">From</label>
+              <label htmlFor="report-run-date-from" className="mb-0.5 block text-[12.5px] text-gray-500">From</label>
               <input
+                id="report-run-date-from"
                 type="date"
                 name="param_date_from"
                 defaultValue={period.from}
@@ -2470,8 +2474,9 @@ async function ReportRightRail({
               />
             </div>
             <div>
-              <label className="mb-0.5 block text-[12.5px] text-gray-500">To</label>
+              <label htmlFor="report-run-date-to" className="mb-0.5 block text-[12.5px] text-gray-500">To</label>
               <input
+                id="report-run-date-to"
                 type="date"
                 name="param_date_to"
                 defaultValue={period.to}
@@ -2487,8 +2492,9 @@ async function ReportRightRail({
 
         {/* Format */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">Output format</label>
+          <label htmlFor="report-run-format" className="mb-1 block text-xs font-medium text-gray-700">Output format</label>
           <ReportChoiceSelect
+            id="report-run-format"
             name="output_format"
             param="format"
             allowed={supportedReportOutputFormats(def.output_formats)}

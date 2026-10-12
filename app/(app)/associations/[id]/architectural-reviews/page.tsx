@@ -7,6 +7,7 @@ import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
+import { Field, Select, Textarea } from '@/components/ui/input';
 import type { Database } from '@/lib/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -90,15 +91,14 @@ export default async function ArchitecturalReviewsTab({
         </Section>
 
         <Section title="Board Approval Defaults" padded>
-          <div className="mb-3">
-            <label className="mb-1 block text-sm text-gray-600">Select Participants</label>
-            <select name="default_committee_id" defaultValue={settings?.default_committee_id ?? ''} className="h-10 w-full max-w-md rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+          <Field label="Select Participants" htmlFor="arc-default-committee" className="mb-3">
+            <Select id="arc-default-committee" name="default_committee_id" defaultValue={settings?.default_committee_id ?? ''} className="max-w-md">
               <option value="">- Select a committee -</option>
               {(committees ?? []).map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
 
           <div className="mb-3 flex items-center gap-4 text-sm">
             <label className="flex items-center gap-2">
@@ -111,15 +111,14 @@ export default async function ArchitecturalReviewsTab({
             </label>
           </div>
 
-          <div>
-            <label className="mb-1 block text-sm text-gray-600">Voting Scheme</label>
-            <select name="default_voting_scheme" defaultValue={settings?.default_voting_scheme ?? 'majority_approval_required'} className="w-72 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+          <Field label="Voting Scheme" htmlFor="arc-default-voting-scheme">
+            <Select id="arc-default-voting-scheme" name="default_voting_scheme" defaultValue={settings?.default_voting_scheme ?? 'majority_approval_required'} className="w-72 max-w-full">
               <option value="majority_approval_required">Majority Approval Required</option>
               <option value="unanimous_approval_required">Unanimous Approval Required</option>
               <option value="any_one_approver">Any One Approver</option>
               <option value="percentage_required">Percentage Required</option>
-            </select>
-          </div>
+            </Select>
+          </Field>
         </Section>
 
         <RichTextSection
@@ -158,15 +157,17 @@ function RichTextSection({
 }) {
   return (
     <Section title={title} padded>
-      <p className="mb-2 text-sm text-gray-600">{help}</p>
-      <textarea
+      <p id={`${name}-help`} className="mb-2 text-sm text-gray-600">{help}</p>
+      <Textarea
         name={name}
         defaultValue={defaultValue}
         rows={6}
-        className="block w-full resize-y rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+        aria-label={title}
+        aria-describedby={`${name}-help`}
+        className="block resize-y"
         maxLength={500}
       />
-      <div className="mt-1 text-right text-xs text-gray-400">0/500</div>
+      <div className="mt-1 text-right text-xs text-gray-400">Up to 500 characters</div>
     </Section>
   );
 }

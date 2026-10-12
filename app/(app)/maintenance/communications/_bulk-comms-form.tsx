@@ -284,8 +284,8 @@ export function BulkCommsForm({
       ))}
 
       {/* Communication type */}
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Communication type</label>
+      <fieldset className="min-w-0">
+        <legend className="mb-1 block text-sm font-medium text-gray-700">Communication type</legend>
         <div className="flex gap-3">
           {([
             { value: 'status_update', label: 'Status Update' },
@@ -310,11 +310,11 @@ export function BulkCommsForm({
             </label>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       {/* Channel */}
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Channel</label>
+      <fieldset className="min-w-0">
+        <legend className="mb-1 block text-sm font-medium text-gray-700">Channel</legend>
         <div className="flex gap-3">
           {([
             { value: 'email', label: 'Email' },
@@ -337,7 +337,7 @@ export function BulkCommsForm({
             </label>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       {/* Template selector */}
       {templates.length > 0 && (
@@ -364,7 +364,7 @@ export function BulkCommsForm({
       {/* Work Order Selection */}
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <label className="text-[13.5px] font-medium text-gray-700">Select by work order</label>
+          <p className="text-[13.5px] font-medium text-gray-700">Select by work order</p>
           {hasWorkOrders && (
             <div className="flex gap-2">
               <button type="button" onClick={selectAllWos} className="text-xs text-emerald-600 hover:underline">
@@ -417,7 +417,7 @@ export function BulkCommsForm({
       {/* Maintenance Task Selection */}
       {hasMaintenanceTasks && (
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Select by maintenance task</label>
+          <p className="mb-1 block text-sm font-medium text-gray-700">Select by maintenance task</p>
           <div className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 bg-white">
             {maintenanceTasks.map((task: any) => {
               const vendor = task.vendors;
@@ -452,7 +452,7 @@ export function BulkCommsForm({
       {/* Manual Vendor Selection */}
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <label className="text-[13.5px] font-medium text-gray-700">Or select vendors directly</label>
+          <p className="text-[13.5px] font-medium text-gray-700">Or select vendors directly</p>
           {vendors.length > 0 && (
             <button type="button" onClick={selectAllVendors} className="text-xs text-emerald-600 hover:underline">
               Select all

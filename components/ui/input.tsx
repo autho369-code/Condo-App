@@ -24,6 +24,8 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
 Textarea.displayName = 'Textarea';
 
 export function Label({ className, ...p }: React.LabelHTMLAttributes<HTMLLabelElement>) {
+  // Generic wrapper: callers pass htmlFor (Field does).
+  // eslint-disable-next-line jsx-a11y/label-has-associated-control
   return <label className={cn('mb-1.5 block text-[13.5px] font-medium text-gray-700', className)} {...p} />;
 }
 

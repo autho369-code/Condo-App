@@ -3,6 +3,7 @@ import { requireOwner } from '@/lib/auth/me'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Alert } from '@/components/ui/shell'
+import { Input } from '@/components/ui/input'
 import { RecordSwitcher } from '@/components/ui/record-switcher'
 import { loadOwnerRecords, pickOwnerRecord } from '@/lib/portal/owner-records'
 
@@ -80,9 +81,9 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block sm:col-span-2"><span className="text-[13.5px] font-medium text-gray-700">Mailing Address</span><input name="address_street" defaultValue={o.address_street ?? ''} className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" placeholder="Street" /></label>
-          <label className="block"><input name="address_city" defaultValue={o.address_city ?? ''} className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" placeholder="City" /></label>
-          <label className="block"><input name="address_state" defaultValue={o.address_state ?? ''} className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" placeholder="State" /></label>
-          <label className="block"><input name="address_zip" defaultValue={o.address_zip ?? ''} className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" placeholder="ZIP" /></label>
+          <label className="block"><span className="sr-only">City</span><Input name="address_city" defaultValue={o.address_city ?? ''} placeholder="City" /></label>
+          <label className="block"><span className="sr-only">State</span><Input name="address_state" defaultValue={o.address_state ?? ''} placeholder="State" /></label>
+          <label className="block"><span className="sr-only">ZIP</span><Input name="address_zip" defaultValue={o.address_zip ?? ''} placeholder="ZIP" /></label>
         </div>
         <button type="submit" className="rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">Save Changes</button>
       </form>

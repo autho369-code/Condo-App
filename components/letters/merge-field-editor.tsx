@@ -51,9 +51,11 @@ interface Props {
   onChange: (html: string) => void;
   placeholder?: string;
   readOnly?: boolean;
+  /** id of the visible element that names the editor (sets aria-labelledby). */
+  labelledBy?: string;
 }
 
-export default function MergeFieldEditor({ value, onChange, placeholder, readOnly }: Props) {
+export default function MergeFieldEditor({ value, onChange, placeholder, readOnly, labelledBy }: Props) {
   const [showFields, setShowFields] = useState(false);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -75,6 +77,7 @@ export default function MergeFieldEditor({ value, onChange, placeholder, readOnl
     ],
     content: value,
     editable: !readOnly,
+    editorProps: labelledBy ? { attributes: { 'aria-labelledby': labelledBy } } : undefined,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },

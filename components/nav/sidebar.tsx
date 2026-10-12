@@ -55,6 +55,14 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
   const [mobileOpen, setMobileOpen] = useState(false)
   const [navQuery, setNavQuery] = useState('')
 
+  // Esc closes the phone menu (the backdrop only closes it on a tap).
+  useEffect(() => {
+    if (!mobileOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mobileOpen])
+
   const defaults: Record<string, boolean> = {}
   modules.forEach((s) => {
     if (s.children) defaults[s.label] = s.children.some((i) => matchesPathname(pathname, i.href))
@@ -265,7 +273,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
       <Hamburger open={mobileOpen} onClick={() => setMobileOpen(!mobileOpen)} />
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setMobileOpen(false)} />
+        <div aria-hidden="true" className="lg:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setMobileOpen(false)} />
       )}
       {/* Desktop: always visible. Mobile: slide in when open. Hidden when printing. */}
       <div className={`fixed lg:static lg:shrink-0 inset-y-0 left-0 z-40 transition-transform duration-200 print:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
