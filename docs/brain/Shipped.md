@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-12
+- Full bank account numbers no longer reachable by staff through an unused
+  function or the deleted-records log (#328, 20261012060000/070000).
 - New homeowner receipt: search for the homeowner, unit or association (#326).
 - Inspections scores computed in the database (#325, 20261012050000).
 - Unit dropdowns follow the association (5 forms); Calendar gets a real

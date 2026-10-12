@@ -45,6 +45,10 @@ Back to [[Home]].
   a page's data sources (a table read moved into an embed or an RPC) needs
   docs/redesign/baseline-inventory.json updated: run
   npx vitest run tests/redesign before pushing. (2026-10-12)
+- A SECURITY DEFINER function or trigger must not hand back columns hidden
+  from signed-in users (column grants, e.g. bank_accounts numbers): a
+  whole-row copy (to_jsonb(old), row_to_json) gets around them. Don't grant
+  EXECUTE to authenticated on a definer function nothing calls. (2026-10-12)
 - No unbounded list query: the API stops at 1,000 rows without an error.
   Either .limit(N) with { count: 'exact' } and a "Showing the newest N of
   M" notice, or fetchAllRows (order ending in id) when every row is needed.
