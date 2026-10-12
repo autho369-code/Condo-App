@@ -1,10 +1,10 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#309 merged; open PR: #310 claude/operator-chart-labels; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
+Back to [[Home]]. Updated 2026-10-11 (#279-#310 merged; open PR: claude/todo-mirsad-items; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
 
 ## Open PR
-- #310 claude/operator-chart-labels: Overview chart labels are 40px rows (the
-  last control under 40px found by the operator check below).
+- claude/todo-mirsad-items: TODO only - Stellar support contact added to
+  Mirsad's list, compute-size item ticked (upgraded to Small).
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
@@ -26,6 +26,7 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#309 merged; open PR: #310 claude/ope
   calls; every 503 keeps refreshed cookies.
 - #308 index on email_sender_domain_owners.portfolio_id (live).
 - #309 vault: detail-page check.
+- #310 operator Overview chart labels 40px rows; all six roles checked at phone width.
 
 ## Merged 2026-10-10 (late)
 - #282 query probe + refused report runs return to the report; #283
