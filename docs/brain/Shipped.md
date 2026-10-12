@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Operator screens checked at 375 px signed in (21 pages, no overflow);
+  Overview chart labels made 40px rows (claude/operator-chart-labels).
 - Index on email_sender_domain_owners.portfolio_id (claude/fk-index;
   migration 20261011140000, LIVE): Supabase's only unindexed foreign key.
 - Middleware time limits (claude/middleware-deadlines): every database call
