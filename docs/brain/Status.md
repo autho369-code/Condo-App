@@ -1,12 +1,24 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#315 merged; open PR: #316 claude/operator-support-phone; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
+Back to [[Home]]. Updated 2026-10-12 (#279-#316 merged; open PR: claude/policies-signed-in-only; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #316 claude/operator-support-phone: Mirsad's own login is the platform
-  operator (no company). The operator Company details form set the
-  company's main phone but not support_phone, which owners see on the
-  portal Emergency page and home; it now has a Support phone field.
+- claude/policies-signed-in-only: maintenance_templates "Anyone can read
+  templates" (USING true, roles {public}) let signed-out callers and other
+  companies read every template (on 2026-10-12 only Portier369's shared
+  starter templates existed, so nothing private leaked). Switched off
+  (USING false; the DROP is on Mirsad's list). mt_read and the
+  report_definitions read policy no longer trust is_system (staff could set
+  it on their own rows and publish them to every company): shared rows are
+  the ones with no company. The other 91 policies with no TO clause now
+  apply to authenticated only. Migration 20261012010000 is LIVE (read back:
+  0 policies for every role; anon sees 0 templates/report definitions;
+  manager 65 templates). npm run db:migrations:check now fails a new
+  CREATE POLICY without a TO clause.
+
+## Merged 2026-10-12
+- #316 platform operator Company details: Support phone field. Stellar's
+  support email set to hello@portier369.com; phone left for Mirsad.
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
@@ -402,9 +414,25 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#315 merged; open PR: #316 claude/ope
 
 ## Next gaps (pick up here, top first)
 - DONE 2026-10-11: operator-without-company crashes (5 pages) fixed, see
-  Open PR.
+  #315.
 - AFTER RELEASE of #314: watch Vercel logs for "[csp] blocked"
   for a few days (Stripe/Plaid flows were not exercised live).
+  2026-10-12: 0 blocked in 12 h, no runtime errors in 24 h. Keep watching.
+- DONE 2026-10-12: ledger-posting flows exercised as the manager on
+  Randolph Station in rolled-back transactions on production (nothing
+  left behind, verified): homeowner receipt (posts Dr bank / Cr A/R),
+  other receipt + void, bank transfer + void, other deposit, deposit slip,
+  manual journal entry + reverse, bills submit/approve, check run, void
+  check (bill back to approved), void bill, year-end package. All worked;
+  every journal entry balanced. Bill payment for a check-only vendor is
+  refused with "pay this bill in the check run" (correct). Randolph's bank
+  accounts have no authorized check signer; the check-run page already
+  greys them out with "signer setup required". Not covered: online/Stripe
+  payments (dormant until Stripe keys). Method: one transaction as the
+  user that ends in RAISE EXCEPTION carrying the report.
+- DONE 2026-10-12: policies with no TO clause (93) applied to signed-out
+  callers too; one (maintenance_templates, USING true) opened every
+  template to everyone. Fixed in 20261012010000 (Open PR).
 - DONE 2026-10-11: platform-operator screens at 375 px, signed in as
   operator (Mirsad): 20 pages + a company page, no sideways overflow; one
   control under 40px (Overview chart label), fixed. All six roles now
@@ -415,8 +443,7 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#315 merged; open PR: #316 claude/ope
   2026-10-11" were added to Randolph Station by SQL, 54 detail pages
   crawled and checked at 375 px: 0 errors, 0 sideways overflow, server log
   clean; then all 28 deleted (verified; no email, SMS, webhook or journal
-  entry was created). Not covered (they post to the ledger): payments,
-  checks, bank transfers, other receipts, year-end packages. Also 141 list
+  entry was created). Ledger-posting flows: see 2026-10-12 above. Also 141 list
   pages: 0 errors, 0.9 s average. Before adding test rows to production:
   check dispatch triggers, webhook_endpoints, automation_flows and the daily
   crons (recurring_* rows need auto_generate=false and far-future dates).

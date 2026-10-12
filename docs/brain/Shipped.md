@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-12
+- RLS policies are for signed-in users only (Open PR, 20261012010000):
+  maintenance_templates no longer readable by everyone; is_system no
+  longer shares a company's templates or report definitions with every
+  company; 91 policies with no TO clause now TO authenticated; the
+  migration check fails a new CREATE POLICY without a TO clause.
 - Platform operator Company details: Support phone field (portfolios.
   support_phone, shown to owners on the Emergency page and portal home)
   (#316).

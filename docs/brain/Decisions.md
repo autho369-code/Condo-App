@@ -165,3 +165,7 @@ Back to [[Home]]. Don't redo these.
   Mirsad (2026-10-10, #272): the read-then-post gap (a manual journal entry
   landing in the same second) is accepted; the tie-out re-runs right after
   posting and shows any mismatch. No transactional RPC for it.
+- 2026-10-12: RLS policies apply to authenticated only; signed-out
+  reads/writes go through explicit `to anon` policies or the service
+  client. maintenance_templates "Anyone can read templates" was switched
+  off with USING (false) instead of dropped (DROPs are Mirsad's).
