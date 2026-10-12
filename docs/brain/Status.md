@@ -1,14 +1,17 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#322 merged; open PR: #323 claude/deposit-groups-in-db; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#323 merged; open PR: #324 claude/pickers; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #323 claude/deposit-groups-in-db: Receivables > Bank Deposits groups receipts
-  by date and bank account in the database (receipt_deposit_groups,
-  20261012040000, LIVE): 5,000 receipts -> 365 groups in 49 ms, one
-  request instead of every receipt. Lockbox load errors now shown.
+- #324 claude/pickers: UnitSelect (components/forms/unit-select.tsx, like
+  VendorSelect) lists only the chosen association's units on New work
+  order, New inspection, Recurring work order new/edit and New calendar
+  event. Calendar's "Building / unit" was a text box asking for a unit id;
+  now a Unit dropdown. Calendar owners no longer capped at 1,000; load
+  errors shown.
 
 ## Merged 2026-10-12
+- #323 Bank Deposits grouped in the database (20261012040000, live).
 - #322 Units list Previous/Next pages.
 - #321 Owners/Units/Receivables at scale; chargeback_totals (live); Print
   on capped pages prints the full export.
@@ -417,7 +420,8 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#322 merged; open PR: #323 claude/dep
   (#321); Bank deposits (#323). Checked and left as is: company-admin
   overview counts only open work orders / active violations (bounded by
   workload); Receipts is always date-bounded (a month by default). Left:
-  Work orders team (unbounded loop), Bills
+  Pickers: the five association + unit forms (#324); owner pickers and
+  the forms without an association field still list everyone. Work orders team (unbounded loop), Bills
   unpaid totals, Receipts totals (up to 20k rows), Inspections (every
   item), company-admin overview/performance/portfolio-health/insights/
   financials and platform-operator association-health/communications

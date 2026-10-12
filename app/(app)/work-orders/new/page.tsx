@@ -10,6 +10,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { claimSubmission, completeSubmission, newSubmissionToken, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission';
+import { UnitSelect } from '@/components/forms/unit-select';
 
 export const dynamic = 'force-dynamic';
 
@@ -123,12 +124,13 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
           </div>
           <div>
             <Label htmlFor="unit_id">Unit (optional)</Label>
-            <select id="unit_id" name="unit_id" defaultValue={sp.unit ?? ''} className={inputCls}>
-              <option value="">Common area / no specific unit</option>
-              {(units ?? []).map((u: any) => (
-                <option key={u.id} value={u.id}>{u.buildings?.associations?.name ? `${u.buildings.associations.name} · ` : ''}Unit {u.unit_number}</option>
-              ))}
-            </select>
+            <UnitSelect
+              units={(units ?? []).map((u: any) => ({ id: u.id, associationId: u.buildings?.association_id ?? null, label: `${u.buildings?.associations?.name ? `${u.buildings.associations.name} · ` : ''}Unit ${u.unit_number}` }))}
+              defaultValue={sp.unit ?? ''}
+              id="unit_id"
+              name="unit_id"
+              placeholder="Common area / no specific unit"
+            />
           </div>
         </div>
 
