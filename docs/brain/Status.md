@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#320 merged; open PR: claude/page-totals-in-db; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#320 merged; open PR: #321 claude/page-totals-in-db; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/page-totals-in-db: Codex P1 on #320 (association Units tab:
+- #321 claude/page-totals-in-db: Codex P1 on #320 (association Units tab:
   occupancies/tenants now paged by the unit -> building -> association
   join, owners embedded; load errors shown). Owners: balances in a few
   paged reads (was one request per 150 units, ~34 in a row at 5,000),
@@ -416,7 +416,7 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#320 merged; open PR: claude/page-tot
 ## Next gaps (pick up here, top first)
 - NEXT: pages that load every row into the server just to count or sum
   (correct, slow at scale). Owners, Units and the Chargebacks tile done
-  (Open PR). Left: Charges bank-deposits tab (loads every payment ever;
+  (#321). Left: Charges bank-deposits tab (loads every payment ever;
   group by date+bank in the database), Work orders team (unbounded loop), Bills
   unpaid totals, Receipts totals (up to 20k rows), Inspections (every
   item), company-admin overview/performance/portfolio-health/insights/

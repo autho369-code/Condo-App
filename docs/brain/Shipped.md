@@ -6,7 +6,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 ## 2026-10-12
 - Owners/Units lists render 500 rows with a notice; Owners balances in a
   few reads; Chargebacks tile from chargeback_totals; association Units
-  tab pages its owners and renters (Open PR).
+  tab pages its owners and renters (#321).
 - Lists past 1,000 rows (#320): company-admin Violations tiles counted
   in the database; capped lists say so; Owners tenants, Maintenance,
   Delinquencies, association Units page past the cap. Company admin
