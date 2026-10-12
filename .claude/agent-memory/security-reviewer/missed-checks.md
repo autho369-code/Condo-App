@@ -28,3 +28,5 @@ metadata:
 - No live DB access here: reconstruct a function from its last full `create or replace` plus later `pg_get_functiondef` + `replace` patches (grep the function name across all migrations).
 - Temp tables in DEFINER functions with `search_path = pg_catalog, public`: pg_temp is implicitly searched FIRST for relations, and `create temp table if not exists` only checks pg_temp, so an unqualified `_x` after it cannot resolve to a public/pg_catalog table (functions are the exception: pg_temp is never searched for them). DELETE->TRUNCATE on such a table is safe (20261009090000). `pg_get_functiondef`+`execute` keeps SET search_path, SECURITY DEFINER, owner and ACLs.
 
+
+- Column-level SELECT revokes are bypassed by any DEFINER copy of the whole row. `log_soft_delete` (baseline) writes `to_jsonb(old)` into `soft_delete_log.prior_state` on archive for 23 tables incl. `bank_accounts` (full routing/account numbers), readable by `is_full_access_staff()` company-wide with no association scope. When a column is hidden, grep DEFINER functions/triggers for `to_jsonb(old|new|row)`, `select *` and `%rowtype` returns over that table (2026-10-12).

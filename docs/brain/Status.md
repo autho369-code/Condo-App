@@ -1,12 +1,20 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#326 merged; open PR: #327 claude/receipt-coowner-search; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#327 merged; open PR: claude/unused-definer-grants; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #327 claude/receipt-coowner-search (Codex P2 on #326): the receipt search
-  matches every current co-owner, not only the primary owner.
+- claude/unused-definer-grants: full bank routing/account numbers are hidden
+  from signed-in users (only *_last4 granted) but leaked two ways: the
+  unused SECURITY DEFINER bank_account_check_numbers returned them to any
+  finance staff via the API, and log_soft_delete copied the whole archived
+  row into soft_delete_log (readable by full-access staff). Fixed: EXECUTE
+  revoked from signed-in users on that and 9 other unused definer
+  functions (20261012060000), and the log leaves out every column hidden
+  from signed-in users (20261012070000). Both LIVE; no bank row had been
+  logged yet.
 
 ## Merged 2026-10-12
+- #327 receipt search matches every co-owner.
 - #326 New homeowner receipt search.
 - #325 Inspections scores in the database (20261012050000, live).
 - #324 unit dropdowns follow the association; Calendar Unit picker.
