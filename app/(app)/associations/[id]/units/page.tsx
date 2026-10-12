@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader } from '@/components/workspace/shell';
+import { Alert } from '@/components/ui/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
@@ -46,7 +47,7 @@ export default async function AssociationUnitsTab({
   if (aErr || !assoc) notFound();
 
   // Every unit, paged past the API's 1,000-row limit.
-  const { rows: units } = await fetchAllRows<any>(() => (supabase as any)
+  const { rows: units, error: unitsError } = await fetchAllRows<any>(() => (supabase as any)
     .from('units')
     .select(`
       id, unit_number, ownership_pct,
@@ -57,38 +58,38 @@ export default async function AssociationUnitsTab({
     .order('unit_number')
     .order('id'));
 
-  const unitIds = (units ?? []).map((u: any) => u.id);
-
-  const [{ data: occs }, { data: activeTenants }] = unitIds.length > 0
-    ? await Promise.all([
-        (supabase as any)
-          .from('occupancies')
-          .select('unit_id, owner_id, occupancy_type, status, is_primary, share_pct, dues_amount')
-          .in('unit_id', unitIds)
-          .eq('status', 'current'),
-        // Renters live in the tenants table (occupancies only tracks owners in
-        // practice) — this is what the owner detail page reads too.
-        (supabase as any)
-          .from('tenants')
-          .select('unit_id, first_name, last_name, status')
-          .in('unit_id', unitIds)
-          .is('archived_at', null)
-          .eq('status', 'active'),
-      ])
-    : [{ data: [] as any[] }, { data: [] as any[] }];
+  // Occupancies and renters by the same unit -> building -> association
+  // join as the units, paged past the API's 1,000-row limit (a list of
+  // thousands of unit ids would not fit in one request).
+  const [occRes, tenantRes] = await Promise.all([
+    fetchAllRows<any>(() => (supabase as any)
+      .from('occupancies')
+      .select('id, unit_id, owner_id, occupancy_type, status, is_primary, share_pct, dues_amount, owner:owners(id, full_name), unit:units!inner(building:buildings!inner(association_id))')
+      .eq('unit.building.association_id', id)
+      .eq('status', 'current')
+      .order('id')),
+    // Renters live in the tenants table (occupancies only tracks owners in
+    // practice) — this is what the owner detail page reads too.
+    fetchAllRows<any>(() => (supabase as any)
+      .from('tenants')
+      .select('id, unit_id, first_name, last_name, status, unit:units!inner(building:buildings!inner(association_id))')
+      .eq('unit.building.association_id', id)
+      .is('archived_at', null)
+      .eq('status', 'active')
+      .order('id')),
+  ]);
+  // A failed read must not look like units with no owners or renters.
+  const loadError = unitsError ?? occRes.error ?? tenantRes.error;
+  const occs = occRes.rows;
+  const activeTenants = tenantRes.rows;
 
   const tenantByUnit = new Map<string, any>();
   (activeTenants ?? []).forEach((t: any) => {
     if (!tenantByUnit.has(t.unit_id)) tenantByUnit.set(t.unit_id, t);
   });
 
-  const ownerIds = Array.from(new Set((occs ?? []).map((o: any) => o.owner_id).filter(Boolean)));
-  const { data: owners } = ownerIds.length > 0
-    ? await (supabase as any).from('owners').select('id, full_name').in('id', ownerIds)
-    : { data: [] as any[] };
-
   const ownerById = new Map<string, { id: string; full_name: string }>();
-  (owners ?? []).forEach((o: any) => ownerById.set(o.id, o));
+  (occs ?? []).forEach((o: any) => { if (o.owner) ownerById.set(o.owner.id, o.owner); });
 
   const occByUnit = new Map<string, any[]>();
   (occs ?? []).forEach((o: any) => {
@@ -160,6 +161,7 @@ export default async function AssociationUnitsTab({
       }
       rail={rail}
     >
+      {loadError && <Alert tone="danger" title="Could not load every unit and owner" className="mb-4">The list below may be incomplete: {loadError}</Alert>}
       <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm">
           <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">

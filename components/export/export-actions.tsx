@@ -9,6 +9,8 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { Download, FileText, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PRINT_ON_LOAD_SCRIPT } from '@/lib/print-script';
+import { escapeHtmlText } from '@/lib/security/rich-text';
 
 export type ExportTable = {
   /** Optional section heading shown above the table in PDF/CSV */
@@ -29,6 +31,7 @@ export function ExportActions({
   filename,
   tables,
   footerLine,
+  printFromTables = false,
 }: {
   /** e.g. "Delinquencies" / "Receivables" */
   documentTitle: string;
@@ -41,6 +44,11 @@ export function ExportActions({
   tables: ExportTable[];
   /** e.g. "Total outstanding: $2,250.00" */
   footerLine?: string;
+  /**
+   * Print the export tables in their own window instead of the page. Set it
+   * when the page shows only part of the rows, so Print matches CSV and PDF.
+   */
+  printFromTables?: boolean;
 }) {
   const stamp = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -108,9 +116,46 @@ export function ExportActions({
     doc.save(`${filename}.pdf`);
   }
 
+  function printTables() {
+    const sections = tables.map((t) => `
+      ${t.title ? `<h2>${escapeHtmlText(t.title)}</h2>` : ''}
+      <table>
+        <thead><tr>${t.columns.map((c) => `<th${c.align === 'right' ? ' class="r"' : ''}>${escapeHtmlText(c.header)}</th>`).join('')}</tr></thead>
+        <tbody>${t.rows.map((r) => `<tr>${r.map((v, i) => `<td${t.columns[i]?.align === 'right' ? ' class="r"' : ''}>${escapeHtmlText(String(v))}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>`).join('');
+    const doc = `<!DOCTYPE html>
+      <html><head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+        <title>${escapeHtmlText(documentTitle)}</title>
+        <style>
+          body { font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; font-size: 10pt; color: #111827; margin: 1.5rem; }
+          h1 { font-size: 16pt; margin: 0 0 0.25rem; }
+          .meta { color: #6b7280; margin: 0 0 1rem; }
+          h2 { font-size: 11pt; margin: 1.25rem 0 0.5rem; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+          th { font-weight: 600; border-bottom-color: #111827; }
+          .r { text-align: right; font-variant-numeric: tabular-nums; }
+          .footer { margin-top: 1rem; font-weight: 600; }
+        </style>
+      </head><body>
+        <h1>${escapeHtmlText(documentTitle)}</h1>
+        <p class="meta">${subtitle ? `${escapeHtmlText(subtitle)} · ` : ''}${escapeHtmlText(companyName)} · Generated ${escapeHtmlText(stamp)}</p>
+        ${sections}
+        ${footerLine ? `<p class="footer">${escapeHtmlText(footerLine)}</p>` : ''}
+        <script>${PRINT_ON_LOAD_SCRIPT}</script>
+      </body></html>`;
+    // Blob document + noopener, as the batch letters print (every value is
+    // escaped above).
+    const url = URL.createObjectURL(new Blob([doc], { type: 'text/html' }));
+    window.open(url, '_blank', 'noopener,noreferrer');
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
   return (
     <div className="flex flex-wrap gap-2 print:hidden">
-      <Button type="button" variant="secondary" size="sm" onClick={() => window.print()}>
+      <Button type="button" variant="secondary" size="sm" onClick={() => (printFromTables ? printTables() : window.print())}>
         <Printer className="h-3.5 w-3.5 text-gray-400" /> Print
       </Button>
       <Button type="button" variant="secondary" size="sm" onClick={downloadCsv}>

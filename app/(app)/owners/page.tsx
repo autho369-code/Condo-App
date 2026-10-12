@@ -18,6 +18,8 @@ import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
+// Rows rendered at once; filters and exports still use every row.
+const RENDER_CAP = 500;
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
 type OwnerRow = {
@@ -120,18 +122,17 @@ export default async function OwnersPage({
     list.sort((x: any, y: any) => Number(Boolean(y.is_primary)) - Number(Boolean(x.is_primary)));
   }
 
-  // Outstanding balance per owner (for the at-a-glance delinquency chip)
-  const occUnitIds = [...new Set((occupancies ?? []).map((o: any) => o.unit_id).filter(Boolean))];
+  // Outstanding balance per owner (for the at-a-glance delinquency chip):
+  // every unit's balance in a few paged reads, not one request per 150 units.
   const balanceByUnit = new Map<string, number>();
   let balanceError: string | null = null;
-  if (occUnitIds.length > 0) {
-    for (let i = 0; i < occUnitIds.length; i += 150) {
-      const { data: balances, error: balErr } = await (supabase as any)
-        .from('unit_balances').select('unit_id, balance').in('unit_id', occUnitIds.slice(i, i + 150));
-      // Without this every owner would silently show a $0 balance.
-      if (balErr) { balanceError = balErr.message; break; }
-      for (const b of balances ?? []) balanceByUnit.set(b.unit_id, Number(b.balance ?? 0));
-    }
+  if ((occupancies ?? []).length > 0) {
+    const balancesRes = await fetchAllRows<any>(() => (supabase as any)
+      .from('unit_balances').select('unit_id, balance').order('unit_id'));
+    // Without this every owner would silently show a $0 balance.
+    balanceError = balancesRes.error
+      ?? (balancesRes.truncated ? 'more units than one page can read; balances past the first 50,000 are missing' : null);
+    for (const b of balancesRes.rows) balanceByUnit.set(b.unit_id, Number(b.balance ?? 0));
   }
   const balanceByOwner = new Map<string, number>();
   for (const occupancy of occupancies ?? []) {
@@ -197,6 +198,13 @@ export default async function OwnersPage({
   const ownerOccupied = occupiedUnitIds.size - tenantOccupied;
   const occupancyPct = occupiedUnitIds.size > 0 ? Math.round((ownerOccupied / occupiedUnitIds.size) * 100) : null;
 
+  // The page shows the first RENDER_CAP matches; the exports keep every row.
+  const tenantMatches = tenantRows
+    .filter((t) => !q || [`${t.first_name} ${t.last_name}`, t.email, t.phone, t.units?.unit_number].some((v: any) => v?.toLowerCase?.().includes(q)));
+  const matchCount = view === 'tenants' ? tenantMatches.length : rows.length;
+  const shownRows = rows.slice(0, RENDER_CAP);
+  const shownTenants = tenantMatches.slice(0, RENDER_CAP);
+
   // ── Export (mirrors the active view's on-screen list, same filters) ──
   const companyName = me.portfolio?.company_name ?? 'Management company';
   const exportStamp = todayInZone();
@@ -213,8 +221,7 @@ export default async function OwnersPage({
             { header: 'Lease Start' },
             { header: 'Lease End' },
           ],
-          rows: tenantRows
-            .filter((t) => !q || [`${t.first_name} ${t.last_name}`, t.email, t.phone, t.units?.unit_number].some((v: any) => v?.toLowerCase?.().includes(q)))
+          rows: tenantMatches
             .map((t) => [
               `${t.last_name}, ${t.first_name}`,
               t.email ?? 'No email',
@@ -276,6 +283,7 @@ export default async function OwnersPage({
             companyName={companyName}
             filename={`owners-${view}-${exportStamp}`}
             tables={[exportTable]}
+            printFromTables={matchCount > RENDER_CAP}
           />
           {view === 'tenants' && (
             // eslint-disable-next-line @next/next/no-html-link-for-pages -- route handler returns a CSV download, not a page
@@ -363,6 +371,12 @@ export default async function OwnersPage({
           </Link>
         </div>
 
+        {matchCount > RENDER_CAP && !(ownersRes.truncated || occupanciesRes.truncated) && (
+          <Alert tone="warning" title={`Showing the first ${RENDER_CAP} of ${matchCount.toLocaleString()} ${view === 'tenants' ? 'tenants' : 'homeowners'}`}>
+            Narrow the list with search, a letter or an association. The exports include all {matchCount.toLocaleString()}.
+          </Alert>
+        )}
+
         {view === 'tenants' ? (
           <Table>
             <THead>
@@ -376,15 +390,16 @@ export default async function OwnersPage({
               </TR>
             </THead>
             <tbody>
-              {tenantRows.length === 0 ? (
+              {shownTenants.length === 0 ? (
                 <TR>
                   <TD colSpan={6} className="py-10 text-center text-gray-500">
-                    No active tenants on file. Add tenants from the owner&apos;s detail page (Occupancy &amp; tenants section).
+                    {q && tenantRows.length > 0
+                      ? 'No tenants match this search.'
+                      : <>No active tenants on file. Add tenants from the owner&apos;s detail page (Occupancy &amp; tenants section).</>}
                   </TD>
                 </TR>
               ) : (
-                tenantRows
-                  .filter((t) => !q || [`${t.first_name} ${t.last_name}`, t.email, t.phone, t.units?.unit_number].some((v: any) => v?.toLowerCase?.().includes(q)))
+                shownTenants
                   .map((t) => (
                     <TR key={t.id} className="hover:bg-gray-50">
                       <TD className="font-medium text-gray-900">{t.last_name}, {t.first_name}</TD>
@@ -417,7 +432,7 @@ export default async function OwnersPage({
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {rows.map((row) => (
+              {shownRows.map((row) => (
                 <Link
                   key={row.id}
                   href={`/owners/${row.id}`}
@@ -453,7 +468,7 @@ export default async function OwnersPage({
                 <TD colSpan={5} className="py-10 text-center text-gray-500">No owner records match this filter.</TD>
               </TR>
             ) : (
-              rows.map((row) => (
+              shownRows.map((row) => (
                 <TR key={row.id} className="hover:bg-gray-50">
                   <TD>
                     <div className="flex items-center gap-2">

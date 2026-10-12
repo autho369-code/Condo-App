@@ -2815,7 +2815,6 @@
     "data": [
      "table:associations",
      "table:occupancies",
-     "table:owners",
      "table:tenants",
      "table:units"
     ],

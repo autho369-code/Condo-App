@@ -1,19 +1,24 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#319 merged; open PR: #320 claude/silent-row-cap; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#320 merged; open PR: #321 claude/page-totals-in-db; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #320 claude/silent-row-cap: the API returns at most 1,000 rows, so plain
-  queries quietly stop there. Fixed where that showed wrong numbers or cut
-  lists: company-admin Violations tiles counted from the cut list (now
-  database counts; list newest 500 with a notice); company-admin Work
-  orders list (500 + notice); Owners tenants, Maintenance tasks,
-  Delinquencies cases and mail, an association's Units tab (fetchAllRows).
-  Company admin layout: an account with no company (platform operator)
-  gets the "belongs to a management company" notice on all 20 pages
-  instead of empty pages with uuid "undefined" errors.
+- #321 claude/page-totals-in-db: Codex P1 on #320 (association Units tab:
+  occupancies/tenants now paged by the unit -> building -> association
+  join, owners embedded; load errors shown). Owners: balances in a few
+  paged reads (was one request per 150 units, ~34 in a row at 5,000),
+  first 500 rows rendered with a notice (exports keep all). Units: first
+  500 rendered (count/total cover all; the view takes 76 ms for 5,000).
+  Receivables: Chargebacks tile from chargeback_totals (20261012030000,
+  LIVE; 31-135 ms for 3,000) instead of loading every chargeback on every
+  tab.
+  Fixes on the PR: CI parity (baseline: association units no longer reads
+  owners directly); Codex P2s: Print on a capped page prints the full
+  export (ExportActions printFromTables, blob window like batch letters);
+  a truncated balance read is reported, not shown as $0.
 
 ## Merged 2026-10-12
+- #320 lists past 1,000 rows; company admin no-company notice.
 - #319 units manager-scope policy once per query (20261012020000, live).
 - #318 migration check ignores SQL comments (Codex on #317).
 - #317 RLS policies for signed-in users only (20261012010000, live).
@@ -414,10 +419,9 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#319 merged; open PR: #320 claude/sil
 
 ## Next gaps (pick up here, top first)
 - NEXT: pages that load every row into the server just to count or sum
-  (correct, slow at scale). Biggest first: Owners list (all owners +
-  occupancies, renders all), Units list (v_unit_account_summary, JS
-  total), Charges page (chargeback query on every tab; bank-deposits tab
-  loads every payment ever), Work orders team (unbounded loop), Bills
+  (correct, slow at scale). Owners, Units and the Chargebacks tile done
+  (#321). Left: Charges bank-deposits tab (loads every payment ever;
+  group by date+bank in the database), Work orders team (unbounded loop), Bills
   unpaid totals, Receipts totals (up to 20k rows), Inspections (every
   item), company-admin overview/performance/portfolio-health/insights/
   financials and platform-operator association-health/communications
