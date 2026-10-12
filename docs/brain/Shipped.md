@@ -4,6 +4,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-12
+- New homeowner receipt: search for the homeowner, unit or association (Open PR).
 - Inspections scores computed in the database (#325, 20261012050000).
 - Unit dropdowns follow the association (5 forms); Calendar gets a real
   Unit dropdown (#324).

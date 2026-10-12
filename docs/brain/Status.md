@@ -1,13 +1,14 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#324 merged; open PR: #325 claude/inspection-scores-in-db; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#325 merged; open PR: claude/form-pickers; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #325 claude/inspection-scores-in-db: Inspections scores and open flags from
-  inspection_item_scores (20261012050000) instead of every finding ever
-  (scores were hidden past 50,000 findings).
+- claude/form-pickers: New homeowner receipt promised "Search by
+  association, unit, or homeowner name" but had only a dropdown; it now has
+  a search that narrows the dropdown (one match is picked straight away).
 
 ## Merged 2026-10-12
+- #325 Inspections scores in the database (20261012050000, live).
 - #324 unit dropdowns follow the association; Calendar Unit picker.
 - #323 Bank Deposits grouped in the database (20261012040000, live).
 - #322 Units list Previous/Next pages.
@@ -420,10 +421,12 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#324 merged; open PR: #325 claude/ins
   company-admin overview (open work orders / active violations only),
   operator Association health (open items only), Work orders team (open +
   the chosen window), Receipts (date range), Bills (unpaid only).
-  Left, low priority: forms with their own pickers (receipts/new,
-  owners/change, owners/activations, violations/new and field,
-  architectural-reviews/new, bills/owner-payable/new, deposits/new) still
-  list every owner/unit.
+  Form pickers checked: violations new/field already filter units by
+  association (field adds search); deposit slips load only undeposited
+  receipts; receipt search added (Open PR); owners/change,
+  architectural-reviews/new and bills/owner-payable/new group by
+  association (usable); owners/activations has search + filters (bulk
+  invite list, left uncapped on purpose).
 - DONE 2026-10-11: operator-without-company crashes (5 pages) fixed, see
   #315.
 - AFTER RELEASE of #314: watch Vercel logs for "[csp] blocked"
