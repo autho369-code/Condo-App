@@ -108,6 +108,10 @@ export default async function AISettingsPage({
     </Alert>
   );
 
+  if (!me.portfolio?.id) {
+    return <PageShell className="max-w-3xl"><NoCompanyNotice title="AI provider" operator={me.is_platform_operator} /></PageShell>;
+  }
+
   if (!canConfigure) {
     return (
       <PageShell className="max-w-3xl">
@@ -116,10 +120,6 @@ export default async function AISettingsPage({
         {status}
       </PageShell>
     );
-  }
-
-  if (!me.portfolio?.id) {
-    return <PageShell className="max-w-3xl"><NoCompanyNotice title="AI provider" operator={me.is_platform_operator} /></PageShell>;
   }
 
   return (
