@@ -1,16 +1,20 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#318 merged; open PR: #319 claude/policy-overlap-speed; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#319 merged; open PR: #320 claude/silent-row-cap; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #319 claude/policy-overlap-speed: units read 70x faster at scale. The
-  restrictive mgr_assoc_scope on units was the last of 88 still calling
-  can_view_association_row() per row: with 5,000 units every role paid
-  330-390 ms per read (owner with 1 unit: 341 ms). Once-per-query form:
-  5-17 ms, same rows (20261012020000, live, read back: 4-10 ms). Also Codex P2 on #318: the
-  migration check handles nested /* */ comments.
+- #320 claude/silent-row-cap: the API returns at most 1,000 rows, so plain
+  queries quietly stop there. Fixed where that showed wrong numbers or cut
+  lists: company-admin Violations tiles counted from the cut list (now
+  database counts; list newest 500 with a notice); company-admin Work
+  orders list (500 + notice); Owners tenants, Maintenance tasks,
+  Delinquencies cases and mail, an association's Units tab (fetchAllRows).
+  Company admin layout: an account with no company (platform operator)
+  gets the "belongs to a management company" notice on all 20 pages
+  instead of empty pages with uuid "undefined" errors.
 
 ## Merged 2026-10-12
+- #319 units manager-scope policy once per query (20261012020000, live).
 - #318 migration check ignores SQL comments (Codex on #317).
 - #317 RLS policies for signed-in users only (20261012010000, live).
 - #316 platform operator Company details: Support phone field. Stellar's
@@ -409,6 +413,17 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#318 merged; open PR: #319 claude/pol
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- NEXT: pages that load every row into the server just to count or sum
+  (correct, slow at scale). Biggest first: Owners list (all owners +
+  occupancies, renders all), Units list (v_unit_account_summary, JS
+  total), Charges page (chargeback query on every tab; bank-deposits tab
+  loads every payment ever), Work orders team (unbounded loop), Bills
+  unpaid totals, Receipts totals (up to 20k rows), Inspections (every
+  item), company-admin overview/performance/portfolio-health/insights/
+  financials and platform-operator association-health/communications
+  (fetchAllRows to count). Model: receivables_page_totals RPC,
+  unpaidBillsTotal. Form pickers load every unit/owner (13 forms).
+  Full list: audit 2026-10-12 in this session (Explore agent).
 - DONE 2026-10-11: operator-without-company crashes (5 pages) fixed, see
   #315.
 - AFTER RELEASE of #314: watch Vercel logs for "[csp] blocked"
@@ -426,6 +441,9 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#318 merged; open PR: #319 claude/pol
   greys them out with "signer setup required". Not covered: online/Stripe
   payments (dormant until Stripe keys). Method: one transaction as the
   user that ends in RAISE EXCEPTION carrying the report.
+- DONE 2026-10-12: owners (5,000) 2-4 ms, work_orders and occupancies
+  (3,000) 1-8 ms per role; payment_applications ~18 ms fixed (only read
+  for one payment at a time).
 - DONE 2026-10-12: RLS at scale, measured with 5,000 extra rows in a
   rolled-back transaction per role: units 330-390 ms (fixed, #319);
   charges 3-13 ms, journal_lines (15k) 5-16 ms. Static scan for per-row

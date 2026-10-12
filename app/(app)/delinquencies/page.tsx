@@ -15,6 +15,7 @@ import { date } from '@/lib/utils';
 import { JurisdictionPanel, ReferralReadiness } from '@/components/delinquency/compliance-panels';
 import { todayInZone } from '@/lib/time/zoned';
 import { stateName } from '@/lib/state-rules';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -109,11 +110,11 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
   }
 
   const [casesRes, policiesRes, stepsRes, associationsRes, mailRes, profilesRes, companyRulesRes] = await Promise.all([
-    db.from('delinquency_cases').select('*, associations(name), units(unit_number), owners(full_name, email), delinquency_policies(name)').order('balance_snapshot', { ascending: false }),
+    fetchAllRows<any>(() => db.from('delinquency_cases').select('*, associations(name), units(unit_number), owners(full_name, email), delinquency_policies(name)').order('balance_snapshot', { ascending: false }).order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     db.from('delinquency_policies').select('id, association_id, name, minimum_balance, active, jurisdiction, pre_referral_notice_days, notice_method, payment_plan_offer_required, payment_plan_min_months, board_vote_required, foreclosure_min_balance, foreclosure_min_months'),
     db.from('delinquency_steps').select('policy_id, step_number, name, days_past_due, action_type, requires_human_approval').order('step_number'),
     db.from('associations').select('id, name, portfolio_id').is('archived_at', null).order('name'),
-    db.from('physical_mail_deliveries').select('id, delinquency_case_id, status, provider, provider_piece_id, expected_delivery_date, delivered_at, delivery_verified_at, updated_at').not('delinquency_case_id', 'is', null).order('created_at', { ascending: false }),
+    fetchAllRows<any>(() => db.from('physical_mail_deliveries').select('id, delinquency_case_id, status, provider, provider_piece_id, expected_delivery_date, delivered_at, delivery_verified_at, updated_at').not('delinquency_case_id', 'is', null).order('created_at', { ascending: false }).order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     db.from('collection_jurisdiction_profiles').select('state_code, state_name, summary, citations').order('state_name'),
     // RLS limits this to the caller's company (platform operators: every company).
     db.from('company_state_rules').select('portfolio_id, state_code, summary, other_rules, citations'),

@@ -4,12 +4,16 @@ import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Alert, Badge } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
 import { AlertTriangle, Calendar, FileText, Eye } from 'lucide-react'
-import { isHearingPendingViolationStatus, isOpenViolationStatus } from '@/lib/violations/queries'
+import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned'
 import { displayTimeZone } from '@/lib/time/display-zone'
 import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
+
+// The list shows the newest LIST_CAP; the tiles are counted in the database
+// so they stay right past the API's 1,000-row limit.
+const LIST_CAP = 500
 
 function daysOpen(createdAt: string | null): number {
   if (!createdAt) return 0
@@ -35,26 +39,35 @@ export default async function ViolationsOversightPage() {
     .is('archived_at', null)
   const assocIds = (assocRows ?? []).map((a: any) => a.id)
 
-  const { data: allViolations, error: allViolationsError } = assocIds.length
-    ? await db
-        .from('violations')
-        .select(`id, status, title, violation_type, date_observed, hearing_date, fine_amount, created_at, due_date, notice_sent_at, association_id, unit_id, owner_id, associations!violations_association_id_fkey(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name)`)
-        .in('association_id', assocIds)
-        .is('archived_at', null)
-        .order('created_at', { ascending: false })
-    : { data: [] as any[], error: null }
+  const counted = () => db.from('violations').select('id', { count: 'exact', head: true }).in('association_id', assocIds).is('archived_at', null)
+  const none = { data: [] as any[], count: 0, error: null }
+  const [
+    { data: listRows, count: totalCount, error: allViolationsError },
+    { count: openCount, error: openError },
+    { count: pendingHearingCount, error: hearingError },
+    { count: noticesThisMonth, error: noticesError },
+  ] = assocIds.length
+    ? await Promise.all([
+        db
+          .from('violations')
+          .select(`id, status, title, violation_type, date_observed, hearing_date, fine_amount, created_at, due_date, notice_sent_at, association_id, unit_id, owner_id, associations!violations_association_id_fkey(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name)`, { count: 'exact' })
+          .in('association_id', assocIds)
+          .is('archived_at', null)
+          .order('created_at', { ascending: false })
+          .limit(LIST_CAP),
+        counted().in('status', [...ACTIVE_VIOLATION_STATUSES]),
+        counted().eq('status', 'hearing_pending'),
+        counted().gte('notice_sent_at', firstOfMonth),
+      ])
+    : [none, none, none, none]
 
-  const violations = allViolations ?? []
+  const violations = listRows ?? []
+  const listCapped = (totalCount ?? 0) > violations.length
 
   const loadErrors = collectLoadErrors({
     Associations: { error: assocRowsError },
-    Violations: { error: allViolationsError },
+    Violations: { error: allViolationsError ?? openError ?? hearingError ?? noticesError },
   })
-
-  // Stats
-  const openCount = violations.filter((v: any) => isOpenViolationStatus(v.status?.toLowerCase())).length
-  const pendingHearingCount = violations.filter((v: any) => isHearingPendingViolationStatus(v.status?.toLowerCase())).length
-  const noticesThisMonth = violations.filter((v: any) => v.notice_sent_at && v.notice_sent_at >= firstOfMonth).length
 
   return (
     <div className="space-y-6">
@@ -70,9 +83,9 @@ export default async function ViolationsOversightPage() {
       {/* Stats Row */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
-          { label: 'Open Violations', value: openCount, icon: AlertTriangle },
-          { label: 'Pending Hearings', value: pendingHearingCount, icon: Calendar },
-          { label: 'Notices This Month', value: noticesThisMonth, icon: FileText },
+          { label: 'Open Violations', value: openCount ?? 0, icon: AlertTriangle },
+          { label: 'Pending Hearings', value: pendingHearingCount ?? 0, icon: Calendar },
+          { label: 'Notices This Month', value: noticesThisMonth ?? 0, icon: FileText },
         ].map((item) => {
           const Icon = item.icon
           return (
@@ -90,6 +103,10 @@ export default async function ViolationsOversightPage() {
           )
         })}
       </div>
+
+      {listCapped && (
+        <Alert tone="warning" title={`Showing the newest ${LIST_CAP} of ${(totalCount ?? 0).toLocaleString()}`}>The counts above include all of them.</Alert>
+      )}
 
       {/* Table */}
       <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">

@@ -75,7 +75,7 @@ export default async function OwnersPage({
   const tagOptions = await tagsInUse(supabase, 'owner');
 
   // Every row, paged past PostgREST's 1,000-row cap.
-  const [ownersRes, occupanciesRes, { data: tenants }, { data: associationOptions }] = await Promise.all([
+  const [ownersRes, occupanciesRes, tenantsRes, { data: associationOptions }] = await Promise.all([
     fetchAllRows<any>(() => (supabase as any)
       .from('owners')
       .select('id, full_name, first_name, last_name, email, phone, phone_numbers, preferred_comm, portal_activated, portal_login_last_at, electronic_consent, archived_at')
@@ -95,17 +95,19 @@ export default async function OwnersPage({
       `)
       .eq('status', 'current')
       .order('id')),
-    (supabase as any)
+    fetchAllRows<any>(() => (supabase as any)
       .from('tenants')
       .select('id, first_name, last_name, email, phone, lease_start, lease_end, status, unit_id, owner_id, units(unit_number, buildings(associations(id, name)))')
       .is('archived_at', null)
       .eq('status', 'active')
-      .order('last_name'),
+      .order('last_name')
+      .order('id')),
     (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name'),
   ]);
   const owners = ownersRes.rows;
   const occupancies = occupanciesRes.rows;
-  const loadError = ownersRes.error ?? occupanciesRes.error;
+  const tenants = tenantsRes.rows;
+  const loadError = ownersRes.error ?? occupanciesRes.error ?? tenantsRes.error;
 
   // All of an owner's current units (an owner can hold several), primary first.
   const occupanciesByOwner = new Map<string, any[]>();
