@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#329 merged; open PR: claude/manager-scope-everywhere; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#329 merged; open PR: #330 claude/manager-scope-everywhere; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/manager-scope-everywhere: a manager assigned to some associations
+- #330 claude/manager-scope-everywhere: a manager assigned to some associations
   could read (and some write) other associations' rows on 43 tables that
   lacked mgr_assoc_scope: 35 with association_id (budgets, capital
   projects, reserves, delinquency, payment plans, late fees, checks, credit
@@ -432,7 +432,7 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#329 merged; open PR: claude/manager-
   and their policies cost the rest). Feeds Receivables, Delinquencies, board
   receivables, reports. Measure EXPLAIN as manager; candidates: LATERAL
   per-charge sum, or a set-returning invoker function.
-- NEXT (manager scope, after the Open PR): rows with no association stay
+- NEXT (manager scope, after #330): rows with no association stay
   visible to scoped managers: payment_methods (owner, last4, processor token)
   and physical_mail_deliveries (addresses, letter HTML) where association_id
   is null - backfill from the owner and fall back to owner visibility;
