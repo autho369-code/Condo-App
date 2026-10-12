@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { isEntityDocumentStoragePath } from '@/lib/security/storage-paths';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 // Not a server action module: this reads with the service client and must only
@@ -22,18 +23,25 @@ export const LEGACY_DOCUMENT_PREFIX = 'granville/';
 export async function findMisplacedAssociationDocuments(portfolioId: string): Promise<MisplacedDocument[]> {
   const supabase = await createClient();
   const svc = createServiceClient() as any;
-  const { data: associations, error } = await supabase.from('associations').select('id').eq('portfolio_id', portfolioId).limit(5000);
-  if (error) return []; // fail closed: never fall back to the whole company
-  const ids = (associations ?? []).map((a: { id: string }) => a.id);
-  if (ids.length === 0) return [];
-  const { data: docs } = await svc
+  // Paged: the Data API returns at most 1,000 rows per request.
+  const associations = await fetchAllRows<{ id: string }>(() => (supabase as any)
+    .from('associations').select('id').eq('portfolio_id', portfolioId).order('id'));
+  // Fail closed: never fall back to the whole company.
+  if (associations.error || associations.truncated) return [];
+  const ids = new Set(associations.rows.map((a) => a.id));
+  if (ids.size === 0) return [];
+  // Only legacy-prefix rows can be repaired (few); filter them to the
+  // caller's associations here instead of sending every id in the URL.
+  const docs = await fetchAllRows<MisplacedDocument>(() => svc
     .from('documents')
     .select('id, file_url, entity_id, file_name')
     .eq('entity_type', 'association')
     .like('file_url', `${LEGACY_DOCUMENT_PREFIX}%`)
-    .in('entity_id', ids);
-  return ((docs ?? []) as MisplacedDocument[]).filter((d) =>
-    d.file_url
+    .order('id'));
+  if (docs.error) return [];
+  return docs.rows.filter((d) =>
+    ids.has(d.entity_id)
+    && d.file_url
     && d.file_url.startsWith(LEGACY_DOCUMENT_PREFIX)
     && !d.file_url.includes('..')
     && !isEntityDocumentStoragePath(d.file_url, 'association', d.entity_id));

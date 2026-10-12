@@ -40,11 +40,25 @@ async function runMatching() {
   if (!me.is_platform_operator && !portfolioId) {
     redirect('/command-center?error=' + encodeURIComponent('Your account is not linked to a company.'))
   }
-  const { createServiceClient } = await import('@/lib/supabase/server')
+  const { createClient: createUserClient, createServiceClient } = await import('@/lib/supabase/server')
   const { reconcilePayouts } = await import('@/lib/payments/reconcile')
+  // A manager assigned to some associations matches only those (the list is
+  // read through their own access, so it is already narrowed).
+  let associationIds: string[] | undefined
+  if (!me.is_platform_operator) {
+    const userDb = (await createUserClient()) as any
+    const { data: scopedManager, error: scopeError } = await userDb.rpc('manager_is_scoped')
+    if (scopeError) redirect('/command-center?error=' + encodeURIComponent('Could not check your associations.'))
+    if (scopedManager === true) {
+      const { fetchAllRows } = await import('@/lib/supabase/fetch-all')
+      const list = await fetchAllRows<{ id: string }>(() => userDb.from('associations').select('id').eq('portfolio_id', portfolioId).order('id'))
+      if (list.error || list.truncated) redirect('/command-center?error=' + encodeURIComponent('Could not load your associations.'))
+      associationIds = list.rows.map((r) => r.id)
+    }
+  }
   let summary: { examined: number; reconciled: number; needsReview: number }
   try {
-    summary = await reconcilePayouts(createServiceClient() as any, { portfolioId })
+    summary = await reconcilePayouts(createServiceClient() as any, { portfolioId, associationIds })
   } catch (error) {
     redirect('/command-center?error=' + encodeURIComponent(error instanceof Error ? error.message : 'Matching failed.'))
   }

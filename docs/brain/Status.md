@@ -1,20 +1,27 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#332 merged; open PR: claude/scoped-service-reads; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#333 merged; open PR: claude/scope-review-followups; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #333 claude/scoped-service-reads: journal entry headers and
-  recurring journal entries scoped for managers assigned to some
-  associations (20261012120000 LIVE: definer helper
-  rls_private.my_hidden_journal_entry_ids avoids the journal_lines
-  recursion; recurring rows by their template lines). Document repair lists
-  and moves only the caller's associations' files (association list read
-  through the caller's RLS). Dry run: 18 role x table counts unchanged;
-  scoped manager cannot see/edit another association's entry or create a
-  recurring entry naming it. Taken before aged_receivables to finish the
-  manager-scope series.
+- (number on open) claude/scope-review-followups: reviewer follow-ups to #333 (all LIVE): 20261012130000 a
+  scoped manager cannot delete an entry with another association's lines
+  (lines cascade), template ids compared as text, helpers empty for
+  unscoped callers; 20261012140000 signature reminder/void check
+  can_view_association_row. Service-client audit (82 uses, no high leak):
+  violation photos need can_manage_association (staff in one company,
+  owner in another); payout matching limited to a scoped manager's
+  associations; ending a tenancy revokes only that resident's invitations;
+  owner attachment resolves the owner through RLS before upload. Staff
+  count on business metrics stays company-wide (no association data).
+  20261012150000: the same rule for UPDATE (a scoped manager could post a
+  mixed draft through the API), template ids compared lower-case. Codex P2
+  on #333: association lists paged (fetchAllRows), legacy files filtered
+  in memory instead of a long id list. endTenancy revokes by tenant id
+  only (an invite to an earlier email goes too).
 
 ## Merged 2026-10-12
+- #333 journal entry headers, recurring JEs, document repair
+  (20261012120000, live).
 - #332 manager scope on entity_type tables + deleted-records log
   (20261012110000, live).
 - #331 manager scope on 72 child tables + parking (20261012100000, live).
@@ -444,6 +451,10 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#332 merged; open PR: claude/scoped-s
   company-wide rows editable by a scoped manager (require company admin).
   Security-definer views/RPCs
   over these tables are not narrowed by policies.
+- NEXT (very next PR): sweep definer functions that take a record id and
+  check only the company (can_access_portfolio, can_access_association,
+  can_manage_signatures, ...); add can_view_association_row /
+  can_manage_association like 20261012140000 (security-reviewer on #333).
 - NEXT: remaining per-row policies measured at scale: owner_attachments
   (can_view_owner_row), bank_transfers (app_can_view_bank_account),
   signatures (can_manage_signatures), meeting items
