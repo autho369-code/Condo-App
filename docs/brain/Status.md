@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#322 merged; open PR: claude/deposit-groups-in-db; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#322 merged; open PR: #323 claude/deposit-groups-in-db; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/deposit-groups-in-db: Receivables > Bank Deposits groups receipts
+- #323 claude/deposit-groups-in-db: Receivables > Bank Deposits groups receipts
   by date and bank account in the database (receipt_deposit_groups,
   20261012040000, LIVE): 5,000 receipts -> 365 groups in 49 ms, one
   request instead of every receipt. Lockbox load errors now shown.
@@ -414,7 +414,7 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#322 merged; open PR: claude/deposit-
 ## Next gaps (pick up here, top first)
 - NEXT: pages that load every row into the server just to count or sum
   (correct, slow at scale). Owners, Units and the Chargebacks tile done
-  (#321); Bank deposits (Open PR). Checked and left as is: company-admin
+  (#321); Bank deposits (#323). Checked and left as is: company-admin
   overview counts only open work orders / active violations (bounded by
   workload); Receipts is always date-bounded (a month by default). Left:
   Work orders team (unbounded loop), Bills

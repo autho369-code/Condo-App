@@ -5,7 +5,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 
 ## 2026-10-12
 - Units list Previous/Next pages (#322). Bank Deposits grouped in the
-  database (Open PR, 20261012040000).
+  database (#323, 20261012040000).
 - Owners/Units lists render 500 rows with a notice; Owners balances in a
   few reads; Chargebacks tile from chargeback_totals; association Units
   tab pages its owners and renters (#321).
