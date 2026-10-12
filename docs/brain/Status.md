@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#308 merged; open PR: claude/vault-detail-check; next: operator screens at 375 px once Mirsad signs in as operator).
+Back to [[Home]]. Updated 2026-10-11 (#279-#308 merged; open PR: #309 claude/vault-detail-check; next: operator screens at 375 px once Mirsad signs in as operator).
 
 ## Open PR
-- claude/vault-detail-check: notes only (the detail-page check below).
+- #309 claude/vault-detail-check: notes only (the detail-page check below).
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
