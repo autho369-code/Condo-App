@@ -25,11 +25,13 @@ function netDue(s: { outstanding_balance?: unknown; unapplied_credit?: unknown }
 export default async function NewHomeownerReceiptPage({
   searchParams,
 }: {
-  searchParams: Promise<{ unit?: string; error?: string; posted?: string }>;
+  searchParams: Promise<{ unit?: string; q?: string; error?: string; posted?: string }>;
 }) {
   await requireFinanceStaff();
   const sp = await searchParams;
-  const unitId = UUID.test(sp.unit ?? '') ? sp.unit! : '';
+  const q = (sp.q ?? '').trim();
+  const qLower = q.toLowerCase();
+  let unitId = UUID.test(sp.unit ?? '') ? sp.unit! : '';
   const db = (await createClient()) as any;
 
   // Step 1 list: every unit with its current homeowner and balance, so the
@@ -59,8 +61,14 @@ export default async function NewHomeownerReceiptPage({
       balance: netDue(balanceByUnit.get(u.id)),
     }))
     .sort((a: any, b: any) => a.association.localeCompare(b.association) || String(a.unit).localeCompare(String(b.unit), undefined, { numeric: true }));
+  // Search narrows the dropdown to matching homeowners, units or
+  // associations; one match is picked straight away.
+  const matches = qLower
+    ? unitOptions.filter((u: any) => [u.association, `unit ${u.unit}`, String(u.unit), u.owner].some((v) => String(v).toLowerCase().includes(qLower)))
+    : unitOptions;
+  if (!unitId && qLower && matches.length === 1) unitId = matches[0].id;
   const grouped = new Map<string, typeof unitOptions>();
-  for (const u of unitOptions) grouped.set(u.association, [...(grouped.get(u.association) ?? []), u]);
+  for (const u of matches) grouped.set(u.association, [...(grouped.get(u.association) ?? []), u]);
 
   const selected = unitOptions.find((u: any) => u.id === unitId);
   const [{ data: openCharges }, { data: banks }, { data: recent }] = selected
@@ -102,8 +110,21 @@ export default async function NewHomeownerReceiptPage({
               Add units first — <Link href="/owners/import" className="font-medium underline">import homeowners &amp; units</Link>.
             </Alert>
           ) : (
+            <div className="space-y-3">
             <form action="/receipts/new" method="get" className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <Field label="Homeowner / unit" className="flex-1">
+              <Field label="Search" className="flex-1">
+                <Input name="q" type="search" defaultValue={q} placeholder="Homeowner name, unit or association" />
+              </Field>
+              <Button type="submit" variant="secondary">Search</Button>
+            </form>
+            {qLower && matches.length === 0 ? (
+              <Alert tone="warning" title={`No homeowner or unit matches "${q}"`}>
+                <Link href="/receipts/new" className="font-medium underline">Clear the search</Link> to see everyone.
+              </Alert>
+            ) : (
+            <form action="/receipts/new" method="get" className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              {q && <input type="hidden" name="q" value={q} />}
+              <Field label={qLower ? `Homeowner / unit (${matches.length.toLocaleString()} match${matches.length === 1 ? '' : 'es'})` : 'Homeowner / unit'} className="flex-1">
                 <Select name="unit" defaultValue={unitId} required>
                   <option value="">Select a homeowner…</option>
                   {[...grouped.entries()].map(([association, list]) => (
@@ -119,6 +140,8 @@ export default async function NewHomeownerReceiptPage({
               </Field>
               <Button type="submit" variant="secondary">{selected ? 'Change' : 'Continue'}</Button>
             </form>
+            )}
+            </div>
           )}
         </Surface>
 
