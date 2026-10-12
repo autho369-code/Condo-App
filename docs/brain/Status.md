@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#307 merged; open PR: claude/fk-index; next: operator screens at 375 px once Mirsad signs in as operator).
+Back to [[Home]]. Updated 2026-10-11 (#279-#307 merged; open PR: #308 claude/fk-index; next: operator screens at 375 px once Mirsad signs in as operator).
 
 ## Open PR
-- claude/fk-index: index on email_sender_domain_owners.portfolio_id
+- #308 claude/fk-index: index on email_sender_domain_owners.portfolio_id
   (migration 20261011140000, LIVE on production; the Supabase advisor's
   only unindexed foreign key). Its policy was already once-per-query.
 
