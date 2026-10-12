@@ -4,7 +4,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
-- Operator without a company (claude/branding-operator): 5 pages showed
+- Operator without a company (#315): 5 pages showed
   "We could not load this workspace" for a platform operator; they now show
   a notice with a link to Companies; 2 actions refuse with a message.
 - Enforced Content Security Policy with a per-request nonce on every app

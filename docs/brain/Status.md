@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#314 merged; open PR: claude/branding-operator; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
+Back to [[Home]]. Updated 2026-10-11 (#279-#314 merged; open PR: #315 claude/branding-operator; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
 
 ## Open PR
-- claude/branding-operator: five pages crashed for a platform operator (no
+- #315 claude/branding-operator: five pages crashed for a platform operator (no
   company of its own): /settings/branding, /onboard, /settings/developer,
   /company-admin/managers, /company-admin/vendors. They (and /settings/ai, which let an operator fill a form that could not save) now show a shared
   "This page belongs to a management company" notice (components/workspace/
