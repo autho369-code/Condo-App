@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#312 merged; open PR: claude/field-auto-label; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
+Back to [[Home]]. Updated 2026-10-11 (#279-#312 merged; open PR: #313 claude/field-auto-label; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
 
 ## Open PR
-- claude/field-auto-label: Codex on #312 - shared Field now ties its label
+- #313 claude/field-auto-label: Codex on #312 - shared Field now ties its label
   to a single Input/Select/Textarea child by wrapping it when no htmlFor is
   given (195 Fields had none; association profile 18 unnamed fields -> 0);
   a Field around a group or several controls shows a plain heading instead

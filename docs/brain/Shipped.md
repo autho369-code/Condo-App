@@ -4,7 +4,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
-- Field ties its own label (claude/field-auto-label, Codex on #312): a
+- Field ties its own label (#313, Codex on #312): a
   Field with one Input/Select/Textarea and no htmlFor wraps it in the label;
   195 such Fields were unnamed to screen readers (profile page 18 -> 0).
 - Accessible form labels (#312): every field label is
