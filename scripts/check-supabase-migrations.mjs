@@ -124,8 +124,15 @@ function withoutSqlComments(source) {
       result += " ".repeat(stop - index);
       index = stop;
     } else if (two === "/*") {
-      const end = source.indexOf("*/", index + 2);
-      const stop = end === -1 ? source.length : end + 2;
+      // PostgreSQL block comments nest.
+      let depth = 1;
+      let stop = index + 2;
+      while (stop < source.length && depth > 0) {
+        const pair = source.slice(stop, stop + 2);
+        if (pair === "/*") { depth += 1; stop += 2; }
+        else if (pair === "*/") { depth -= 1; stop += 2; }
+        else stop += 1;
+      }
       result += source.slice(index, stop).replace(/[^\n]/g, " ");
       index = stop;
     } else {

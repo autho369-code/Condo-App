@@ -40,6 +40,10 @@ Back to [[Home]].
   rows are the ones with no company; never share a row because of a flag
   staff can write (is_system). `npm run db:migrations:check` fails a new
   CREATE POLICY without a TO clause. (2026-10-12)
+- Judge RLS speed at scale, not on today's tiny tables: add thousands of
+  rows in a rolled-back transaction and time each role (a per-row policy
+  is invisible at 17 rows: units 4 ms at 17 rows, 341 ms at 5,000).
+  (2026-10-12)
 - RLS policies call helpers ONCE PER QUERY: write `( SELECT public.f() )`
   for zero-argument helpers, and compare the row's column against a
   once-per-query helper (`portfolio_id = ( SELECT public.my_access_portfolio() )`,

@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-12
+- units read 70x faster at scale: manager-scope policy once per query
+  (#319, 20261012020000).
 - Migration check ignores SQL comments when looking for CREATE POLICY
   without a TO clause (Codex P2 on #317) (#318).
 - RLS policies are for signed-in users only (#317, 20261012010000):

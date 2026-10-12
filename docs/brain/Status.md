@@ -1,13 +1,17 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#317 merged; open PR: #318 claude/policy-check-ignores-comments; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#318 merged; open PR: #319 claude/policy-overlap-speed; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #318 claude/policy-check-ignores-comments (Codex P2 on #317): the migration
-  check for CREATE POLICY without a TO clause now ignores -- and /* */
-  comments, so a documented example no longer swallows the next statement.
+- #319 claude/policy-overlap-speed: units read 70x faster at scale. The
+  restrictive mgr_assoc_scope on units was the last of 88 still calling
+  can_view_association_row() per row: with 5,000 units every role paid
+  330-390 ms per read (owner with 1 unit: 341 ms). Once-per-query form:
+  5-17 ms, same rows (20261012020000, live, read back: 4-10 ms). Also Codex P2 on #318: the
+  migration check handles nested /* */ comments.
 
 ## Merged 2026-10-12
+- #318 migration check ignores SQL comments (Codex on #317).
 - #317 RLS policies for signed-in users only (20261012010000, live).
 - #316 platform operator Company details: Support phone field. Stellar's
   support email set to hello@portier369.com; phone left for Mirsad.
@@ -422,6 +426,13 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#317 merged; open PR: #318 claude/pol
   greys them out with "signer setup required". Not covered: online/Stripe
   payments (dormant until Stripe keys). Method: one transaction as the
   user that ends in RAISE EXCEPTION carrying the report.
+- DONE 2026-10-12: RLS at scale, measured with 5,000 extra rows in a
+  rolled-back transaction per role: units 330-390 ms (fixed, #319);
+  charges 3-13 ms, journal_lines (15k) 5-16 ms. Static scan for per-row
+  function calls in policies: remaining ones are resident-only branches
+  (gated by a once-per-query role check) or small tables (bank_transfers,
+  owner_attachments, budget_lines, signatures, meeting items).
+  payment_applications costs ~18 ms even with 0 rows (fixed overhead; small).
 - DONE 2026-10-12: policies with no TO clause (93) applied to signed-out
   callers too; one (maintenance_templates, USING true) opened every
   template to everyone. Fixed in 20261012010000 (#317).
