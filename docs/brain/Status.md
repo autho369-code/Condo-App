@@ -1,20 +1,18 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#329 merged; open PR: #330 claude/manager-scope-everywhere; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#330 merged; open PR: #331 claude/manager-scope-children; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #330 claude/manager-scope-everywhere: a manager assigned to some associations
-  could read (and some write) other associations' rows on 43 tables that
-  lacked mgr_assoc_scope: 35 with association_id (budgets, capital
-  projects, reserves, delinquency, payment plans, late fees, checks, credit
-  cards, payment methods, surveys, ...) and 8 through a unit or bank account
-  (charges, payments, unit_owners, tenancies, parking, bank transactions,
-  reconciliations, Plaid). 20261012090000 (LIVE; 131 tables now). Dry runs:
-  258 role x table counts unchanged; a scoped manager loses other
-  associations' rows; unscoped charges 6.6 -> 8 ms at 5,000. No manager was
-  scoped on production yet.
+- #331 claude/manager-scope-children (Codex P1s on #330): 72 child tables scoped
+  through their required parent (owner financial details, vehicles,
+  packets, portal logins, unit_pets, work-order/meeting/payment details,
+  ...); parking_assignments via its required parking space.
+  20261012100000 LIVE (203 tables carry mgr_assoc_scope). Dry run of the
+  exact file: 438 role x table counts unchanged, no recursion; scoped
+  manager sees only its association's pets.
 
 ## Merged 2026-10-12
+- #330 manager scope on 43 more tables (20261012090000, live).
 - #329 budget lines read once per query (20261012080000, live).
 - #328 bank numbers: unused definer functions revoked; deleted-records log
   leaves out hidden columns (20261012060000/070000, live).
@@ -432,7 +430,15 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#329 merged; open PR: #330 claude/man
   and their policies cost the rest). Feeds Receivables, Delinquencies, board
   receivables, reports. Measure EXPLAIN as manager; candidates: LATERAL
   per-charge sum, or a set-returning invoker function.
-- NEXT (manager scope, after #330): rows with no association stay
+- NEXT (manager scope): tables that point at a record by type + id (no
+  foreign key) are still company-wide for a scoped manager: documents
+  (owner/unit/tenant docs: list, download, edit), record_notes and
+  tag_assignments (reads), audit_logs (owner field changes incl. contact
+  data), soft_delete_log (archived row copies), sms_opt_ins and
+  sms_consent_events (phones, consent; opt-ins writable), data_diagnostics.
+  Fix: restrictive policies resolving entity_type/entity_id to owners,
+  units, tenants, associations, vendors.
+- NEXT (manager scope, rest): rows with no association stay
   visible to scoped managers: payment_methods (owner, last4, processor token)
   and physical_mail_deliveries (addresses, letter HTML) where association_id
   is null - backfill from the owner and fall back to owner visibility;
