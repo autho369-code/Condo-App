@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#325 merged; open PR: claude/form-pickers; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#325 merged; open PR: #326 claude/form-pickers; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/form-pickers: New homeowner receipt promised "Search by
+- #326 claude/form-pickers: New homeowner receipt promised "Search by
   association, unit, or homeowner name" but had only a dropdown; it now has
   a search that narrows the dropdown (one match is picked straight away).
 
@@ -423,7 +423,7 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#325 merged; open PR: claude/form-pic
   the chosen window), Receipts (date range), Bills (unpaid only).
   Form pickers checked: violations new/field already filter units by
   association (field adds search); deposit slips load only undeposited
-  receipts; receipt search added (Open PR); owners/change,
+  receipts; receipt search added (#326); owners/change,
   architectural-reviews/new and bills/owner-payable/new group by
   association (usable); owners/activations has search + filters (bulk
   invite list, left uncapped on purpose).
