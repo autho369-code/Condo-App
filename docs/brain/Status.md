@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#328 merged; open PR: claude/scale-checks-2; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#328 merged; open PR: #329 claude/scale-checks-2; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/scale-checks-2: budget lines read 35-50x faster at scale. The read
+- #329 claude/scale-checks-2: budget lines read 35-50x faster at scale. The read
   policy called can_read_association_budget() per row: 6,000 lines took
   4.0-5.4 s per read for manager/company admin/board (3.6 s for owners and
   vendors who see none). Once-per-query helper
@@ -434,7 +434,7 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#328 merged; open PR: claude/scale-ch
   (can_view_owner_row), bank_transfers (app_can_view_bank_account),
   signatures (can_manage_signatures), meeting items
   (can_access_confidential_meeting_mvp), notices, association_budgets.
-  Budget lines done (Open PR).
+  Budget lines done (#329).
 - NEXT: ledger flows not yet exercised: recurring charges, late fees (manual,
   cron, flows), management-fee bills, NSF reversal, finishing a bank
   reconciliation, payment plans, owner credit application. Rolled-back
