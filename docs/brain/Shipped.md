@@ -4,6 +4,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-12
+- Inspections scores computed in the database (Open PR, 20261012050000).
 - Unit dropdowns follow the association (5 forms); Calendar gets a real
   Unit dropdown (#324).
 - Units list Previous/Next pages (#322). Bank Deposits grouped in the

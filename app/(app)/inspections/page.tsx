@@ -61,27 +61,7 @@ function scoreBadge(score: number | null): { label: string; tone: Tone } {
   return { label: `${score}%`, tone: 'danger' };
 }
 
-function computeScore(items: any[]): number | null {
-  if (!items || items.length === 0) return null;
-  const severityMap: Record<string, number> = {
-    info: 100,
-    minor: 80,
-    moderate: 60,
-    major: 40,
-    critical: 20,
-  };
-  let total = 0;
-  let count = 0;
-  for (const item of items) {
-    const sev = item.severity;
-    if (sev && severityMap[sev] !== undefined) {
-      total += severityMap[sev];
-      count++;
-    }
-  }
-  if (count === 0) return null;
-  return Math.round(total / count);
-}
+// Scores: see inspection_item_scores (supabase/migrations/20261012050000).
 
 // ── Page ──
 export default async function InspectionsPage({
@@ -111,33 +91,27 @@ export default async function InspectionsPage({
       .order('created_at', { ascending: false })
       .order('id')),
     db.from('associations').select('id, name, timezone').is('archived_at', null).order('name'),
-    // Every finding (one request stops at 1,000 rows, so newer inspections'
-    // scores went missing).
-    fetchAllRows<any>(() => db.from('inspection_items').select('id, inspection_id, severity, resolved').order('created_at').order('id')),
+    // Each inspection's score and open flags, computed in the database
+    // (inspection_item_scores) instead of loading every finding.
+    fetchAllRows<any>(() => db.rpc('inspection_item_scores').order('inspection_id')),
   ]);
 
   const all = rowsRes.rows;
   // Notes are staff-only (inspection_private); search still covers them.
   await mergePrivateFields(db, 'inspection_private', 'inspection_id', ['notes'], all);
-  // Flags and scores are only shown when every finding loaded; a partial set
-  // would show undercounts that look exact.
+  // Flags and scores are only shown when every inspection's summary loaded; a
+  // partial set would show undercounts that look exact.
   const itemsComplete = !itemsRes.error && !itemsRes.truncated;
-  const items = itemsComplete ? itemsRes.rows : [];
-
-  // ── Build score map from inspection_items ──
-  const itemsByInspection = new Map<string, any[]>();
-  for (const item of (items ?? [])) {
-    const list = itemsByInspection.get(item.inspection_id) ?? [];
-    list.push(item);
-    itemsByInspection.set(item.inspection_id, list);
-  }
+  const scoreByInspection = new Map<string, { score: number | null; flags: number }>(
+    (itemsComplete ? itemsRes.rows : []).map((r: any) => [r.inspection_id, { score: r.score ?? null, flags: Number(r.flags ?? 0) }]),
+  );
 
   // Attach score to each inspection row
   // Flags: findings on the inspection that are not resolved yet.
   const scored = all.map((row: any) => ({
     ...row,
-    score: itemsComplete ? computeScore(itemsByInspection.get(row.id) ?? []) : null,
-    flags: itemsComplete ? (itemsByInspection.get(row.id) ?? []).filter((item: any) => !item.resolved).length : null,
+    score: itemsComplete ? scoreByInspection.get(row.id)?.score ?? null : null,
+    flags: itemsComplete ? scoreByInspection.get(row.id)?.flags ?? 0 : null,
   }));
 
   // ── Tab counts ──
@@ -212,7 +186,7 @@ export default async function InspectionsPage({
         )}
         {sp.error && <Alert tone="danger" title="Could not mark inspections done">{sp.error}</Alert>}
         {rowsRes.error && <Alert tone="danger" title="Could not load every inspection">{rowsRes.error}</Alert>}
-        {!itemsComplete && <Alert tone="warning" title="Flags and scores unavailable">{itemsRes.error ?? 'There are too many findings to load, so flags and scores are hidden rather than shown from a partial set.'}</Alert>}
+        {!itemsComplete && <Alert tone="warning" title="Flags and scores unavailable">{itemsRes.error ?? 'Could not load the flags and scores, so they are hidden rather than shown from a partial set.'}</Alert>}
         {rowsRes.truncated && <Alert tone="warning" title="List is incomplete">There are more inspections than this page can load. Filter by association or type.</Alert>}
         <MetricStrip metrics={metrics} />
 
