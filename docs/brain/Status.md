@@ -1,11 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#307 merged; open PR: #308 claude/fk-index; next: operator screens at 375 px once Mirsad signs in as operator).
+Back to [[Home]]. Updated 2026-10-11 (#279-#308 merged; open PR: claude/vault-detail-check; next: operator screens at 375 px once Mirsad signs in as operator).
 
 ## Open PR
-- #308 claude/fk-index: index on email_sender_domain_owners.portfolio_id
-  (migration 20261011140000, LIVE on production; the Supabase advisor's
-  only unindexed foreign key). Its policy was already once-per-query.
+- claude/vault-detail-check: notes only (the detail-page check below).
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
@@ -25,6 +23,7 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#307 merged; open PR: #308 claude/fk-
   refuses every request.
 - #307 (Codex on #306) a hit time limit cancels the request's database
   calls; every 503 keeps refreshed cookies.
+- #308 index on email_sender_domain_owners.portfolio_id (live).
 
 ## Merged 2026-10-10 (late)
 - #282 query probe + refused report runs return to the report; #283
@@ -397,6 +396,17 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#307 merged; open PR: #308 claude/fk-
   2026-10-11: 40px tap targets on 10 operator pages; View/Billing were
   buttons nested in links). Owner (#298), board, vendor and company admin
   (#299, merged inside #303) DONE 2026-10-11; manager 2026-10-10.
+- DONE 2026-10-11: every manager detail page checked with data, signed
+  in as manager on a production build of main. Stellar had no rows for 33
+  of 48 detail-page kinds, so (Mirsad OK) 28 rows tagged "QA test
+  2026-10-11" were added to Randolph Station by SQL, 54 detail pages
+  crawled and checked at 375 px: 0 errors, 0 sideways overflow, server log
+  clean; then all 28 deleted (verified; no email, SMS, webhook or journal
+  entry was created). Not covered (they post to the ledger): payments,
+  checks, bank transfers, other receipts, year-end packages. Also 141 list
+  pages: 0 errors, 0.9 s average. Before adding test rows to production:
+  check dispatch triggers, webhook_endpoints, automation_flows and the daily
+  crons (recurring_* rows need auto_generate=false and far-future dates).
 - 2026-10-11 production check: no runtime errors in Vercel for 72 h (all
   12 error groups of the last 7 days were last seen 2026-10-08, before the
   speed work and the compute upgrade).
