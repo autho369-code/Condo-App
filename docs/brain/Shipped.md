@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Index on email_sender_domain_owners.portfolio_id (claude/fk-index;
+  migration 20261011140000, LIVE): Supabase's only unindexed foreign key.
 - Middleware time limits (claude/middleware-deadlines): every database call
   in middleware 6 s, the sign-in check 9 s, so a slow database answers 503
   "try again" within Vercel's 25 s instead of hanging (155 such timeouts

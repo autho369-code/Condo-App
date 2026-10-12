@@ -1,12 +1,11 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#306 merged; open PR: claude/middleware-deadline-cancel; next: operator screens at 375 px once Mirsad signs in as operator).
+Back to [[Home]]. Updated 2026-10-11 (#279-#307 merged; open PR: claude/fk-index; next: operator screens at 375 px once Mirsad signs in as operator).
 
 ## Open PR
-- claude/middleware-deadline-cancel: Codex follow-up to #306. A hit time
-  limit now cancels every database call of the request (Auth's refresh
-  retries could otherwise finish after the 503 and the browser would keep a
-  spent refresh token); the branding-error 503 keeps refreshed cookies too.
+- claude/fk-index: index on email_sender_domain_owners.portfolio_id
+  (migration 20261011140000, LIVE on production; the Supabase advisor's
+  only unindexed foreign key). Its policy was already once-per-query.
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
@@ -24,6 +23,8 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#306 merged; open PR: claude/middlewa
 - #306 middleware time limits (6 s per call, 9 s sign-in): a slow database
   answers 503 "try again" within Vercel's 25 s; failed identity lookup
   refuses every request.
+- #307 (Codex on #306) a hit time limit cancels the request's database
+  calls; every 503 keeps refreshed cookies.
 
 ## Merged 2026-10-10 (late)
 - #282 query probe + refused report runs return to the report; #283
@@ -396,8 +397,6 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#306 merged; open PR: claude/middlewa
   2026-10-11: 40px tap targets on 10 operator pages; View/Billing were
   buttons nested in links). Owner (#298), board, vendor and company admin
   (#299, merged inside #303) DONE 2026-10-11; manager 2026-10-10.
-- NEXT (code): index the one foreign key without an index
-  (email_sender_domain_owners.portfolio_id; Supabase performance advisor).
 - 2026-10-11 production check: no runtime errors in Vercel for 72 h (all
   12 error groups of the last 7 days were last seen 2026-10-08, before the
   speed work and the compute upgrade).
