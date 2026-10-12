@@ -18,6 +18,7 @@
 - New company-data table needs the `operator_write_guard` statement trigger (#275 missed it, 2026-10-10).
 - Before flagging an unrestricted UPDATE policy, grep ALL migrations for triggers on the table (`_000_self_service_guard`).
 - INVOKER RPCs cannot call service_role-only GL helpers; a postgres-run compile/test does not catch EXECUTE gaps.
+- Narrowing a permissive USING (true) policy: demand per-role before/after row counts; shared portfolio_id-NULL rows may rely on it (20261012010000).
 
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms

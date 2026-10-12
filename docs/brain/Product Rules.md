@@ -33,6 +33,13 @@ Back to [[Home]].
   row), which made pages time out (fixed in 20261008050000). A new or
   replaced helper must be `language plpgsql`; measure RLS changes as each
   role inside a rolled-back transaction before shipping.
+- RLS policies are written `TO authenticated` (no TO clause means every
+  role, signed-out included). Signed-out access only via an explicit
+  `to anon` policy (marketing_leads insert) or the service client on
+  public pages. Never `USING (true)` on company data. Shared (platform)
+  rows are the ones with no company; never share a row because of a flag
+  staff can write (is_system). `npm run db:migrations:check` fails a new
+  CREATE POLICY without a TO clause. (2026-10-12)
 - RLS policies call helpers ONCE PER QUERY: write `( SELECT public.f() )`
   for zero-argument helpers, and compare the row's column against a
   once-per-query helper (`portfolio_id = ( SELECT public.my_access_portfolio() )`,

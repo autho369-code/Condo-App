@@ -73,6 +73,13 @@ const reviewPatterns = [
   },
 ];
 
+// From this version on, every CREATE POLICY must name its roles. A policy
+// with no TO clause applies to every role, signed-out (anon) included
+// (20261012010000_policies_signed_in_only.sql).
+const policyRolesRequiredFrom = "20261012010000";
+const createPolicyExpression = /\bcreate\s+policy\b[\s\S]*?;/gi;
+const policyRolesExpression = /\bto\s+(?:authenticated|anon|service_role)\b/i;
+
 function isRealUtcTimestamp(version) {
   if (version === "0001") return true;
   if (!/^\d{14}$/.test(version)) return false;
@@ -114,6 +121,7 @@ async function inspect() {
   const invalid = [];
   const filesByVersion = new Map();
   const reviewFlags = [];
+  const policiesWithoutRoles = [];
 
   for (const filename of filenames) {
     const validMatch = filename.match(validFilenamePattern);
@@ -141,6 +149,16 @@ async function inspect() {
 
     const absolutePath = path.join(migrationsDirectory, filename);
     const source = await readFile(absolutePath, "utf8");
+
+    if (validMatch?.groups && validMatch.groups.version >= policyRolesRequiredFrom) {
+      const policies = new RegExp(createPolicyExpression.source, createPolicyExpression.flags);
+      let policy;
+      while ((policy = policies.exec(source)) !== null) {
+        if (!policyRolesExpression.test(policy[0])) {
+          policiesWithoutRoles.push({ filename, line: lineNumberAt(source, policy.index) });
+        }
+      }
+    }
 
     for (const pattern of reviewPatterns) {
       const expression = new RegExp(pattern.expression.source, pattern.expression.flags);
@@ -177,11 +195,13 @@ async function inspect() {
       uniqueNumericVersions: filesByVersion.size,
       duplicateVersions: duplicateVersions.length,
       destructiveReviewFlags: reviewFlags.length,
+      policiesWithoutRoles: policiesWithoutRoles.length,
     },
     invalidFilenames: invalid,
     duplicateVersions,
     destructiveReviewFlags: reviewFlags,
-    failed: invalid.length > 0 || duplicateVersions.length > 0,
+    policiesWithoutRoles,
+    failed: invalid.length > 0 || duplicateVersions.length > 0 || policiesWithoutRoles.length > 0,
   };
 }
 
@@ -214,6 +234,13 @@ function printText(report) {
     }
   }
 
+  if (report.policiesWithoutRoles.length > 0) {
+    console.log("\nCREATE POLICY without a TO clause (it applies to signed-out callers too; add `to authenticated`):");
+    for (const policy of report.policiesWithoutRoles) {
+      console.log(`- ${formatRelative(policy.filename)}:${policy.line}`);
+    }
+  }
+
   if (report.destructiveReviewFlags.length > 0) {
     console.log("\nSQL requiring manual review (warning only):");
     for (const flag of report.destructiveReviewFlags) {
@@ -225,7 +252,8 @@ function printText(report) {
 
   if (report.failed && report.mode === "strict") {
     console.error(
-      "\nFAILED: active migration history has invalid filenames or duplicate versions. " +
+      "\nFAILED: active migration history has invalid filenames, duplicate versions " +
+        "or a new CREATE POLICY without a TO clause. " +
         "Use --audit only to inventory the pre-reconciliation legacy state.",
     );
   } else if (report.failed) {

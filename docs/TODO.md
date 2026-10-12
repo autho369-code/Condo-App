@@ -54,6 +54,12 @@ DNS or decisions). Details for the older items are further down.
 - [ ] **Optional cleanup:** drop the view `capital_project_financials` in the
       SQL editor (`drop view public.capital_project_financials;`); unused
       since migration 20261011080000 (projects list spend).
+- [ ] **Optional cleanup:** drop the switched-off policy in the SQL editor
+      (`drop policy "Anyone can read templates" on public.maintenance_templates;`);
+      it reads nothing since migration 20261012010000.
+- [ ] **CLAUDE.md rule 6 (your file):** add `to authenticated` to the preferred
+      policy form; a policy with no TO clause applies to signed-out callers
+      too (20261012010000; the migration check now fails one).
 
 **Decisions**
 - [ ] **Legal sign-off** on `/legal/*` by counsel.
