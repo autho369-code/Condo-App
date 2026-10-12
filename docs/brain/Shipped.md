@@ -5,7 +5,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 
 ## 2026-10-12
 - Unit dropdowns follow the association (5 forms); Calendar gets a real
-  Unit dropdown (Open PR).
+  Unit dropdown (#324).
 - Units list Previous/Next pages (#322). Bank Deposits grouped in the
   database (#323, 20261012040000).
 - Owners/Units lists render 500 rows with a notice; Owners balances in a

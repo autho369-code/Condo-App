@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#323 merged; open PR: claude/pickers; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#323 merged; open PR: #324 claude/pickers; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/pickers: UnitSelect (components/forms/unit-select.tsx, like
+- #324 claude/pickers: UnitSelect (components/forms/unit-select.tsx, like
   VendorSelect) lists only the chosen association's units on New work
   order, New inspection, Recurring work order new/edit and New calendar
   event. Calendar's "Building / unit" was a text box asking for a unit id;
@@ -420,7 +420,7 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#323 merged; open PR: claude/pickers;
   (#321); Bank deposits (#323). Checked and left as is: company-admin
   overview counts only open work orders / active violations (bounded by
   workload); Receipts is always date-bounded (a month by default). Left:
-  Pickers: the five association + unit forms (Open PR); owner pickers and
+  Pickers: the five association + unit forms (#324); owner pickers and
   the forms without an association field still list everyone. Work orders team (unbounded loop), Bills
   unpaid totals, Receipts totals (up to 20k rows), Inspections (every
   item), company-admin overview/performance/portfolio-health/insights/
