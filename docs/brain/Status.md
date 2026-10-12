@@ -1,16 +1,14 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#323 merged; open PR: #324 claude/pickers; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#324 merged; open PR: #325 claude/inspection-scores-in-db; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #324 claude/pickers: UnitSelect (components/forms/unit-select.tsx, like
-  VendorSelect) lists only the chosen association's units on New work
-  order, New inspection, Recurring work order new/edit and New calendar
-  event. Calendar's "Building / unit" was a text box asking for a unit id;
-  now a Unit dropdown. Calendar owners no longer capped at 1,000; load
-  errors shown.
+- #325 claude/inspection-scores-in-db: Inspections scores and open flags from
+  inspection_item_scores (20261012050000) instead of every finding ever
+  (scores were hidden past 50,000 findings).
 
 ## Merged 2026-10-12
+- #324 unit dropdowns follow the association; Calendar Unit picker.
 - #323 Bank Deposits grouped in the database (20261012040000, live).
 - #322 Units list Previous/Next pages.
 - #321 Owners/Units/Receivables at scale; chargeback_totals (live); Print
@@ -415,19 +413,17 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#323 merged; open PR: #324 claude/pic
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- NEXT: pages that load every row into the server just to count or sum
-  (correct, slow at scale). Owners, Units and the Chargebacks tile done
-  (#321); Bank deposits (#323). Checked and left as is: company-admin
-  overview counts only open work orders / active violations (bounded by
-  workload); Receipts is always date-bounded (a month by default). Left:
-  Pickers: the five association + unit forms (#324); owner pickers and
-  the forms without an association field still list everyone. Work orders team (unbounded loop), Bills
-  unpaid totals, Receipts totals (up to 20k rows), Inspections (every
-  item), company-admin overview/performance/portfolio-health/insights/
-  financials and platform-operator association-health/communications
-  (fetchAllRows to count). Model: receivables_page_totals RPC,
-  unpaidBillsTotal. Form pickers load every unit/owner (13 forms).
-  Full list: audit 2026-10-12 in this session (Explore agent).
+- MOSTLY DONE 2026-10-12: pages that loaded every row to count or sum.
+  Fixed: Owners, Units (pages), Chargebacks tile (#321, #322), Bank
+  deposits (#323), unit pickers follow the association (#324),
+  Inspections scores (#325). Checked and bounded (left as is):
+  company-admin overview (open work orders / active violations only),
+  operator Association health (open items only), Work orders team (open +
+  the chosen window), Receipts (date range), Bills (unpaid only).
+  Left, low priority: forms with their own pickers (receipts/new,
+  owners/change, owners/activations, violations/new and field,
+  architectural-reviews/new, bills/owner-payable/new, deposits/new) still
+  list every owner/unit.
 - DONE 2026-10-11: operator-without-company crashes (5 pages) fixed, see
   #315.
 - AFTER RELEASE of #314: watch Vercel logs for "[csp] blocked"

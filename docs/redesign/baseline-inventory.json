@@ -7189,7 +7189,6 @@
     ],
     "data": [
      "table:associations",
-     "table:inspection_items",
      "table:inspections"
     ],
     "guard": [
