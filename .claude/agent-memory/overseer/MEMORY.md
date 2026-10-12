@@ -64,8 +64,10 @@
 - Vault edits made after `git add` stay unstaged (2026-10-08 report-link PR:
   Shipped.md unstaged, Status.md MM). Before commit check `git status` shows
   no ` M docs/brain/*`; run `git add docs/brain` last.
-- A new shared component (components/ui/*) should be listed in
-  docs/DESIGN_SYSTEM.md so later work reuses it (CopyButton, 2026-10-08).
+- A new shared component (components/ui/* or components/workspace/*) must be
+  listed in docs/DESIGN_SYSTEM.md (3rd miss: NoCompanyNotice 2026-10-11) and
+  use Card, not a hand-copied card div. Grep for a pre-existing guard before
+  adding one (automation-flows got a duplicate check).
 - Recurring (accept-invitation PR, 2026-10-08): vault Open PR line written in
   the first commit, a later commit (expired/other-account states, rate limit,
   plain errors) not added. Also: a deliberate exception to a Decisions rule

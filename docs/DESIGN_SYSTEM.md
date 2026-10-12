@@ -46,6 +46,11 @@ or `StatusChip` (`components/operations/status-chip.tsx`). Never hand-pick statu
 - `FilterBar` + `FilterSelect` — `components/operations/filter-bar.tsx`
 
 ### Forms
+- `NoCompanyNotice` (`components/workspace/no-company-notice.tsx`) — what a
+  company page shows an account with no company (a platform operator)
+  instead of crashing: `if (!me.portfolio?.id) return <NoCompanyNotice
+  title="…page title…" operator={me.is_platform_operator} />`, wrapped in the
+  page's own container (`PageShell` in `app/(app)`).
 - `Button` (primary/secondary/ghost/danger/link) — `components/ui/button.tsx`
   — a link that looks like a button is `<Link className={buttonClass('primary', 'md')}>`;
   never put a `Button` inside a `Link` (a button inside a link is invalid HTML)

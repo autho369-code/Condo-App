@@ -1,3 +1,4 @@
+import { NoCompanyNotice } from '@/components/workspace/no-company-notice';
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
@@ -57,7 +58,7 @@ export default async function VendorsPage({
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
-  if (!portfolioId) throw new Error('Company-admin workspace is missing its management-company scope.')
+  if (!portfolioId) return <NoCompanyNotice title="Vendors" operator={me.is_platform_operator} />
   const sp = await searchParams
   const today = todayInZone()
 

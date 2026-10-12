@@ -32,11 +32,14 @@ export const CSP_REPORT_PATH = '/api/csp-report';
 /** sha256 of PRINT_ON_LOAD_SCRIPT (lib/print-script.ts); csp.test.ts checks it. */
 export const PRINT_SCRIPT_HASH = "'sha256-JvP7+dR0/uG+XdJLQ3VY1tsCgjRYmPOpus5OtsH4uU8='";
 
-/** Enforced policy for app pages. `dev` adds 'unsafe-eval' (React refresh). */
+/**
+ * Enforced policy for app pages. `dev` adds 'unsafe-eval' (React refresh) and
+ * Vercel Analytics' debug script host (production loads it from our origin).
+ */
 export function appContentSecurityPolicy(nonce: string, dev = false): string {
   return [
     ...shared,
-    `script-src 'self' 'nonce-${nonce}' ${PRINT_SCRIPT_HASH} ${STRIPE} ${PLAID}${dev ? " 'unsafe-eval'" : ''}`,
+    `script-src 'self' 'nonce-${nonce}' ${PRINT_SCRIPT_HASH} ${STRIPE} ${PLAID}${dev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ''}`,
     'upgrade-insecure-requests',
     `report-uri ${CSP_REPORT_PATH}`,
   ].join('; ');

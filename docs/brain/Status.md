@@ -1,14 +1,15 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#313 merged; open PR: #314 claude/csp-nonce; next: /settings/branding crash for operators; Mirsad: Auth connection pool %, Stellar support contact).
+Back to [[Home]]. Updated 2026-10-11 (#279-#314 merged; open PR: #315 claude/branding-operator; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
 
 ## Open PR
-- #314 claude/csp-nonce: the Content Security Policy was report-only (nothing
-  blocked) and allowed inline scripts + eval; it also missed cdn.plaid.com
-  (bank linking). Now app pages get an ENFORCED policy with a per-request
-  nonce (middleware.ts + lib/server/csp.ts); marketing (prerendered) keeps
-  report-only; print windows' fixed script allowed by hash; dynamic 404;
-  violations logged via /api/csp-report ("[csp] blocked" in Vercel logs).
+- #315 claude/branding-operator: five pages crashed for a platform operator (no
+  company of its own): /settings/branding, /onboard, /settings/developer,
+  /company-admin/managers, /company-admin/vendors. They (and /settings/ai, which let an operator fill a form that could not save) now show a shared
+  "This page belongs to a management company" notice (components/workspace/
+  no-company-notice.tsx); two actions that read the company id refuse with
+  a message instead of crashing (settings/ai, onboard). CSP: Vercel Analytics' debug host allowed
+  in development only.
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
@@ -34,6 +35,7 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#313 merged; open PR: #314 claude/csp
 - #311 TODO: Stellar support contact on Mirsad's list.
 - #312 accessible form labels (~45 fields, 15 forms; lint rule in CI).
 - #313 Field ties its label to a single control itself (195 Fields).
+- #314 enforced nonce CSP on app pages (live: login works, analytics loads from our origin, no blocks).
 
 ## Merged 2026-10-10 (late)
 - #282 query probe + refused report runs return to the report; #283
@@ -401,9 +403,8 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#313 merged; open PR: #314 claude/csp
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- NEXT (code): /settings/branding crashes for a platform operator
-  (app/(app)/settings/branding/page.tsx:69 reads me.portfolio.id, operators
-  have no company) - found 2026-10-11, also on main.
+- DONE 2026-10-11: operator-without-company crashes (5 pages) fixed, see
+  Open PR.
 - AFTER RELEASE of #314: watch Vercel logs for "[csp] blocked"
   for a few days (Stripe/Plaid flows were not exercised live).
 - DONE 2026-10-11: platform-operator screens at 375 px, signed in as

@@ -33,9 +33,8 @@ export async function createAutomationFlow(formData: FormData) {
   const failTo = (msg: string) => {
     redirect(`${LIST_PATH}/new?trigger=${encodeURIComponent(trigger)}&error=${encodeURIComponent(msg)}`);
   };
-
   if (!me.portfolio?.id) {
-    failTo('Your account is not linked to a portfolio. Ask an administrator to assign your profile to a portfolio, then try again.');
+    failTo('Your account is not linked to a company. Ask an administrator to assign your profile to a company, then try again.');
   }
   if (!isTriggerType(trigger)) failTo('Choose a valid trigger.');
 
