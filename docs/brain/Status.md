@@ -1,23 +1,15 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#320 merged; open PR: #321 claude/page-totals-in-db; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#321 merged; open PR: #322 claude/units-pages; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #321 claude/page-totals-in-db: Codex P1 on #320 (association Units tab:
-  occupancies/tenants now paged by the unit -> building -> association
-  join, owners embedded; load errors shown). Owners: balances in a few
-  paged reads (was one request per 150 units, ~34 in a row at 5,000),
-  first 500 rows rendered with a notice (exports keep all). Units: first
-  500 rendered (count/total cover all; the view takes 76 ms for 5,000).
-  Receivables: Chargebacks tile from chargeback_totals (20261012030000,
-  LIVE; 31-135 ms for 3,000) instead of loading every chargeback on every
-  tab.
-  Fixes on the PR: CI parity (baseline: association units no longer reads
-  owners directly); Codex P2s: Print on a capped page prints the full
-  export (ExportActions printFromTables, blob window like batch letters);
-  a truncated balance read is reported, not shown as $0.
+- #322 claude/units-pages (Codex P2 on #321): Units list pages 500 at a time
+  with Previous/Next links that keep the filters (the cap had made units
+  past 500 unreachable; the page has no search).
 
 ## Merged 2026-10-12
+- #321 Owners/Units/Receivables at scale; chargeback_totals (live); Print
+  on capped pages prints the full export.
 - #320 lists past 1,000 rows; company admin no-company notice.
 - #319 units manager-scope policy once per query (20261012020000, live).
 - #318 migration check ignores SQL comments (Codex on #317).
