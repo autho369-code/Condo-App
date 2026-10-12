@@ -1,5 +1,6 @@
 'use client';
 
+import { PRINT_ON_LOAD_SCRIPT } from '@/lib/print-script';
 import { useEffect, useState } from 'react';
 import { Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -51,7 +52,7 @@ export function BatchLetters({ letters, title }: { letters: BatchLetter[]; title
           @media print { .letter { margin: 0 auto; padding: 0.5in 0.75in; } }
         </style>
       </head><body>${pages}
-        <script>window.addEventListener('load', function () { window.print(); });<\/script>
+        <script>${PRINT_ON_LOAD_SCRIPT}<\/script>
       </body></html>`;
     // Blob document + noopener: no document.write into a same-origin popup;
     // every stored or merged value has passed the DOMPurify allowlist above.

@@ -1,13 +1,14 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#312 merged; open PR: #313 claude/field-auto-label; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
+Back to [[Home]]. Updated 2026-10-11 (#279-#313 merged; open PR: claude/csp-nonce; next: /settings/branding crash for operators; Mirsad: Auth connection pool %, Stellar support contact).
 
 ## Open PR
-- #313 claude/field-auto-label: Codex on #312 - shared Field now ties its label
-  to a single Input/Select/Textarea child by wrapping it when no htmlFor is
-  given (195 Fields had none; association profile 18 unnamed fields -> 0);
-  a Field around a group or several controls shows a plain heading instead
-  of a <label> pointing at nothing; send-email From linked explicitly.
+- claude/csp-nonce: the Content Security Policy was report-only (nothing
+  blocked) and allowed inline scripts + eval; it also missed cdn.plaid.com
+  (bank linking). Now app pages get an ENFORCED policy with a per-request
+  nonce (middleware.ts + lib/server/csp.ts); marketing (prerendered) keeps
+  report-only; print windows' fixed script allowed by hash; dynamic 404;
+  violations logged via /api/csp-report ("[csp] blocked" in Vercel logs).
 
 ## Merged 2026-10-11
 - #288 projects list spend for all staff (capital_project_spend_totals,
@@ -32,6 +33,7 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#312 merged; open PR: #313 claude/fie
 - #310 operator Overview chart labels 40px rows; all six roles checked at phone width.
 - #311 TODO: Stellar support contact on Mirsad's list.
 - #312 accessible form labels (~45 fields, 15 forms; lint rule in CI).
+- #313 Field ties its label to a single control itself (195 Fields).
 
 ## Merged 2026-10-10 (late)
 - #282 query probe + refused report runs return to the report; #283
@@ -399,6 +401,11 @@ Back to [[Home]]. Updated 2026-10-11 (#279-#312 merged; open PR: #313 claude/fie
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- NEXT (code): /settings/branding crashes for a platform operator
+  (app/(app)/settings/branding/page.tsx:69 reads me.portfolio.id, operators
+  have no company) - found 2026-10-11, also on main.
+- AFTER RELEASE of claude/csp-nonce: watch Vercel logs for "[csp] blocked"
+  for a few days (Stripe/Plaid flows were not exercised live).
 - DONE 2026-10-11: platform-operator screens at 375 px, signed in as
   operator (Mirsad): 20 pages + a company page, no sideways overflow; one
   control under 40px (Overview chart label), fixed. All six roles now
