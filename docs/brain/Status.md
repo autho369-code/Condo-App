@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#324 merged; open PR: claude/inspection-scores-in-db; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#324 merged; open PR: #325 claude/inspection-scores-in-db; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/inspection-scores-in-db: Inspections scores and open flags from
+- #325 claude/inspection-scores-in-db: Inspections scores and open flags from
   inspection_item_scores (20261012050000) instead of every finding ever
   (scores were hidden past 50,000 findings).
 
@@ -416,7 +416,7 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#324 merged; open PR: claude/inspecti
 - MOSTLY DONE 2026-10-12: pages that loaded every row to count or sum.
   Fixed: Owners, Units (pages), Chargebacks tile (#321, #322), Bank
   deposits (#323), unit pickers follow the association (#324),
-  Inspections scores (Open PR). Checked and bounded (left as is):
+  Inspections scores (#325). Checked and bounded (left as is):
   company-admin overview (open work orders / active violations only),
   operator Association health (open items only), Work orders team (open +
   the chosen window), Receipts (date range), Bills (unpaid only).
