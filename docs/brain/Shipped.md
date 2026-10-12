@@ -4,7 +4,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-12
-- Lists past 1,000 rows (Open PR): company-admin Violations tiles counted
+- Lists past 1,000 rows (#320): company-admin Violations tiles counted
   in the database; capped lists say so; Owners tenants, Maintenance,
   Delinquencies, association Units page past the cap. Company admin
   section shows the no-company notice to an operator with no company.

@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#319 merged; open PR: claude/silent-row-cap; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#319 merged; open PR: #320 claude/silent-row-cap; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/silent-row-cap: the API returns at most 1,000 rows, so plain
+- #320 claude/silent-row-cap: the API returns at most 1,000 rows, so plain
   queries quietly stop there. Fixed where that showed wrong numbers or cut
   lists: company-admin Violations tiles counted from the cut list (now
   database counts; list newest 500 with a notice); company-admin Work
