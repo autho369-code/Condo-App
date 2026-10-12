@@ -6,7 +6,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 ## 2026-10-12
 - Reviewer follow-ups to #333: journal entry update/delete across
   associations, signature reminder/void, violation photos, payout matching,
-  resident invitations (open PR, 20261012130000/140000/150000).
+  resident invitations (#334, 20261012130000/140000/150000).
 - Manager scope on journal entry headers, recurring journal entries and the
   document repair tool (#333, 20261012120000).
 - Manager scope on documents, notes, tags, audit and deleted-records logs,

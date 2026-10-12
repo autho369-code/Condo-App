@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-12 (#279-#333 merged; open PR: claude/scope-review-followups; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/scope-review-followups: reviewer follow-ups to #333 (all LIVE): 20261012130000 a
+- #334 claude/scope-review-followups: reviewer follow-ups to #333 (all LIVE): 20261012130000 a
   scoped manager cannot delete an entry with another association's lines
   (lines cascade), template ids compared as text, helpers empty for
   unscoped callers; 20261012140000 signature reminder/void check
