@@ -1,17 +1,19 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#330 merged; open PR: #331 claude/manager-scope-children; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#331 merged; open PR: claude/manager-scope-entities; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #331 claude/manager-scope-children (Codex P1s on #330): 72 child tables scoped
-  through their required parent (owner financial details, vehicles,
-  packets, portal logins, unit_pets, work-order/meeting/payment details,
-  ...); parking_assignments via its required parking space.
-  20261012100000 LIVE (203 tables carry mgr_assoc_scope). Dry run of the
-  exact file: 438 role x table counts unchanged, no recursion; scoped
-  manager sees only its association's pets.
+- claude/manager-scope-entities: tables that name their record by
+  entity_type + entity_id (documents, record_notes, tag_assignments,
+  audit_logs, sms_opt_ins, sms_consent_events, data_diagnostics) and
+  soft_delete_log are scoped for managers assigned to some associations:
+  the record type resolves to a scoped parent (29 types); documents' old
+  WITH CHECK (association only) replaced too. 20261012110000 LIVE. Dry run:
+  48 role x table counts unchanged; scoped manager loses another
+  association's owner note and cannot attach a document to that owner.
 
 ## Merged 2026-10-12
+- #331 manager scope on 72 child tables + parking (20261012100000, live).
 - #330 manager scope on 43 more tables (20261012090000, live).
 - #329 budget lines read once per query (20261012080000, live).
 - #328 bank numbers: unused definer functions revoked; deleted-records log
@@ -430,14 +432,10 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#330 merged; open PR: #331 claude/man
   and their policies cost the rest). Feeds Receivables, Delinquencies, board
   receivables, reports. Measure EXPLAIN as manager; candidates: LATERAL
   per-charge sum, or a set-returning invoker function.
-- NEXT (manager scope): tables that point at a record by type + id (no
-  foreign key) are still company-wide for a scoped manager: documents
-  (owner/unit/tenant docs: list, download, edit), record_notes and
-  tag_assignments (reads), audit_logs (owner field changes incl. contact
-  data), soft_delete_log (archived row copies), sms_opt_ins and
-  sms_consent_events (phones, consent; opt-ins writable), data_diagnostics.
-  Fix: restrictive policies resolving entity_type/entity_id to owners,
-  units, tenants, associations, vendors.
+- NEXT (manager scope, leftovers): lib/rpcs/document-repair.ts
+  repairMisplacedAssociationDocuments searches the whole company with the
+  service client (filter to managed associations for a scoped manager);
+  recurring_journal_entries and journal_entries headers not scoped.
 - NEXT (manager scope, rest): rows with no association stay
   visible to scoped managers: payment_methods (owner, last4, processor token)
   and physical_mail_deliveries (addresses, letter HTML) where association_id
