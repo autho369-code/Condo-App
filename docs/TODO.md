@@ -1,7 +1,7 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-10-10.
+Last updated: 2026-10-11.
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
 
@@ -24,12 +24,15 @@ DNS or decisions). Details for the older items are further down.
       after a production redeploy.
 
 **Accounts and setup**
-- [ ] **Check the database's computer size** - Supabase dashboard ->
+- [x] **Check the database's computer size** (DONE 2026-10-11: upgraded to Small) - Supabase dashboard ->
       project condo-app -> Reports / Database: CPU usage graph and compute
       size. On 2026-10-10 the same query swung from 0.08 s to 14 s and pages
       (Receivables) timed out; a small "burstable" size runs out of CPU
       allowance. Tell Claude what it shows; upgrading costs money, so it is
       your call.
+- [ ] **Stellar's support phone and email** - sign in as company admin ->
+      Settings -> support phone and support email. Owners see them on the
+      portal's Emergency page (today it shows no contact).
 - [ ] **Let Auth use the bigger database** - Supabase dashboard -> project
       condo-app -> Settings -> Database (or Auth) -> connection pooling for
       Auth: switch from a fixed 10 connections to a percentage. Supabase's
