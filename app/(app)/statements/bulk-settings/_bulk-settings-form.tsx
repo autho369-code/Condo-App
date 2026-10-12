@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { bulkUpdateStatementSettings } from '@/lib/rpcs/bulk-operations';
+import { Field, Select } from '@/components/ui/input';
 
 interface AssocSettings {
   id: string;
@@ -132,30 +133,28 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
         </div>
 
         {/* Timeframe dropdown */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600">Upcoming Charges Timeframe</label>
-          <select onChange={(e) => e.target.value ? setTimeframe(e.target.value) : setSettings((p) => { const n = {...p}; delete n.upcoming_charges_timeframe; return n; })}
-            className="h-10 w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+        <Field label="Upcoming Charges Timeframe" htmlFor="bulk-settings-timeframe">
+          <Select id="bulk-settings-timeframe" onChange={(e) => e.target.value ? setTimeframe(e.target.value) : setSettings((p) => { const n = {...p}; delete n.upcoming_charges_timeframe; return n; })}
+            className="max-w-xs"
             value={(settings.upcoming_charges_timeframe as string) ?? ''}>
             <option value="">No change</option>
             <option value="next_month">Next Month</option>
             <option value="next_quarter">Next Quarter</option>
             <option value="next_year">Next Year</option>
-          </select>
-        </div>
+          </Select>
+        </Field>
 
         {/* Charge history dropdown */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600">Charge History Includes</label>
-          <select onChange={(e) => e.target.value ? setChargeHistory(e.target.value) : setSettings((p) => { const n = {...p}; delete n.charge_history_includes; return n; })}
-            className="h-10 w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+        <Field label="Charge History Includes" htmlFor="bulk-settings-charge-history">
+          <Select id="bulk-settings-charge-history" onChange={(e) => e.target.value ? setChargeHistory(e.target.value) : setSettings((p) => { const n = {...p}; delete n.charge_history_includes; return n; })}
+            className="max-w-xs"
             value={(settings.charge_history_includes as string) ?? ''}>
             <option value="">No change</option>
             <option value="all_past_due_charges">All Past Due Charges</option>
             <option value="current_and_past_due">Current and Past Due</option>
             <option value="all_charges">All Charges</option>
-          </select>
-        </div>
+          </Select>
+        </Field>
 
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
           <span className="text-sm font-medium text-blue-800">{changedCount} setting{changedCount !== 1 ? 's' : ''} will be updated across {selectedAssocs.size} association{selectedAssocs.size !== 1 ? 's' : ''}</span>

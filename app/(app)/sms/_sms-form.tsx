@@ -59,8 +59,8 @@ export function SmsForm({
       {/* One-time token: a double click or re-sent form texts once. */}
       <input type="hidden" name="submission_token" value={submissionToken} />
       {/* Recipient type */}
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Recipient type</label>
+      <fieldset className="min-w-0">
+        <legend className="mb-1 block text-sm font-medium text-gray-700">Recipient type</legend>
         <div className="flex gap-3">
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm transition-colors hover:border-blue-500 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50">
             <input type="radio" name="recipient_type" value="owner" checked={recipientType === 'owner'} onChange={() => { setRecipientType('owner'); setSelectedId(''); setPhoneNumber(''); }} />
@@ -71,7 +71,7 @@ export function SmsForm({
             Vendor
           </label>
         </div>
-      </div>
+      </fieldset>
 
       {/* Recipient selector */}
       <div>

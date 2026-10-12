@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { sendOwnerStatements } from '@/lib/rpcs/bulk-operations';
+import { Field, Input, Select } from '@/components/ui/input';
 
 interface Association { id: string; name: string; }
 
@@ -77,36 +78,30 @@ export function SendStatementsForm({ associations }: { associations: Association
         <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Statement Generation</h3>
         <p className="text-[13px] text-gray-500">Statements are generated for all current owners in the selected association. Each statement includes current charges, past-due amounts, and payment history for the selected period.</p>
 
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600">Association *</label>
-          <select value={assocId} onChange={(e) => { setAssocId(e.target.value); setPreviewOwners([]); }}
-            className="h-10 w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+        <Field label="Association" required htmlFor="send-statements-association">
+          <Select id="send-statements-association" value={assocId} onChange={(e) => { setAssocId(e.target.value); setPreviewOwners([]); }}
+            className="max-w-md">
             <option value="">Choose an association...</option>
             {associations.map((a) => (<option key={a.id} value={a.id}>{a.name}</option>))}
-          </select>
-        </div>
+          </Select>
+        </Field>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Period Start *</label>
-            <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)}
-              className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Period End *</label>
-            <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)}
-              className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
-          </div>
+          <Field label="Period Start" required htmlFor="send-statements-period-start">
+            <Input id="send-statements-period-start" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
+          </Field>
+          <Field label="Period End" required htmlFor="send-statements-period-end">
+            <Input id="send-statements-period-end" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
+          </Field>
         </div>
 
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600">Batch Name (optional)</label>
-          <input type="text" value={batchName} onChange={(e) => setBatchName(e.target.value)}
-            className="h-10 w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" placeholder="e.g., June 2026 Monthly Statements" />
-        </div>
+        <Field label="Batch Name (optional)" htmlFor="send-statements-batch-name">
+          <Input id="send-statements-batch-name" type="text" value={batchName} onChange={(e) => setBatchName(e.target.value)}
+            className="max-w-md" placeholder="e.g., June 2026 Monthly Statements" />
+        </Field>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600">Delivery</label>
+          <p className="mb-1.5 block text-[13.5px] font-medium text-gray-700">Delivery</p>
           <p className="mt-1 text-sm text-gray-700">Email to each homeowner on file</p>
           <p className="mt-1 text-[13px] text-gray-500">
             Printed and portal statements are not available yet. Homeowners without an email address are listed after sending so you can follow up.

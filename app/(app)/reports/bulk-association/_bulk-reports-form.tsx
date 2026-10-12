@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { queueBulkReports } from '@/lib/rpcs/bulk-operations';
+import { Field, Input, Select } from '@/components/ui/input';
 
 interface Association { id: string; name: string; }
 interface Report { slug: string; name: string; description: string; category: string; }
@@ -137,26 +138,20 @@ export function BulkReportsForm({
       <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] space-y-4">
         <h3 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">3. Options</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Date Range Start</label>
-            <input type="date" value={dateStart} onChange={(e) => setDateStart(e.target.value)}
-              className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Date Range End</label>
-            <input type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)}
-              className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Output Format</label>
-            <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value)}
-              className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+          <Field label="Date Range Start" htmlFor="bulk-reports-date-start">
+            <Input id="bulk-reports-date-start" type="date" value={dateStart} onChange={(e) => setDateStart(e.target.value)} />
+          </Field>
+          <Field label="Date Range End" htmlFor="bulk-reports-date-end">
+            <Input id="bulk-reports-date-end" type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} />
+          </Field>
+          <Field label="Output Format" htmlFor="bulk-reports-format">
+            <Select id="bulk-reports-format" value={outputFormat} onChange={(e) => setOutputFormat(e.target.value)}>
               <option value="csv">CSV</option>
               <option value="xlsx">Excel</option>
               <option value="pdf">PDF</option>
               <option value="json">JSON</option>
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
 
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">

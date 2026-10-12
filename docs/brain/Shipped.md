@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
+- Accessible form labels (#312): every field label is
+  tied to its control (~45 in 15 forms, mostly moved onto Field/Input/
+  Select); lint rule label-has-associated-control on in CI. Remaining
+  jsx-a11y recommended findings are by design: command palette (combobox
+  pattern), CardTitle (children), MFA code autofocus.
 - Operator screens checked at 375 px signed in (21 pages, no overflow);
   Overview chart labels made 40px rows (#310).
 - Index on email_sender_domain_owners.portfolio_id (claude/fk-index;

@@ -367,8 +367,9 @@ export default function PreviewLetterPage() {
 
             {showEmail && (
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
-                <label className="text-xs font-medium text-gray-600">Recipient email</label>
+                <label htmlFor="letter-email-to" className="text-xs font-medium text-gray-600">Recipient email</label>
                 <input
+                  id="letter-email-to"
                   type="email"
                   value={emailTo}
                   onChange={(e) => setEmailTo(e.target.value)}
