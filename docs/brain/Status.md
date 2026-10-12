@@ -7,7 +7,7 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#318 merged; open PR: #319 claude/pol
   restrictive mgr_assoc_scope on units was the last of 88 still calling
   can_view_association_row() per row: with 5,000 units every role paid
   330-390 ms per read (owner with 1 unit: 341 ms). Once-per-query form:
-  5-17 ms, same rows (20261012020000). Also Codex P2 on #318: the
+  5-17 ms, same rows (20261012020000, live, read back: 4-10 ms). Also Codex P2 on #318: the
   migration check handles nested /* */ comments.
 
 ## Merged 2026-10-12
