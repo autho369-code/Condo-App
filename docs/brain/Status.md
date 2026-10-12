@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#331 merged; open PR: claude/manager-scope-entities; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#331 merged; open PR: #332 claude/manager-scope-entities; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/manager-scope-entities: tables that name their record by
+- #332 claude/manager-scope-entities: tables that name their record by
   entity_type + entity_id (documents, record_notes, tag_assignments,
   audit_logs, sms_opt_ins, sms_consent_events, data_diagnostics) and
   soft_delete_log are scoped for managers assigned to some associations:
