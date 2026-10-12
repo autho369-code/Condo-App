@@ -1,13 +1,13 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#325 merged; open PR: #326 claude/form-pickers; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#326 merged; open PR: claude/receipt-coowner-search; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #326 claude/form-pickers: New homeowner receipt promised "Search by
-  association, unit, or homeowner name" but had only a dropdown; it now has
-  a search that narrows the dropdown (one match is picked straight away).
+- claude/receipt-coowner-search (Codex P2 on #326): the receipt search
+  matches every current co-owner, not only the primary owner.
 
 ## Merged 2026-10-12
+- #326 New homeowner receipt search.
 - #325 Inspections scores in the database (20261012050000, live).
 - #324 unit dropdowns follow the association; Calendar Unit picker.
 - #323 Bank Deposits grouped in the database (20261012040000, live).
