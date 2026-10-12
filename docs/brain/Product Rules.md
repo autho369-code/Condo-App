@@ -58,6 +58,9 @@ Back to [[Home]].
   rows in a rolled-back transaction and time each role (a per-row policy
   is invisible at 17 rows: units 4 ms at 17 rows, 341 ms at 5,000).
   (2026-10-12)
+- Every table a manager can reach that belongs to an association (directly,
+  or through a unit or bank account) carries the restrictive mgr_assoc_scope
+  policy; a new such table gets it in the same migration. (2026-10-12)
 - RLS policies call helpers ONCE PER QUERY: write `( SELECT public.f() )`
   for zero-argument helpers, and compare the row's column against a
   once-per-query helper (`portfolio_id = ( SELECT public.my_access_portfolio() )`,

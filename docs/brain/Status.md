@@ -1,16 +1,21 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#328 merged; open PR: #329 claude/scale-checks-2; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#329 merged; open PR: #330 claude/manager-scope-everywhere; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #329 claude/scale-checks-2: budget lines read 35-50x faster at scale. The read
-  policy called can_read_association_budget() per row: 6,000 lines took
-  4.0-5.4 s per read for manager/company admin/board (3.6 s for owners and
-  vendors who see none). Once-per-query helper
-  rls_private.my_budget_readable_association_ids() (20261012080000, LIVE):
-  107 ms, same rows for six roles; association_budgets_read uses the same set.
+- #330 claude/manager-scope-everywhere: a manager assigned to some associations
+  could read (and some write) other associations' rows on 43 tables that
+  lacked mgr_assoc_scope: 35 with association_id (budgets, capital
+  projects, reserves, delinquency, payment plans, late fees, checks, credit
+  cards, payment methods, surveys, ...) and 8 through a unit or bank account
+  (charges, payments, unit_owners, tenancies, parking, bank transactions,
+  reconciliations, Plaid). 20261012090000 (LIVE; 131 tables now). Dry runs:
+  258 role x table counts unchanged; a scoped manager loses other
+  associations' rows; unscoped charges 6.6 -> 8 ms at 5,000. No manager was
+  scoped on production yet.
 
 ## Merged 2026-10-12
+- #329 budget lines read once per query (20261012080000, live).
 - #328 bank numbers: unused definer functions revoked; deleted-records log
   leaves out hidden columns (20261012060000/070000, live).
 - #327 receipt search matches every co-owner.
@@ -427,9 +432,15 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#328 merged; open PR: #329 claude/sca
   and their policies cost the rest). Feeds Receivables, Delinquencies, board
   receivables, reports. Measure EXPLAIN as manager; candidates: LATERAL
   per-charge sum, or a set-returning invoker function.
-- NEXT: budget_lines (and possibly other association tables) has no
-  mgr_assoc_scope, so a manager assigned to some associations reads every
-  budget in the company. Audit which association_id tables lack it; add it.
+- NEXT (manager scope, after #330): rows with no association stay
+  visible to scoped managers: payment_methods (owner, last4, processor token)
+  and physical_mail_deliveries (addresses, letter HTML) where association_id
+  is null - backfill from the owner and fall back to owner visibility;
+  payable_checks (backfill from bill, make NOT NULL); automation_flows
+  company-wide rows editable by a scoped manager (require company admin).
+  journal_entries headers not scoped (a policy on entries reading
+  journal_lines recurses; lines are scoped). Security-definer views/RPCs
+  over these tables are not narrowed by policies.
 - NEXT: remaining per-row policies measured at scale: owner_attachments
   (can_view_owner_row), bank_transfers (app_can_view_bank_account),
   signatures (can_manage_signatures), meeting items
