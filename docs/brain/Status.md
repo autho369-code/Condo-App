@@ -1,22 +1,14 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#316 merged; open PR: #317 claude/policies-signed-in-only; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#317 merged; open PR: claude/policy-check-ignores-comments; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #317 claude/policies-signed-in-only: maintenance_templates "Anyone can read
-  templates" (USING true, roles {public}) let signed-out callers and other
-  companies read every template (on 2026-10-12 only Portier369's shared
-  starter templates existed, so nothing private leaked). Switched off
-  (USING false; the DROP is on Mirsad's list). mt_read and the
-  report_definitions read policy no longer trust is_system (staff could set
-  it on their own rows and publish them to every company): shared rows are
-  the ones with no company. The other 91 policies with no TO clause now
-  apply to authenticated only. Migration 20261012010000 is LIVE (read back:
-  0 policies for every role; anon sees 0 templates/report definitions;
-  manager 65 templates). npm run db:migrations:check now fails a new
-  CREATE POLICY without a TO clause.
+- claude/policy-check-ignores-comments (Codex P2 on #317): the migration
+  check for CREATE POLICY without a TO clause now ignores -- and /* */
+  comments, so a documented example no longer swallows the next statement.
 
 ## Merged 2026-10-12
+- #317 RLS policies for signed-in users only (20261012010000, live).
 - #316 platform operator Company details: Support phone field. Stellar's
   support email set to hello@portier369.com; phone left for Mirsad.
 
@@ -432,7 +424,7 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#316 merged; open PR: #317 claude/pol
   user that ends in RAISE EXCEPTION carrying the report.
 - DONE 2026-10-12: policies with no TO clause (93) applied to signed-out
   callers too; one (maintenance_templates, USING true) opened every
-  template to everyone. Fixed in 20261012010000 (Open PR).
+  template to everyone. Fixed in 20261012010000 (#317).
 - DONE 2026-10-11: platform-operator screens at 375 px, signed in as
   operator (Mirsad): 20 pages + a company page, no sideways overflow; one
   control under 40px (Overview chart label), fixed. All six roles now
