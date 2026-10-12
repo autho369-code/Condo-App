@@ -4,7 +4,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-11
-- Accessible form labels (claude/a11y-form-labels): every field label is
+- Accessible form labels (#312): every field label is
   tied to its control (~45 in 15 forms, mostly moved onto Field/Input/
   Select); lint rule label-has-associated-control on in CI. Remaining
   jsx-a11y recommended findings are by design: command palette (combobox

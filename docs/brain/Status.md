@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-11 (#279-#311 merged; open PR: claude/a11y-form-labels; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
+Back to [[Home]]. Updated 2026-10-11 (#279-#311 merged; open PR: #312 claude/a11y-form-labels; next: no code gaps; Mirsad: Auth connection pool %, Stellar support contact).
 
 ## Open PR
-- claude/a11y-form-labels: form fields screen readers could not name
+- #312 claude/a11y-form-labels: form fields screen readers could not name
   (labels not tied to their control): ~45 in 15 forms fixed (Field/Input/
   Select with htmlFor, fieldset/legend for radio groups, sr-only labels),
   ARC settings textareas named + fake "0/500" counter removed; Esc closes
