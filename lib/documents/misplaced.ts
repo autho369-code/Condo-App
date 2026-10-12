@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { isEntityDocumentStoragePath } from '@/lib/security/storage-paths';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 // Not a server action module: this reads with the service client and must only
 // be called from server code that has already resolved the caller's portfolio.
@@ -15,18 +15,22 @@ export const LEGACY_DOCUMENT_PREFIX = 'granville/';
 /**
  * Association documents whose file sits outside associations/<id>/… fail
  * document_path_matches_entity, so RLS hides them from staff and owners even
- * though the file exists. Read with the service client, strictly scoped to the
- * caller's portfolio.
+ * though the file exists. The associations come from the caller's own access
+ * (row-level security), so a manager assigned to some associations only sees
+ * and repairs theirs; the hidden rows are then read with the service client.
  */
 export async function findMisplacedAssociationDocuments(portfolioId: string): Promise<MisplacedDocument[]> {
+  const supabase = await createClient();
   const svc = createServiceClient() as any;
-  const { data: associations } = await svc.from('associations').select('id').eq('portfolio_id', portfolioId);
+  const { data: associations, error } = await supabase.from('associations').select('id').eq('portfolio_id', portfolioId).limit(5000);
+  if (error) return []; // fail closed: never fall back to the whole company
   const ids = (associations ?? []).map((a: { id: string }) => a.id);
   if (ids.length === 0) return [];
   const { data: docs } = await svc
     .from('documents')
     .select('id, file_url, entity_id, file_name')
     .eq('entity_type', 'association')
+    .like('file_url', `${LEGACY_DOCUMENT_PREFIX}%`)
     .in('entity_id', ids);
   return ((docs ?? []) as MisplacedDocument[]).filter((d) =>
     d.file_url

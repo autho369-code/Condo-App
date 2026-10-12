@@ -61,3 +61,12 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   move it to "Merged" in the first commit of the next PR.
 - Recurring 6th time (2026-10-12): Status line 3 + Open PR still "#316 open"
   after it merged 05:23Z; `gh pr list --state open` was empty. Check it first.
+- Recurring 8th time (2026-10-12, after #332 merged 21:56Z): Status line 3 +
+  Open PR still "#332 open". Also the caller called gap #2 (document-repair)
+  "the next gap" while Next gaps #1 is aged_receivables - name the real top
+  gap and ask for the reason when a lower one is picked.
+- Repair tools that exist because RLS hides the rows (document-repair:
+  misplaced docs fail document_path_matches_entity) cannot "switch to the
+  caller's RLS client"; keep the service client and narrow its ids by the
+  caller's scope RPC. Check every caller of the shared finder (page Alert
+  listed file names too, not only the action).

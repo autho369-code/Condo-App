@@ -1,18 +1,22 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#331 merged; open PR: #332 claude/manager-scope-entities; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#332 merged; open PR: claude/scoped-service-reads; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #332 claude/manager-scope-entities: tables that name their record by
-  entity_type + entity_id (documents, record_notes, tag_assignments,
-  audit_logs, sms_opt_ins, sms_consent_events, data_diagnostics) and
-  soft_delete_log are scoped for managers assigned to some associations:
-  the record type resolves to a scoped parent (29 types); documents' old
-  WITH CHECK (association only) replaced too. 20261012110000 LIVE. Dry run:
-  48 role x table counts unchanged; scoped manager loses another
-  association's owner note and cannot attach a document to that owner.
+- #333 claude/scoped-service-reads: journal entry headers and
+  recurring journal entries scoped for managers assigned to some
+  associations (20261012120000 LIVE: definer helper
+  rls_private.my_hidden_journal_entry_ids avoids the journal_lines
+  recursion; recurring rows by their template lines). Document repair lists
+  and moves only the caller's associations' files (association list read
+  through the caller's RLS). Dry run: 18 role x table counts unchanged;
+  scoped manager cannot see/edit another association's entry or create a
+  recurring entry naming it. Taken before aged_receivables to finish the
+  manager-scope series.
 
 ## Merged 2026-10-12
+- #332 manager scope on entity_type tables + deleted-records log
+  (20261012110000, live).
 - #331 manager scope on 72 child tables + parking (20261012100000, live).
 - #330 manager scope on 43 more tables (20261012090000, live).
 - #329 budget lines read once per query (20261012080000, live).
@@ -432,18 +436,13 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#331 merged; open PR: #332 claude/man
   and their policies cost the rest). Feeds Receivables, Delinquencies, board
   receivables, reports. Measure EXPLAIN as manager; candidates: LATERAL
   per-charge sum, or a set-returning invoker function.
-- NEXT (manager scope, leftovers): lib/rpcs/document-repair.ts
-  repairMisplacedAssociationDocuments searches the whole company with the
-  service client (filter to managed associations for a scoped manager);
-  recurring_journal_entries and journal_entries headers not scoped.
 - NEXT (manager scope, rest): rows with no association stay
   visible to scoped managers: payment_methods (owner, last4, processor token)
   and physical_mail_deliveries (addresses, letter HTML) where association_id
   is null - backfill from the owner and fall back to owner visibility;
   payable_checks (backfill from bill, make NOT NULL); automation_flows
   company-wide rows editable by a scoped manager (require company admin).
-  journal_entries headers not scoped (a policy on entries reading
-  journal_lines recurses; lines are scoped). Security-definer views/RPCs
+  Security-definer views/RPCs
   over these tables are not narrowed by policies.
 - NEXT: remaining per-row policies measured at scale: owner_attachments
   (can_view_owner_row), bank_transfers (app_can_view_bank_account),
