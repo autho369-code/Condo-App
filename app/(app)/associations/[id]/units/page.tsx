@@ -5,6 +5,7 @@ import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +45,8 @@ export default async function AssociationUnitsTab({
     .maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: units } = await (supabase as any)
+  // Every unit, paged past the API's 1,000-row limit.
+  const { rows: units } = await fetchAllRows<any>(() => (supabase as any)
     .from('units')
     .select(`
       id, unit_number, ownership_pct,
@@ -52,7 +54,8 @@ export default async function AssociationUnitsTab({
     `)
     .eq('building.association_id', id)
     .is('archived_at', null)
-    .order('unit_number');
+    .order('unit_number')
+    .order('id'));
 
   const unitIds = (units ?? []).map((u: any) => u.id);
 

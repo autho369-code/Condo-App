@@ -11,6 +11,10 @@ import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
+// The API returns at most 1,000 rows; the list shows the newest LIST_CAP
+// matches and says so. The tiles count every work order.
+const LIST_CAP = 500
+
 const FINISHED_WO_STATUSES = ['done', 'completed', 'billed', 'closed', 'cancelled']
 
 const priorityTone = (p: string | null): Tone => {
@@ -39,10 +43,11 @@ export default async function WorkOrdersOversightPage({
   // Base query for work orders with associations
   let query = db
     .from('work_orders')
-    .select(`id, number, title, category, priority, status, scheduled_date, completed_date, created_at, association_id, unit_id, vendor_id, assigned_to, associations!work_orders_association_id_fkey(name)`)
+    .select(`id, number, title, category, priority, status, scheduled_date, completed_date, created_at, association_id, unit_id, vendor_id, assigned_to, associations!work_orders_association_id_fkey(name)`, { count: 'exact' })
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
+    .limit(LIST_CAP)
 
   // Fetch all for stats (paged past the 1,000-row cap)
   const { rows: wos, error: wosError } = await fetchAllRows(() => db
@@ -72,7 +77,8 @@ export default async function WorkOrdersOversightPage({
   if (sp.priority) query = query.eq('priority', sp.priority.toLowerCase())
   if (sp.status) query = query.eq('status', sp.status.toLowerCase())
 
-  const { data: workOrders, error: workOrdersError } = await query
+  const { data: workOrders, count: matchCount, error: workOrdersError } = await query
+  const listCapped = (matchCount ?? 0) > (workOrders ?? []).length
 
   const loadErrors = collectLoadErrors({
     'Work order stats': { error: wosError },
@@ -117,6 +123,10 @@ export default async function WorkOrdersOversightPage({
           )
         })}
       </div>
+
+      {listCapped && (
+        <Alert tone="warning" title={`Showing the newest ${LIST_CAP} of ${(matchCount ?? 0).toLocaleString()} matches`}>The counts above include all of them. Narrow the list by association, priority or status to see the rest.</Alert>
+      )}
 
       {/* Filters */}
       <form action="/company-admin/work-orders" method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -214,12 +224,12 @@ export default async function WorkOrdersOversightPage({
         </table>
       </div>
 
-      <div className="text-[13px] text-gray-500">
-        Showing {(workOrders ?? []).length} of {wos.length} work orders
+      {!workOrdersError && <div className="text-[13px] text-gray-500">
+        Showing {(workOrders ?? []).length} of {matchCount ?? 0} work orders
         {sp.association && ` for selected association`}
         {sp.priority && ` • Priority: ${sp.priority}`}
         {sp.status && ` • Status: ${sp.status}`}
-      </div>
+      </div>}
     </div>
   )
 }

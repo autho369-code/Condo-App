@@ -40,6 +40,11 @@ Back to [[Home]].
   rows are the ones with no company; never share a row because of a flag
   staff can write (is_system). `npm run db:migrations:check` fails a new
   CREATE POLICY without a TO clause. (2026-10-12)
+- No unbounded list query: the API stops at 1,000 rows without an error.
+  Either .limit(N) with { count: 'exact' } and a "Showing the newest N of
+  M" notice, or fetchAllRows (order ending in id) when every row is needed.
+  Count and sum in the database (head counts, RPCs), never over a capped
+  list. (2026-10-12)
 - Judge RLS speed at scale, not on today's tiny tables: add thousands of
   rows in a rolled-back transaction and time each role (a per-row policy
   is invisible at 17 rows: units 4 ms at 17 rows, 341 ms at 5,000).

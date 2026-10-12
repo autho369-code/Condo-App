@@ -237,7 +237,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
   const sp = await searchParams;
 
   const [{ data: tasks, error: tasksError }, { data: associations }, { data: groups }, { data: vendors }, { data: staff }] = await Promise.all([
-    db.from('maintenance_tasks').select('*, associations!inner(name, timezone), vendors(name), profiles(full_name)').is('archived_at',null).order('next_due_date',{ascending:true,nullsFirst:false}),
+    fetchAllRows<any>(() => db.from('maintenance_tasks').select('*, associations!inner(name, timezone), vendors(name), profiles(full_name)').is('archived_at',null).order('next_due_date',{ascending:true,nullsFirst:false}).order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     db.from('associations').select('id,name').is('archived_at',null).order('name'),
     db.from('maintenance_template_groups').select('*, templates:maintenance_templates(*)').order('sort_order'),
     fetchAllRows<any>(() => db.from('vendors').select('id,name,trade,emails,association_id,is_management_company,portfolio_id').is('archived_at',null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
