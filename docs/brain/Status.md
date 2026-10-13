@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#357 merged; open PR: (number on open) claude/vault-357-policy-sweep; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#357 merged; open PR: #358 claude/vault-357-policy-sweep; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/vault-357-policy-sweep: vault only - #357 merged;
+- #358 claude/vault-357-policy-sweep: vault only - #357 merged;
   policy subquery sweep measured at scale, no change needed.
 
 ## Merged 2026-10-13
