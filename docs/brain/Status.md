@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-12 (#279-#334 merged; open PR: claude/definer-scope-sweep; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/definer-scope-sweep: sweep of definer functions
+- #335 claude/definer-scope-sweep: sweep of definer functions
   that checked only the company (20261013010000 LIVE). can_access_association
   now also requires can_view_association_row, which scopes can_access_unit,
   can_access_meeting, budget reads (list_budget_lines, budget vs actuals,

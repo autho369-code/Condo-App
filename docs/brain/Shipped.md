@@ -5,7 +5,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 
 ## 2026-10-13
 - Database functions that checked only the company respect a manager's
-  associations (open PR, 20261013010000).
+  associations (#335, 20261013010000).
 
 ## 2026-10-12
 - Reviewer follow-ups to #333: journal entry update/delete across
