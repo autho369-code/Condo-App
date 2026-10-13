@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-12 (#279-#338 merged; open PR: claude/receivables-money-fixes; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/receivables-money-fixes: 20261013060000
+- #339 claude/receivables-money-fixes: 20261013060000
   v_unapplied_credits one LATERAL sum per payment (manager 271 -> 71 ms,
   identical rows for 7 roles); 20261013070000 receivables_page_totals reuses
   the delinquent list on the unfiltered page (manager 901 -> 543 ms, board
