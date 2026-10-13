@@ -4,6 +4,9 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Work orders: long service requests convert, vendors' Open tab shows every
+  open job, vendors can't post fake status entries, owners rate only their
+  own jobs (20261014090000).
 - Violation fines post to Violation Fees on the day assessed; hearing
   requests respect the window; owners see their violation timeline
   (20261014080000).

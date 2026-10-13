@@ -29,6 +29,7 @@
 - Multi-plan units: ask which plan owns a bounce, for EVERY receipt age (inside plan 1, between plans, before both). 20261013200000 v2 fixed in-window receipts but a receipt older than both plans still hit both. Exclusions of 'another plan's' rows must copy that plan's own filters exactly (created_at bound too), or rows fall between plans.
 - A changed measure needs a recheck of stored statuses: rows already completed/flagged under the old measure stay stale until an event re-fires. #345 changed payment_plan_paid_amount without rechecking plans (Codex caught; fix 20261013230000 loops app_recheck_payment_plan per unit). Ask "what re-evaluates existing rows?"
 - Narrowing a permissive USING (true) policy: demand per-role before/after row counts; shared portfolio_id-NULL rows may rely on it (20261012010000).
+- A tenure/scope cutoff helper that returns NULL for "no cutoff" also returns NULL when the caller has NO matching row; pair it with the same membership helper (rate_work_order 20261014090000:50 vs current_resident_unit_ids).
 
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift
