@@ -20,9 +20,16 @@ export function prepareMonthlyPackageRows(
   if (slug === 'budget_vs_actual') {
     const monthIndex = Math.max(0, Math.min(11, Number(dateTo.slice(5, 7)) - 1));
     const month = MONTHS[monthIndex];
-    const budgetKeys = MONTHS.slice(0, monthIndex + 1).map((label) => `${label} budget`);
-    const actualKeys = MONTHS.slice(0, monthIndex + 1).map((label) => `${label} actual`);
     return rows.map((row) => {
+      // Month columns come in the association's fiscal order, so year to date
+      // is every month from the fiscal start through this one.
+      const fiscalOrder = Object.keys(row)
+        .map((key) => /^([A-Z][a-z]{2}) budget$/.exec(key)?.[1])
+        .filter((label): label is string => !!label);
+      const upTo = fiscalOrder.indexOf(month);
+      const ytdMonths = upTo >= 0 ? fiscalOrder.slice(0, upTo + 1) : [];
+      const budgetKeys = ytdMonths.map((label) => `${label} budget`);
+      const actualKeys = ytdMonths.map((label) => `${label} actual`);
       const periodBudget = Number(row[`${month} budget`] ?? 0);
       const periodActual = Number(row[`${month} actual`] ?? 0);
       const ytdBudget = budgetKeys.reduce((sum, key) => sum + Number(row[key] ?? 0), 0);

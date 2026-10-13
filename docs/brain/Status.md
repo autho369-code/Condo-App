@@ -1,18 +1,29 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#364 merged; open PR: #365 claude/autopay-retry-cleanup; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#365 merged; open PR: #366 claude/budgets-fixes; next: pick the next deep-check area; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #365 claude/autopay-retry-cleanup: Codex P1 on #364 - a retried
-  Stripe completion for a setup already canceled/expired/failed exited before
-  undoing a mandate an earlier delivery created. Mandates now record
-  setup_attempt_id (20261014200000, LIVE; set by the webhook only, column
-  guard); every path that ends a setup without completing (early check,
-  failAttempt on a retry, lost completion) cancels that setup's mandates and
-  retires saved methods nothing else uses, and finishes the retire on a
-  retry; a reused mandate is relinked to the setup completing on it.
+- #366 claude/budgets-fixes: budgets deep check (no security
+  hole found; access holds for every role). 20261014210000 (LIVE):
+  - budget_lines written only by the budget functions (a direct write could
+    store negative amounts, an expense as income, a cash account);
+  - applying assessments refuses while a later schedule exists (it silently
+    ended next year's) and refuses the same update twice;
+  - re-adopting an adopted budget refused (it replaced the adoption record);
+  - allocation per period adds up to the budget (leftover cents to the
+    largest unit);
+  - budget detail report defaults to the fiscal year; dues-increase charge
+    category must be the association's company's.
+  App: budget vs actual (export, monthly and board packages) compares fiscal
+  months with the same calendar months and showed actuals as $0 before (the
+  account had no id); one ledger call per month instead of per line per
+  month; YTD from the fiscal start; one-time token on "Update assessments";
+  board page before the fiscal year starts; worksheet shows only the
+  company's accounts, and inactive accounts that still have lines.
 
 ## Merged 2026-10-13
+- #365 AutoPay: a retried Stripe completion for an ended setup undoes its
+  enrollment (Codex on #364; 20261014200000). Codex clean.
 - #364 AutoPay: a canceled setup can't leave AutoPay active (Codex on #363).
 - #363 owner portal: private calendar, right balance after a sale, fast
   owner pages, tenant pages scoped, AutoPay and Stripe fixes
@@ -490,15 +501,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#364 merged; open PR: #365 claude/aut
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- NEXT PR: budgets deep check findings (2026-10-13): budget-vs-actual
-  export/monthly package use calendar months against fiscal-month budgets
-  (also ~720 sequential calls); budget_lines writable directly (negative
-  amounts, expense as income, balance-sheet accounts); applying an earlier
-  year's assessments ends a later year's schedule; double submit of
-  "Update assessments"; re-adopt overwrites the adoption record; allocation
-  rounding; board page month 1 before the year starts; budget detail report
-  calendar year; dues-increase category from another company; operator
-  worksheet shows other companies' accounts.
 - Banking, not changed (from the deep check): a completed reconciliation
   has no undo (only the service role); year-end close is a snapshot
   package and does not lock months; a bank adjustment already cleared can

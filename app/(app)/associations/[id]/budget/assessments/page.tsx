@@ -10,6 +10,7 @@ import { Field, Input, Select } from '@/components/ui/input';
 import { THead, TR, TH, TD } from '@/components/ui/table';
 import { Alert, Badge, EmptyState } from '@/components/ui/shell';
 import { applyAssessmentUpdate } from '@/lib/rpcs/budget-worksheet';
+import { SUBMISSION_FIELD, newSubmissionToken } from '@/lib/forms/submission';
 import { fiscalWindow, fiscalYearFor } from '@/lib/budget/fiscal';
 import { money } from '@/lib/utils';
 import { Calculator } from 'lucide-react';
@@ -206,6 +207,7 @@ export default async function UpdateAssessmentsPage({ params, searchParams }: { 
             </table></div>
 
             <form action={applyAssessmentUpdate} className="space-y-3 border-t border-gray-100 px-5 py-4">
+              <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
               <input type="hidden" name="association_id" value={id} />
               <input type="hidden" name="association_ref" value={ref} />
               <input type="hidden" name="fiscal_year" value={fy} />

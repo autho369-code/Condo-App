@@ -48,7 +48,7 @@ export default async function BoardBudgetPage() {
         error: error ? (error.message as string) : null,
         fy,
         labels: fiscalMonthLabels(assoc?.fiscal_year_start),
-        elapsed: Math.max(1, fiscalMonthsElapsed(fy, assoc?.fiscal_year_start)),
+        elapsed: fiscalMonthsElapsed(fy, assoc?.fiscal_year_start),
       }
     })
   )
@@ -127,7 +127,7 @@ export default async function BoardBudgetPage() {
             {/* Summary cards */}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {[
-                { label: `YTD Budget (thru ${report.labels[report.elapsed - 1]})`, value: money(ytdNetBudget), tone: 'default' as const },
+                { label: report.elapsed > 0 ? `YTD Budget (thru ${report.labels[report.elapsed - 1]})` : `YTD Budget (FY${report.fy} not started)`, value: money(ytdNetBudget), tone: 'default' as const },
                 { label: 'YTD Actual', value: money(ytdNetActual), tone: ytdNetActual >= ytdNetBudget ? 'success' as const : 'danger' as const },
                 { label: 'Variance', value: money(ytdNetActual - ytdNetBudget), tone: (ytdNetActual - ytdNetBudget) >= 0 ? 'success' as const : 'danger' as const },
                 { label: 'Variance %', value: ytdNetBudget !== 0 ? `${(((ytdNetActual - ytdNetBudget) / ytdNetBudget) * 100).toFixed(1)}%` : '—', tone: (ytdNetActual - ytdNetBudget) >= 0 ? 'success' as const : 'danger' as const },
