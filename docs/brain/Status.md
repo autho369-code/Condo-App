@@ -1,17 +1,14 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#356 merged; open PR: #357 claude/exec-session-visibility; next: other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#357 merged; open PR: #358 claude/vault-357-policy-sweep; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #357 claude/exec-session-visibility: 20261014140000 (LIVE)
-  executive sessions (meeting row with its agenda text, and attendees) follow
-  rls_private.my_confidential_meeting_association_ids like their agenda
-  items, documents and follow-ups; an unassigned assistant manager no longer
-  sees them; other meetings unchanged (rolled-back test across six roles).
-  calculate_meeting_quorum (definer) applies the same rule to executive
-  sessions (migration review).
+- #358 claude/vault-357-policy-sweep: vault only - #357 merged;
+  policy subquery sweep measured at scale, no change needed.
 
 ## Merged 2026-10-13
+- #357 executive sessions hidden from staff outside the confidential-meeting
+  set: meeting row, agenda text, attendees, quorum counts (20261014140000).
 - #356 meeting lists put undated meetings last (Codex clean).
 - #355 meetings: quorum read only and recorded by trigger at completion;
   completed meetings frozen in the database (no reopen, quorum/date/
@@ -473,6 +470,12 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#356 merged; open PR: #357 claude/exe
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- DONE 2026-10-13 (measured, no change): the remaining policies with a
+  subquery over another RLS table are fast at scale (rolled back):
+  journal_lines 30,000 lines - manager 25 ms, scoped manager 45 ms, board
+  40 ms, company admin 17 ms (entries 4-28 ms); units + unit recurring
+  charges at 2,000 units - manager 39 ms, scoped manager 10 ms, board 23
+  ms, vendor 10 ms. Revisit only a table a page shows as slow.
 - DONE 2026-10-13 (20261014140000): executive-session meeting rows and
   attendees hidden from staff outside the confidential-meeting set.
 - DONE 2026-10-13: Receivables page totals at 2,000 units ~0.26 s
@@ -488,7 +491,7 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#356 merged; open PR: #357 claude/exe
   account_totals 225, trial_balance_association 223, journal_entry_register
   185, charge_detail 178, income_register 172); homeowner_ledger needs a
   unit (expected error without one).
-- DEEP CHECK 2026-10-13 (rolled back, at scale): violations (10k), work
+- CLOSED 2026-10-13 (#353-#357): DEEP CHECK (rolled back, at scale): violations (10k), work
   orders (15k), meetings (3k): every page/RPC under 300 ms for every role;
   visibility correct for owner/board/vendor/scoped manager/other company/
   disabled accounts. Bugs found -> violations PR above; work orders and
