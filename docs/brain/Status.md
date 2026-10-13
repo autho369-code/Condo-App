@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#361 merged; open PR: claude/recon-item-parent; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#361 merged; open PR: #362 claude/recon-item-parent; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/recon-item-parent: Codex on #361 - 20261014180000
+- #362 claude/recon-item-parent: Codex on #361 - 20261014180000
   (LIVE) an item update/delete is checked against the reconciliation it
   belongs to (naming an open one let a completed item be changed). The
   fund_type backfill could overwrite explicit insurance/escrow types; none
