@@ -4,6 +4,12 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Payment plans: one window by recording time; charges posted after a payoff,
+  backdated bounces and two plans on one unit handled; Payment Plans report
+  matches the plan (20261013200000/210000).
+- Receivables page totals ~25% faster at scale (20261013220000).
+- Payments after a plan completes no longer hide a bounce of a payment that
+  paid the plan (Codex on #344, 20261013200000).
 - A payment plan reopens when a payment from before it bounces with a future
   date (Codex on #343, 20261013190000).
 - A payment made before a payment plan that bounces after it started reopens

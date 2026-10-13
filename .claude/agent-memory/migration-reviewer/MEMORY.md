@@ -23,6 +23,8 @@
 - INVOKER RPCs cannot call service_role-only GL helpers; a postgres-run compile/test does not catch EXECUTE gaps.
 - A measure that excludes a pair (receipt + its reversal charge) must apply the SAME window to both sides; #342 (20261013150000/170000) skipped every reversal charge, even for pre-plan receipts never counted. Codex caught it, I missed it.
 - A measure bounded by `current_date` but rechecked only by event triggers misses future-dated rows: nothing re-fires when the date arrives. #343 `payment_plan_paid_amount` skipped bounce charges with a future due date, so the plan stayed completed (Codex caught it, I missed it). Ask "what recheck fires on day X?"
+- Windowed measures (payment_plan_paid_amount, 20261013200000): bound BOTH sides by the same clock. Receipts used created_at but charges used due_date <= completed_at::date, so a dues/late-fee charge posted later the same UTC day (or backdated) entered a frozen completed plan; and a backdated bounce (due < plan start) of a pre-plan receipt was never counted. Use recording time (created_at/reversed_at) for window edges.
+- Multi-plan units: ask which plan owns a bounce, for EVERY receipt age (inside plan 1, between plans, before both). 20261013200000 v2 fixed in-window receipts but a receipt older than both plans still hit both. Exclusions of 'another plan's' rows must copy that plan's own filters exactly (created_at bound too), or rows fall between plans.
 - Narrowing a permissive USING (true) policy: demand per-role before/after row counts; shared portfolio_id-NULL rows may rely on it (20261012010000).
 
 ## Topic files
