@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-13 (#279-#344 merged; open PR: claude/plan-completion-window; next: no open product gap listed, keep watching CSP and runtime logs; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/plan-completion-window (all LIVE, read back):
+- #345 claude/plan-completion-window (all LIVE, read back):
   20261013200000 payment plan measure, one window by recording time (Codex
   on #344 + migration-reviewer adversarial pass): window = plan start to
   completion/cancellation for receipts and charges; charges posted after
