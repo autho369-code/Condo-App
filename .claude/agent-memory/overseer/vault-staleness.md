@@ -88,3 +88,5 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   / payable checks / automation flows (#335 swept only record-id functions).
   Recommended promoting it, plus a rolled-back Stripe/online-payment ledger
   dry-run (the one flow never exercised) before Mirsad's pilot keys.
+- Recurring 11th time (start check 2026-10-13, after #352 merged 06:16Z):
+  Status line 3 + "## Open PR" still #352; caller already flagged it.

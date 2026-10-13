@@ -4,6 +4,9 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Violation fines post to Violation Fees on the day assessed; hearing
+  requests respect the window; owners see their violation timeline
+  (20261014080000).
 - Charge balances and category totals 2-5x faster for every staff role
   (20261014060000/070000).
 - Budget vs actuals, budget worksheet and budget forecast 15-35x faster;
