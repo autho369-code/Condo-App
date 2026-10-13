@@ -1,17 +1,19 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#335 merged; open PR: claude/rls-twin-scope; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#336 merged; open PR: claude/aged-receivables-scale; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #336 claude/rls-twin-scope: Codex on #335. P1: policy copies
-  rls_private.my_accessible_association_ids (+ unit ids) and
-  my_budget_readable_association_ids narrowed for scoped managers like
-  can_access_association (20261013030000 LIVE; mgr_assoc_scope already
-  covered all 62 tables, so no data was exposed). P2: payout matching filters
-  associations in the query, chunks of 100 ids. Dry run: 434 counts (7
-  roles incl. a scoped manager x 62 tables) unchanged, no slowdown.
+- #337 claude/aged-receivables-scale: aged_receivables looks up
+  each charge's unit/building/association and payment sum by LATERAL index
+  lookups (20261013040000 LIVE). Cause: RLS makes the planner expect ~1
+  visible unit, so it compared every charge with every unit (6M
+  comparisons at 2,000 units / 6,000 charges). Dry run: identical rows for
+  8 callers and identical receivable_summary / aging buckets / unit totals /
+  page totals; manager full read 771 -> 79 ms, report page 937 -> 394 ms,
+  Receivables 500 rows 511 -> 235 ms, summary 1,109 -> 82 ms.
 
 ## Merged 2026-10-12
+- #336 policy copies of association checks scoped (20261013030000, live).
 - #335 definer functions respect manager scope (20261013010000/020000, live).
 - #334 reviewer follow-ups to #333 (20261012130000/140000/150000, live).
 - #333 journal entry headers, recurring JEs, document repair
@@ -431,12 +433,20 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#335 merged; open PR: claude/rls-twin
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- NEXT: aged_receivables at scale: 2,000 units / 6,000 charges / 4,000
-  applications -> 400-700 ms per read for every role (payment_applications
-  alone 56-69 ms, charges 7-14 ms; the joins to units/buildings/associations
-  and their policies cost the rest). Feeds Receivables, Delinquencies, board
-  receivables, reports. Measure EXPLAIN as manager; candidates: LATERAL
-  per-charge sum, or a set-returning invoker function.
+- NEXT: delinquent_units at scale (2,000 units / 6,000 charges): 520-660 ms
+  per read for staff and board; receivables_page_totals still 1.1-1.6 s and
+  receivable_unit_totals 0.6-0.8 s because of it. Plan: per unit it ANDs
+  charges_unit_idx with charges_due_idx (scans ~6,000 due-date entries per
+  unit, 0.45 ms x 1,006 units) plus association_local_date per unit. Tried
+  and rejected (slower, rows identical): due filter inside FILTER aggregates
+  (1.1 s); building from aged_receivables + LATERAL unit_balances (1.0 s).
+  Next try: one set-based pass over v_charge_balances (56 ms for all
+  charges) grouped by unit with the local date per association computed
+  once, joined to unit_balances by LATERAL unit lookup; or an index on
+  charges(unit_id, due_date).
+- The same RLS estimate (about one visible unit) can make any view that
+  joins charges or payments to units nested-loop at scale; the fix pattern
+  is a LATERAL lookup by the unit id (20261013040000).
 - NEXT (manager scope, rest): rows with no association stay
   visible to scoped managers: payment_methods (owner, last4, processor token)
   and physical_mail_deliveries (addresses, letter HTML) where association_id
