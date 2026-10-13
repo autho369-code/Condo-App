@@ -26,6 +26,15 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#354 merged; open PR: #355 claude/mee
   notice (before, one sent early blocked every later fine); changing a
   charge's charge_type reposts its journal entry (the type decides the
   income account and date).
+  Codex on #355: 20261014130000 (LIVE) a completed meeting can't be
+  reopened or have its recorded quorum changed, nor a cancelled one
+  reopened, and through the API a completed meeting can't be inserted
+  with a made-up result, deleted, or moved to another date or association
+  (repair: service role or a direct database login, never an API request); the attendance lock's repair exemption works
+  (it read current_user inside a definer function); a meeting completed
+  before results were recorded is counted from its attendance; the meeting
+  page shows calculate_meeting_quorum's result, so the quorum badge appears
+  when no quorum is set by hand.
 
 ## Merged 2026-10-13
 - #354 work orders: long requests convert, vendor Open tab complete, no fake

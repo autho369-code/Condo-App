@@ -30,6 +30,7 @@
 - A changed measure needs a recheck of stored statuses: rows already completed/flagged under the old measure stay stale until an event re-fires. #345 changed payment_plan_paid_amount without rechecking plans (Codex caught; fix 20261013230000 loops app_recheck_payment_plan per unit). Ask "what re-evaluates existing rows?"
 - Narrowing a permissive USING (true) policy: demand per-role before/after row counts; shared portfolio_id-NULL rows may rely on it (20261012010000).
 - A tenure/scope cutoff helper that returns NULL for "no cutoff" also returns NULL when the caller has NO matching row; pair it with the same membership helper (rate_work_order 20261014090000:50 vs current_resident_unit_ids).
+- A lock trigger that is BEFORE UPDATE only ("completed rows can't change") leaves INSERT-as-final-state and DELETE+reinsert open; check all three ops (20261014130000:121). Repair predicates on auth.role() IS NULL fail open; prefer also session_user <> 'authenticator'.
 - A definer RPC that "reads for everyone, writes for editors" must gate the write with the SAME helper as the table UPDATE policy and re-check status after FOR UPDATE (20261014100000:67-72 does). Also ask: does the read path count the same rows as the page (date window vs status=current)?
 
 ## Topic files

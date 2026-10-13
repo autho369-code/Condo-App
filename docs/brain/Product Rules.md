@@ -103,6 +103,12 @@ Back to [[Home]].
   trigger that checks a row against another table's row reads it FOR SHARE
   (or shares an advisory lock with the trigger guarding the other side), so
   two concurrent writes cannot each pass on stale data (20261014030000).
+- **A record that is final is guarded in the database** (2026-10-13): app
+  checks are not enough; a BEFORE UPDATE trigger refuses changes to a final
+  record (a completed meeting's status and recorded quorum). Repairs go
+  through public.app_is_repair_session() (service role, or a direct database
+  session with no request). Inside a SECURITY DEFINER function current_user
+  is the owner, so never test it for the caller's role (20261014130000).
 - **Per-row calls to SET search_path helpers are slow** (2026-10-13): a
   function with SET (search_path, etc.) is never inlined, so calling one per
   row costs a full call each (gl_normal_amount on 24,000 lines = 1.2 s).
