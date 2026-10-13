@@ -4,10 +4,17 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Meeting lists put undated meetings last, so recent meetings are never
+  cut off by the row limit.
 - Meetings: owners and view-only staff can no longer change a meeting's
-  quorum; the quorum is recorded when minutes are published; notes and
-  attendance lock after completion; meetings list loads fast
-  (20261014100000).
+  quorum; the quorum is recorded when the meeting is completed; a completed
+  meeting can't be reopened, edited in its result, date or association,
+  deleted or created with a made-up result; a cancelled one can't be
+  reopened; notes and attendance lock after completion; the meeting page
+  shows the derived quorum; meetings list loads fast (20261014100000-130000).
+- Violations: a hearing can be requested only after the first notice, and
+  the owner page shows the deadline; changing a charge's type moves its
+  ledger entry (20261014110000/120000).
 - Work orders: long service requests convert, vendors' Open tab shows every
   open job, vendors can't post fake status entries, owners rate only their
   own jobs (20261014090000).

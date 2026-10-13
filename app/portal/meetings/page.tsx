@@ -19,7 +19,8 @@ export default async function OwnerMeetingsPage() {
     .is('archived_at', null)
     .neq('meeting_type', 'executive_session')
     .or('status.in.(scheduled,in_progress),and(status.eq.completed,minutes.not.is.null)')
-    .order('start_time', { ascending: false })
+    .order('start_time', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
     .limit(100)
 
   const all = meetings ?? []

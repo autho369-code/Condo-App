@@ -57,7 +57,10 @@ export default function MeetingsPage() {
     let query = db
       .from('meetings')
       .select('id, title, location, meeting_type, start_time, status, associations(name)')
-      .order('start_time', { ascending: false })
+      // Dated meetings first (descending puts nulls first by default), so the
+      // limit never fills with undated ones.
+      .order('start_time', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
       .limit(LIST_LIMIT);
 
     if (filters.association_id) {

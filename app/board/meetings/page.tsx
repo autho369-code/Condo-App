@@ -18,7 +18,8 @@ export default async function BoardMeetingsPage() {
     .select('id, title, meeting_type, start_time, location, status, created_at, association_id, associations(name)')
     .in('association_id', ids)
     .is('archived_at', null)
-    .order('start_time', { ascending: false })
+    .order('start_time', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
     .limit(200)
 
   const all = meetings ?? []

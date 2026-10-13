@@ -1,42 +1,18 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#354 merged; open PR: #355 claude/meeting-fixes; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#355 merged; open PR: claude/meetings-list-order; next: executive-session attendee and agenda rows for unassigned staff; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #355 claude/meeting-fixes:
-  20261014100000 (LIVE): calculate_meeting_quorum is read only (owners and
-  view-only staff could rewrite a completed meeting's quorum); a trigger
-  records quorum_met/quorum_requirement/total_units in the same UPDATE that
-  completes a meeting (nothing recorded it before); counts owners present,
-  voting-eligible and owning on the meeting's local date (the page's rule);
-  a manager-set quorum wins over the percentage; attendance is locked in
-  the database once a meeting is completed or cancelled. App: notes and
-  attendance actions refuse closed meetings; manager meetings list narrow
-  columns, newest 500 with a notice, load errors shown. Reviews: security
-  (read-only operator could still write; record-then-complete not atomic;
-  attendance lock app-only) and migration (owning date) - all fixed by the
-  trigger design. Known, not fixed: unassigned staff can read
-  executive-session attendee names and agenda text.
-  Also (Codex on #353): 20261014110000 (LIVE) owner_violation_hearing_window
-  gives the owner page the request deadline and today in the association's
-  calendar: the form is replaced by "The time to request a hearing ended
-  on ..." after it; hearing_at preferred over the older hearing_date; a
-  date-only hearing day counts as held only after that local day.
-  Codex on #354: 20261014120000 (LIVE) a hearing request needs the first
-  notice (before, one sent early blocked every later fine); changing a
-  charge's charge_type reposts its journal entry (the type decides the
-  income account and date).
-  Codex on #355: 20261014130000 (LIVE) a completed meeting can't be
-  reopened or have its recorded quorum changed, nor a cancelled one
-  reopened, and through the API a completed meeting can't be inserted
-  with a made-up result, deleted, or moved to another date or association
-  (repair: service role or a direct database login, never an API request); the attendance lock's repair exemption works
-  (it read current_user inside a definer function); a meeting completed
-  before results were recorded is counted from its attendance; the meeting
-  page shows calculate_meeting_quorum's result, so the quorum badge appears
-  when no quorum is set by hand.
+- (number on open) claude/meetings-list-order: Codex on #355 - meeting
+  lists (manager, board, owner, resident) put undated meetings last, so the
+  row limit never fills with undated ones and hides recent dated meetings.
 
 ## Merged 2026-10-13
+- #355 meetings: quorum read only and recorded by trigger at completion;
+  completed meetings frozen in the database (no reopen, quorum/date/
+  association change, delete or forged insert outside a repair session);
+  cancelled not reopenable; attendance locked; owner hearing window and
+  first-notice rule; charge_type change reposts (20261014100000-130000, live).
 - #354 work orders: long requests convert, vendor Open tab complete, no fake
   vendor status entries, owners rate only their own jobs (20261014090000,
   live).
@@ -492,6 +468,9 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#354 merged; open PR: #355 claude/mee
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- Known, not fixed (meetings deep check, 2026-10-13): staff who are not
+  assigned to an association can read executive-session attendee names and
+  agenda text (the meeting row itself is hidden). Offered to Mirsad.
 - DONE 2026-10-13: Receivables page totals at 2,000 units ~0.26 s
   unfiltered (receipts from payments). Measured, not worth changing:
   delinquent_units with the local date once per unit 129 -> 126 ms;
