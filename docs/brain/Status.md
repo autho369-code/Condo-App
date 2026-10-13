@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#363 merged; open PR: claude/autopay-cancel-race; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#363 merged; open PR: #364 claude/autopay-cancel-race; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/autopay-cancel-race: Codex P1 on #363 - a
+- #364 claude/autopay-cancel-race: Codex P1 on #363 - a
   canceled AutoPay setup returning while Stripe's completion was being
   processed could leave an active mandate after the page said nothing was
   saved. The cancel return now expires the Stripe session first and
