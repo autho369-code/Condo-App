@@ -39,3 +39,6 @@ metadata:
 
 ## Owner-visible violation timeline (2026-10-13)
 - `violations.owner_visible_history` is written only by `log_violation_event(..., p_owner_visible=true)` (open/advance/record_hearing/resolve) plus staff REST updates. Check every new note string passed with `true` for staff-only wording (e.g. 20261014080000 record_violation_hearing appended "credit them if the dismissal reverses them" to the owner text). Report intake (20260930230000) correctly passes `false`.
+
+## Stripe Checkout cancel races (2026-10-13, autopay-cancel-race)
+- A cancel_url hit is not proof the session can't complete: expire the session on the stored connected account first and only release locally on Stripe `expired`. Webhook-side "undo what I created" fixes keyed on an in-memory id (createdMandateId) are lost on redelivery (the retry finds the row as existing): key undo on a durable link (e.g. attempt id on the mandate) instead.

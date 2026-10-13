@@ -4,6 +4,8 @@ import {
   createOffSessionPaymentIntent,
   createSetupCheckoutSession,
   expectedStripeLivemode,
+  expireCheckoutSession,
+  getCheckoutSession,
   findPaymentIntentByMetadata,
   isIndeterminateStripeError,
   isStripeConfigured,
@@ -101,6 +103,25 @@ describe('Stripe Connect direct-charge requests', () => {
     expect(setupHeaders['Idempotency-Key']).toBe('autopay-setup-attempt-id');
     expect(runHeaders['Stripe-Account']).toBe('acct_Association123');
     expect(runHeaders['Idempotency-Key']).toBe('autopay-run-run-id');
+  });
+
+  it('expires and reads a canceled setup session on the association account', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(stripeResponse({ id: 'cs_setup_1', status: 'expired' }))
+      .mockResolvedValueOnce(stripeResponse({ id: 'cs_setup_1', status: 'expired' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(expireCheckoutSession('cs_setup_1', 'acct_Association123')).resolves.toMatchObject({ status: 'expired' });
+    await expect(getCheckoutSession('cs_setup_1', 'acct_Association123')).resolves.toMatchObject({ status: 'expired' });
+
+    const [expireUrl, expireInit] = fetchMock.mock.calls[0];
+    expect(String(expireUrl).endsWith('/checkout/sessions/cs_setup_1/expire')).toBe(true);
+    expect(expireInit?.method).toBe('POST');
+    const expireHeaders = expireInit?.headers as Record<string, string>;
+    expect(expireHeaders['Stripe-Account']).toBe('acct_Association123');
+    expect(expireHeaders['Idempotency-Key']).toBe('expire-cs_setup_1');
+    expect(fetchMock.mock.calls[1][1]?.method).toBe('GET');
+    await expect(expireCheckoutSession('pi_wrong', 'acct_Association123')).rejects.toThrow();
   });
 
   it('classifies an exhausted idempotent transport failure as indeterminate', async () => {

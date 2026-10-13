@@ -9,13 +9,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   createServiceClient: vi.fn(),
   retrievePaymentIntent: vi.fn(),
+  getSetupIntent: vi.fn(),
+  getPaymentMethod: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({ createServiceClient: mocks.createServiceClient }));
 vi.mock('@/lib/payments/reconcile', () => ({ reconcilePayouts: vi.fn() }));
 vi.mock('@/lib/payments/stripe', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/payments/stripe')>();
-  return { ...actual, retrievePaymentIntent: mocks.retrievePaymentIntent, listPayoutBalanceTransactions: vi.fn() };
+  return {
+    ...actual,
+    retrievePaymentIntent: mocks.retrievePaymentIntent,
+    getSetupIntent: mocks.getSetupIntent,
+    getPaymentMethod: mocks.getPaymentMethod,
+    listPayoutBalanceTransactions: vi.fn(),
+  };
 });
 
 const SECRET = 'whsec_' + 'b'.repeat(32);
@@ -32,13 +40,15 @@ function fakeDb(tables: Record<string, Row[]>, rpc: (name: string, args: any) =>
   const calls: { op: string; table: string; payload?: any; filters: [string, string, any][] }[] = [];
   const rpcCalls: { name: string; args: any }[] = [];
   function builder(table: string) {
-    const state: { op: string; payload?: any; filters: [string, string, any][]; selected: boolean } = {
+    const state: { op: string; payload?: any; filters: [string, string, any][]; selected: boolean; count?: boolean } = {
       op: 'select', filters: [], selected: false,
     };
     const rows = () => (tables[table] ?? []).filter((r) => state.filters.every(([kind, col, val]) => {
       if (kind === 'eq') return r[col] === val;
       if (kind === 'neq') return r[col] !== val;
       if (kind === 'not_in') return !String(val).replace(/[()"]/g, '').split(',').includes(r[col]);
+      if (kind === 'is') return (r[col] ?? null) === val;
+      if (kind === 'in') return (val as any[]).includes(r[col]);
       return true;
     }));
     const run = () => {
@@ -54,16 +64,19 @@ function fakeDb(tables: Record<string, Row[]>, rpc: (name: string, args: any) =>
         hit.forEach((r) => Object.assign(r, state.payload));
         return { data: hit.map((r) => ({ id: r.id })), error: null };
       }
-      return { data: rows(), error: null };
+      const found = rows();
+      return state.count ? { data: null, count: found.length, error: null } : { data: found, error: null };
     };
     const b: any = {
-      select() { state.selected = true; return b; },
+      select(_cols?: string, opts?: { count?: string }) { state.selected = true; if (opts?.count) state.count = true; return b; },
       insert(p: any) { state.op = 'insert'; state.payload = p; return b; },
       upsert(p: any) { state.op = 'upsert'; state.payload = p; return b; },
       update(p: any) { state.op = 'update'; state.payload = p; return b; },
       eq(c: string, v: any) { state.filters.push(['eq', c, v]); return b; },
       neq(c: string, v: any) { state.filters.push(['neq', c, v]); return b; },
       not(c: string, _op: string, v: any) { state.filters.push(['not_in', c, v]); return b; },
+      is(c: string, v: any) { state.filters.push(['is', c, v]); return b; },
+      in(c: string, v: any[]) { state.filters.push(['in', c, v]); return b; },
       limit() { return b; },
       order() { return b; },
       async maybeSingle() { const r = run(); return { data: r.data?.[0] ?? null, error: null }; },
@@ -243,5 +256,51 @@ describe('POST /api/stripe/webhook', () => {
     expect(res.status).toBe(200);
     expect(t.payment_intents[0]).toMatchObject({ status: 'failed', failure_reason: 'Card declined' });
     expect(db.rpcCalls.some((c) => c.name === 'post_stripe_ledger_payment')).toBe(false);
+  });
+
+  it('undoes the AutoPay it enrolled when the owner canceled the setup meanwhile', async () => {
+    const ATTEMPT_ID = '55555555-5555-4555-8555-555555555555';
+    const t = tables();
+    t.associations[0] = {
+      ...t.associations[0], timezone: 'America/Chicago',
+      stripe_charges_enabled: true, stripe_payouts_enabled: true, stripe_deauthorized_at: null,
+    };
+    t.stripe_setup_attempts = [{
+      id: ATTEMPT_ID, status: 'session_created', processor_session_id: 'cs_SETUP1', processor_account_id: ACCOUNT,
+      portfolio_id: 'p1', association_id: ASSOC_ID, owner_id: 'o1', unit_id: UNIT_ID,
+      expires_at: new Date(Date.now() + 3600_000).toISOString(), day_of_month: 5, mode: 'current_balance',
+      authorized_amount_max_cents: 50000, fixed_amount_cents: null, minimum_amount_cents: null, include_late_fees: false,
+    }];
+    t.occupancies = [{ owner_id: 'o1', unit_id: UNIT_ID, association_id: ASSOC_ID, status: 'current' }];
+    t.payment_methods = [];
+    // The owner's cancel lands while the webhook creates the mandate.
+    const mandates: Row[] = [];
+    const push = mandates.push.bind(mandates);
+    mandates.push = (...rows: Row[]) => {
+      t.stripe_setup_attempts[0].status = 'canceled';
+      return push(...rows);
+    };
+    t.autopay_mandates = mandates;
+    mocks.getSetupIntent.mockResolvedValue({
+      id: 'seti_SETUP1', status: 'succeeded', usage: 'off_session', payment_method: 'pm_SETUP1', customer: 'cus_SETUP1',
+    });
+    mocks.getPaymentMethod.mockResolvedValue({ id: 'pm_SETUP1', type: 'card', customer: 'cus_SETUP1', card: { last4: '4242', brand: 'visa' } });
+    const db = fakeDb(t, () => ({ data: true, error: null }));
+    mocks.createServiceClient.mockReturnValue(db.client);
+
+    const res = await post({
+      id: 'evt_SETUP1', type: 'checkout.session.completed', livemode: false, account: ACCOUNT,
+      data: { object: {
+        id: 'cs_SETUP1', mode: 'setup', setup_intent: 'seti_SETUP1', customer: 'cus_SETUP1',
+        metadata: { purpose: 'autopay_setup', setup_attempt_id: ATTEMPT_ID },
+      } },
+    });
+
+    expect(res.status).toBe(200);
+    expect(t.autopay_mandates).toHaveLength(1);
+    expect(t.autopay_mandates[0].status).toBe('canceled');
+    expect(t.stripe_setup_attempts[0].status).toBe('canceled');
+    expect(t.payment_methods[0].archived_at).toBeTruthy();
+    expect(t.payment_methods[0].is_default).toBe(false);
   });
 });

@@ -30,6 +30,60 @@ const MODES = [
   { value: 'minimum', label: 'Up to a set amount', hint: 'Your set amount, or less when less is due' },
 ];
 
+/**
+ * Release a setup the owner canceled in Stripe. The Stripe session is expired
+ * first, so it can never complete after the release; a session Stripe already
+ * completed is left to the webhook (the enrollment goes ahead).
+ *   released   - the attempt is canceled (or was already closed)
+ *   completing - Stripe completed the session; the enrollment is on its way
+ *   failed     - could not confirm with Stripe; the attempt expires in 24 h
+ */
+async function releaseCanceledSetup(setupId: string, ownerIds: string[]): Promise<'released' | 'completing' | 'failed'> {
+  const svc = createServiceClient() as any;
+  const { data: attempt, error } = await svc.from('stripe_setup_attempts')
+    .select('id, status, processor_session_id, processor_account_id')
+    .eq('id', setupId)
+    .in('owner_id', ownerIds)
+    .maybeSingle();
+  if (error || !attempt) return 'failed';
+  if (attempt.status === 'completed') return 'completing';
+  if (!['pending', 'session_created'].includes(attempt.status)) return 'released';
+
+  const cancel = async (fromStatus: string) => {
+    const { data: rows, error: cancelError } = await svc.from('stripe_setup_attempts')
+      .update({ status: 'canceled', updated_at: new Date().toISOString() })
+      .eq('id', attempt.id)
+      .eq('status', fromStatus)
+      .select('id');
+    if (cancelError) return 'failed' as const;
+    if (rows?.length) return 'released' as const;
+    // The webhook moved it on in the meantime.
+    const { data: now } = await svc.from('stripe_setup_attempts').select('status').eq('id', attempt.id).maybeSingle();
+    return now?.status === 'completed' ? 'completing' as const : 'released' as const;
+  };
+
+  // No Stripe session yet: nothing can complete.
+  if (attempt.status === 'pending' || !attempt.processor_session_id || !attempt.processor_account_id) {
+    return cancel(attempt.status);
+  }
+  const { isStripeConfigured, expireCheckoutSession, getCheckoutSession } = await import('@/lib/payments/stripe');
+  if (!isStripeConfigured()) return 'failed';
+  try {
+    const expired = await expireCheckoutSession(attempt.processor_session_id, attempt.processor_account_id);
+    if (expired?.status === 'expired') return cancel('session_created');
+  } catch {
+    // Stripe refuses to expire a completed session; read it to tell why.
+  }
+  try {
+    const session = await getCheckoutSession(attempt.processor_session_id, attempt.processor_account_id);
+    if (session?.status === 'complete') return 'completing';
+    if (session?.status === 'expired') return cancel('session_created');
+  } catch {
+    // fall through
+  }
+  return 'failed';
+}
+
 async function startAutopaySetup(formData: FormData) {
   'use server';
   const me = await requireOwner();
@@ -115,11 +169,18 @@ async function startAutopaySetup(formData: FormData) {
         setup_attempt_id: attempt.id,
       },
     });
-    const { error: sessionError } = await svc.from('stripe_setup_attempts').update({
+    const { data: recorded, error: sessionError } = await svc.from('stripe_setup_attempts').update({
       processor_session_id: session.id,
       status: 'session_created',
-    }).eq('id', attempt.id).eq('status', 'pending');
+    }).eq('id', attempt.id).eq('status', 'pending').select('id');
     if (sessionError) throw sessionError;
+    if (!recorded?.length) {
+      // The setup was canceled meanwhile: never send the owner to a Stripe
+      // session the portal no longer tracks.
+      const { expireCheckoutSession } = await import('@/lib/payments/stripe');
+      await expireCheckoutSession(session.id, occ.associations.stripe_account_id).catch(() => null);
+      redirect(`${RETURN}?error=${encodeURIComponent('That AutoPay setup was canceled. Please start again.')}`);
+    }
     redirect(session.url);
   } catch (err: any) {
     if (err?.digest?.startsWith?.('NEXT_REDIRECT')) throw err;
@@ -187,17 +248,9 @@ export default async function AutopayPage({
   const setupId = /^[0-9a-f-]{36}$/i.test(sp.setup ?? '') ? sp.setup! : null;
   // Back from Stripe with Cancel: release the reservation so the owner can
   // start again now (it would otherwise block a new setup until it expires).
-  // Stripe can no longer complete a canceled attempt (the webhook requires
-  // session_created).
-  let releaseFailed = false;
-  if (sp.canceled && setupId && me.owner_ids.length) {
-    const { error: releaseError } = await (createServiceClient() as any).from('stripe_setup_attempts')
-      .update({ status: 'canceled', updated_at: new Date().toISOString() })
-      .eq('id', setupId)
-      .in('owner_id', me.owner_ids)
-      .in('status', ['pending', 'session_created']);
-    releaseFailed = !!releaseError;
-  }
+  const cancelOutcome = sp.canceled && setupId && me.owner_ids.length
+    ? await releaseCanceledSetup(setupId, me.owner_ids)
+    : null;
   const { data: setupAttempt } = setupId
     ? await (createServiceClient() as any).from('stripe_setup_attempts')
         .select('status')
@@ -237,10 +290,10 @@ export default async function AutopayPage({
       {sp.error && <Alert tone="danger" title="AutoPay error">{sp.error}</Alert>}
       {sp.enrolled && <Alert tone="success" title="Payment method saved">Your AutoPay enrollment activates as soon as Stripe confirms the saved payment method (usually instant).</Alert>}
       {setupAttempt?.status === 'completed' && <Alert tone="success" title="Payment method saved">Your AutoPay enrollment is active.</Alert>}
-      {!sp.canceled && setupAttempt && ['pending', 'session_created'].includes(setupAttempt.status) && <Alert tone="info" title="Setup received">Stripe is confirming your saved payment method. This page will show the enrollment once processing completes.</Alert>}
+      {(!sp.canceled || cancelOutcome === 'completing') && setupAttempt && ['pending', 'session_created'].includes(setupAttempt.status) && <Alert tone="info" title="Setup received">Stripe is confirming your saved payment method. This page will show the enrollment once processing completes.</Alert>}
       {setupAttempt?.status === 'failed' && <Alert tone="danger" title="Setup could not be completed">No AutoPay enrollment was activated. Please start again.</Alert>}
-      {sp.canceled && (releaseFailed
-        ? <Alert tone="warning" title="Setup canceled">No payment method was saved. A new setup can start once the canceled one expires (within 24 hours).</Alert>
+      {sp.canceled && cancelOutcome !== 'completing' && (cancelOutcome === 'failed'
+        ? <Alert tone="warning" title="Setup canceled">AutoPay was not set up. A new setup can start once the canceled one expires (within 24 hours).</Alert>
         : <Alert tone="warning" title="Setup canceled">No payment method was saved. You can start again below.</Alert>)}
       {sp.updated && <Alert tone="success" title="AutoPay updated">Your changes are saved.</Alert>}
 
