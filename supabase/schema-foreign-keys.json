@@ -74,6 +74,7 @@
 "autopay_mandates.owner_id":"owners",
 "autopay_mandates.payment_method_id":"payment_methods",
 "autopay_mandates.portfolio_id":"portfolios",
+"autopay_mandates.setup_attempt_id":"stripe_setup_attempts",
 "autopay_mandates.unit_id":"units",
 "ballots.association_id":"associations",
 "bank_account_owners.bank_account_id":"bank_accounts",

@@ -303,4 +303,77 @@ describe('POST /api/stripe/webhook', () => {
     expect(t.payment_methods[0].archived_at).toBeTruthy();
     expect(t.payment_methods[0].is_default).toBe(false);
   });
+
+  it('a retried completion for a canceled setup undoes what an earlier delivery enrolled', async () => {
+    const ATTEMPT_ID = '66666666-6666-4666-8666-666666666666';
+    const t = tables();
+    t.stripe_setup_attempts = [{
+      id: ATTEMPT_ID, status: 'canceled', processor_session_id: 'cs_SETUP2', processor_account_id: ACCOUNT,
+      portfolio_id: 'p1', association_id: ASSOC_ID, owner_id: 'o1', unit_id: UNIT_ID,
+      expires_at: new Date(Date.now() + 3600_000).toISOString(), day_of_month: 5, mode: 'current_balance',
+    }];
+    // An earlier delivery enrolled before the attempt ended, then failed.
+    t.autopay_mandates = [
+      { id: 'm-1', setup_attempt_id: ATTEMPT_ID, portfolio_id: 'p1', owner_id: 'o1', unit_id: UNIT_ID, payment_method_id: 'pm-row-1', status: 'active' },
+      // Another setup's live mandate is not touched.
+      { id: 'm-2', setup_attempt_id: 'other-attempt', portfolio_id: 'p1', owner_id: 'o1', unit_id: 'other-unit', payment_method_id: 'pm-row-2', status: 'active' },
+    ];
+    t.payment_methods = [
+      { id: 'pm-row-1', portfolio_id: 'p1', owner_id: 'o1', archived_at: null, is_default: true },
+      { id: 'pm-row-2', portfolio_id: 'p1', owner_id: 'o1', archived_at: null, is_default: true },
+    ];
+    const db = fakeDb(t, () => ({ data: true, error: null }));
+    mocks.createServiceClient.mockReturnValue(db.client);
+
+    const res = await post({
+      id: 'evt_SETUP2', type: 'checkout.session.completed', livemode: false, account: ACCOUNT,
+      data: { object: {
+        id: 'cs_SETUP2', mode: 'setup', setup_intent: 'seti_SETUP2', customer: 'cus_SETUP2',
+        metadata: { purpose: 'autopay_setup', setup_attempt_id: ATTEMPT_ID },
+      } },
+    });
+
+    expect(res.status).toBe(200);
+    expect(t.autopay_mandates.find((m) => m.id === 'm-1')?.status).toBe('canceled');
+    expect(t.autopay_mandates.find((m) => m.id === 'm-2')?.status).toBe('active');
+    expect(t.payment_methods.find((m) => m.id === 'pm-row-1')?.archived_at).toBeTruthy();
+    expect(t.payment_methods.find((m) => m.id === 'pm-row-2')?.archived_at).toBeNull();
+    expect(mocks.getSetupIntent).not.toHaveBeenCalled();
+  });
+
+  it('a retry that fails an expired setup undoes what an earlier delivery enrolled', async () => {
+    const ATTEMPT_ID = '77777777-7777-4777-8777-777777777777';
+    const t = tables();
+    t.stripe_setup_attempts = [{
+      id: ATTEMPT_ID, status: 'session_created', processor_session_id: 'cs_SETUP3', processor_account_id: ACCOUNT,
+      portfolio_id: 'p1', association_id: ASSOC_ID, owner_id: 'o1', unit_id: UNIT_ID,
+      // The retry arrives after the setup window closed.
+      expires_at: new Date(Date.now() - 60_000).toISOString(), day_of_month: 5, mode: 'current_balance',
+    }];
+    t.autopay_mandates = [
+      { id: 'm-3', setup_attempt_id: ATTEMPT_ID, portfolio_id: 'p1', owner_id: 'o1', unit_id: UNIT_ID, payment_method_id: 'pm-row-3', status: 'active' },
+    ];
+    // An earlier run canceled another mandate but died before retiring its method.
+    t.autopay_mandates.push({ id: 'm-4', setup_attempt_id: ATTEMPT_ID, portfolio_id: 'p1', owner_id: 'o1', unit_id: UNIT_ID, payment_method_id: 'pm-row-4', status: 'canceled' });
+    t.payment_methods = [
+      { id: 'pm-row-3', portfolio_id: 'p1', owner_id: 'o1', archived_at: null, is_default: true },
+      { id: 'pm-row-4', portfolio_id: 'p1', owner_id: 'o1', archived_at: null, is_default: true },
+    ];
+    const db = fakeDb(t, () => ({ data: true, error: null }));
+    mocks.createServiceClient.mockReturnValue(db.client);
+
+    const res = await post({
+      id: 'evt_SETUP3', type: 'checkout.session.completed', livemode: false, account: ACCOUNT,
+      data: { object: {
+        id: 'cs_SETUP3', mode: 'setup', setup_intent: 'seti_SETUP3', customer: 'cus_SETUP3',
+        metadata: { purpose: 'autopay_setup', setup_attempt_id: ATTEMPT_ID },
+      } },
+    });
+
+    // The delivery fails loudly (Stripe retries), but AutoPay is already undone.
+    expect(res.status).toBe(500);
+    expect(t.stripe_setup_attempts[0].status).toBe('expired');
+    expect(t.autopay_mandates.find((m) => m.id === 'm-3')?.status).toBe('canceled');
+    expect(t.payment_methods.every((m) => m.archived_at)).toBe(true);
+  });
 });

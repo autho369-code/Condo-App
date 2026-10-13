@@ -3,7 +3,14 @@
 Back to [[Home]]. Updated 2026-10-13 (#279-#364 merged; open PR: claude/autopay-retry-cleanup; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/autopay-retry-cleanup: Codex P1 on #364.
+- (number on open) claude/autopay-retry-cleanup: Codex P1 on #364 - a retried
+  Stripe completion for a setup already canceled/expired/failed exited before
+  undoing a mandate an earlier delivery created. Mandates now record
+  setup_attempt_id (20261014200000, LIVE; set by the webhook only, column
+  guard); every path that ends a setup without completing (early check,
+  failAttempt on a retry, lost completion) cancels that setup's mandates and
+  retires saved methods nothing else uses, and finishes the retire on a
+  retry; a reused mandate is relinked to the setup completing on it.
 
 ## Merged 2026-10-13
 - #364 AutoPay: a canceled setup can't leave AutoPay active (Codex on #363).
