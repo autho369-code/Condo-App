@@ -64,3 +64,5 @@
 - Column-level revoke on user_invitations.token (20261014220000): user-client reads must name columns (no select('*'), no insert(...).select() returning token); v_pending_invitations is invoker but omits token.
 
 - Codex on #366 (missed here): a `claimSubmission` duplicate is a success only when `resultId` is set; a duplicate with no resultId is still running (or about to fail) and must not be reported as done.
+
+- Codex on #367 (missed here): the email hourly limit counted the client-set created_at (back-dated rows never counted) and ran without a lock (parallel sends each saw room). A limit counts only server-set values and locks its scope before counting (fixed in 20261014230000).
