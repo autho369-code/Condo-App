@@ -70,3 +70,7 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   caller's RLS client"; keep the service client and narrow its ids by the
   caller's scope RPC. Check every caller of the shared finder (page Alert
   listed file names too, not only the action).
+- Recurring 9th time (start check 2026-10-12, after #336 merged e5f10859):
+  Status line 3 "open PR: claude/rls-twin-scope" + "## Open PR" #336 entry
+  stale; `gh pr list --state open` empty. Same fix: move to Merged in the
+  next PR's first commit.

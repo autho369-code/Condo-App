@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Receivables (aged_receivables) 4-13x faster at scale (open PR,
+  20261013040000).
 - Policy copies of the association checks match a manager's scope; payout
   matching filters in the query (#336, 20261013030000).
 - Database functions that checked only the company respect a manager's
