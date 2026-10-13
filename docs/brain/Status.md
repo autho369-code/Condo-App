@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-12 (#279-#341 merged; open PR: claude/manager-scope-rest; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/manager-scope-rest: 20261013150000 (LIVE, Codex on
+- #342 claude/manager-scope-rest: 20261013150000 (LIVE, Codex on
   #341) payment_plan_paid_amount ignores reversed receipts and their reversal
   charges, so a future- or back-dated bounce reopens the plan (verified).
   Next on this branch: manager scope, rest.
