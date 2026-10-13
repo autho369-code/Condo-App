@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Payment plan reopens on a bounced payoff whatever the reversal date
+  (open PR, 20261013150000).
 - Payment plan reopens on a bounced payoff even with other receipts;
   reconciliation items can't race a completion (#341, 20261013140000).
 - E-signature lists 100-300x faster at scale (#340, 20261013100000).

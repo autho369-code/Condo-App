@@ -1,15 +1,16 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#340 merged; open PR: claude/codex-339-followups; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#341 merged; open PR: claude/manager-scope-rest; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #341 claude/codex-339-followups: 20261013140000 (LIVE)
-  payment plan recheck uses payment_plan_paid_amount (raw receipts could
-  keep a bounced plan completed; verified it reopens); reconciliation item
-  guard locks the parent FOR SHARE. NSF income GL-map key waits on Mirsad
-  (constraint swap SQL in docs/TODO.md).
+- (number on open) claude/manager-scope-rest: 20261013150000 (LIVE, Codex on
+  #341) payment_plan_paid_amount ignores reversed receipts and their reversal
+  charges, so a future- or back-dated bounce reopens the plan (verified).
+  Next on this branch: manager scope, rest.
 
 ## Merged 2026-10-12
+- #341 plan recheck canonical paid amount; reconciliation item lock
+  (20261013140000, live).
 - #340 signatures, transfers, attachments, notices, meeting items once per
   query; managers can create/edit meetings (20261013100000-130000, live).
 - #339 unapplied credits, page totals, NSF fee income, payment plan bounce,
