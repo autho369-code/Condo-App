@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-12 (#279-#336 merged; open PR: claude/aged-receivables-scale; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/aged-receivables-scale: aged_receivables looks up
+- #337 claude/aged-receivables-scale: aged_receivables looks up
   each charge's unit/building/association and payment sum by LATERAL index
   lookups (20261013040000 LIVE). Cause: RLS makes the planner expect ~1
   visible unit, so it compared every charge with every unit (6M
