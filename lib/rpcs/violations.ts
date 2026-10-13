@@ -161,7 +161,9 @@ export async function createFieldViolation(
  * Shared access check for violation photo actions. The violation is fetched
  * with the CALLER'S RLS-scoped client, so staff can only touch violations
  * inside their own portfolio; the service client is used afterwards only for
- * storage signing and the attachments write.
+ * storage signing and the attachments write. The global staff flag does not
+ * prove staff access to this violation (one login can be staff in one company
+ * and an owner in another), so the caller must also manage its association.
  */
 async function verifyViolationAttachmentAccess(violationId: string) {
   const me = await getMe();
@@ -171,10 +173,13 @@ async function verifyViolationAttachmentAccess(violationId: string) {
   const supabase = await createClient();
   const { data: violation } = await (supabase as any)
     .from('violations')
-    .select('id, attachments')
+    .select('id, attachments, association_id')
     .eq('id', violationId)
     .maybeSingle();
   if (!violation) return { error: 'Violation not found', violation: null, me };
+  const { data: canManage, error: scopeError } = await (supabase as any)
+    .rpc('can_manage_association', { p_association_id: violation.association_id });
+  if (scopeError || canManage !== true) return { error: 'You cannot add photos to this violation', violation: null, me };
   return { error: null as string | null, violation, me };
 }
 

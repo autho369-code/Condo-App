@@ -28,7 +28,7 @@ const SETTLEMENT_ACCOUNT_NOTE = 'Select this association\'s Stripe settlement ba
  * `portfolioId` limits the run to one company's payouts — required when a
  * company's own staff start it (the cron runs it for everyone).
  */
-export async function reconcilePayouts(svc: SupabaseClient, options: { portfolioId?: string } = {}): Promise<ReconcileSummary> {
+export async function reconcilePayouts(svc: SupabaseClient, options: { portfolioId?: string; associationIds?: string[] } = {}): Promise<ReconcileSummary> {
   const db = svc as any;
   const summary: ReconcileSummary = { examined: 0, reconciled: 0, needsReview: 0 };
 
@@ -38,7 +38,12 @@ export async function reconcilePayouts(svc: SupabaseClient, options: { portfolio
   // mismatch, unmapped or double-claimed charges) are left for a person.
   // Paged and ordered: unmatched payouts must not crowd out newer ones.
   const columns = 'id, portfolio_id, association_id, processor_account_id, settlement_bank_account_id, processor_payout_id, amount, arrival_date, status';
-  const scoped = (q: any) => (options.portfolioId ? q.eq('portfolio_id', options.portfolioId) : q);
+  // associationIds: a manager assigned to some associations matches only theirs.
+  const scoped = (q: any) => {
+    let r = options.portfolioId ? q.eq('portfolio_id', options.portfolioId) : q;
+    if (options.associationIds) r = r.in('association_id', options.associationIds);
+    return r;
+  };
   const [paid, awaitingAccount] = await Promise.all([
     fetchAllRows<any>(() => scoped(db.from('payout_batches').select(columns)
       .eq('status', 'paid').is('bank_transaction_id', null)).order('arrival_date', { ascending: false }).order('id')),

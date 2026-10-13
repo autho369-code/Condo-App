@@ -68,6 +68,11 @@ export async function addOwnerAttachment(ownerId: string, portfolioId: string, f
   const file = formData.get('file') as File | null;
   if (!file || file.size === 0) fail(ownerId, 'Choose a file to attach.');
   if (file.size > 25 * 1024 * 1024) fail(ownerId, 'Attachments are limited to 25 MB.');
+  // Resolve the owner through the caller's own access before anything is
+  // uploaded with the service client.
+  const { data: owner } = await (supabase as any)
+    .from('owners').select('id').eq('id', ownerId).eq('portfolio_id', portfolioId).maybeSingle();
+  if (!owner) fail(ownerId, 'Owner not found.');
 
   const svc = createServiceClient() as any;
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');

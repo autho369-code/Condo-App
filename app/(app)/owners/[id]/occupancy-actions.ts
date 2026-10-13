@@ -149,14 +149,16 @@ export async function endTenancy(tenantId: string, ownerId: string) {
   // Zero rows means the tenant is not this owner's (or not visible to this
   // manager) — never report success for a tenancy that was not ended.
   if (!tenant) fail(ownerId, 'That tenant was not found on this owner.');
-  if (tenant.email) {
+  {
     const svc = createServiceClient() as any;
+    // Every pending invitation for this resident (by tenant id, so one sent to
+    // an earlier address goes too), and none for the same person elsewhere.
     const { error: revokeError } = await svc.from('user_invitations')
       .update({ status: 'revoked', updated_at: new Date().toISOString() })
       .eq('portfolio_id', tenant.portfolio_id)
       .eq('hoa_role', 'tenant')
       .eq('status', 'pending')
-      .ilike('email', escapeLike(tenant.email));
+      .eq('metadata->>tenant_id', tenantId);
     if (revokeError) fail(ownerId, `Tenancy ended, but the pending portal invitation could not be revoked: ${revokeError.message}`);
     await svc.from('audit_logs').insert({
       entity_type: 'tenant',
@@ -422,6 +424,7 @@ export async function sendTenantPortalInvitation(tenantId: string, ownerId: stri
     .eq('portfolio_id', tenant.portfolio_id)
     .eq('hoa_role', 'tenant')
     .eq('status', 'pending')
+    .eq('metadata->>tenant_id', tenant.id)
     .ilike('email', escapeLike(email));
   if (revokeError) fail(ownerId, `Could not replace the earlier invitation: ${revokeError.message}`);
 
