@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Existing payment plans rechecked under the new measure (Codex on #345,
+  20261013230000).
 - Payment plans: one window by recording time; charges posted after a payoff,
   backdated bounces and two plans on one unit handled; Payment Plans report
   matches the plan (20261013200000/210000).

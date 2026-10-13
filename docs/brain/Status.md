@@ -1,24 +1,20 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#344 merged; open PR: claude/plan-completion-window; next: no open product gap listed, keep watching CSP and runtime logs; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#345 merged; open PR: claude/plan-recheck-existing; next: no open product gap listed, keep watching CSP and runtime logs; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #345 claude/plan-completion-window (all LIVE, read back):
-  20261013200000 payment plan measure, one window by recording time (Codex
-  on #344 + migration-reviewer adversarial pass): window = plan start to
-  completion/cancellation for receipts and charges; charges posted after
-  completion don't count; a bounce of a pre-plan receipt counts once
-  recorded after the plan started (any reversal date); on a unit with two
-  plans each owns its own money (one bounce never counts against two plans).
-  Seven rolled-back cases pass (A-G). Cancel
-  reason says "another plan on the unit is active".
-  20261013210000 Payment Plans report uses the plan measure (bounced
-  receipts showed as paid / "Current").
-  20261013220000 Receivables receipts counted from payments (70 -> 7 ms;
-  page 339 -> 257 ms at 2,000 units, same results unfiltered, by
-  association, by owner).
+- claude/plan-recheck-existing: 20261013230000 (LIVE, Codex on #345) runs
+  app_recheck_payment_plan once for every unit with an active or completed
+  plan, so plans marked completed under the old measure follow the new one
+  (verified rolled back: a stale completed plan reopens, paid 500; a second
+  run changes nothing). Production had 0 plans, so nothing changed there.
+  migration-reviewer: clean. Note: a completed plan now unpaid while its
+  case is in legal review is cancelled without a notice (existing recheck
+  behaviour); bulk recheck runs in one transaction (fine at current size).
 
 ## Merged 2026-10-13
+- #345 payment plan measure by recording time (cases A-G), report uses it,
+  Receivables receipts from payments (20261013200000-220000, live).
 - #344 future-dated bounce reopens a plan; new dues don't (20261013190000,
   live).
 - #343 reversal charge skipped only when its receipt is in the plan window
