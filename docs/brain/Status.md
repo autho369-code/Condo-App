@@ -1,15 +1,13 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#361 merged; open PR: #362 claude/recon-item-parent; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#362 merged; open PR: claude/owner-portal-fixes; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #362 claude/recon-item-parent: Codex on #361 - 20261014180000
-  (LIVE) an item update/delete is checked against the reconciliation it
-  belongs to (naming an open one let a completed item be changed). The
-  fund_type backfill could overwrite explicit insurance/escrow types; none
-  existed on production when it ran, so nothing was lost.
+- (number on open) claude/owner-portal-fixes: owner portal deep check.
 
 ## Merged 2026-10-13
+- #362 reconciliation items: an update or delete is checked against the
+  item's own reconciliation (Codex on #361; 20261014180000). Codex clean.
 - #361 banking: reserve funds guarded, closed months audited, reconciliations
   enforced in the database (20261014170000).
 - #360 payables follow-ups: 1099 link finance-only; recurring bills via
