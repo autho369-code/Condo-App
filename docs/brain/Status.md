@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-12 (#279-#342 merged; open PR: claude/plan-reversal-window; next: Receivables page totals at 2,000 units (keep watching CSP); Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/plan-reversal-window: 20261013180000 (LIVE, Codex on #342)
+- #343 claude/plan-reversal-window: 20261013180000 (LIVE, Codex on #342)
   payment_plan_paid_amount skips a reversal charge only when its receipt is
   inside the plan window, so a pre-plan receipt bounced after the plan starts
   still lowers the paid amount (verified: drop of 500; 0 plans on prod).
