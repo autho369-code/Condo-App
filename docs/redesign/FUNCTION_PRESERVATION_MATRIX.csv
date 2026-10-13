@@ -7889,7 +7889,7 @@ id,role,route,type,item,guard,redesigned_location,verification
 "manager|/work-orders/:id|action|assignWorkOrderToStaff","manager","/work-orders/:id","Form or server action","assignWorkOrderToStaff","","unchanged route","static parity: pending"
 "manager|/work-orders/:id|action|chargeBackWorkOrder","manager","/work-orders/:id","Form or server action","chargeBackWorkOrder","","unchanged route","static parity: pending"
 "manager|/work-orders/:id|action|createMaintenanceUpload","manager","/work-orders/:id","Form or server action","createMaintenanceUpload","","unchanged route","static parity: pending"
-"manager|/work-orders/:id|action|createWorkOrderFromServiceRequest","manager","/work-orders/:id","Form or server action","createWorkOrderFromServiceRequest","","unchanged route","static parity: pending"
+"manager|/work-orders/:id|action|createWorkOrderFromServiceRequest","manager","/work-orders/:id","Form or server action","createWorkOrderFromServiceRequest","","removed: unused, no caller (2026-10-13)","static parity: removed"
 "manager|/work-orders/:id|action|postAction","manager","/work-orders/:id","Form or server action","postAction","","unchanged route","static parity: pending"
 "manager|/work-orders/:id|action|postWorkOrderMessage","manager","/work-orders/:id","Form or server action","postWorkOrderMessage","","unchanged route","static parity: pending"
 "manager|/work-orders/:id|action|rateWorkOrder","manager","/work-orders/:id","Form or server action","rateWorkOrder","","unchanged route","static parity: pending"
