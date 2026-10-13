@@ -1,18 +1,17 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#347 merged; open PR: claude/application-unit-guard; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#348 merged; open PR: claude/application-unit-lock; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #348 claude/application-unit-guard (Codex on #347): 20261014020000 (LIVE) an
-  applied payment or charge cannot move to another unit (verified: both
-  refused, an unapplied charge still moves). Webhook route tests
-  (tests/payments/stripe-webhook-route.test.ts, 10): signature, livemode,
-  connected account, card/ACH ledger post once, duplicate event, amount and
-  account mismatch, failed payment. Online-payment note relabelled: database
-  + webhook route verified; checkout and the AutoPay route still need a
-  Stripe test-mode run.
+- #349 claude/application-unit-lock (Codex on #348): 20261014030000 (LIVE) the
+  same-unit application check reads the payment and charge FOR SHARE, so an
+  application and a unit move serialize (one waits, then is refused).
+  Verified rolled back: auto-apply, specific charge, credit on a new charge,
+  reversal all work; cross-unit still refused.
 
 ## Merged 2026-10-13
+- #348 applied payments/charges keep their unit (20261014020000, live);
+  Stripe webhook route tests.
 - #347 money policies without nested RLS (20261014000000), payments apply
   to own unit (20261014010000), sweeps verified (live).
 - #346 recheck existing payment plans under the new measure

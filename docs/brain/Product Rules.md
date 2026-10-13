@@ -99,6 +99,10 @@ Back to [[Home]].
   rls_private plpgsql SECURITY INVOKER set function (same rows: the caller's
   policies still apply) and use `col in (select rls_private.fn())`
   (20261014000000). Migration versions must be real UTC times (no hour 24).
+- **Cross-row checks in triggers lock what they read** (2026-10-13): a
+  trigger that checks a row against another table's row reads it FOR SHARE
+  (or shares an advisory lock with the trigger guarding the other side), so
+  two concurrent writes cannot each pass on stale data (20261014030000).
 - **A changed measure rechecks stored statuses** (2026-10-13): when a
   migration changes a function a stored status is derived from (e.g.
   payment_plan_paid_amount -> payment_plans.status), the same migration
