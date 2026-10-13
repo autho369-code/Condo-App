@@ -4,18 +4,21 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#353 merged; open PRs: #354 claude/wo
 
 ## Open PR
 - claude/meeting-fixes (stacked on #354; merge #354 first):
-  20261014100000 (LIVE): calculate_meeting_quorum still answers everyone it
-  lets in but records only for a caller who can edit the meeting while it is
-  scheduled or in progress; a manager-set quorum is the number needed (the
-  percentage of units only when none is set); a completed meeting reports
-  its recorded result. Publishing minutes records the quorum first (nothing
-  wrote it before). Notes and attendance are locked once a meeting is
-  completed or cancelled. Manager meetings list: narrow columns, newest 500
-  with a notice, load errors shown (was select * of every meeting, 6 MB at
-  3,000). Known, not fixed: unassigned staff (e.g. assistant manager) can
-  read executive-session attendee names and agenda text through
-  meeting_attendees_staff_select / meetings_staff_select.
-- #354 claude/work-order-fixes:  20261014090000 (LIVE): triage cuts work_orders.description to 2,000 (full
+  20261014100000 (LIVE): calculate_meeting_quorum is read only (owners and
+  view-only staff could rewrite a completed meeting's quorum); a trigger
+  records quorum_met/quorum_requirement/total_units in the same UPDATE that
+  completes a meeting (nothing recorded it before); counts owners present,
+  voting-eligible and owning on the meeting's local date (the page's rule);
+  a manager-set quorum wins over the percentage; attendance is locked in
+  the database once a meeting is completed or cancelled. App: notes and
+  attendance actions refuse closed meetings; manager meetings list narrow
+  columns, newest 500 with a notice, load errors shown. Reviews: security
+  (read-only operator could still write; record-then-complete not atomic;
+  attendance lock app-only) and migration (owning date) - all fixed by the
+  trigger design. Known, not fixed: unassigned staff can read
+  executive-session attendee names and agenda text.
+- #354 claude/work-order-fixes:
+  20261014090000 (LIVE): triage cuts work_orders.description to 2,000 (full
   text stays in issue) so long service requests convert; rate_work_order
   owner branch requires a current resident unit and a job created since
   move-in; vendor work_order_updates may only carry the work order's real

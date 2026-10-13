@@ -137,12 +137,8 @@ export async function publishMeetingMinutes(meetingId: string) {
   if (draftError) back(meetingId, `?error=${encodeURIComponent(draftError.message)}`);
   const minutes = String(draft?.minutes_draft ?? '').trim();
   if (!minutes) back(meetingId, '?error=Write%20and%20save%20the%20minutes%20before%20publishing%20them.');
-  // Record the quorum result as the meeting closes; calculate_meeting_quorum
-  // only records while the meeting is scheduled or in progress.
-  if (meeting.status !== 'completed') {
-    const { error: quorumError } = await (supabase as any).rpc('calculate_meeting_quorum', { p_meeting_id: meetingId });
-    if (quorumError) back(meetingId, `?error=${encodeURIComponent(`The quorum could not be recorded: ${quorumError.message}`)}`);
-  }
+  // Completing the meeting records its quorum result in the same update
+  // (trigger meetings_record_quorum_on_complete).
   const { data: updated, error } = await (supabase as any).from('meetings')
     .update({ minutes, status: 'completed' })
     .eq('id', meetingId)
