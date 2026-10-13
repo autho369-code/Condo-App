@@ -17,6 +17,11 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#353 merged; open PRs: #354 claude/wo
   attendance lock app-only) and migration (owning date) - all fixed by the
   trigger design. Known, not fixed: unassigned staff can read
   executive-session attendee names and agenda text.
+  Also (Codex on #353): 20261014110000 (LIVE) owner_violation_hearing_window
+  gives the owner page the request deadline and today in the association's
+  calendar: the form is replaced by "The time to request a hearing ended
+  on ..." after it; hearing_at preferred over the older hearing_date; a
+  date-only hearing day counts as held only after that local day.
 - #354 claude/work-order-fixes:
   20261014090000 (LIVE): triage cuts work_orders.description to 2,000 (full
   text stays in issue) so long service requests convert; rate_work_order

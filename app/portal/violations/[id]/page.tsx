@@ -69,8 +69,20 @@ export default async function OwnerViolationDetail({
     .filter((h: any) => h && typeof h.event === 'string' && h.event.trim())
     .map((h: any) => ({ at: typeof h.at === 'string' ? h.at : null, event: String(h.event) }))
     .reverse() as Array<{ at: string | null; event: string }>
-  const hearingOn = v.hearing_date ?? v.hearing_at
-  const hearingHeld = Boolean(v.board_decision) || (hearingOn ? new Date(hearingOn).getTime() < Date.now() : false)
+  // Hearing deadline and today, both in the association's calendar (the
+  // database refuses requests after the deadline).
+  const { data: windowRows } = await db.rpc('owner_violation_hearing_window', { p_violation_id: v.id })
+  const hearingWindow = (Array.isArray(windowRows) ? windowRows[0] : windowRows) as { deadline: string | null; today: string } | undefined
+  const today = hearingWindow?.today ?? null
+  const requestDeadline = hearingWindow?.deadline ?? null
+  const requestWindowClosed = Boolean(requestDeadline && today && today > requestDeadline)
+  // hearing_at is what record_violation_hearing writes; hearing_date is the
+  // older scheduled date. A date-only day has passed once the association's
+  // calendar is past it; a timestamp once that moment is past.
+  const hearingOn = v.hearing_at ?? v.hearing_date
+  const hearingHeld = Boolean(v.board_decision) || (v.hearing_at
+    ? new Date(v.hearing_at).getTime() < Date.now()
+    : Boolean(v.hearing_date && today && today > v.hearing_date))
 
   async function requestHearing(formData: FormData) {
     'use server'
@@ -173,9 +185,11 @@ export default async function OwnerViolationDetail({
           </div>
         ) : v.status === 'closed' || v.status === 'cured' ? (
           <p className="text-sm text-gray-500">This violation is closed, so a hearing can no longer be requested.</p>
+        ) : requestWindowClosed ? (
+          <p className="text-sm text-gray-500">The time to request a hearing ended on {date(requestDeadline)}. Contact your association manager with any questions.</p>
         ) : (
           <form action={requestHearing} className="space-y-4">
-            <div><h2 className="text-base font-semibold text-gray-950">Request a hearing</h2><p className="mt-1 text-sm text-gray-500">Explain why you are contesting the violation or what you want the board to review.</p></div>
+            <div><h2 className="text-base font-semibold text-gray-950">Request a hearing</h2><p className="mt-1 text-sm text-gray-500">Explain why you are contesting the violation or what you want the board to review.{requestDeadline ? ` Requests are accepted through ${date(requestDeadline)}.` : ''}</p></div>
             <Textarea name="reason" required minLength={10} maxLength={1000} rows={4} placeholder="Describe the facts, dates, or governing-document issue you want reviewed." />
             <Button type="submit">Submit hearing request</Button>
           </form>
