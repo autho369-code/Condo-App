@@ -10,7 +10,8 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#334 merged; open PR: claude/definer-
   worksheet, meeting financial snapshot), can_manage_violations,
   can_mutate_association_budget and late-fee override (its row-level twin
   rls_private.my_accessible_association_ids stays company-wide; all 60
-  tables using it carry mgr_assoc_scope). Notes/tags check the record
+  tables using it carry mgr_assoc_scope; 20261013020000 fixes its comment
+  and makes app_record_in_manager_scope internal). Notes/tags check the record
   (app_record_in_manager_scope); meeting quorum, work-order rating and board
   approval settings check the association. Functions patched in place with a
   match-exactly-once guard. Reviewed and left: owner/tenant/vendor/board/

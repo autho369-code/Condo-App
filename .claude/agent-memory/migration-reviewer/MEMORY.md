@@ -24,7 +24,7 @@
 - Narrowing a permissive USING (true) policy: demand per-role before/after row counts; shared portfolio_id-NULL rows may rely on it (20261012010000).
 
 ## Topic files
-- [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks
+- [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns
 - [Owners and vendors](owners-vendors.md) — association/login models, self-service guards, many-records-per-login checks
 - [Purge and FKs](purge-and-fks.md) — cascade/NO ACTION maps, polymorphic tables, trigger re-enable pitfalls
