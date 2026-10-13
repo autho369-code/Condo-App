@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#366 merged; open PR: claude/email-queue-security; next: communications follow-ups; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#366 merged; open PR: #367 claude/email-queue-security; next: communications follow-ups; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/email-queue-security: communications deep check
+- #367 claude/email-queue-security: communications deep check
   (P1 account takeover) + Codex on #366. 20261014220000 (LIVE):
   - any company staff login could read password-reset and invitation links
     in email_queue and redirect a pending one (UPDATE to_email): rows with a
