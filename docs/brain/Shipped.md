@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- A payment made before a payment plan that bounces after it started reopens
+  the plan (Codex on #342, 20261013180000).
 - Managers limited to some associations no longer reach other owners'
   payment methods and letters; company-wide automations read-only for them
   (#342, 20261013160000).

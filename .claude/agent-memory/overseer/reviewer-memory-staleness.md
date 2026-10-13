@@ -21,3 +21,7 @@ Rule: when a PR fixes a hole a reviewer recorded, its memory line must say "fixe
   sharing hole as open ("write policy must forbid the flag") though the diff
   fixed it read-side. Also Next gaps "DONE ... see Open PR" lines go stale
   when Open PR is replaced: point them at the merged PR number.
+- 2026-10-12 (plan-reversal-window, Codex P1 on merged #342): migration-reviewer
+  data-writers.md still said payment_plan_paid_amount "already nets" reversals;
+  after 150000/180000 a reversal charge is skipped only when its receipt is in
+  the plan window. Codex catches on a merged PR = reviewer lesson in the follow-up PR.

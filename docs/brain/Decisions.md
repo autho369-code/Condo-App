@@ -173,3 +173,7 @@ Back to [[Home]]. Don't redo these.
   the database refuses changes to it and its items and refuses completing an
   unbalanced one (20261013080000/090000). A mistaken one is fixed by the
   platform (service role is not blocked). The app never offered reopening.
+- 2026-10-13: a payment plan measures a bounced receipt as a pair: the
+  receipt and its reversal charge are both left out only when the receipt is
+  inside the plan window; a receipt from before the plan that bounces counts
+  its reversal charge against the plan (20261013150000/180000).

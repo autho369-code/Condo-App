@@ -1,21 +1,16 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#341 merged; open PR: claude/manager-scope-rest; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#342 merged; open PR: claude/plan-reversal-window; next: Receivables page totals at 2,000 units (keep watching CSP); Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #342 claude/manager-scope-rest: 20261013150000 (LIVE, Codex on
-  #341) payment_plan_paid_amount ignores reversed receipts and their reversal
-  charges, so a future- or back-dated bounce reopens the plan (verified).
-  Stacked 20261013160000 (LIVE): rows without an association for scoped
-  managers: payment_methods and physical_mail_deliveries via the owner,
-  payable_checks via the bill, company-wide automation_flows read-only
-  (create/update/delete need an unscoped caller). Verified before/after.
-  Review follow-ups: deleteAutomationFlow checks a row was deleted (RLS
-  deletes 0 rows silently); creating an all-associations flow as a scoped
-  manager gets a plain message; 20261013170000 (LIVE) reversal-charge lookup
-  narrowed by unit.
+- #343 claude/plan-reversal-window: 20261013180000 (LIVE, Codex on #342)
+  payment_plan_paid_amount skips a reversal charge only when its receipt is
+  inside the plan window, so a pre-plan receipt bounced after the plan starts
+  still lowers the paid amount (verified: drop of 500; 0 plans on prod).
 
 ## Merged 2026-10-12
+- #342 paid amount ignores reversals; manager scope on rows without an
+  association (20261013150000-170000, live).
 - #341 plan recheck canonical paid amount; reconciliation item lock
   (20261013140000, live).
 - #340 signatures, transfers, attachments, notices, meeting items once per

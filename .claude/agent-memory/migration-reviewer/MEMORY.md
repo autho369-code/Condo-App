@@ -21,6 +21,7 @@
 - New company-data table needs the `operator_write_guard` statement trigger (#275 missed it, 2026-10-10).
 - Before flagging an unrestricted UPDATE policy, grep ALL migrations for triggers on the table (`_000_self_service_guard`).
 - INVOKER RPCs cannot call service_role-only GL helpers; a postgres-run compile/test does not catch EXECUTE gaps.
+- A measure that excludes a pair (receipt + its reversal charge) must apply the SAME window to both sides; #342 (20261013150000/170000) skipped every reversal charge, even for pre-plan receipts never counted. Codex caught it, I missed it.
 - Narrowing a permissive USING (true) policy: demand per-role before/after row counts; shared portfolio_id-NULL rows may rely on it (20261012010000).
 
 ## Topic files
