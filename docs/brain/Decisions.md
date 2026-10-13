@@ -176,4 +176,7 @@ Back to [[Home]]. Don't redo these.
 - 2026-10-13: a payment plan measures a bounced receipt as a pair: the
   receipt and its reversal charge are both left out only when the receipt is
   inside the plan window; a receipt from before the plan that bounces counts
-  its reversal charge against the plan (20261013150000/180000).
+  its reversal charge against the plan as soon as the bounce is recorded,
+  even when the reversal is dated in the future (20261013150000/180000/190000). A completed plan reopens only on a payment
+  correction; ordinary dues that fall due after completion are a new
+  delinquency, not the old plan (190000).

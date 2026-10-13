@@ -1,14 +1,19 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#342 merged; open PR: claude/plan-reversal-window; next: Receivables page totals at 2,000 units (keep watching CSP); Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#343 merged; open PR: claude/plan-future-reversal; next: Receivables page totals at 2,000 units (keep watching CSP); Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #343 claude/plan-reversal-window: 20261013180000 (LIVE, Codex on #342)
-  payment_plan_paid_amount skips a reversal charge only when its receipt is
-  inside the plan window, so a pre-plan receipt bounced after the plan starts
-  still lowers the paid amount (verified: drop of 500; 0 plans on prod).
+- #344 claude/plan-future-reversal: 20261013190000 (LIVE, Codex on #343)
+  a reversal charge of a receipt from outside the plan window counts once the
+  bounce is recorded, even when dated in the future (nothing rechecks the plan
+  on that date). Verified: old stayed completed; new reopens, paid 1200 -> 700.
+  migration-reviewer: ordinary charges count only up to completion, so next
+  month's dues no longer reopen a completed plan (verified old=active,
+  new=completed).
 
 ## Merged 2026-10-12
+- #343 reversal charge skipped only when its receipt is in the plan window
+  (20261013180000, live).
 - #342 paid amount ignores reversals; manager scope on rows without an
   association (20261013150000-170000, live).
 - #341 plan recheck canonical paid amount; reconciliation item lock

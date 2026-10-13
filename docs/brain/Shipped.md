@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- A payment plan reopens when a payment from before it bounces with a future
+  date (Codex on #343, 20261013190000).
 - A payment made before a payment plan that bounces after it started reopens
   the plan (Codex on #342, 20261013180000).
 - Managers limited to some associations no longer reach other owners'
