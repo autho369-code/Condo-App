@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-13 (#279-#350 merged; open PR: claude/vault-reports-at-scale; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/vault-reports-at-scale: vault only (report timings below).
+- #351 claude/vault-reports-at-scale: vault only (report timings below).
 
 ## Merged 2026-10-13
 - #350 budget pages 15-35x faster, ledger totals ~8x faster
