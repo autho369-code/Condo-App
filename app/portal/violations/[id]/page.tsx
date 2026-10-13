@@ -71,7 +71,10 @@ export default async function OwnerViolationDetail({
     .reverse() as Array<{ at: string | null; event: string }>
   // Hearing deadline and today, both in the association's calendar (the
   // database refuses requests after the deadline).
-  const { data: windowRows } = await db.rpc('owner_violation_hearing_window', { p_violation_id: v.id })
+  const { data: windowRows, error: windowError } = await db.rpc('owner_violation_hearing_window', { p_violation_id: v.id })
+  // The database still refuses a late request; without the window the page
+  // just can't say the deadline in advance.
+  if (windowError) console.error('owner_violation_hearing_window failed:', windowError.message)
   const hearingWindow = (Array.isArray(windowRows) ? windowRows[0] : windowRows) as { deadline: string | null; today: string } | undefined
   const today = hearingWindow?.today ?? null
   const requestDeadline = hearingWindow?.deadline ?? null
@@ -112,7 +115,7 @@ export default async function OwnerViolationDetail({
         <div className="grid grid-cols-2 gap-4 text-sm mb-4">
           <div><span className="text-gray-500">Date Observed:</span> <span className="text-gray-900">{date(v.date_observed)}</span></div>
           <div><span className="text-gray-500">Fine:</span> <span className="text-gray-900 font-medium">{fines > 0 ? money(fines) : 'None'}</span></div>
-          <div><span className="text-gray-500">Hearing Date:</span> <span className="text-gray-900">{v.hearing_date ? date(v.hearing_date) : v.hearing_at ? date(v.hearing_at) : 'Not scheduled'}</span></div>
+          <div><span className="text-gray-500">Hearing Date:</span> <span className="text-gray-900">{hearingOn ? date(hearingOn) : 'Not scheduled'}</span></div>
           <div><span className="text-gray-500">Notice Sent:</span> <span className="text-gray-900">{v.notice_sent_at ? date(v.notice_sent_at) : '—'}</span></div>
           <div><span className="text-gray-500">Board Decision:</span> <span className="text-gray-900 capitalize">{v.board_decision ?? 'Pending'}</span></div>
           {v.governing_document_reference && <div className="col-span-2"><span className="text-gray-500">Governing Doc:</span> <span className="text-gray-900">{v.governing_document_reference}</span></div>}
@@ -185,6 +188,8 @@ export default async function OwnerViolationDetail({
           </div>
         ) : v.status === 'closed' || v.status === 'cured' ? (
           <p className="text-sm text-gray-500">This violation is closed, so a hearing can no longer be requested.</p>
+        ) : v.board_decision ? (
+          <p className="text-sm text-gray-500">The board has decided this violation (violation {v.board_decision}), so a hearing can no longer be requested.</p>
         ) : requestWindowClosed ? (
           <p className="text-sm text-gray-500">The time to request a hearing ended on {date(requestDeadline)}. Contact your association manager with any questions.</p>
         ) : (
