@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#359 merged; open PR: claude/payables-followups; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#359 merged; open PR: #360 claude/payables-followups; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/payables-followups: Codex on #359 - 1099
+- #360 claude/payables-followups: Codex on #359 - 1099
   reporting link shown only to finance staff (NAV_ACCESS); vendor portal
   warns when its totals hit the row cap. 20261014160000 (LIVE): direct
   writes to recurring_bills withdrawn (RPCs only); pay_owner_payable date
