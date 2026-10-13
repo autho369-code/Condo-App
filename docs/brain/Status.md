@@ -7,7 +7,13 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#338 merged; open PR: claude/receivab
   v_unapplied_credits one LATERAL sum per payment (manager 271 -> 71 ms,
   identical rows for 7 roles); 20261013070000 receivables_page_totals reuses
   the delinquent list on the unfiltered page (manager 901 -> 543 ms, board
-  951 -> 665 ms, identical results for 6 roles). Both LIVE.
+  951 -> 665 ms, identical results for 6 roles). Both LIVE. Stacked
+  20261013080000 (LIVE) money-flow fixes: NSF fee credited to NSF fee
+  income (4410; pattern '%nsf fee%' because "Transfer Fee" contains nsf);
+  payment plan reopens when its payoff payment bounces (recheck ignores
+  reversed payments and now fires on reversed_at); completed bank
+  reconciliations and their items are read-only and completing requires a
+  zero difference in the database. Verified in rolled-back transactions.
 
 ## Merged 2026-10-12
 - #338 delinquent_units by (unit_id, due_date) index (20261013050000, live).
@@ -445,11 +451,18 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#338 merged; open PR: claude/receivab
   company-wide rows editable by a scoped manager (require company admin).
   Security-definer views/RPCs
   over these tables are not narrowed by policies.
-- NEXT: remaining per-row policies measured at scale: owner_attachments
-  (can_view_owner_row), bank_transfers (app_can_view_bank_account),
-  signatures (can_manage_signatures), meeting items
-  (can_access_confidential_meeting_mvp), notices, association_budgets.
-  Budget lines done (#329).
+- NEXT (measured 2026-10-13, 5,000 rows each, rolled back): per-row
+  policies. signature_requests 0.6-1.4 s, signature_signers/events up to
+  4.1 s (even board/owner who see 0 rows ~1 s): can_manage_signatures per
+  row, twice; bank_transfers 0.65-0.8 s every role
+  (app_can_view_bank_account x2 per row); owner_attachments 0.25-0.36 s
+  staff (can_view_owner_row); notices 0.48 s owner portal
+  (is_notice_recipient per row); agenda_items 0.76 s company admin at 2,600
+  meetings (can_access_confidential_meeting_mvp per meeting; meeting
+  documents/action items same shape). association_budgets fine. Fix: set
+  helpers in rls_private (my_signature_portfolio_ids, my_signature_request_ids,
+  my_scoped_bank_account_ids, my_managed_owner_ids, my_notice_ids,
+  my_confidential_meeting_ids) used as col in (select ...).
 - DONE 2026-10-13: ledger flows exercised (rolled back, manager, Randolph):
   recurring charges, late fees (manual/cron/overrides), management fees,
   bank reconciliation, payment plans, owner credits PASS. Bugs: NSF fee

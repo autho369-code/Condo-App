@@ -6,6 +6,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 ## 2026-10-13
 - Unapplied credits 3x faster; unfiltered Receivables totals read past-due
   units once (#339, 20261013060000/070000).
+- NSF fee to NSF income, payment plan reopens after a bounced payoff,
+  completed bank reconciliations locked (#339, 20261013080000).
 - Past-due units list 2.5x faster at scale (#338, 20261013050000).
 - Receivables (aged_receivables) 4-13x faster at scale (#337,
   20261013040000).
