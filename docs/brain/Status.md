@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-12 (#279-#337 merged; open PR: claude/delinquent-units-scale; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/rls-per-row-policies: e-signature reads once per
+- #340 claude/rls-per-row-policies: e-signature reads once per
   query (20261013100000 LIVE): requests use the house portfolio form,
   signers/events read through rls_private.my_signature_request_ids(). Dry run
   5,000 requests/signers/events: identical rows for 7 roles; signers up to
