@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-13 (#279-#351 merged; open PR: claude/charge-balances-one-sum; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/charge-balances-one-sum (both LIVE, read back): 20261014060000
+- #352 claude/charge-balances-one-sum (both LIVE, read back): 20261014060000
   v_charge_balances and 20261014070000 v_charges_by_category add up each
   charge's applications once (LATERAL) instead of 4 / 2 correlated copies,
   each of which evaluated the payment_applications access rules again.
