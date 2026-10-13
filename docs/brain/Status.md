@@ -1,10 +1,11 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#346 merged; open PR: claude/scope-sweep-and-online-payments; next: online payments end-to-end rolled-back run before the Stripe pilot, then NSF fee income GL setting (waits on Mirsad's constraint SQL); Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#346 merged; open PR: claude/scope-sweep-and-online-payments; next: views joining charges/payments to units measured per role at scale (owner ledger, board financials); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/scope-sweep-and-online-payments: vault only so far (definer sweep
-  verified, see Next gaps); online-payment rolled-back run in progress.
+- claude/scope-sweep-and-online-payments: vault only. Definer sweep and the
+  online-payment rolled-back run both verified with no change needed (see
+  Next gaps).
 
 ## Merged 2026-10-13
 - #346 recheck existing payment plans under the new measure
@@ -454,6 +455,17 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#346 merged; open PR: claude/scope-sw
 - The same RLS estimate (about one visible unit) can make any view that
   joins charges or payments to units nested-loop at scale; the fix pattern
   is a LATERAL lookup by the unit id (20261013040000).
+- DONE 2026-10-13 (verified, no change): online payments end to end, rolled
+  back on production (Randolph, test Stripe account id): webhook ledger post
+  (post_stripe_ledger_payment as service_role) card and ACH, a repeated
+  event returns the same payment (1 row), journal Dr Operating cash / Cr AR
+  balanced, intent succeeded, an active payment plan completes; a manager
+  reversal (dispute lost / ACH return R01) with NSF fee: Dr AR / Cr cash and
+  Dr AR / Cr NSF Fees Collected, plan reopens, balance +250 +35. AutoPay:
+  claim once (second claim same day returns nothing), failed finalize counts
+  one failure, moves next run a month, repeat finalize is a no-op, no same-day
+  retry after a Stripe failure. Refunds/disputes only flag the intent for a
+  manager (by design, header of app/api/stripe/webhook/route.ts).
 - DONE 2026-10-13 (verified, no change): definer functions/views over
   payment_methods, physical mail, payable checks, automation flows and
   owner payables. No view reads them. Signed-in callable ones all check the
