@@ -82,6 +82,14 @@ export async function createAutomationFlow(formData: FormData) {
   }
   if (actions.length === 0) failTo('Pick at least one action.');
 
+  // A manager assigned to some associations can't add a company-wide flow
+  // (the database refuses it); say so instead of showing the raw refusal.
+  if (!associationId) {
+    const { data: scoped, error: scopeError } = await db.rpc('manager_is_scoped');
+    if (scopeError) failTo('Could not check your associations.');
+    if (scoped === true) failTo('A flow for all associations needs a manager who works on every association. Pick one of your associations.');
+  }
+
   const { error } = await db.from('automation_flows').insert({
     portfolio_id: me.portfolio.id,
     association_id: associationId,
@@ -137,8 +145,12 @@ export async function deleteAutomationFlow(formData: FormData) {
   void me;
 
   // Runs cascade with the flow (on delete cascade).
-  const { error } = await db.from('automation_flows').delete().eq('id', flowId);
+  const { data: deleted, error } = await db.from('automation_flows').delete().eq('id', flowId).select('id');
   if (error) failTo(error.message);
+  // Row-level security removes nothing (without an error) when the caller may
+  // not delete it, e.g. a company-wide flow and a manager assigned to some
+  // associations.
+  if (!deleted?.length) failTo('Flow was not deleted: your account cannot delete this flow.');
 
   revalidatePath(LIST_PATH);
   redirect(`${LIST_PATH}?success=${encodeURIComponent(`Flow "${flow.name}" deleted.`)}`);

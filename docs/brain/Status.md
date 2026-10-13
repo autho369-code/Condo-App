@@ -1,15 +1,23 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#340 merged; open PR: claude/codex-339-followups; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#341 merged; open PR: claude/manager-scope-rest; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #341 claude/codex-339-followups: 20261013140000 (LIVE)
-  payment plan recheck uses payment_plan_paid_amount (raw receipts could
-  keep a bounced plan completed; verified it reopens); reconciliation item
-  guard locks the parent FOR SHARE. NSF income GL-map key waits on Mirsad
-  (constraint swap SQL in docs/TODO.md).
+- #342 claude/manager-scope-rest: 20261013150000 (LIVE, Codex on
+  #341) payment_plan_paid_amount ignores reversed receipts and their reversal
+  charges, so a future- or back-dated bounce reopens the plan (verified).
+  Stacked 20261013160000 (LIVE): rows without an association for scoped
+  managers: payment_methods and physical_mail_deliveries via the owner,
+  payable_checks via the bill, company-wide automation_flows read-only
+  (create/update/delete need an unscoped caller). Verified before/after.
+  Review follow-ups: deleteAutomationFlow checks a row was deleted (RLS
+  deletes 0 rows silently); creating an all-associations flow as a scoped
+  manager gets a plain message; 20261013170000 (LIVE) reversal-charge lookup
+  narrowed by unit.
 
 ## Merged 2026-10-12
+- #341 plan recheck canonical paid amount; reconciliation item lock
+  (20261013140000, live).
 - #340 signatures, transfers, attachments, notices, meeting items once per
   query; managers can create/edit meetings (20261013100000-130000, live).
 - #339 unapplied credits, page totals, NSF fee income, payment plan bounce,
@@ -441,14 +449,9 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#340 merged; open PR: claude/codex-33
 - The same RLS estimate (about one visible unit) can make any view that
   joins charges or payments to units nested-loop at scale; the fix pattern
   is a LATERAL lookup by the unit id (20261013040000).
-- NEXT (manager scope, rest): rows with no association stay
-  visible to scoped managers: payment_methods (owner, last4, processor token)
-  and physical_mail_deliveries (addresses, letter HTML) where association_id
-  is null - backfill from the owner and fall back to owner visibility;
-  payable_checks (backfill from bill, make NOT NULL); automation_flows
-  company-wide rows editable by a scoped manager (require company admin).
-  Security-definer views/RPCs
-  over these tables are not narrowed by policies.
+- Security-definer views/RPCs over payment_methods / physical mail /
+  payable checks / automation flows are not narrowed by policies (check
+  each when touched).
 - NEXT (measured 2026-10-13, 5,000 rows each, rolled back): per-row
   policies. signature_requests 0.6-1.4 s, signature_signers/events up to
   4.1 s (even board/owner who see 0 rows ~1 s): can_manage_signatures per
