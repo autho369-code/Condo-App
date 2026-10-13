@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-13 (#279-#349 merged; open PR: claude/finance-speed; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/finance-speed (both LIVE, read back): 20261014040000 budget vs
+- #350 claude/finance-speed (both LIVE, read back): 20261014040000 budget vs
   actuals, budget worksheet actuals and annual budget forecast sum journal
   lines per account/month before the GL helpers (non-inlinable because of
   SET search_path): 4.6 s -> 124 ms, 2.4 s -> 131 ms, 1.37 s -> 84 ms at
