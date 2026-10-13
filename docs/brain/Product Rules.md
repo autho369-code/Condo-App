@@ -93,6 +93,12 @@ Back to [[Home]].
   pg_safeupdate refuses a DELETE with no WHERE from API sessions, even
   inside a security definer RPC. Clear a per-call temp table with
   `truncate`.
+- **No inline subqueries over RLS tables inside policies** (2026-10-13):
+  Postgres expands the inner table's policies inside the outer plan,
+  recursively (a one-unit owner query planned ~190 ms). Put the lookup in an
+  rls_private plpgsql SECURITY INVOKER set function (same rows: the caller's
+  policies still apply) and use `col in (select rls_private.fn())`
+  (20261014000000). Migration versions must be real UTC times (no hour 24).
 - **A changed measure rechecks stored statuses** (2026-10-13): when a
   migration changes a function a stored status is derived from (e.g.
   payment_plan_paid_amount -> payment_plans.status), the same migration

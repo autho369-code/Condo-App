@@ -1,11 +1,21 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#346 merged; open PR: claude/scope-sweep-and-online-payments; next: views joining charges/payments to units measured per role at scale (owner ledger, board financials); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#346 merged; open PR: claude/scope-sweep-and-online-payments; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #347 claude/scope-sweep-and-online-payments: vault only. Definer sweep and the
-  online-payment rolled-back run both verified with no change needed (see
-  Next gaps).
+- #347 claude/scope-sweep-and-online-payments: definer sweep and online
+  payments verified (no change, see Next gaps), plus (both LIVE, read back):
+  20261014000000 money policies without nested RLS: inline subqueries in
+  policies on charges, payments, payment_applications moved into
+  rls_private SECURITY INVOKER set functions (caller's own policies still
+  decide), so the planner stops expanding nested policies. Same visible ids
+  for 7 roles (seeded 3 associations / 2 companies). At 2,000 units: owner
+  unit summary 311 -> 10 ms, charge balances 211 -> 1 ms, board 226 -> 13,
+  manager 220 -> 8. At 1,000 units x 36 months nothing slower (manager one
+  unit 381 -> 139 ms; scoped manager 571 -> 341 ms; owner 209 -> 3 ms).
+  Writes unchanged (scoped manager in/out of scope, auto-apply).
+  20261014010000 a payment can only be applied to a charge on the same unit
+  (security-reviewer: finance policy checked only payment_id).
 
 ## Merged 2026-10-13
 - #346 recheck existing payment plans under the new measure
