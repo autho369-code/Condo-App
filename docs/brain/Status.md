@@ -1,18 +1,14 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#345 merged; open PR: claude/plan-recheck-existing; next: no open product gap listed, keep watching CSP and runtime logs; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#346 merged; open PR: claude/scope-sweep-and-online-payments; next: online payments end-to-end rolled-back run before the Stripe pilot, then NSF fee income GL setting (waits on Mirsad's constraint SQL); Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #346 claude/plan-recheck-existing: 20261013230000 (LIVE, Codex on #345) runs
-  app_recheck_payment_plan once for every unit with an active or completed
-  plan, so plans marked completed under the old measure follow the new one
-  (verified rolled back: a stale completed plan reopens, paid 500; a second
-  run changes nothing). Production had 0 plans, so nothing changed there.
-  migration-reviewer: clean. Note: a completed plan now unpaid while its
-  case is in legal review is cancelled without a notice (existing recheck
-  behaviour); bulk recheck runs in one transaction (fine at current size).
+- claude/scope-sweep-and-online-payments: vault only so far (definer sweep
+  verified, see Next gaps); online-payment rolled-back run in progress.
 
 ## Merged 2026-10-13
+- #346 recheck existing payment plans under the new measure
+  (20261013230000, live; Codex clean).
 - #345 payment plan measure by recording time (cases A-G), report uses it,
   Receivables receipts from payments (20261013200000-220000, live).
 - #344 future-dated bounce reopens a plan; new dues don't (20261013190000,
@@ -458,9 +454,17 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#345 merged; open PR: claude/plan-rec
 - The same RLS estimate (about one visible unit) can make any view that
   joins charges or payments to units nested-loop at scale; the fix pattern
   is a LATERAL lookup by the unit id (20261013040000).
-- Security-definer views/RPCs over payment_methods / physical mail /
-  payable checks / automation flows are not narrowed by policies (check
-  each when touched).
+- DONE 2026-10-13 (verified, no change): definer functions/views over
+  payment_methods, physical mail, payable checks, automation flows and
+  owner payables. No view reads them. Signed-in callable ones all check the
+  manager's associations (owner payables via app_owner_payable_for_update ->
+  can_manage_association, which includes can_view_association_row;
+  void_payable_check scoped) or are company-admin only
+  (record_manual_certified_mail_delivery: can_admin_portfolio);
+  enroll_autopay is invoker (RLS). claim/complete/fail_physical_mail,
+  capture_issued_payable_check, claim_automation_flow_run: no signed-in
+  execute (service/trigger only). Production clean since 2026-10-09
+  (runtime errors: one expired refresh token; no CSP blocks in 7 days).
 - DONE in #340 (20261013100000-110000; measured 2026-10-13, 5,000 rows each, rolled back): per-row
   policies. signature_requests 0.6-1.4 s, signature_signers/events up to
   4.1 s (even board/owner who see 0 rows ~1 s): can_manage_signatures per
