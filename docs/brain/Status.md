@@ -1,23 +1,34 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#343 merged; open PR: claude/plan-future-reversal; next: Receivables page totals at 2,000 units (keep watching CSP); Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#344 merged; open PR: claude/plan-completion-window; next: no open product gap listed, keep watching CSP and runtime logs; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #344 claude/plan-future-reversal: 20261013190000 (LIVE, Codex on #343)
-  a reversal charge of a receipt from outside the plan window counts once the
-  bounce is recorded, even when dated in the future (nothing rechecks the plan
-  on that date). Verified: old stayed completed; new reopens, paid 1200 -> 700.
-  migration-reviewer: ordinary charges count only up to completion, so next
-  month's dues no longer reopen a completed plan (verified old=active,
-  new=completed).
+- #345 claude/plan-completion-window (all LIVE, read back):
+  20261013200000 payment plan measure, one window by recording time (Codex
+  on #344 + migration-reviewer adversarial pass): window = plan start to
+  completion/cancellation for receipts and charges; charges posted after
+  completion don't count; a bounce of a pre-plan receipt counts once
+  recorded after the plan started (any reversal date); on a unit with two
+  plans each owns its own money (one bounce never counts against two plans).
+  Seven rolled-back cases pass (A-G). Cancel
+  reason says "another plan on the unit is active".
+  20261013210000 Payment Plans report uses the plan measure (bounced
+  receipts showed as paid / "Current").
+  20261013220000 Receivables receipts counted from payments (70 -> 7 ms;
+  page 339 -> 257 ms at 2,000 units, same results unfiltered, by
+  association, by owner).
 
-## Merged 2026-10-12
+## Merged 2026-10-13
+- #344 future-dated bounce reopens a plan; new dues don't (20261013190000,
+  live).
 - #343 reversal charge skipped only when its receipt is in the plan window
   (20261013180000, live).
 - #342 paid amount ignores reversals; manager scope on rows without an
   association (20261013150000-170000, live).
 - #341 plan recheck canonical paid amount; reconciliation item lock
   (20261013140000, live).
+
+## Merged 2026-10-12
 - #340 signatures, transfers, attachments, notices, meeting items once per
   query; managers can create/edit meetings (20261013100000-130000, live).
 - #339 unapplied credits, page totals, NSF fee income, payment plan bounce,
@@ -444,15 +455,17 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#343 merged; open PR: claude/plan-fut
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- NEXT: Receivables page totals still ~0.55-0.85 s at 2,000 units (the
-  delinquent_units list ~350 ms under the generic plan).
+- DONE 2026-10-13: Receivables page totals at 2,000 units ~0.26 s
+  unfiltered (receipts from payments). Measured, not worth changing:
+  delinquent_units with the local date once per unit 129 -> 126 ms;
+  categories with one lateral sum 51 -> 42 ms.
 - The same RLS estimate (about one visible unit) can make any view that
   joins charges or payments to units nested-loop at scale; the fix pattern
   is a LATERAL lookup by the unit id (20261013040000).
 - Security-definer views/RPCs over payment_methods / physical mail /
   payable checks / automation flows are not narrowed by policies (check
   each when touched).
-- NEXT (measured 2026-10-13, 5,000 rows each, rolled back): per-row
+- DONE in #340 (20261013100000-110000; measured 2026-10-13, 5,000 rows each, rolled back): per-row
   policies. signature_requests 0.6-1.4 s, signature_signers/events up to
   4.1 s (even board/owner who see 0 rows ~1 s): can_manage_signatures per
   row, twice; bank_transfers 0.65-0.8 s every role

@@ -179,4 +179,8 @@ Back to [[Home]]. Don't redo these.
   its reversal charge against the plan as soon as the bounce is recorded,
   even when the reversal is dated in the future (20261013150000/180000/190000). A completed plan reopens only on a payment
   correction; ordinary dues that fall due after completion are a new
-  delinquency, not the old plan (190000).
+  delinquency, not the old plan (190000). The plan window runs from its start
+  to completion or cancellation, for receipts and charges alike; activity
+  after it is not the plan's (200000). Edges use recording times
+  (created_at, reversed_at), not due dates. On a unit with several plans,
+  money recorded inside a plan's window (not cancelled) is that plan's.

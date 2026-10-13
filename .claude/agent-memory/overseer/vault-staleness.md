@@ -74,3 +74,10 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   Status line 3 "open PR: claude/rls-twin-scope" + "## Open PR" #336 entry
   stale; `gh pr list --state open` empty. Same fix: move to Merged in the
   next PR's first commit.
+- Recurring (plan-completion-window pre-PR, 2026-10-13): Status line 3
+  "next: keep watching CSP" while Next gaps holds a "NEXT (measured
+  2026-10-13) per-row policies" item; and #344 (merged 2026-10-13 04:01Z)
+  filed under "Merged 2026-10-12". Line 3 "next:" must name the top NEXT gap.
+  Also reviewer memory (migration-reviewer data-writers.md) said
+  "report_data_payment_plans still uses its own raw sum" while 210000 in the
+  same PR fixed it.
