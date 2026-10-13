@@ -62,6 +62,7 @@
 
 ## Set-returning RPCs + paging
 - `db.rpc('fn').select('cols').order('col').range(a,b)` is valid PostgREST (select/order/limit/offset apply to `returns table(...)`/setof results); check:columns does not cover rpc selects, so compare against the `returns table` list by hand. Example: app/(app)/projects/page.tsx capital_project_spend_totals (2026-10-10, clean).
+- Same check for `fetchAllRows(() => db.rpc(...).order('<unique out col>'))`: compare the caller's row mapping to the `returns table` list and confirm every caller passes the args (e.g. lib/banking/reconciliation.ts bank_reconcilable_lines needs `bank.id`; both bank-reconciliation routes select it). (2026-10-13, clean.)
 - jsonb-returning RPCs (e.g. `receivables_page_totals`, 20261011100000): check:columns cannot see them; match every `jsonb_build_object` key and nested `to_jsonb(t)` field against what the page reads, and diff the old per-view queries' filters (e.g. `reversed_at is null`) against the function body (2026-10-10, clean).
 - On Windows, check:columns may print "can't check statically" + "no longer in the code" pairs for the same entry (backslash vs slash path in unchecked-selects.json): a path-separator artifact, not a schema problem.
 

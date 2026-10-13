@@ -4,6 +4,12 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Banking: reserve accounts protected by the board-authorization rule;
+  closed months can't be reopened without the audited step, and only by
+  staff over every association; reconciliations validated in the database
+  (dates, book balance, no double clearing); transfer voids dated after the
+  transfer; deposits keep their totals; faster reconciliation start
+  (20261014170000).
 - Payables follow-ups: 1099 link for finance staff only; recurring bills
   change only through their screens; homeowner payable dates checked;
   credit-paid bills dated correctly and left out of 1099 counts

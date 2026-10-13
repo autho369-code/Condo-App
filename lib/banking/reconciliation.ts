@@ -33,29 +33,32 @@ export async function reconcilableLines(
   statementDate: string,
   exclude: Set<string> = new Set(),
 ): Promise<{ lines: any[]; error?: string; truncated?: boolean }> {
-  const { rows: lineRows, truncated, error } = await fetchAllRows<any>(() => {
-    let q = db
-      .from('journal_lines')
-      .select('id, debit_amount, credit_amount, memo, journal_entries!inner(id, entry_date, reference_number, description, posted, source_type, source_id)')
-      .eq('gl_account_id', bank.gl_account_id)
-      .eq('journal_entries.posted', true)
-      .lte('journal_entries.entry_date', statementDate);
-    if (bank.association_id) q = q.eq('association_id', bank.association_id);
-    return q.order('id');
-  });
+  // Filtered in the database (bank_reconcilable_lines): only lines not yet
+  // cleared come back, instead of every line ever posted to the account.
+  const { rows, truncated, error } = await fetchAllRows<any>(() => db
+    .rpc('bank_reconcilable_lines', { p_bank_account_id: bank.id, p_statement_date: statementDate })
+    .order('id'));
   if (error) return { lines: [], error: `Could not load ledger lines: ${error}` };
   if (truncated) return { lines: [], truncated: true };
-  const { rows: clearedRows, error: clearedError } = await fetchAllRows<any>(() => db
-    .from('bank_reconciliation_items')
-    .select('journal_line_id, bank_reconciliations!inner(bank_account_id, status)')
-    .eq('bank_reconciliations.bank_account_id', bank.id)
-    .eq('bank_reconciliations.status', 'completed')
-    .eq('is_cleared', true)
-    .not('journal_line_id', 'is', null)
-    .order('journal_line_id'));
-  if (clearedError) return { lines: [], error: `Could not load earlier reconciliations: ${clearedError}` };
-  const alreadyCleared = new Set(clearedRows.map((r: any) => r.journal_line_id));
-  return { lines: lineRows.filter((line: any) => !alreadyCleared.has(line.id) && !exclude.has(line.id)) };
+  return {
+    lines: rows
+      .filter((row: any) => !exclude.has(row.id))
+      .map((row: any) => ({
+        id: row.id,
+        debit_amount: row.debit_amount,
+        credit_amount: row.credit_amount,
+        memo: row.memo,
+        journal_entries: {
+          id: row.entry_id,
+          entry_date: row.entry_date,
+          reference_number: row.reference_number,
+          description: row.description,
+          posted: true,
+          source_type: row.source_type,
+          source_id: row.source_id,
+        },
+      })),
+  };
 }
 
 export const itemFromLine = (reconciliationId: string, line: any, index: number) => ({
