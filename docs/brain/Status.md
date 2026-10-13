@@ -1,13 +1,18 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#355 merged; open PR: #356 claude/meetings-list-order; next: executive-session attendee and agenda rows for unassigned staff; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#356 merged; open PR: #357 claude/exec-session-visibility; next: other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #356 claude/meetings-list-order: Codex on #355 - meeting
-  lists (manager, board, owner, resident) put undated meetings last, so the
-  row limit never fills with undated ones and hides recent dated meetings.
+- #357 claude/exec-session-visibility: 20261014140000 (LIVE)
+  executive sessions (meeting row with its agenda text, and attendees) follow
+  rls_private.my_confidential_meeting_association_ids like their agenda
+  items, documents and follow-ups; an unassigned assistant manager no longer
+  sees them; other meetings unchanged (rolled-back test across six roles).
+  calculate_meeting_quorum (definer) applies the same rule to executive
+  sessions (migration review).
 
 ## Merged 2026-10-13
+- #356 meeting lists put undated meetings last (Codex clean).
 - #355 meetings: quorum read only and recorded by trigger at completion;
   completed meetings frozen in the database (no reopen, quorum/date/
   association change, delete or forged insert outside a repair session);
@@ -468,9 +473,8 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#355 merged; open PR: #356 claude/mee
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- Known, not fixed (meetings deep check, 2026-10-13): staff who are not
-  assigned to an association can read executive-session attendee names and
-  agenda text (the meeting row itself is hidden). Offered to Mirsad.
+- DONE 2026-10-13 (20261014140000): executive-session meeting rows and
+  attendees hidden from staff outside the confidential-meeting set.
 - DONE 2026-10-13: Receivables page totals at 2,000 units ~0.26 s
   unfiltered (receipts from payments). Measured, not worth changing:
   delinquent_units with the local date once per unit 129 -> 126 ms;

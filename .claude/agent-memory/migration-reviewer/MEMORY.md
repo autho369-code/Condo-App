@@ -33,6 +33,8 @@
 - A lock trigger that is BEFORE UPDATE only ("completed rows can't change") leaves INSERT-as-final-state and DELETE+reinsert open; check all three ops (20261014130000:121). Repair predicates on auth.role() IS NULL fail open; prefer also session_user <> 'authenticator'.
 - A definer RPC that "reads for everyone, writes for editors" must gate the write with the SAME helper as the table UPDATE policy and re-check status after FOR UPDATE (20261014100000:67-72 does). Also ask: does the read path count the same rows as the page (date window vs status=current)?
 
+- Narrowing a SELECT policy (e.g. exec sessions -> my_confidential_meeting_association_ids, 20261014140000): sweep DEFINER RPCs on the same rows; they bypass RLS. `can_view_association_row`/`manager_is_scoped()` is TRUE for staff with ZERO association_managers rows, so an unassigned assistant passes it (calculate_meeting_quorum).
+
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns
