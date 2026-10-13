@@ -1,15 +1,22 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#348 merged; open PR: claude/application-unit-lock; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#349 merged; open PR: claude/finance-speed; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #349 claude/application-unit-lock (Codex on #348): 20261014030000 (LIVE) the
-  same-unit application check reads the payment and charge FOR SHARE, so an
-  application and a unit move serialize (one waits, then is refused).
-  Verified rolled back: auto-apply, specific charge, credit on a new charge,
-  reversal all work; cross-unit still refused.
+- claude/finance-speed (both LIVE, read back): 20261014040000 budget vs
+  actuals, budget worksheet actuals and annual budget forecast sum journal
+  lines per account/month before the GL helpers (non-inlinable because of
+  SET search_path): 4.6 s -> 124 ms, 2.4 s -> 131 ms, 1.37 s -> 84 ms at
+  48,000 lines, identical output. 20261014050000 journal_line_totals plpgsql
+  with force_custom_plan (the sql body ran a generic plan): ~880 -> ~105 ms
+  for manager/operator, 937 -> 164 board, identical output for 5 roles.
+  Measured at 2,000 units, fine as is: receivable_summary 70-80 ms,
+  billing_collection_totals 28, aging buckets 74, receivable_unit_totals 239,
+  chargeback/unpaid bills/deposit groups under 30. No table plans slowly any
+  more (max 22 ms, audit_logs for an owner).
 
 ## Merged 2026-10-13
+- #349 application/unit-move race closed (20261014030000, live; Codex clean).
 - #348 applied payments/charges keep their unit (20261014020000, live);
   Stripe webhook route tests.
 - #347 money policies without nested RLS (20261014000000), payments apply
