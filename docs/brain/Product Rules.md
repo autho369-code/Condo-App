@@ -117,6 +117,12 @@ Back to [[Home]].
   under `if tg_table_name = ...`: PL/pgSQL resolves every field in a
   condition, so `tg_table_name = 'x' and new.col ...` fails on the other
   table (20261014170000).
+- **A row guard checks the row as it is, not as requested** (2026-10-13):
+  on UPDATE/DELETE, look up the parent through OLD (the row's real parent);
+  checking NEW and then resetting it to OLD lets a request name an open
+  parent to change a closed one's child (Codex on #361, 20261014180000).
+  Switching a guard to SECURITY DEFINER needs an explicit caller-access
+  check first (RLS no longer applies inside it).
 - **Rules the API enforces belong in the database too** (2026-10-13): a
   check in an API route (dates, order, one in progress) is bypassed by a
   direct table write; values the server computes (balances, amounts) are
