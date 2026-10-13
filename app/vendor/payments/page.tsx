@@ -61,6 +61,11 @@ export default async function VendorPaymentsPage({ searchParams }: { searchParam
 
       {sp.submitted === '1' && <Alert tone="success" className="mb-5">Invoice submitted for management approval.</Alert>}
 
+      {totalsResult.truncated && (
+        <Alert tone="warning" title="Totals are incomplete" className="mb-5">
+          You have more bills than these totals can count at once. Ask your management company for a full statement.
+        </Alert>
+      )}
       <MetricStrip className="mb-6 lg:grid-cols-3">
         <Metric label="Awaiting approval" value={money(sum(pending))} sub={`${pending.length} bill${pending.length === 1 ? '' : 's'}`} accent="amber" />
         <Metric label="Approved, unpaid" value={money(sum(approved))} sub={`${approved.length} bill${approved.length === 1 ? '' : 's'}`} accent="blue" />
