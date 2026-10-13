@@ -117,6 +117,20 @@ Back to [[Home]].
   under `if tg_table_name = ...`: PL/pgSQL resolves every field in a
   condition, so `tg_table_name = 'x' and new.col ...` fails on the other
   table (20261014170000).
+- **Residents read staff tables through a safe RPC** (2026-10-13): a policy
+  can't hide columns, so when a table holds staff-only fields (internal
+  notes, instructions, recipients), owners and tenants read it through a
+  SECURITY DEFINER function that returns only the resident fields and drops
+  rows about other people; their direct read policy is USING false
+  (resident_calendar_events, 20261014190000).
+- **A move-in cutoff is one id set, not a per-row call** (2026-10-13): owner
+  policies that compare each row to the owner's move-in date call a definer
+  set function once (`id in (select rls_private.resident_visible_..._ids())`);
+  hiding the seller's payments must not hide what they paid off (charge
+  balances use the unit's applications).
+- **Resident pages filter to their own rows, not RLS alone** (2026-10-13): a
+  login can also be an owner, board member or staff, whose policies show
+  more; filter by the resident's own ids in the query.
 - **A row guard checks the row as it is, not as requested** (2026-10-13):
   on UPDATE/DELETE, look up the parent through OLD (the row's real parent);
   checking NEW and then resetting it to OLD lets a request name an open

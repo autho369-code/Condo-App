@@ -17,26 +17,39 @@ export default async function ResidentDashboard() {
   const supabase = await createClient();
   const db = supabase as any;
   const now = new Date().toISOString();
+  // Own records only, not RLS alone: a login that is also an owner, board
+  // member or staff can read more rows. One login can rent several units.
+  const { data: tenantIdRows, error: tenantIdsError } = await db.rpc('current_tenant_ids');
+  const tenantIdList = Array.from(new Set<string>([
+    ...(Array.isArray(tenantIdRows) ? tenantIdRows : [])
+      .map((row: any) => (typeof row === 'string' ? row : row?.current_tenant_ids))
+      .filter(Boolean),
+    ...(me.tenant_id ? [me.tenant_id] : []),
+  ]));
 
-  const [{ data: tenant }, { data: requests }, { data: events }, { data: announcements }] = await Promise.all([
+  const [
+    { data: tenant, error: tenantError },
+    { data: requests, error: requestsError },
+    { data: events, error: eventsError },
+    { data: announcements, error: announcementsError },
+  ] = await Promise.all([
     db.from('tenants')
       .select('id, first_name, last_name, email, phone, unit_id, lease_end, insurance_expiration, units(unit_number, buildings(name, associations(id, name)))')
       .eq('id', me.tenant_id)
       .maybeSingle(),
     db.from('service_requests')
       .select('id, number, description, priority, status, created_at')
+      .in('tenant_id', tenantIdList)
       .is('archived_at', null)
       .order('created_at', { ascending: false })
       .limit(5),
-    db.from('calendar_events')
-      .select('id, title, start_datetime, location')
-      .is('archived_at', null)
-      .gte('start_datetime', now)
-      .order('start_datetime')
-      .limit(4),
+    // Resident-safe fields only, no events about other owners or units.
+    db.rpc('resident_calendar_events', { p_association_ids: me.tenant_association_ids ?? [], p_from: now, p_limit: 4 }),
     db.from('communications_log')
       .select('id, subject, body, created_at')
       .eq('channel', 'announcement')
+      .in('association_id', me.tenant_association_ids ?? [])
+      .or('announcement_audience.is.null,announcement_audience.in.(tenants,both)')
       .order('created_at', { ascending: false })
       .limit(4),
   ]);
@@ -44,6 +57,14 @@ export default async function ResidentDashboard() {
   const unit = relation<any>(tenant?.units);
   const building = relation<any>(unit?.buildings);
   const association = relation<any>(building?.associations);
+  // Fail loudly: a failed read must not look like an empty dashboard.
+  const loadErrors = [
+    tenantIdsError && 'your residence',
+    tenantError && 'your residence',
+    requestsError && 'service requests',
+    eventsError && 'upcoming events',
+    announcementsError && 'announcements',
+  ].filter(Boolean) as string[];
   const allRequests = requests ?? [];
   const openRequests = allRequests.filter((request: any) => !['cancelled', 'completed', 'closed'].includes(request.status));
   const insuranceExpiration = tenant?.insurance_expiration ? new Date(`${tenant.insurance_expiration}T12:00:00`) : null;
@@ -59,6 +80,11 @@ export default async function ResidentDashboard() {
         description={`${building?.name ? `${building.name} · ` : ''}Unit ${unit?.unit_number ?? 'not assigned'}`}
         actions={<Link href="/resident/requests" className={buttonClass()}><Wrench className="h-4 w-4" /> New service request</Link>}
       />
+      {loadErrors.length > 0 ? (
+        <Alert tone="danger" title="Part of this page could not load">
+          Could not load {Array.from(new Set(loadErrors)).join(', ')}. Refresh the page or try again shortly.
+        </Alert>
+      ) : null}
 
       {insuranceDays !== null && insuranceDays <= 30 ? (
         <Alert tone={insuranceDays < 0 ? 'danger' : 'warning'}>

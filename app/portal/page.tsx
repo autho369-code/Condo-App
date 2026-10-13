@@ -68,12 +68,15 @@ export default async function OwnerDashboard() {
       ? db.from('v_charge_balances').select('due_date').in('unit_id', unitIds).gt('balance_due', 0).not('due_date', 'is', null).order('due_date', { ascending: true }).limit(1).maybeSingle()
       : none,
     // Current balance = outstanding A/R (charges − payments) across the owner's units
-    unitIds.length > 0 ? db.from('unit_balances').select('balance').in('unit_id', unitIds) : none,
+    // The RPC counts every payment on the unit, including a seller's before
+    // the owner's move-in (those payment rows stay hidden from the owner).
+    unitIds.length > 0 ? db.rpc('resident_unit_balances') : none,
     woScope ? db.from('work_orders').select('id,title,status,created_at').or(woScope).is('archived_at', null).order('created_at', { ascending: false }).limit(5) : none,
     // Counts come from their own head queries — the lists are capped at 5.
     woScope ? db.from('work_orders').select('id', { count: 'exact', head: true }).or(woScope).is('archived_at', null).not('status', 'in', '("done","completed","billed","closed","cancelled")') : none,
     // Calendar
-    assocIds.length > 0 ? db.from('calendar_events').select('id,title,start_datetime,location').in('association_id', assocIds).is('archived_at', null).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(5) : none,
+    // Resident-safe fields only, and no events about other owners or units.
+    assocIds.length > 0 ? db.rpc('resident_calendar_events', { p_association_ids: assocIds, p_limit: 5 }) : none,
     // Announcements — owner-facing only: tenant-only announcements are not for owners.
     assocIds.length > 0
       ? db.from('communications_log').select('id,subject,body,created_at').in('association_id', assocIds).eq('channel','announcement')
@@ -95,7 +98,9 @@ export default async function OwnerDashboard() {
     nextDue = new Date(`${String(dueRes.data.due_date).slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' })
   }
   track('balance', balRes.error)
-  const totalDue = ((balRes.data ?? []) as any[]).reduce((s: number, b: any) => s + Number(b.balance ?? 0), 0)
+  const totalDue = ((balRes.data ?? []) as any[])
+    .filter((b: any) => unitIds.includes(b.unit_id))
+    .reduce((s: number, b: any) => s + Number(b.balance ?? 0), 0)
   track('work orders', woRes.error)
   const workOrders: any[] = woRes.data ?? []
   track('open work order count', woCountRes.error)

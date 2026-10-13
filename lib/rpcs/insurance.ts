@@ -71,6 +71,25 @@ export async function saveInsurancePolicy(input: {
   if (expiration <= effective) return { error: 'Policy end date must be after the start date.' };
   if (coverage !== null && !Number.isFinite(coverage)) return { error: 'Coverage amount must be a number.' };
   if (input.cert && !isScopedStoragePath(input.cert.path, 'insurance', record)) return { error: 'Invalid document reference.' };
+  if (input.cert) {
+    // The file must be a new upload: it exists, is within the size limit, and
+    // isn't a certificate already on file (a failed save removes the file, so
+    // an earlier policy's certificate must never be named here).
+    const svc = createServiceClient() as any;
+    const { data: stored, error: storedError } = await svc.storage.from(BUCKET).info(input.cert.path);
+    const storedSize = Number(stored?.size ?? stored?.metadata?.size);
+    if (storedError || !stored || !Number.isFinite(storedSize) || storedSize <= 0 || storedSize > MAX_CERT_BYTES) {
+      return { error: 'The uploaded certificate could not be found. Upload it again.' };
+    }
+    const [{ count: policyRefs, error: policyRefError }, { count: documentRefs, error: documentRefError }] = await Promise.all([
+      svc.from('insurance_policies').select('id', { count: 'exact', head: true }).eq('certificate_file_url', input.cert.path),
+      svc.from('documents').select('id', { count: 'exact', head: true }).eq('file_url', input.cert.path),
+    ]);
+    if (policyRefError || documentRefError) return { error: 'Could not check the uploaded certificate. Try again.' };
+    if ((policyRefs ?? 0) > 0 || (documentRefs ?? 0) > 0) {
+      return { error: "That certificate is already on file. Upload the new policy's certificate." };
+    }
+  }
 
   const supabase = await createClient();
   const db = supabase as any;

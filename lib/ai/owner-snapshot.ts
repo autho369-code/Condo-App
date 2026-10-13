@@ -29,18 +29,41 @@ export interface OwnerSnapshot {
   amenities: Array<{ name: string | null; reservable: boolean }>;
 }
 
-export async function buildOwnerSnapshot(): Promise<OwnerSnapshot> {
+/**
+ * `portfolioId` is the company whose AI settings answer the question: only
+ * the owner records of that company go into the snapshot, so one company's
+ * owner data is never sent with another company's AI key.
+ */
+export async function buildOwnerSnapshot(portfolioId: string): Promise<OwnerSnapshot> {
   const me = await requireOwner();
   const supabase = await createClient();
   const db = supabase as any;
-  // Every owner record of the login (one per association).
-  const ownerIds = me.owner_ids;
 
-  const { data: occs } = await db
-    .from('occupancies')
-    .select('unit_id, association_id, occupancy_type, dues_amount, dues_frequency, units(unit_number), associations(name, payment_instructions, remit_payee, remit_address)')
-    .in('owner_id', ownerIds)
-    .eq('status', 'current');
+  // Fail loudly: an assistant answering from a silently empty snapshot would
+  // tell the owner they owe nothing or have no requests.
+  const failed: string[] = [];
+  const track = (what: string, error: { message: string } | null | undefined) => {
+    if (error) failed.push(`${what}: ${error.message}`);
+  };
+
+  // The login's owner records in this company (one per association).
+  const { data: records, error: recordsError } = await db
+    .from('owners')
+    .select('id')
+    .in('id', me.owner_ids)
+    .eq('portfolio_id', portfolioId);
+  track('owner records', recordsError);
+  const ownerIds: string[] = ((records ?? []) as { id: string }[]).map((r) => r.id);
+  if (failed.length) throw new Error(`Owner snapshot could not be loaded (${failed.join('; ')})`);
+
+  const { data: occs, error: occsError } = ownerIds.length
+    ? await db
+      .from('occupancies')
+      .select('unit_id, association_id, occupancy_type, dues_amount, dues_frequency, units(unit_number), associations(name, payment_instructions, remit_payee, remit_address)')
+      .in('owner_id', ownerIds)
+      .eq('status', 'current')
+    : { data: [], error: null };
+  track('units', occsError);
 
   const unitIds = (occs ?? []).map((o: any) => o.unit_id).filter(Boolean);
   const assocIds = [...new Set((occs ?? []).map((o: any) => o.association_id).filter(Boolean))];
@@ -51,17 +74,18 @@ export async function buildOwnerSnapshot(): Promise<OwnerSnapshot> {
   const woScope = tenureFilter(tenure, 'created_at', unitIds);
 
   const [
-    { data: balances },
-    { data: openCharges },
-    { data: payments },
-    { data: wos },
-    { data: viols },
-    { data: arcs },
-    { data: policies },
-    { data: events },
-    { data: amenities },
+    { data: balances, error: balancesError },
+    { data: openCharges, error: openChargesError },
+    { data: payments, error: paymentsError },
+    { data: wos, error: wosError },
+    { data: viols, error: violsError },
+    { data: arcs, error: arcsError },
+    { data: policies, error: policiesError },
+    { data: events, error: eventsError },
+    { data: amenities, error: amenitiesError },
   ] = await Promise.all([
-    unitIds.length ? db.from('unit_balances').select('balance').in('unit_id', unitIds) : { data: [] },
+    // Every payment on the unit counts, including a seller's before move-in.
+    unitIds.length ? db.rpc('resident_unit_balances') : { data: [] },
     unitIds.length ? db.from('aged_receivables').select('description, balance_due, due_date').in('unit_id', unitIds).order('due_date') : { data: [] },
     // Reversed (returned) payments are excluded — they no longer count.
     paymentScope ? db.from('payments').select('amount, payment_date, method').or(paymentScope).is('reversed_at', null).order('payment_date', { ascending: false }).limit(8) : { data: [] },
@@ -69,9 +93,20 @@ export async function buildOwnerSnapshot(): Promise<OwnerSnapshot> {
     db.from('violations').select('title, status, date_observed').in('owner_id', ownerIds).is('archived_at', null).order('date_observed', { ascending: false }).limit(10),
     db.from('architectural_requests').select('title, status').in('owner_id', ownerIds).order('created_at', { ascending: false }).limit(10),
     db.from('insurance_policies').select('policy_number, expiration_date, status').in('owner_id', ownerIds).is('archived_at', null),
-    assocIds.length ? db.from('calendar_events').select('title, start_datetime, location').in('association_id', assocIds).is('archived_at', null).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(8) : { data: [] },
+    assocIds.length ? db.rpc('resident_calendar_events', { p_association_ids: assocIds, p_limit: 8 }) : { data: [] },
     assocIds.length ? db.from('association_amenities').select('name, allow_reservations').in('association_id', assocIds).is('archived_at', null) : { data: [] },
   ]);
+  track('balance', balancesError);
+  track('open charges', openChargesError);
+  track('payments', paymentsError);
+  track('maintenance requests', wosError);
+  track('violations', violsError);
+  track('architectural requests', arcsError);
+  track('insurance', policiesError);
+  track('events', eventsError);
+  track('amenities', amenitiesError);
+  if (failed.length) throw new Error(`Owner snapshot could not be loaded (${failed.join('; ')})`);
+  const unitIdSet = new Set<string>(unitIds);
 
   const paymentInstructions = (occs ?? [])
     .map((o: any) => {
@@ -94,7 +129,9 @@ export async function buildOwnerSnapshot(): Promise<OwnerSnapshot> {
       duesFrequency: o.dues_frequency ?? null,
     })),
     account: {
-      currentBalance: (balances ?? []).reduce((s: number, b: any) => s + Number(b.balance ?? 0), 0),
+      currentBalance: (balances ?? [])
+        .filter((b: any) => unitIdSet.has(b.unit_id))
+        .reduce((s: number, b: any) => s + Number(b.balance ?? 0), 0),
       openCharges: (openCharges ?? []).slice(0, 10).map((c: any) => ({
         description: c.description ?? null,
         amount: Number(c.balance_due ?? 0),

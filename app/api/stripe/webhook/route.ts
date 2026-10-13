@@ -35,6 +35,7 @@ import {
   usdDollarsToCents,
 } from '@/lib/payments/stripe-invariants';
 import { createServiceClient } from '@/lib/supabase/server';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 const MAX_WEBHOOK_BYTES = 1_048_576;
@@ -152,6 +153,7 @@ async function finalizeAutopayRun(
 
 const ACCOUNT_SCOPED_EVENTS = new Set([
   'checkout.session.completed',
+  'checkout.session.expired',
   'payment_intent.succeeded',
   'payment_intent.payment_failed',
   'charge.refunded',
@@ -289,6 +291,9 @@ export async function POST(request: NextRequest) {
             await failAttempt('Stripe setup session does not match the locally authorized attempt');
           }
           if (attempt.status === 'completed') break;
+          // The owner canceled this setup in the portal (and may start a new
+          // one); a late completion of the old session activates nothing.
+          if (attempt.status === 'canceled') break;
           if (attempt.status !== 'session_created') {
             await failAttempt('AutoPay setup attempt is not awaiting Stripe completion');
           }
@@ -298,7 +303,7 @@ export async function POST(request: NextRequest) {
 
           const [{ data: setupAssociation }, { data: setupOccupancy }] = await Promise.all([
             svc.from('associations')
-              .select('id, portfolio_id, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at')
+              .select('id, portfolio_id, timezone, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at')
               .eq('id', attempt.association_id)
               .maybeSingle(),
             svc.from('occupancies')
@@ -374,7 +379,15 @@ export async function POST(request: NextRequest) {
             savedMethod = data;
           }
 
-          const today = new Date();
+          // The first run on the association's calendar (the AutoPay run
+          // checks each association's own day).
+          let localToday: string;
+          try {
+            localToday = todayInZone(setupAssociation.timezone || undefined);
+          } catch {
+            localToday = todayInZone();
+          }
+          const today = new Date(`${localToday}T12:00:00Z`);
           const runMonthOffset = today.getUTCDate() >= attempt.day_of_month ? 1 : 0;
           const nextRun = new Date(Date.UTC(
             today.getUTCFullYear(),
@@ -456,6 +469,10 @@ export async function POST(request: NextRequest) {
         if (typeof obj.payment_intent !== 'string' || !obj.payment_intent.startsWith('pi_')) {
           throw new Error('Checkout has no valid Stripe PaymentIntent');
         }
+        // A late or retried checkout event must not undo a refund, dispute,
+        // bank return or cancellation (a paid payment was posted when it first
+        // succeeded, and posting is idempotent per Stripe PaymentIntent).
+        if (['refunded', 'chargeback', 'returned', 'canceled'].includes(intent.status)) break;
         const updates: any = {
           processor_payment_intent_id: obj.payment_intent ?? intent.processor_payment_intent_id,
           processor_account_id: stripeAccount,
@@ -472,7 +489,8 @@ export async function POST(request: NextRequest) {
         } else if (intent.status === 'pending') {
           updates.status = 'processing'; // ACH: awaiting settlement
         }
-        const { error: updateError } = await svc.from('payment_intents').update(updates).eq('id', intentId);
+        const { error: updateError } = await svc.from('payment_intents').update(updates).eq('id', intentId)
+          .not('status', 'in', '("refunded","chargeback","returned","canceled")');
         if (updateError) throw new Error(`Checkout payment update failed: ${updateError.message}`);
         if (obj.payment_status === 'paid' && !wasSucceeded) {
           await logEvent(svc, intentId, 'stripe_accepted', 'Card payment confirmed at checkout');
@@ -484,6 +502,39 @@ export async function POST(request: NextRequest) {
         } else if (obj.payment_status !== 'paid' && intent.status === 'pending') {
           await logEvent(svc, intentId, 'stripe_accepted', 'Bank (ACH) payment submitted — clearing takes 3-5 business days');
         }
+        break;
+      }
+
+      case 'checkout.session.expired': {
+        // The owner never finished checkout: close the local attempt so it
+        // stops counting as a payment in progress.
+        const expiredSessionId = assertStripeId(obj.id, 'cs', 'Stripe Checkout Session id');
+        if (!stripeAccount) throw new Error('Expired checkout has no connected account');
+        if (obj.mode === 'setup') {
+          const { error: setupExpireError } = await svc.from('stripe_setup_attempts').update({
+            status: 'expired',
+            updated_at: now,
+          }).eq('processor_session_id', expiredSessionId)
+            .eq('processor_account_id', stripeAccount)
+            .in('status', ['pending', 'session_created']);
+          if (setupExpireError) throw new Error(`AutoPay setup expiry failed: ${setupExpireError.message}`);
+          break;
+        }
+        const expiredIntentId = obj.client_reference_id;
+        if (!isUuid(expiredIntentId)) break;
+        const { data: expiredIntent } = await svc.from('payment_intents').select('*').eq('id', expiredIntentId).maybeSingle();
+        if (!expiredIntent || expiredIntent.processor_session_id !== expiredSessionId) break;
+        await requireIntentAccount(svc, expiredIntent, stripeAccount);
+        const { data: canceledIntents, error: expireError } = await svc.from('payment_intents').update({
+          status: 'canceled',
+          failure_reason: 'Checkout expired before the payment was completed',
+          updated_at: now,
+        }).eq('id', expiredIntentId)
+          .eq('processor_session_id', expiredSessionId)
+          .eq('status', 'pending')
+          .select('id');
+        if (expireError) throw new Error(`Checkout expiry update failed: ${expireError.message}`);
+        if (canceledIntents?.length) await logEvent(svc, expiredIntentId, 'canceled', 'Checkout expired before the payment was completed');
         break;
       }
 

@@ -22,6 +22,8 @@ export type AssociationCalendarFeed = {
   errors: string[];
 };
 
+const EVENT_LIMIT = 300;
+
 export async function getAssociationCalendarFeed(
   associationIds: string[],
   days = 90,
@@ -40,23 +42,27 @@ export async function getAssociationCalendarFeed(
     { data: tasks, error: tasksError },
     { data: assoc, error: assocError },
   ] = await Promise.all([
-    db.from('calendar_events')
-      .select('id, title, event_type, start_datetime, location, vendor_id, vendors(name)')
-      .in('association_id', ids)
-      .is('archived_at', null)
-      .gte('start_datetime', now)
-      .lte('start_datetime', horizon)
-      .order('start_datetime'),
+    // Residents read events through this RPC: safe fields only, no events
+    // about other owners or units. The board has no calendar-event access.
+    db.rpc('resident_calendar_events', {
+      p_association_ids: ids,
+      p_from: now,
+      p_to: horizon,
+      p_limit: EVENT_LIMIT + 1,
+    }),
     db.from('meetings')
       .select('id, title, meeting_type, start_time, location')
       .in('association_id', ids)
       .is('archived_at', null)
       .in('status', ['scheduled', 'in_progress'])
+      // Residents never see executive sessions, even when the login is also
+      // a board member or staff.
+      .neq('meeting_type', 'executive_session')
       .gte('start_time', now)
       .lte('start_time', horizon)
       .order('start_time'),
     db.from('maintenance_tasks')
-      .select('id, task_name, next_due_date, vendors(name)')
+      .select('id, task_name, next_due_date')
       .in('association_id', ids)
       .is('archived_at', null)
       .not('next_due_date', 'is', null)
@@ -71,6 +77,7 @@ export async function getAssociationCalendarFeed(
     meetingsError && `Meetings could not be loaded: ${meetingsError.message}`,
     tasksError && `Scheduled maintenance could not be loaded: ${tasksError.message}`,
     assocError && `Association time zone could not be loaded: ${assocError.message}`,
+    (events ?? []).length > EVENT_LIMIT && `Showing the first ${EVENT_LIMIT} events in the next ${days} days.`,
   ].filter(Boolean) as string[];
 
   const items: AssociationCalendarItem[] = [
@@ -82,14 +89,12 @@ export async function getAssociationCalendarFeed(
       location: m.location ?? null,
       kind: 'meeting',
     })),
-    ...(events ?? []).map((e: any): AssociationCalendarItem => {
+    ...(events ?? []).slice(0, EVENT_LIMIT).map((e: any): AssociationCalendarItem => {
       const typeLabel = (e.event_type ?? 'event').replace(/_/g, ' ');
       // Avoid "Water Shutoff / water shutoff" — when the type merely repeats
-      // the title, describe the kind instead. Vendor names are RLS-hidden
-      // from residents, so vendor_id (not the embed) decides the kind.
-      const detail = e.vendors?.name
-        ? `Vendor visit · ${e.vendors.name}`
-        : e.vendor_id
+      // the title, describe the kind instead. Vendor names are hidden from
+      // residents, so vendor_id decides the kind.
+      const detail = e.vendor_id
           ? 'Vendor visit'
           : typeLabel.toLowerCase() === String(e.title ?? '').toLowerCase()
             ? 'Community event'
@@ -107,7 +112,8 @@ export async function getAssociationCalendarFeed(
       key: `t-${t.id}`,
       when: `${t.next_due_date}T12:00:00Z`,
       title: t.task_name,
-      detail: t.vendors?.name ? `Maintenance · ${t.vendors.name}` : 'Preventive maintenance',
+      // Vendor names are not shown to residents.
+      detail: 'Preventive maintenance',
       location: null,
       kind: 'maintenance',
     })),

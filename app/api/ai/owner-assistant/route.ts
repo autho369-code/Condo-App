@@ -30,12 +30,13 @@ const SYSTEM_PROMPT =
   'Be warm, concise, and plain-spoken; format money with a dollar sign. ' +
   'Do not output JSON or code unless asked.';
 
-async function getOwnerAIConfig(ownerId: string): Promise<AIConfig | null> {
+async function getOwnerAIConfig(ownerId: string): Promise<{ config: AIConfig; portfolioId: string } | null> {
   const svc = createServiceClient() as any;
   const { data: owner } = await svc.from('owners').select('portfolio_id').eq('id', ownerId).maybeSingle();
   if (!owner?.portfolio_id) return null;
 
-  return getAIConfig(owner.portfolio_id, svc);
+  const config = await getAIConfig(owner.portfolio_id, svc);
+  return config ? { config, portfolioId: owner.portfolio_id } : null;
 }
 
 export async function POST(request: NextRequest) {
@@ -64,8 +65,8 @@ export async function POST(request: NextRequest) {
   if (!me.owner_id) {
     return NextResponse.json({ error: 'No owner record linked to your account.' }, { status: 400 });
   }
-  const config = await getOwnerAIConfig(me.owner_id);
-  if (!config) {
+  const resolved = await getOwnerAIConfig(me.owner_id);
+  if (!resolved) {
     return NextResponse.json(
       { error: 'AI not configured', hint: 'AI is not enabled for your community yet.' },
       { status: 400 },
@@ -75,7 +76,8 @@ export async function POST(request: NextRequest) {
   const history: AssistantTurn[] = boundedAssistantHistory(body.history);
 
   try {
-    const snapshot = await buildOwnerSnapshot();
+    // Only this company's owner records go to this company's AI settings.
+    const snapshot = await buildOwnerSnapshot(resolved.portfolioId);
 
     const messages = [
       { role: 'system' as const, content: `${SYSTEM_PROMPT}\n\nDATA:\n${JSON.stringify(snapshot)}` },
@@ -83,13 +85,14 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content: question },
     ];
 
-    const answer = await chatCompletion(config, messages, { temperature: 0.2 });
+    const answer = await chatCompletion(resolved.config, messages, { temperature: 0.2 });
 
     return NextResponse.json({ answer: (answer ?? '').trim() });
   } catch (error: any) {
     console.error('Owner assistant error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Assistant failed', hint: 'Please try again or contact your management company.' },
+      // Provider/model details stay in the server log.
+      { error: 'The assistant could not answer right now.', hint: 'Please try again or contact your management company.' },
       { status: 500 },
     );
   }

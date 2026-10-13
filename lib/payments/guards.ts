@@ -86,10 +86,10 @@ export function parseAutopayConfiguration(input: {
 
   const minimumCents = mode === 'minimum' ? parseUsdCents(input.minimumAmount) : null;
   if (mode === 'minimum' && minimumCents === null) {
-    return { ok: false, error: 'Enter a valid minimum payment amount.' };
+    return { ok: false, error: 'Enter a valid set amount.' };
   }
   if (minimumCents !== null && minimumCents > maxCents) {
-    return { ok: false, error: 'The minimum payment cannot exceed the withdrawal cap.' };
+    return { ok: false, error: 'The set amount cannot exceed the withdrawal cap.' };
   }
 
   return {

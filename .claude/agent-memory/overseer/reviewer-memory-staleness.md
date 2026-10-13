@@ -25,3 +25,11 @@ Rule: when a PR fixes a hole a reviewer recorded, its memory line must say "fixe
   data-writers.md still said payment_plan_paid_amount "already nets" reversals;
   after 150000/180000 a reversal charge is skipped only when its receipt is in
   the plan window. Codex catches on a merged PR = reviewer lesson in the follow-up PR.
+- Recurring 6th time (owner-portal-fixes pre-PR, 2026-10-13): FIVE reviewer
+  memories added in the same diff describe holes the diff fixed: design
+  (pay page red div, resident pages ignore errors, feed lacks executive
+  filter), white-label ("Minimum amount" label), schema-checker (RPC "drops"
+  company-wide events - it keeps them), security (staff-at-A escapes
+  triggers), migration (arch_msg relabels board rows). Reviewers write memory
+  at finding time; the fix comes after. Every pre-PR: read each reviewer
+  memory diff line against the final diff.

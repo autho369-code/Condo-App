@@ -81,3 +81,8 @@
 ## Payables (bills/[id], 2026-10-13)
 - bills/[id]/page.tsx:72 still renders sp.error in a hand-rolled red div (not Alert) and has no ?saved= branch; new forms there (expense account, Record decision) redirect clean on success. Irreversible board-decision submits want PendingSubmit `confirm`.
 - Option-list queries for new Selects (gl_accounts expense list) often skip the error check and the empty-list state: a required Select with only a disabled placeholder is a dead end.
+
+## Owner/resident portal data scoping (2026-10-13, owner-portal-fixes)
+- Lesson: check that a page's existing error box is an <Alert> when new ?error= messages land there (portal/pay hand-rolled red div; fixed in 20261014190000's PR).
+- Lesson: when filters/RPCs are added to a page, check it captures their errors; a failed scoping RPC must not render the "not linked"/empty state (resident pages fixed in the same PR).
+- Lesson: sibling feeds must apply the same rules (association-feed meetings now exclude executive_session, like resident/meetings; fixed in the same PR).

@@ -35,6 +35,9 @@
 
 - Narrowing a SELECT policy (e.g. exec sessions -> my_confidential_meeting_association_ids, 20261014140000): sweep DEFINER RPCs on the same rows; they bypass RLS. `can_view_association_row`/`manager_is_scoped()` is TRUE for staff with ZERO association_managers rows, so an unassigned assistant passes it (calculate_meeting_quorum).
 
+- A BEFORE INSERT trigger that stamps author/role for "non-staff" callers also fires inside DEFINER RPCs run by non-staff (board): grep every `insert into public.<t>` in migrations. Found in 20261014190000 arch_msg_set_author (would relabel board_decide_architectural_request's 'board' rows); fixed before the PR: it now stamps only author_role='owner' rows.
+- This agent has had no live DB tool (no Supabase MCP/psql/DB URL): give the caller read-only verification SQL instead of claiming live parity.
+
 - A guard that recomputes a total from child rows must also fix the child rows' CLASS (type/sign) and forbid duplicates; recomputing amounts alone still lets a client mislabel or double a row (20261014170000 recon items). Treat every terminal status (void, cancelled) as terminal, not just 'completed'.
 - Guards that pin a column back to OLD on UPDATE (`new.x := old.x`) must AUTHORIZE against OLD too. 20261014170000:510 checked the parent via new.reconciliation_id, then reset it, so naming an open recon unlocked a completed one's item (Codex P1 on #361; fix 20261014180000:32). Either look up by old.* on UPDATE/DELETE or raise if the key changes (app_guard_bank_reconciliation does the latter).
 - A backfill/trigger that derives a column (fund_type from purpose) must not overwrite explicit values outside the derived set (insurance_proceeds/construction_escrow); restrict the UPDATE WHERE to null-or-derived values and ask for a pre-run count (20261014170000, Codex on #361).

@@ -97,3 +97,13 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   charges, 20261014060000).
 - Recurring 11th time (start check 2026-10-13, after #352 merged 06:16Z):
   Status line 3 + "## Open PR" still #352; caller already flagged it.
+- Recurring 12th time (start check 2026-10-13, after #362 merged 18:03Z
+  6cf899c8): Status line 3 + "## Open PR" still #362; caller already
+  planned the move. Line 3 "next:" also named the NSF setting, not the
+  task actually picked (owner-portal deep check) - line 3 must follow.
+- 2026-10-13 (owner-portal-fixes pre-PR): new Next gap "payments.notes
+  readable by owners, move to a private table" had a stale premise:
+  payment_private + trigger payments_move_private_fields (20261004200000)
+  already null payments.notes. grep `<table>_private` / move_*_private_fields
+  before writing a "make X private" gap. Same PR: 3 policies set USING false
+  + 2 functions revoked with no Mirsad "Optional cleanup: drop" TODO entries.

@@ -60,7 +60,7 @@ describe('resident portal boundary', () => {
     expect(residentSources).toContain("rpc('submit_tenant_message'");
     expect(residentSources).toContain('uploadtosignedurl');
     expect(residentSources).toContain("from('documents')");
-    expect(residentSources).toContain("from('calendar_events')");
+    expect(residentSources).toContain("rpc('resident_calendar_events'");
     expect(residentSources).toContain("from('meetings')");
   });
 });

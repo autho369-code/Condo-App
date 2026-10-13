@@ -106,19 +106,28 @@ function parseServiceRequestPriority(value: FormDataEntryValue | null): ServiceR
   }
 }
 
-/** Resident cancels one of their own open requests. RLS enforces ownership. */
+/** Resident cancels one of their own open requests. */
 export async function cancelServiceRequest(serviceRequestId: string) {
-  await requireOwner();  // in-action guard; RLS enforces ownership
+  const me = await requireOwner();  // in-action guard
+  const ownerIds = (me.owner_ids ?? []).filter(Boolean);
+  if (ownerIds.length === 0) {
+    redirect(`/portal/service-requests?error=${encodeURIComponent('No owner record is linked to your account.')}`);
+    return;
+  }
   const supabase = await createClient();
+  // Filtered to the owner's own open requests here too, not RLS alone: a
+  // login that is also staff could otherwise cancel any request.
   const { data: updated, error } = await (supabase as any)
     .from('service_requests')
     .update({ status: 'cancelled' })
     .eq('id', serviceRequestId)
+    .eq('status', 'open')
+    .or(`homeowner_id.in.(${ownerIds.join(',')}),owner_id.in.(${ownerIds.join(',')})`)
     .select('id');
   if (error) { redirect(`/portal/service-requests?error=${encodeURIComponent(error.message)}`); return; }
   // 0 rows = RLS refused (not this owner's request, or no longer open).
   if (!updated || updated.length === 0) {
-    redirect(`/portal/service-requests?error=${encodeURIComponent('That request can no longer be cancelled. Contact management if it still needs to stop.')}`);
+    redirect(`/portal/service-requests?error=${encodeURIComponent('That request can no longer be cancelled. Contact your management company if it still needs to stop.')}`);
     return;
   }
   // Confirmation email to the owner — never fails the action (helper never throws)

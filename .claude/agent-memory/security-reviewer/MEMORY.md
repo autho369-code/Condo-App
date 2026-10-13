@@ -34,6 +34,9 @@
 - Turning a trigger INVOKER -> DEFINER (app_guard_bank_reconciliation, update_bank_account_reconciliation_date, 20261014170000): BEFORE triggers run before RLS WITH CHECK, and child rows carry a client-set portfolio_id. Check the trigger pins portfolio_id to the parent's (bank account) and that its cross-table reads/writes are scoped; otherwise company A can point at B's bank_account_id.
 - Definer aggregates vs scoped managers: a NULL-association parent (company-wide bank account) is visible to scoped managers, so a definer sum over its lines leaks other associations' totals and mismatches the RLS-limited client sum.
 
+- Flipping an rls_private id-set helper INVOKER -> DEFINER widens every policy that uses it: it stops inheriting the inner table's RLS (resident_payment_ids, 20261014190000: buyer reads the applications on their unit's charges; kept on purpose for correct balances, notes column unused, applied_by a staff id; payments.notes is private via payment_private). List the columns of each table whose policy uses the helper.
+- Owner-facing "force fields for non-staff" triggers (service_request_intake, arch_msg_set_author) skip on global is_any_staff(): staff at A who own at B escape them at B. Skip only when the caller can_access_association(row's association) (fixed in both before the PR).
+
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import
 - [Missed checks](missed-checks.md) -- domain-proof replay/relay, token minting, html_escape, storage cleanup, finance RPC scope triggers, hidden columns copied by DEFINER triggers (soft_delete_log), owner_visible_history writers

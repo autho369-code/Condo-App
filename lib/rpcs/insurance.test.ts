@@ -48,6 +48,22 @@ function sessionDb() {
   };
 }
 
+// The certificate check: the uploaded object exists, and no policy or
+// document already names that file.
+function certificateReads(refCount = 0) {
+  return {
+    select: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ count: refCount, error: null }) })),
+  };
+}
+function storage(remove: ReturnType<typeof vi.fn>) {
+  return {
+    from: vi.fn(() => ({
+      remove,
+      info: vi.fn().mockResolvedValue({ data: { size: 2048 }, error: null }),
+    })),
+  };
+}
+
 describe('owner insurance policy filing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -60,8 +76,8 @@ describe('owner insurance policy filing', () => {
     const storageRemove = vi.fn().mockResolvedValue({ error: null });
     mocks.createClient.mockResolvedValue(db);
     mocks.createServiceClient.mockReturnValue({
-      from: vi.fn(() => ({ insert: documentInsert })),
-      storage: { from: vi.fn(() => ({ remove: storageRemove })) },
+      from: vi.fn(() => ({ insert: documentInsert, ...certificateReads() })),
+      storage: storage(storageRemove),
     });
 
     await expect(saveInsurancePolicy(input)).resolves.toEqual({ ok: true });
@@ -89,9 +105,9 @@ describe('owner insurance policy filing', () => {
     mocks.createClient.mockResolvedValue(db);
     mocks.createServiceClient.mockReturnValue({
       from: vi.fn((table: string) => table === 'documents'
-        ? { insert: documentInsert }
-        : { delete: vi.fn(() => ({ eq: policyDeleteEq })) }),
-      storage: { from: vi.fn(() => ({ remove: storageRemove })) },
+        ? { insert: documentInsert, ...certificateReads() }
+        : { delete: vi.fn(() => ({ eq: policyDeleteEq })), ...certificateReads() }),
+      storage: storage(storageRemove),
     });
 
     await expect(saveInsurancePolicy(input)).resolves.toEqual({
@@ -101,5 +117,21 @@ describe('owner insurance policy filing', () => {
     expect(policyDeleteEq).toHaveBeenCalledWith('id', 'policy-a');
     expect(policyDeleteEq).toHaveBeenCalledWith('owner_id', 'owner-a');
     expect(storageRemove).toHaveBeenCalledWith([input.cert.path]);
+  });
+
+  it('refuses a certificate already on file and never removes it', async () => {
+    const { db, policyInsert } = sessionDb();
+    const storageRemove = vi.fn().mockResolvedValue({ error: null });
+    mocks.createClient.mockResolvedValue(db);
+    mocks.createServiceClient.mockReturnValue({
+      from: vi.fn(() => certificateReads(1)),
+      storage: storage(storageRemove),
+    });
+
+    await expect(saveInsurancePolicy(input)).resolves.toEqual({
+      error: "That certificate is already on file. Upload the new policy's certificate.",
+    });
+    expect(policyInsert).not.toHaveBeenCalled();
+    expect(storageRemove).not.toHaveBeenCalled();
   });
 });

@@ -26,7 +26,8 @@ const MODES = [
   { value: 'fixed', label: 'Fixed monthly amount', hint: 'Same amount every month' },
   { value: 'recurring_only', label: 'Recurring assessments only', hint: 'Regular dues, not one-time charges' },
   { value: 'special_only', label: 'Special assessments only', hint: 'Only special-assessment charges' },
-  { value: 'minimum', label: 'Minimum amount', hint: 'A floor amount you set' },
+  // Stored as 'minimum'; it pays the set amount, or less when less is due.
+  { value: 'minimum', label: 'Up to a set amount', hint: 'Your set amount, or less when less is due' },
 ];
 
 async function startAutopaySetup(formData: FormData) {
@@ -184,6 +185,19 @@ export default async function AutopayPage({
   const db = supabase as any;
 
   const setupId = /^[0-9a-f-]{36}$/i.test(sp.setup ?? '') ? sp.setup! : null;
+  // Back from Stripe with Cancel: release the reservation so the owner can
+  // start again now (it would otherwise block a new setup until it expires).
+  // Stripe can no longer complete a canceled attempt (the webhook requires
+  // session_created).
+  let releaseFailed = false;
+  if (sp.canceled && setupId && me.owner_ids.length) {
+    const { error: releaseError } = await (createServiceClient() as any).from('stripe_setup_attempts')
+      .update({ status: 'canceled', updated_at: new Date().toISOString() })
+      .eq('id', setupId)
+      .in('owner_id', me.owner_ids)
+      .in('status', ['pending', 'session_created']);
+    releaseFailed = !!releaseError;
+  }
   const { data: setupAttempt } = setupId
     ? await (createServiceClient() as any).from('stripe_setup_attempts')
         .select('status')
@@ -223,9 +237,11 @@ export default async function AutopayPage({
       {sp.error && <Alert tone="danger" title="AutoPay error">{sp.error}</Alert>}
       {sp.enrolled && <Alert tone="success" title="Payment method saved">Your AutoPay enrollment activates as soon as Stripe confirms the saved payment method (usually instant).</Alert>}
       {setupAttempt?.status === 'completed' && <Alert tone="success" title="Payment method saved">Your AutoPay enrollment is active.</Alert>}
-      {setupAttempt && ['pending', 'session_created'].includes(setupAttempt.status) && <Alert tone="info" title="Setup received">Stripe is confirming your saved payment method. This page will show the enrollment once processing completes.</Alert>}
+      {!sp.canceled && setupAttempt && ['pending', 'session_created'].includes(setupAttempt.status) && <Alert tone="info" title="Setup received">Stripe is confirming your saved payment method. This page will show the enrollment once processing completes.</Alert>}
       {setupAttempt?.status === 'failed' && <Alert tone="danger" title="Setup could not be completed">No AutoPay enrollment was activated. Please start again.</Alert>}
-      {sp.canceled && <Alert tone="warning" title="Setup canceled">No payment method was saved. You can start again below.</Alert>}
+      {sp.canceled && (releaseFailed
+        ? <Alert tone="warning" title="Setup canceled">No payment method was saved. A new setup can start once the canceled one expires (within 24 hours).</Alert>
+        : <Alert tone="warning" title="Setup canceled">No payment method was saved. You can start again below.</Alert>)}
       {sp.updated && <Alert tone="success" title="AutoPay updated">Your changes are saved.</Alert>}
 
       {/* ── Active enrollments ────────────────────────── */}
@@ -328,7 +344,7 @@ export default async function AutopayPage({
                 <Input id="fixed_amount" name="fixed_amount" inputMode="decimal" placeholder="e.g. 350.00" />
               </div>
               <div>
-                <Label htmlFor="minimum_amount">Minimum amount (minimum mode only)</Label>
+                <Label htmlFor="minimum_amount">Set amount (&ldquo;Up to a set amount&rdquo; only)</Label>
                 <Input id="minimum_amount" name="minimum_amount" inputMode="decimal" placeholder="e.g. 100.00" />
               </div>
               <div>

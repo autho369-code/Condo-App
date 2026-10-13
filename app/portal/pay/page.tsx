@@ -124,13 +124,9 @@ export default async function PayPage({
         <Link href="/portal" className={buttonClass('secondary')}>Back</Link>
       </div>
 
-      {sp.error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{sp.error}</div>
-      )}
+      {sp.error && <Alert tone="danger" title="Payment could not start">{sp.error}</Alert>}
       {sp.canceled && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
-          Payment canceled — no charge was made. You can try again below or use the offline options.
-        </div>
+        <Alert tone="warning">Payment canceled — no charge was made. You can try again below or use the offline options.</Alert>
       )}
 
       {!unitOptions.length && (

@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Owner portal: owners see only their own calendar events, without staff
+  notes; a buyer's balance counts the seller's payments; owner pages fast
+  at scale; tenants see their own records only; renter insurance uploads
+  work; AutoPay runs on the association's day and stops if a setting can't
+  be read; refunds can't be undone by a late Stripe message (20261014190000).
 - Banking: reserve accounts protected by the board-authorization rule;
   closed months can't be reopened without the audited step, and only by
   staff over every association; reconciliations validated in the database

@@ -28,28 +28,34 @@ export default async function ResidentRequestsPage({
   const supabase = await createClient();
   const db = supabase as any;
 
-  const [{ data: tenants }, { data: requests }] = await Promise.all([
-    db.from('tenants')
-      .select('id, unit_id, units(unit_number, buildings(name, associations(name)))')
-      .in('unit_id', me.tenant_unit_ids ?? []),
-    db.from('service_requests')
-      .select('id, number, description, priority, status, permission_to_enter, created_at, resolution_note, tenant_id, work_orders(id, status, created_at)')
-      .is('archived_at', null)
-      .order('created_at', { ascending: false })
-      .limit(100),
-  ]);
-
-  const [files, { data: tenantIdRows }] = await Promise.all([
-    loadRequestAttachmentsByRequest((requests ?? []).map((r: any) => r.id)),
-    db.rpc('current_tenant_ids'),
-  ]);
   // One login can rent several units, each its own tenant record.
+  const { data: tenantIdRows, error: tenantIdsError } = await db.rpc('current_tenant_ids');
   const myTenantIds = new Set<string>(
     (Array.isArray(tenantIdRows) ? tenantIdRows : [])
       .map((row: any) => (typeof row === 'string' ? row : row?.current_tenant_ids))
       .filter(Boolean),
   );
   if (me.tenant_id) myTenantIds.add(me.tenant_id);
+  const tenantIdList = Array.from(myTenantIds);
+
+  // Filtered to this resident's own records here, not left to RLS alone: a
+  // login that is also an owner, board member or staff can read more rows.
+  const [{ data: tenants, error: tenantsError }, { data: requests, error: requestsError }] = await Promise.all([
+    db.from('tenants')
+      .select('id, unit_id, units(unit_number, buildings(name, associations(name)))')
+      .in('id', tenantIdList)
+      .in('unit_id', me.tenant_unit_ids ?? []),
+    db.from('service_requests')
+      .select('id, number, description, priority, status, permission_to_enter, created_at, resolution_note, tenant_id, work_orders(id, status, created_at)')
+      .in('tenant_id', tenantIdList)
+      .is('archived_at', null)
+      .order('created_at', { ascending: false })
+      .limit(100),
+  ]);
+
+  const files = await loadRequestAttachmentsByRequest((requests ?? []).map((r: any) => r.id));
+  // Fail loudly: a failed read must not look like "no unit" or "no requests".
+  const loadError = tenantIdsError?.message ?? tenantsError?.message ?? requestsError?.message ?? null;
 
   const unitOptions = (tenants ?? []).map((tenant: any) => {
     const unit = relation<any>(tenant.units);
@@ -72,13 +78,14 @@ export default async function ResidentRequestsPage({
       {banner.submitted ? <Alert tone="success">Your request was submitted to management.</Alert> : null}
       {banner.cancelled ? <Alert tone="success">The request was cancelled.</Alert> : null}
       {banner.error ? <Alert>{banner.error}</Alert> : null}
+      {loadError ? <Alert tone="danger" title="Could not load your requests">{loadError}</Alert> : null}
 
       <Surface>
         <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Submit a request</h2>
         <p className="mt-1 text-[13px] leading-5 text-gray-500">For fire, gas, an active flood, or immediate danger, call 911 and your building&apos;s emergency line first.</p>
         <p className="mt-1 text-[13px] leading-5 text-gray-500">A question rather than a repair? <Link href="/resident/messages?compose=1" className="font-medium text-gray-900 hover:underline">Send a message instead</Link>.</p>
-        {unitOptions.length === 0 ? (
-          <Alert tone="warning" className="mt-4">Your account is not linked to an active unit. Contact management.</Alert>
+        {loadError ? null : unitOptions.length === 0 ? (
+          <Alert tone="warning" className="mt-4">Your account is not linked to an active unit. Contact your management company.</Alert>
         ) : (
           <form action={submitResidentRequest as any} className="mt-5 space-y-5">
             <div>
