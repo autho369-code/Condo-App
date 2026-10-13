@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#367 merged; open PR: claude/email-rate-limit; next: communications follow-ups; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#367 merged; open PR: #368 claude/email-rate-limit; next: communications follow-ups; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/email-rate-limit: Codex on #367 - the hourly email
+- #368 claude/email-rate-limit: Codex on #367 - the hourly email
   limit counted client-supplied created_at (backdated rows never counted)
   and parallel sends each saw room under it. The insert guard sets
   created_at to the database time; the limit takes a per-company lock
