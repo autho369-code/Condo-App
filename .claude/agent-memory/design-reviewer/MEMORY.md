@@ -83,6 +83,6 @@
 - Option-list queries for new Selects (gl_accounts expense list) often skip the error check and the empty-list state: a required Select with only a disabled placeholder is a dead end.
 
 ## Owner/resident portal data scoping (2026-10-13, owner-portal-fixes)
-- portal/pay/page.tsx:128 renders sp.error in a hand-rolled red div (not Alert); new pay actions' ?error= land there. Flag until fixed.
-- Resident pages (app/resident/*) ignore query errors; when a scoping RPC (current_tenant_ids) fails the page shows the "not linked"/empty state instead of an Alert. Check error capture when filters are added.
-- lib/calendar/association-feed.ts meetings query has no executive_session filter while resident/meetings excludes them: check sibling feeds agree.
+- Lesson: check that a page's existing error box is an <Alert> when new ?error= messages land there (portal/pay hand-rolled red div; fixed in 20261014190000's PR).
+- Lesson: when filters/RPCs are added to a page, check it captures their errors; a failed scoping RPC must not render the "not linked"/empty state (resident pages fixed in the same PR).
+- Lesson: sibling feeds must apply the same rules (association-feed meetings now exclude executive_session, like resident/meetings; fixed in the same PR).

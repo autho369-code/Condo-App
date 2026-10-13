@@ -57,6 +57,15 @@ DNS or decisions). Details for the older items are further down.
 - [ ] **Optional cleanup:** drop the switched-off policy in the SQL editor
       (`drop policy "Anyone can read templates" on public.maintenance_templates;`);
       it reads nothing since migration 20261012010000.
+- [ ] **Optional cleanup:** drop the policies switched off in migration
+      20261014190000 and the two unused AutoPay functions (SQL editor):
+      `drop policy calendar_events_resident_read on public.calendar_events;`
+      `drop policy calendar_events_tenant_read on public.calendar_events;`
+      `drop policy occupancies_self_update on public.occupancies;`
+      `drop function public.enroll_autopay(uuid, uuid, integer, autopay_frequency);`
+      `drop function public.cancel_autopay(uuid, text);`
+      (Residents read the calendar through resident_calendar_events; AutoPay
+      runs through the portal's server actions.)
 - [ ] **NSF fee income account setting (Codex on #339):** companies whose NSF
       income account is not named like "NSF fee" post NSF fees to default
       income, because the GL map can't store an `nsf_fee_income` key. Run in

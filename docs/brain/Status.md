@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#362 merged; open PR: claude/owner-portal-fixes; next: budgets fixes, payments.notes private; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#362 merged; open PR: claude/owner-portal-fixes; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
 - (number on open) claude/owner-portal-fixes: owner portal deep check
@@ -27,7 +27,9 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#362 merged; open PR: claude/owner-po
   day, never charges if the online-payment setting can't be read, minimum
   mode described as "your set amount, or less"; late Stripe checkout events
   can't undo a refund; expired checkouts closed; 5 unfinished checkouts per
-  hour; canceled AutoPay setup can be retried at once.
+  hour; canceled AutoPay setup can be retried at once. The lease page and
+  lease/resident RPCs were checked (own records only); payments.notes was
+  already private (payment_private), so no change.
 
 ## Merged 2026-10-13
 - #362 reconciliation items: an update or delete is checked against the
@@ -512,11 +514,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#362 merged; open PR: claude/owner-po
   rounding; board page month 1 before the year starts; budget detail report
   calendar year; dues-increase category from another company; operator
   worksheet shows other companies' accounts.
-- NEXT PR: payments.notes is readable by owners and the board (a table-wide
-  grant; no notes on production yet): move it to a private table like
-  owner_private. Same for payment_applications.notes and applied_by (unused
-  today; a buyer now reads the applications on their unit's charges so the
-  balance is right).
 - Banking, not changed (from the deep check): a completed reconciliation
   has no undo (only the service role); year-end close is a snapshot
   package and does not lock months; a bank adjustment already cleared can

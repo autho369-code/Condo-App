@@ -18,8 +18,8 @@
 --    balance.
 --    The owner sees the amount and date applied to each charge of their own
 --    units (what the charge balance already shows); payment_applications.notes
---    is written by nothing (0 rows) and payment notes move to a private table
---    in the next change.
+--    is written by nothing (0 rows), and payments.notes is already kept in
+--    payment_private (20261004200000).
 -- 3. Speed: the payments, work orders and work order messages owner policies
 --    called current_resident_unit_since() once per row (4.8 s at 40k
 --    payments). They now use one id set per query.

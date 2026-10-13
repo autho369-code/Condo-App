@@ -2,6 +2,14 @@
 
 Back to [[Home]]. Don't redo these.
 
+- **Buyers see the payment applications on their unit's charges**
+  (2026-10-13, 20261014190000): so a charge the seller paid shows as paid.
+  The seller's payment rows stay hidden (move-in cutoff); an application
+  shows only the amount and date applied (its notes column is unused, and
+  payment notes are private in payment_private). A late Stripe checkout
+  event after a refund/return/cancel changes nothing; posting is idempotent
+  per Stripe PaymentIntent, so a retried post is a no-op.
+
 - **Supabase "multiple permissive policies" warnings stay** (2026-10-11):
   511 warnings on 165 tables (one policy per role: staff, board, resident,
   vendor, operator). Since 20261011010000-60000 every policy helper runs

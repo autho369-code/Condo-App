@@ -35,7 +35,7 @@
 
 - Narrowing a SELECT policy (e.g. exec sessions -> my_confidential_meeting_association_ids, 20261014140000): sweep DEFINER RPCs on the same rows; they bypass RLS. `can_view_association_row`/`manager_is_scoped()` is TRUE for staff with ZERO association_managers rows, so an unassigned assistant passes it (calculate_meeting_quorum).
 
-- A BEFORE INSERT trigger that stamps author/role for "non-staff" callers also fires inside DEFINER RPCs run by non-staff (board): grep every `insert into public.<t>` in migrations. 20261014190000 arch_msg_set_author relabels board_decide_architectural_request's 'board' rows as 'owner' (latent: RPC revoked in 20261005111000).
+- A BEFORE INSERT trigger that stamps author/role for "non-staff" callers also fires inside DEFINER RPCs run by non-staff (board): grep every `insert into public.<t>` in migrations. Found in 20261014190000 arch_msg_set_author (would relabel board_decide_architectural_request's 'board' rows); fixed before the PR: it now stamps only author_role='owner' rows.
 - This agent has had no live DB tool (no Supabase MCP/psql/DB URL): give the caller read-only verification SQL instead of claiming live parity.
 
 - A guard that recomputes a total from child rows must also fix the child rows' CLASS (type/sign) and forbid duplicates; recomputing amounts alone still lets a client mislabel or double a row (20261014170000 recon items). Treat every terminal status (void, cancelled) as terminal, not just 'completed'.
