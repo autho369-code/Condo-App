@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- An applied payment or charge cannot be moved to another unit
+  (20261014020000); Stripe webhook route tests (Codex on #347).
 - Owner portal and board money pages up to 30x faster: access rules on
   charges/payments/applications no longer expand inside each query
   (20261014000000); payments apply only to charges on their own unit

@@ -1,23 +1,20 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#346 merged; open PR: claude/scope-sweep-and-online-payments; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#347 merged; open PR: claude/application-unit-guard; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #347 claude/scope-sweep-and-online-payments: definer sweep and online
-  payments verified (no change, see Next gaps), plus (both LIVE, read back):
-  20261014000000 money policies without nested RLS: inline subqueries in
-  policies on charges, payments, payment_applications moved into
-  rls_private SECURITY INVOKER set functions (caller's own policies still
-  decide), so the planner stops expanding nested policies. Same visible ids
-  for 7 roles (seeded 3 associations / 2 companies). At 2,000 units: owner
-  unit summary 311 -> 10 ms, charge balances 211 -> 1 ms, board 226 -> 13,
-  manager 220 -> 8. At 1,000 units x 36 months nothing slower (manager one
-  unit 381 -> 139 ms; scoped manager 571 -> 341 ms; owner 209 -> 3 ms).
-  Writes unchanged (scoped manager in/out of scope, auto-apply).
-  20261014010000 a payment can only be applied to a charge on the same unit
-  (security-reviewer: finance policy checked only payment_id).
+- #348 claude/application-unit-guard (Codex on #347): 20261014020000 (LIVE) an
+  applied payment or charge cannot move to another unit (verified: both
+  refused, an unapplied charge still moves). Webhook route tests
+  (tests/payments/stripe-webhook-route.test.ts, 10): signature, livemode,
+  connected account, card/ACH ledger post once, duplicate event, amount and
+  account mismatch, failed payment. Online-payment note relabelled: database
+  + webhook route verified; checkout and the AutoPay route still need a
+  Stripe test-mode run.
 
 ## Merged 2026-10-13
+- #347 money policies without nested RLS (20261014000000), payments apply
+  to own unit (20261014010000), sweeps verified (live).
 - #346 recheck existing payment plans under the new measure
   (20261013230000, live; Codex clean).
 - #345 payment plan measure by recording time (cases A-G), report uses it,
@@ -465,8 +462,12 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#346 merged; open PR: claude/scope-sw
 - The same RLS estimate (about one visible unit) can make any view that
   joins charges or payments to units nested-loop at scale; the fix pattern
   is a LATERAL lookup by the unit id (20261013040000).
-- DONE 2026-10-13 (verified, no change): online payments end to end, rolled
-  back on production (Randolph, test Stripe account id): webhook ledger post
+- NEXT before the Stripe pilot: run checkout (app/api/payments) and the
+  AutoPay route (app/api/payments/autopay-run) against Stripe TEST mode once
+  Mirsad sets test keys; only the database side and the webhook route are
+  verified (Codex on #347).
+- DONE 2026-10-13 (database side verified, no change): online payments,
+  rolled back on production (Randolph, test Stripe account id): webhook ledger post
   (post_stripe_ledger_payment as service_role) card and ACH, a repeated
   event returns the same payment (1 row), journal Dr Operating cash / Cr AR
   balanced, intent succeeded, an active payment plan completes; a manager
