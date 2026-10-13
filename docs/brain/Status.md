@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#364 merged; open PR: claude/autopay-retry-cleanup; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#364 merged; open PR: #365 claude/autopay-retry-cleanup; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/autopay-retry-cleanup: Codex P1 on #364 - a retried
+- #365 claude/autopay-retry-cleanup: Codex P1 on #364 - a retried
   Stripe completion for a setup already canceled/expired/failed exited before
   undoing a mandate an earlier delivery created. Mandates now record
   setup_attempt_id (20261014200000, LIVE; set by the webhook only, column
