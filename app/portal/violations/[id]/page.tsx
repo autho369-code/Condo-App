@@ -190,6 +190,8 @@ export default async function OwnerViolationDetail({
           <p className="text-sm text-gray-500">This violation is closed, so a hearing can no longer be requested.</p>
         ) : v.board_decision ? (
           <p className="text-sm text-gray-500">The board has decided this violation (violation {v.board_decision}), so a hearing can no longer be requested.</p>
+        ) : hearingWindow && !requestDeadline ? (
+          <p className="text-sm text-gray-500">You can request a hearing once the association sends its first notice about this violation.</p>
         ) : requestWindowClosed ? (
           <p className="text-sm text-gray-500">The time to request a hearing ended on {date(requestDeadline)}. Contact your association manager with any questions.</p>
         ) : (

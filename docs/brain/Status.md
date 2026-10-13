@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#353 merged; open PRs: #354 claude/work-order-fixes, #355 claude/meeting-fixes; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#354 merged; open PR: #355 claude/meeting-fixes; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #355 claude/meeting-fixes (stacked on #354; merge #354 first):
+- #355 claude/meeting-fixes:
   20261014100000 (LIVE): calculate_meeting_quorum is read only (owners and
   view-only staff could rewrite a completed meeting's quorum); a trigger
   records quorum_met/quorum_requirement/total_units in the same UPDATE that
@@ -22,18 +22,15 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#353 merged; open PRs: #354 claude/wo
   calendar: the form is replaced by "The time to request a hearing ended
   on ..." after it; hearing_at preferred over the older hearing_date; a
   date-only hearing day counts as held only after that local day.
-- #354 claude/work-order-fixes:
-  20261014090000 (LIVE): triage cuts work_orders.description to 2,000 (full
-  text stays in issue) so long service requests convert; rate_work_order
-  owner branch requires a current resident unit and a job created since
-  move-in; vendor work_order_updates may only carry the work order's real
-  status (fake "Completed" entries refused). Vendor Open/Completed tabs
-  filter in the query (older open jobs were hidden) with a 200 notice;
-  dead createWorkOrderFromServiceRequest removed. Reviews: security (enum
-  value 'open' in the filter broke both tabs - fixed), migration (moved-out
-  owner could still rate - fixed).
+  Codex on #354: 20261014120000 (LIVE) a hearing request needs the first
+  notice (before, one sent early blocked every later fine); changing a
+  charge's charge_type reposts its journal entry (the type decides the
+  income account and date).
 
 ## Merged 2026-10-13
+- #354 work orders: long requests convert, vendor Open tab complete, no fake
+  vendor status entries, owners rate only their own jobs (20261014090000,
+  live).
 - #353 violations: fines to Violation Fees on the day assessed, hearing
   window, owner timeline (20261014080000, live).
 - #352 charge balances and category totals add up applications once
