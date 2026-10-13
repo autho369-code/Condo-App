@@ -57,6 +57,10 @@ DNS or decisions). Details for the older items are further down.
 - [ ] **Optional cleanup:** drop the switched-off policy in the SQL editor
       (`drop policy "Anyone can read templates" on public.maintenance_templates;`);
       it reads nothing since migration 20261012010000.
+- [ ] **Optional cleanup:** drop the index `charges_unit_idx` in the SQL
+      editor (`drop index public.charges_unit_idx;`); the new
+      `charges_unit_due_idx (unit_id, due_date)` from migration 20261013050000
+      covers it.
 - [ ] **CLAUDE.md rule 6 (your file):** add `to authenticated` to the preferred
       policy form; a policy with no TO clause applies to signed-out callers
       too (20261012010000; the migration check now fails one).
