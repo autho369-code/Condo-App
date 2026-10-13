@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#352 merged; open PRs: #353 claude/violation-fixes, claude/work-order-fixes; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#352 merged; open PRs: #353 claude/violation-fixes, #354 claude/work-order-fixes; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/work-order-fixes (stacked on #353; merge #353 first):
+- #354 claude/work-order-fixes (stacked on #353; merge #353 first):
   20261014090000 (LIVE): triage cuts work_orders.description to 2,000 (full
   text stays in issue) so long service requests convert; rate_work_order
   owner branch requires a current resident unit and a job created since
