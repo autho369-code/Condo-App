@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#358 merged; open PR: claude/payables-fixes; next: payables minor items (credit-paid date, recurring_bills direct writes); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#358 merged; open PR: #359 claude/payables-fixes; next: payables minor items (credit-paid date, recurring_bills direct writes); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/payables-fixes: payables deep check (10,000 bills,
+- #359 claude/payables-fixes: payables deep check (10,000 bills,
   rolled back; every page/RPC under 140 ms for every role; visibility
   correct). 20261014150000 (LIVE):
   - vendor-portal invoices could never be approved (board always required,
