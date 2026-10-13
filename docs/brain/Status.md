@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-13 (#279-#346 merged; open PR: claude/scope-sweep-and-online-payments; next: views joining charges/payments to units measured per role at scale (owner ledger, board financials); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/scope-sweep-and-online-payments: vault only. Definer sweep and the
+- #347 claude/scope-sweep-and-online-payments: vault only. Definer sweep and the
   online-payment rolled-back run both verified with no change needed (see
   Next gaps).
 
