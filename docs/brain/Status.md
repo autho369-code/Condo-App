@@ -1,21 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#363 merged; open PR: #364 claude/autopay-cancel-race; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#364 merged; open PR: claude/autopay-retry-cleanup; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #364 claude/autopay-cancel-race: Codex P1 on #363 - a
-  canceled AutoPay setup returning while Stripe's completion was being
-  processed could leave an active mandate after the page said nothing was
-  saved. The cancel return now expires the Stripe session first and
-  releases the setup only when Stripe confirms it can't complete (a
-  completed session goes ahead as an enrollment); the webhook undoes a
-  mandate it created if the setup was canceled meanwhile (by owner, unit
-  and method, so a redelivered event also undoes it; any non-completed end
-  state; the saved method is retired when nothing else uses it). The portal
-  never sends the owner to a Stripe session for a setup canceled meanwhile.
-  Test: webhook enrollment racing a cancel ends with no active AutoPay.
+- (number on open) claude/autopay-retry-cleanup: Codex P1 on #364.
 
 ## Merged 2026-10-13
+- #364 AutoPay: a canceled setup can't leave AutoPay active (Codex on #363).
 - #363 owner portal: private calendar, right balance after a sale, fast
   owner pages, tenant pages scoped, AutoPay and Stripe fixes
   (20261014190000).
