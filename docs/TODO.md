@@ -57,6 +57,12 @@ DNS or decisions). Details for the older items are further down.
 - [ ] **Optional cleanup:** drop the switched-off policy in the SQL editor
       (`drop policy "Anyone can read templates" on public.maintenance_templates;`);
       it reads nothing since migration 20261012010000.
+- [ ] **NSF fee income account setting (Codex on #339):** companies whose NSF
+      income account is not named like "NSF fee" post NSF fees to default
+      income, because the GL map can't store an `nsf_fee_income` key. Run in
+      the SQL editor, then tell Claude to wire the setting:
+      `alter table public.gl_account_map drop constraint gl_account_map_map_key_check;`
+      `alter table public.gl_account_map add constraint gl_account_map_map_key_check check (map_key = any (array['accounts_receivable','accounts_payable','late_fee_income','default_income','assessment_income','undeposited_funds','nsf_fee_income']));`
 - [ ] **Optional cleanup:** drop the index `charges_unit_idx` in the SQL
       editor (`drop index public.charges_unit_idx;`); the new
       `charges_unit_due_idx (unit_id, due_date)` from migration 20261013050000

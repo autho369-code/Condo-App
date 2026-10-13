@@ -1,23 +1,17 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#339 merged; open PR: #340 claude/rls-per-row-policies; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#340 merged; open PR: claude/codex-339-followups; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #340 claude/rls-per-row-policies: e-signature reads once per
-  query (20261013100000 LIVE): requests use the house portfolio form,
-  signers/events read through rls_private.my_signature_request_ids(). Dry run
-  5,000 requests/signers/events: identical rows for 7 roles; signers up to
-  3.6 s -> 11 ms, board/owner 1 s -> 1-3 ms. Stacked (all LIVE):
-  20261013110000 bank transfers, owner attachments, owner-portal notices,
-  meeting items once per query (36 role x table row sets identical, 0.3-0.85 s
-  -> under 10 ms); 20261013120000 BUG FIX: a manager not limited to some
-  associations could not create/edit meetings or see/add agenda items, only
-  company admins could (can_edit_association_mvp required an
-  association_managers row); now the whole company, scoped managers keep
-  only theirs. 20261013130000 hardening: that branch needs hoa_role manager
-  and an enabled account.
+- (number on open) claude/codex-339-followups: 20261013140000 (LIVE)
+  payment plan recheck uses payment_plan_paid_amount (raw receipts could
+  keep a bounced plan completed; verified it reopens); reconciliation item
+  guard locks the parent FOR SHARE. NSF income GL-map key waits on Mirsad
+  (constraint swap SQL in docs/TODO.md).
 
 ## Merged 2026-10-12
+- #340 signatures, transfers, attachments, notices, meeting items once per
+  query; managers can create/edit meetings (20261013100000-130000, live).
 - #339 unapplied credits, page totals, NSF fee income, payment plan bounce,
   locked reconciliations (20261013060000-090000, live).
 - #338 delinquent_units by (unit_id, due_date) index (20261013050000, live).
