@@ -109,6 +109,10 @@ Back to [[Home]].
   Aggregate first, then call the helper per group. A LANGUAGE sql function
   with "p is null or ..." filters runs a generic plan; use plpgsql with
   plan_cache_mode = force_custom_plan (20261014040000/050000).
+- **One correlated subquery per value in views** (2026-10-13): a view that
+  repeats the same correlated subquery for several columns runs each copy as
+  its own subplan, and each re-evaluates that table's access rules. Compute
+  it once with LEFT JOIN LATERAL and reuse the column (20261014060000).
 - **A changed measure rechecks stored statuses** (2026-10-13): when a
   migration changes a function a stored status is derived from (e.g.
   payment_plan_paid_amount -> payment_plans.status), the same migration

@@ -66,3 +66,7 @@ metadata:
 ## Sum-before-helper rewrites (20261014040000/050000, reviewed 2026-10-13, clean)
 - `sum(helper(type, d, c))` -> `helper(type, sum(d), sum(c))` is equal only if helper is linear with null-as-0 AND type is constant per group. Check aggregates WITHOUT GROUP BY: over zero rows the old form gives NULL, the new gives helper(null,null)=0; harmless only if the consumer coalesces (forecast `act` does). Grouping by (gid, mon) instead of (gid, idx) needs mon->idx injective (fiscal_month_index uses year*12+month only, so yes; date_trunc on a date goes via timestamptz but the month survives).
 - language sql -> plpgsql with `force_custom_plan` for `p_x is null or ...` filters is fine: CREATE OR REPLACE may change language, keeps ACL/owner; check RETURNS TABLE names are only used qualified.
+
+## Correlated-sum -> LATERAL rewrites (20261014060000/070000 views, reviewed 2026-10-13, clean)
+- `left join lateral (select sum(..) ... where fk = c.id) on true` is exactly one row per outer row (aggregate without GROUP BY), so count(*)/sums don't multiply and zero matches give NULL -> coalesce. Types: sum(numeric(p,s)) is plain numeric in both forms, so CREATE OR REPLACE VIEW column types match. CREATE OR REPLACE VIEW keeps grants, owner and COMMENT; must restate `with (security_invoker = true)`.
+- Baseline grants ALL on views to anon; harmless for invoker views when no underlying table has an anon policy (grep `to anon` on base tables). Hygiene revoke only, not a finding.

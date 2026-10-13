@@ -1,11 +1,18 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#350 merged; open PR: claude/vault-reports-at-scale; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#351 merged; open PR: claude/charge-balances-one-sum; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #351 claude/vault-reports-at-scale: vault only (report timings below).
+- claude/charge-balances-one-sum (both LIVE, read back): 20261014060000
+  v_charge_balances and 20261014070000 v_charges_by_category add up each
+  charge's applications once (LATERAL) instead of 4 / 2 correlated copies,
+  each of which evaluated the payment_applications access rules again.
+  Identical output for 5 roles. 1,000 units x 36 months: one-unit charge
+  balances scoped manager 419 -> 88 ms, manager 183 -> 35, board 320 -> 72;
+  whole view 891 -> 365 (manager); category view 458 -> 283.
 
 ## Merged 2026-10-13
+- #351 vault: all 120 reports under 230 ms at 2,000 units.
 - #350 budget pages 15-35x faster, ledger totals ~8x faster
   (20261014040000/050000, live; Codex clean).
 - #349 application/unit-move race closed (20261014030000, live; Codex clean).
@@ -466,9 +473,10 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#350 merged; open PR: claude/vault-re
   account_totals 225, trial_balance_association 223, journal_entry_register
   185, charge_detail 178, income_register 172); homeowner_ledger needs a
   unit (expected error without one).
-- Known, low priority: a manager limited to some associations still builds
-  the whole visible charge set per payment_applications query (341 ms per
-  unit at 36,000 charges, was 571); receivable_unit_totals(null) 239 ms.
+- Known, low priority: receivable_unit_totals(null) 239 ms at 2,000 units;
+  v_unit_account_summary one unit still ~90-290 ms at 36,000 charges (its
+  other correlated sums). Scoped-manager one-unit charge balances fixed by
+  20261014060000 (419 -> 88 ms).
 - NEXT before the Stripe pilot: run checkout (app/api/payments) and the
   AutoPay route (app/api/payments/autopay-run) against Stripe TEST mode once
   Mirsad sets test keys; only the database side and the webhook route are
