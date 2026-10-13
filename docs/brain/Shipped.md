@@ -4,6 +4,13 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Email security: password-reset and invitation links can no longer be read
+  or redirected by company staff; staff can't send mail under another name,
+  to a foreign reply-to or with scripts; mass mail replies go to the company
+  and large sends no longer time out; resets go out first (20261014220000).
+- Budgets follow-up (Codex on #366): the old budget-line write functions are
+  closed; a double-clicked "Update assessments" still running isn't shown
+  as done.
 - Budgets: budget vs actual compares the right months for fiscal years not
   starting in January and shows real actuals (they were $0); applying an
   earlier year's assessments can't cancel next year's; no double posting;

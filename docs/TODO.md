@@ -66,6 +66,14 @@ DNS or decisions). Details for the older items are further down.
       `drop function public.cancel_autopay(uuid, text);`
       (Residents read the calendar through resident_calendar_events; AutoPay
       runs through the portal's server actions.)
+- [ ] **Optional cleanup:** drop the unused email helpers replaced in
+      migration 20261014220000, and the old budget-line RPCs it revoked
+      (SQL editor). The first was created on production during that change
+      (not in any migration file) and is executable by no one:
+      `drop function rls_private.email_queue_recent_count(uuid);`
+      `drop function public.email_queue_sender_problem(uuid, uuid, text, text, text, text, uuid);`
+      `drop function public.upsert_budget_line(uuid, uuid, uuid, integer, numeric[], text, text);`
+      `drop function public.delete_budget_line(uuid);`
 - [ ] **NSF fee income account setting (Codex on #339):** companies whose NSF
       income account is not named like "NSF fee" post NSF fees to default
       income, because the GL map can't store an `nsf_fee_income` key. Run in

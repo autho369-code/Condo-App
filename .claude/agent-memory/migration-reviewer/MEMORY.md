@@ -43,7 +43,7 @@
 - A backfill/trigger that derives a column (fund_type from purpose) must not overwrite explicit values outside the derived set (insurance_proceeds/construction_escrow); restrict the UPDATE WHERE to null-or-derived values and ask for a pre-run count (20261014170000, Codex on #361).
 
 ## Topic files
-- [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift
+- [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns
 - [Owners and vendors](owners-vendors.md) — association/login models, self-service guards, many-records-per-login checks
 - [Purge and FKs](purge-and-fks.md) — cascade/NO ACTION maps, polymorphic tables, trigger re-enable pitfalls

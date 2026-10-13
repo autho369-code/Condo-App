@@ -17,7 +17,7 @@ function fail(message: string): never {
   redirect(`${CENTER}?tab=drafts&error=${encodeURIComponent(message)}`);
 }
 
-type Recipient = { email: string; name: string };
+type Recipient = { email: string; name: string; owner_id?: string };
 
 export async function sendCommunication(formData: FormData) {
   const me = await requireStaff();
@@ -78,13 +78,14 @@ async function resolveRecipients(db: any, msg: any): Promise<Recipient[]> {
   if (assocId && (ownerGroups.includes(group))) {
     const occs = await readAll('owners', () => db
       .from('occupancies')
-      .select('id, owners!owner_id(email, full_name, archived_at)')
+      .select('id, owners!owner_id(id, email, full_name, archived_at)')
       .eq('association_id', assocId)
       .eq('occupancy_type', 'owner')
       .eq('status', 'current')
       .order('id'));
     occs.filter((o: any) => !o.owners?.archived_at).forEach((o: any) => {
-      if (o.owners?.email) out.push({ email: o.owners.email, name: o.owners.full_name ?? '' });
+      // The owner id lets the queue skip a slow per-row lookup by address.
+      if (o.owners?.email) out.push({ email: o.owners.email, name: o.owners.full_name ?? '', owner_id: o.owners.id });
     });
   }
 

@@ -1,10 +1,28 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#366 merged; open PR: claude/email-queue-security; next: pick the next deep-check area; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#366 merged; open PR: claude/email-queue-security; next: communications follow-ups; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/email-queue-security: communications deep check;
-  Codex on #366.
+- (number on open) claude/email-queue-security: communications deep check
+  (P1 account takeover) + Codex on #366. 20261014220000 (LIVE):
+  - any company staff login could read password-reset and invitation links
+    in email_queue and redirect a pending one (UPDATE to_email): rows with a
+    sign-in, e-signature or upload link are marked (holds_auth_link),
+    readable by no signed-in user and queued by the server only; signed-in
+    users can only retry a failed email; invitation tokens in
+    user_invitations are no longer readable by staff;
+  - staff could queue mail with any sender name, reply-to and raw HTML:
+    inserts by signed-in users must use the company/association name, a
+    company reply-to (support, own address, verified domain), no active
+    HTML, at most 5,000 per company per hour;
+  - Communication Center: replies go to the company's support address (not
+    the platform mailbox), up to 5,000 recipients, owner ids passed in (a
+    2,000-owner send timed out at the 8 s limit; now 3.7 s);
+  - sign-in mail is sent ahead of other queued mail;
+  - Codex on #366: old upsert/delete_budget_line RPCs revoked; a still-
+    running duplicate "Update assessments" isn't reported as success.
+  By design, sign-in emails no longer show in owner email history or the
+  operator monitors (Decisions).
 
 ## Merged 2026-10-13
 - #366 budgets: budget vs actual in fiscal months with real actuals;
@@ -489,6 +507,16 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#366 merged; open PR: claude/email-qu
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- NEXT PR: communications follow-ups (deep check 2026-10-13): no email
+  unsubscribe/opt-out and bounced/complained addresses are never
+  suppressed (owners.preferred_comm / electronic_consent ignored by mass
+  mail); inbound SMS that isn't STOP/START is acknowledged and dropped;
+  message_notify swallows errors; notification emails say "sign in" with
+  no link; inbox list capped at 300 with no paging; sendSms falls back to
+  +10000000000 and takes from_number from the form; sold owners can post
+  on old threads (post_message checks owner ids, not occupancy); mass
+  email doesn't filter move_out_date (daily cron limits it to ~1 day);
+  letters read unit_owners while email reads occupancies.
 - Banking, not changed (from the deep check): a completed reconciliation
   has no undo (only the service role); year-end close is a snapshot
   package and does not lock months; a bank adjustment already cleared can

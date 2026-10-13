@@ -50,7 +50,7 @@ export async function sendEmail(formData: FormData) {
   // Resolve recipient email addresses based on the type picker. Paged past
   // PostgREST's 1,000-row cap; a failed read stops the send rather than
   // emailing a partial list.
-  const recipients: Array<{ email: string; name: string; source: string }> = [];
+  const recipients: Array<{ email: string; name: string; source: string; ownerId?: string }> = [];
   const readAll = async (label: string, build: () => any) => {
     const { rows, error } = await fetchAllRows(build);
     if (error) failTo(`Could not load ${label}: ${error}`);
@@ -66,7 +66,7 @@ export async function sendEmail(formData: FormData) {
       .eq('status', 'current')
       .order('id'));
     occs.forEach((o: any) => {
-      if (o.owners?.email && !o.owners.archived_at) recipients.push({ email: o.owners.email, name: o.owners.full_name ?? '', source: 'owner' });
+      if (o.owners?.email && !o.owners.archived_at) recipients.push({ email: o.owners.email, name: o.owners.full_name ?? '', source: 'owner', ownerId: o.owners.id });
     });
   }
 
@@ -222,6 +222,9 @@ export async function sendEmail(formData: FormData) {
     fromName,
     sentBy: me.auth_user_id,
     idempotencyKey: `mass-email:${submissionToken}:${r.email.toLowerCase()}`,
+    // Known owner: the queue doesn't look it up by address (a slow lookup per
+    // row that timed out a 2,000-owner send).
+    ownerId: r.ownerId ?? null,
   }));
   const { error: queueError } = await db.from('email_queue').insert(queueRows);
   if (queueError) {

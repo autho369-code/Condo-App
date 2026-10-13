@@ -117,6 +117,17 @@ Back to [[Home]].
   under `if tg_table_name = ...`: PL/pgSQL resolves every field in a
   condition, so `tg_table_name = 'x' and new.col ...` fails on the other
   table (20261014170000).
+- **A sign-in link is never readable by a signed-in user** (2026-10-13): a
+  row holding a password-reset, verification, invitation, e-signature or
+  upload link (email_queue holds_auth_link) is readable by no signed-in user,
+  not even the one who asked for it (a staff member resetting someone else's
+  password would get that person's link), and such rows are queued by the
+  server only; invitation tokens aren't readable either. Signed-in users
+  can only retry a failed email. Anything they insert for delivery is checked
+  in the database: sender name and address, reply-to, active HTML, owner,
+  rate (20261014220000). Checks inside a trigger that reads other tables run
+  in a definer helper: the caller's row-level security on every row made
+  2,000 emails take ~4 s.
 - **Residents read staff tables through a safe RPC** (2026-10-13): a policy
   can't hide columns, so when a table holds staff-only fields (internal
   notes, instructions, recipients), owners and tenants read it through a

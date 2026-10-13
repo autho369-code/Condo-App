@@ -66,6 +66,10 @@
 - jsonb-returning RPCs (e.g. `receivables_page_totals`, 20261011100000): check:columns cannot see them; match every `jsonb_build_object` key and nested `to_jsonb(t)` field against what the page reads, and diff the old per-view queries' filters (e.g. `reversed_at is null`) against the function body (2026-10-10, clean).
 - On Windows, check:columns may print "can't check statically" + "no longer in the code" pairs for the same entry (backslash vs slash path in unchecked-selects.json): a path-separator artifact, not a schema problem.
 
+## Column-level revokes (user_invitations.token, 20261014220000 §6e)
+- A revoked column breaks user-client `select('*')`, `.insert().select()` returning it, AND `.eq('<col>')` filters (WHERE needs SELECT on the column). All token reads/filters use `createServiceClient()` (invite, accept-invitation, lib/auth/actions.ts, owner-invitation callers pass svc); `v_pending_invitations` is invoker and omits token. Re-grep `from('user_invitations')` + check the client per call (2026-10-13, clean).
+- email_queue user-insert guard (`email_queue_insert_problem`): from_name must equal company/association name, reply_to = support_email / caller's JWT email / verified domain, owner_id must be the owner addressed (owners.email or `emails` jsonb). Check these when a diff touches queue rows.
+
 ## Linked-record scope helper
 - `checkLinkedRecords` (lib/security/association-scope.ts) validates building/unit/vendor/owner ids vs association (unit via `buildings!inner(association_id)`); `calendar_events.unit_id` has no FK in the snapshot, so this app check is the only guard (2026-10-12, calendar/new UnitSelect clean).
 
