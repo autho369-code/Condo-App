@@ -4,6 +4,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- E-signature lists 100-300x faster at scale (open PR, 20261013100000).
 - Past-due units list 2.5x faster at scale (#338, 20261013050000).
 - Receivables (aged_receivables) 4-13x faster at scale (#337,
   20261013040000).

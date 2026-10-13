@@ -3,6 +3,12 @@
 Back to [[Home]]. Updated 2026-10-12 (#279-#337 merged; open PR: claude/delinquent-units-scale; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
+- (number on open) claude/rls-per-row-policies: e-signature reads once per
+  query (20261013100000 LIVE): requests use the house portfolio form,
+  signers/events read through rls_private.my_signature_request_ids(). Dry run
+  5,000 requests/signers/events: identical rows for 7 roles; signers up to
+  3.6 s -> 11 ms, board/owner 1 s -> 1-3 ms. Next on this branch: bank
+  transfers, owner attachments, notices, meeting items (20261013110000).
 - #338 claude/delinquent-units-scale: index charges(unit_id,
   due_date) + delinquent_units reads charges directly with a per-charge
   payment sum (20261013050000 LIVE). Dry run at 2,000 units / 6,000
