@@ -6,7 +6,8 @@
 --    so the fee was credited to the default income account (4000
 --    Assessments) instead of NSF fee income (4410 NSF Fees Collected).
 --    charge_gl_accounts now resolves 'nsf_fee' charges like late fees: the
---    'nsf_fee_income' mapping, else the company's active income account
+--    'nsf_fee_income' mapping (never settable; removed in 20261013090000),
+--    else the company's active income account
 --    named like "NSF fee" (not "%nsf%": "Transfer Fee" contains "nsf").
 --    Explicit charge or category accounts still win.
 -- 2. Payment plans. app_recheck_payment_plan (payments update trigger)

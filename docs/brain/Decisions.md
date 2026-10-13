@@ -169,3 +169,7 @@ Back to [[Home]]. Don't redo these.
   reads/writes go through explicit `to anon` policies or the service
   client. maintenance_templates "Anyone can read templates" was switched
   off with USING (false) instead of dropped (DROPs are Mirsad's).
+- 2026-10-13: a completed bank reconciliation is final in the app (no undo);
+  the database refuses changes to it and its items and refuses completing an
+  unbalanced one (20261013080000/090000). A mistaken one is fixed by the
+  platform (service role is not blocked). The app never offered reopening.
