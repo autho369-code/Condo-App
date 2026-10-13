@@ -5,6 +5,9 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 
 ## 2026-10-13
 - E-signature lists 100-300x faster at scale (#340, 20261013100000).
+- Bank transfers, owner attachments, owner notices, meeting items checked
+  once per query; managers can create and edit meetings again (#340,
+  20261013110000/120000).
 - Past-due units list 2.5x faster at scale (#338, 20261013050000).
 - Receivables (aged_receivables) 4-13x faster at scale (#337,
   20261013040000).

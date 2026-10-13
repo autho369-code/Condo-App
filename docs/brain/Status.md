@@ -7,8 +7,14 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#337 merged; open PR: claude/delinque
   query (20261013100000 LIVE): requests use the house portfolio form,
   signers/events read through rls_private.my_signature_request_ids(). Dry run
   5,000 requests/signers/events: identical rows for 7 roles; signers up to
-  3.6 s -> 11 ms, board/owner 1 s -> 1-3 ms. Next on this branch: bank
-  transfers, owner attachments, notices, meeting items (20261013110000).
+  3.6 s -> 11 ms, board/owner 1 s -> 1-3 ms. Stacked (all LIVE):
+  20261013110000 bank transfers, owner attachments, owner-portal notices,
+  meeting items once per query (36 role x table row sets identical, 0.3-0.85 s
+  -> under 10 ms); 20261013120000 BUG FIX: a manager not limited to some
+  associations could not create/edit meetings or see/add agenda items, only
+  company admins could (can_edit_association_mvp required an
+  association_managers row); now the whole company, scoped managers keep
+  only theirs.
 - #338 claude/delinquent-units-scale: index charges(unit_id,
   due_date) + delinquent_units reads charges directly with a per-charge
   payment sum (20261013050000 LIVE). Dry run at 2,000 units / 6,000
