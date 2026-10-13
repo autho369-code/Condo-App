@@ -77,3 +77,7 @@
 - components/owners/owner-select.tsx (OwnerSelect) follows the form's association field like VendorSelect: same field-ORDER check (management-agreements/new:77 put owner above association). Pass `associationNames` where duplicate names are possible (calendar/new:118 omits it).
 - Per-record pages that derive the association name/address from the record's current occupancies (portal/account:27 `units[0]?.associations`) show '—'/'Not set' when the record has no current unit; fall back to the record's own association (`records` label or owners->associations embed).
 - Home/emergency-contact style lists (portal/home:33) drop the `.in('id', ownerIds)` error silently; check new per-record queries surface errors. loadOwnerRecords' error already starts "Could not load your associations:", so an Alert title with the same prefix doubles it (nit; profile:58, insurance:113 do it too).
+
+## Payables (bills/[id], 2026-10-13)
+- bills/[id]/page.tsx:72 still renders sp.error in a hand-rolled red div (not Alert) and has no ?saved= branch; new forms there (expense account, Record decision) redirect clean on success. Irreversible board-decision submits want PendingSubmit `confirm`.
+- Option-list queries for new Selects (gl_accounts expense list) often skip the error check and the empty-list state: a required Select with only a disabled placeholder is a dead end.

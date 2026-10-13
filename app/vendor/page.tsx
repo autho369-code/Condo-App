@@ -33,7 +33,8 @@ export default async function VendorDashboard() {
       .select('amount, credit_applied, status')
       .in('vendor_id', me.vendor_ids)
       .is('archived_at', null)
-      .not('status', 'in', '("paid","void")'),
+      // Submitted and approved bills only: a draft is not yet owed.
+      .in('status', ['pending_approval', 'approved']),
   ]);
 
   const vendor = vendorResult.data;

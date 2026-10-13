@@ -88,6 +88,44 @@ export async function submitBillForApproval(billId: string) {
   revalidatePath(`/bills/${billId}`);
 }
 
+/** Set the expense account on a draft or pending bill (vendor invoices arrive without one). */
+export async function setBillExpenseAccount(formData: FormData) {
+  await requireFinanceStaff();  // in-action guard: server actions are callable endpoints
+  const billId = String(formData.get('bill_id') ?? '');
+  const glAccountId = String(formData.get('gl_account_id') ?? '');
+  if (!billId) redirect(`/bills?error=${encodeURIComponent('Bill not found.')}`);
+  const failTo = (msg: string): never => redirect(`/bills/${billId}?error=${encodeURIComponent(msg)}`);
+  if (!glAccountId) failTo('Choose the expense GL account.');
+  const supabase = await createClient();
+  // The RPC re-checks finance access, the bill's association and its status.
+  const { error } = await (supabase as any).rpc('set_payable_bill_expense_account', { p_bill_id: billId, p_gl_account_id: glAccountId });
+  if (error) failTo(error.message);
+  revalidatePath(`/bills/${billId}`);
+  redirect(`/bills/${billId}?saved=account`);
+}
+
+/** Record the board's decision on a bill's approval request (the board portal is read-only). */
+export async function recordBoardDecision(formData: FormData) {
+  await requireFinanceStaff();  // in-action guard: server actions are callable endpoints
+  const billId = String(formData.get('bill_id') ?? '');
+  const requestId = String(formData.get('approval_request_id') ?? '');
+  const decision = String(formData.get('decision') ?? '');
+  const note = String(formData.get('note') ?? '').trim().slice(0, 1000);
+  if (!billId) redirect(`/bills?error=${encodeURIComponent('Bill not found.')}`);
+  const failTo = (msg: string): never => redirect(`/bills/${billId}?error=${encodeURIComponent(msg)}`);
+  if (decision !== 'approved' && decision !== 'rejected') failTo('Choose whether the board approved or rejected the bill.');
+  const supabase = await createClient();
+  // The request must be the one this bill points at.
+  const { data: bill } = await (supabase as any).from('payable_bills').select('approval_request_id').eq('id', billId).maybeSingle();
+  if (!bill || !requestId || bill.approval_request_id !== requestId) failTo('This bill has no open board approval request.');
+  // The RPC re-checks finance access and the association, and records who recorded the decision.
+  const { error } = await (supabase as any).rpc('record_approval_decision', { p_request_id: requestId, p_decision: decision, p_note: note || null });
+  if (error) failTo(error.message);
+  revalidatePath('/bills');
+  revalidatePath(`/bills/${billId}`);
+  redirect(`/bills/${billId}?saved=decision`);
+}
+
 export async function voidBill(billId: string) {
   await requireFinanceStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {

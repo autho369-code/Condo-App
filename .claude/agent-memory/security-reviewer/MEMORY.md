@@ -40,3 +40,6 @@
 
 ## Policy roles (2026-10-12, 20261012010000)
 - Public pages/API routes all use the service client; only `tenant_branding` (DEFINER) is granted to anon; auth.users triggers + password hook are DEFINER. So moving {public}-role policies to authenticated breaks no signed-out path.
+
+## Transaction-local flag guards (2026-10-13, 20261014150000)
+- `set_config('app.x','on',true)` bypass flags (app.approval_decision, app.loan_ledger, app.inventory_movement) can't be forged via API: pg_catalog isn't exposed, no public exec/set_config wrapper, no db-pre-request. The real risk is every OTHER function patched to set the flag: check its own auth and state checks (tally_approval_vote ignores status='pending'; operator-only approval_votes_platform_all can reach it).

@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Payables: vendor-portal invoices can be approved and paid; staff record
+  the board's decision on a bill (no silent approval); duplicate invoice
+  numbers refused; payment dates checked; 1099 report keeps archived
+  vendors; vendor portal totals complete (20261014150000).
 - Executive sessions are hidden from staff not assigned to the
   association: the meeting, its agenda text and attendees (20261014140000).
 - Meeting lists put undated meetings last, so recent meetings are never

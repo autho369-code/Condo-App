@@ -1,6 +1,6 @@
 import { vendor1099Rows } from '@/lib/finance/totals';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { PrintControls } from './print-controls';
 
 export const dynamic = 'force-dynamic';
@@ -66,7 +66,7 @@ export default async function Print1099Page({
 }: {
   searchParams: Promise<{ year?: string; vendor?: string; association?: string }>;
 }) {
-  const me = await requireStaff();
+  const me = await requireFinanceStaff();
   const { year: yearStr, vendor: vendorFilter, association: associationFilter } = await searchParams;
   const taxYear = parseInt(yearStr ?? '') || CURRENT_YEAR;
 

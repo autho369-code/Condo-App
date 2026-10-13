@@ -188,3 +188,12 @@ Back to [[Home]]. Don't redo these.
   (payment_plan_paid_amount -> plan status), the same PR rechecks existing
   rows (20261013230000); a measure change alone leaves stale statuses until
   the next triggering write.
+
+## Board decisions are recorded by staff (2026-10-13)
+The board portal stays read-only (product rule), so a bill, purchase order or
+other request needing the board is decided by the board at a meeting or by
+email and **staff record the decision** on the bill page
+(record_approval_decision: approved/rejected, note, who recorded it, when;
+kept in approval_decisions). Nothing else can mark a request approved
+(trigger approval_requests_approve_guard). Vendors never choose expense
+accounts: a vendor-portal invoice arrives without one and staff set it.
