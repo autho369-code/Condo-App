@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#362 merged; open PR: claude/owner-portal-fixes; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#362 merged; open PR: #363 claude/owner-portal-fixes; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/owner-portal-fixes: owner portal deep check
+- #363 claude/owner-portal-fixes: owner portal deep check
   (owner login, several records, portal off, sold owner, tenant; rolled-back
   tests at 40k charges/payments). 20261014190000 (LIVE):
   - calendar: owners/tenants read events only through
