@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-13 (#279-#353 merged; open PRs: #354 claude/work-order-fixes, #355 claude/meeting-fixes; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/meeting-fixes (stacked on #354; merge #354 first):
+- #355 claude/meeting-fixes (stacked on #354; merge #354 first):
   20261014100000 (LIVE): calculate_meeting_quorum is read only (owners and
   view-only staff could rewrite a completed meeting's quorum); a trigger
   records quorum_met/quorum_requirement/total_units in the same UPDATE that
