@@ -3,8 +3,19 @@
 Back to [[Home]]. Updated 2026-10-13 (#279-#353 merged; open PRs: #354 claude/work-order-fixes, #355 claude/meeting-fixes; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #354 claude/work-order-fixes:
-  20261014090000 (LIVE): triage cuts work_orders.description to 2,000 (full
+- claude/meeting-fixes (stacked on #354; merge #354 first):
+  20261014100000 (LIVE): calculate_meeting_quorum still answers everyone it
+  lets in but records only for a caller who can edit the meeting while it is
+  scheduled or in progress; a manager-set quorum is the number needed (the
+  percentage of units only when none is set); a completed meeting reports
+  its recorded result. Publishing minutes records the quorum first (nothing
+  wrote it before). Notes and attendance are locked once a meeting is
+  completed or cancelled. Manager meetings list: narrow columns, newest 500
+  with a notice, load errors shown (was select * of every meeting, 6 MB at
+  3,000). Known, not fixed: unassigned staff (e.g. assistant manager) can
+  read executive-session attendee names and agenda text through
+  meeting_attendees_staff_select / meetings_staff_select.
+- #354 claude/work-order-fixes:  20261014090000 (LIVE): triage cuts work_orders.description to 2,000 (full
   text stays in issue) so long service requests convert; rate_work_order
   owner branch requires a current resident unit and a job created since
   move-in; vendor work_order_updates may only carry the work order's real

@@ -64,13 +64,16 @@ function refresh(meetingId: string) {
 }
 
 export async function saveMeetingNotes(meetingId: string, formData: FormData) {
-  const { supabase } = await editableMeeting(meetingId);
+  const { supabase, meeting } = await editableMeeting(meetingId);
+  if (meeting.status === 'completed' || meeting.status === 'cancelled') {
+    back(meetingId, '?error=A%20completed%20or%20cancelled%20meeting%27s%20notes%20cannot%20be%20changed.');
+  }
   const { data: changed, error } = await (supabase as any).from('meetings').update({
     agenda: text(formData, 'agenda', 50_000) || null,
-  }).eq('id', meetingId).select('id');
+  }).eq('id', meetingId).in('status', ['scheduled', 'in_progress']).select('id');
   if (error) back(meetingId, '?error=Meeting%20notes%20could%20not%20be%20saved.');
   if (!changed?.length) back(meetingId, `?error=${encodeURIComponent('Meeting notes were not saved: the meeting is gone or your account cannot edit it.')}`);
-  // Minutes are a draft (staff and board only) until published.
+  // Minutes are a staff-only draft until published.
   const { error: draftError } = await (supabase as any).from('meeting_private').upsert({
     meeting_id: meetingId,
     minutes_draft: text(formData, 'minutes', 100_000) || null,
@@ -134,6 +137,12 @@ export async function publishMeetingMinutes(meetingId: string) {
   if (draftError) back(meetingId, `?error=${encodeURIComponent(draftError.message)}`);
   const minutes = String(draft?.minutes_draft ?? '').trim();
   if (!minutes) back(meetingId, '?error=Write%20and%20save%20the%20minutes%20before%20publishing%20them.');
+  // Record the quorum result as the meeting closes; calculate_meeting_quorum
+  // only records while the meeting is scheduled or in progress.
+  if (meeting.status !== 'completed') {
+    const { error: quorumError } = await (supabase as any).rpc('calculate_meeting_quorum', { p_meeting_id: meetingId });
+    if (quorumError) back(meetingId, `?error=${encodeURIComponent(`The quorum could not be recorded: ${quorumError.message}`)}`);
+  }
   const { data: updated, error } = await (supabase as any).from('meetings')
     .update({ minutes, status: 'completed' })
     .eq('id', meetingId)
@@ -162,7 +171,10 @@ export async function cancelMeeting(meetingId: string) {
 }
 
 export async function addMeetingAttendee(meetingId: string, formData: FormData) {
-  const { supabase } = await editableMeeting(meetingId);
+  const { supabase, meeting } = await editableMeeting(meetingId);
+  if (meeting.status === 'completed' || meeting.status === 'cancelled') {
+    back(meetingId, '?error=Attendance%20cannot%20change%20after%20the%20meeting%20is%20completed%20or%20cancelled.');
+  }
   const attendeeName = text(formData, 'attendee_name', 200);
   if (!attendeeName) back(meetingId, '?error=Enter%20an%20attendee%20name.');
   const ownerId = text(formData, 'owner_id', 100) || null;
@@ -181,7 +193,10 @@ export async function addMeetingAttendee(meetingId: string, formData: FormData) 
 }
 
 export async function removeMeetingAttendee(meetingId: string, attendeeId: string) {
-  const { supabase } = await editableMeeting(meetingId);
+  const { supabase, meeting } = await editableMeeting(meetingId);
+  if (meeting.status === 'completed' || meeting.status === 'cancelled') {
+    back(meetingId, '?error=Attendance%20cannot%20change%20after%20the%20meeting%20is%20completed%20or%20cancelled.');
+  }
   const { data: removed, error } = await (supabase as any).from('meeting_attendees')
     .delete().eq('id', attendeeId).eq('meeting_id', meetingId).select('id');
   if (error) back(meetingId, '?error=The%20attendee%20could%20not%20be%20removed.');
