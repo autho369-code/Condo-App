@@ -103,6 +103,12 @@ Back to [[Home]].
   trigger that checks a row against another table's row reads it FOR SHARE
   (or shares an advisory lock with the trigger guarding the other side), so
   two concurrent writes cannot each pass on stale data (20261014030000).
+- **Per-row calls to SET search_path helpers are slow** (2026-10-13): a
+  function with SET (search_path, etc.) is never inlined, so calling one per
+  row costs a full call each (gl_normal_amount on 24,000 lines = 1.2 s).
+  Aggregate first, then call the helper per group. A LANGUAGE sql function
+  with "p is null or ..." filters runs a generic plan; use plpgsql with
+  plan_cache_mode = force_custom_plan (20261014040000/050000).
 - **A changed measure rechecks stored statuses** (2026-10-13): when a
   migration changes a function a stored status is derived from (e.g.
   payment_plan_paid_amount -> payment_plans.status), the same migration

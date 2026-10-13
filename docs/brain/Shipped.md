@@ -4,6 +4,9 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Budget vs actuals, budget worksheet and budget forecast 15-35x faster;
+  ledger totals behind accounting pages and reports ~8x faster
+  (20261014040000/050000).
 - Applying a payment and moving its unit can no longer race (20261014030000).
 - An applied payment or charge cannot be moved to another unit
   (20261014020000); Stripe webhook route tests (Codex on #347).
