@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-13 (#279-#348 merged; open PR: claude/application-unit-lock; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/application-unit-lock (Codex on #348): 20261014030000 (LIVE) the
+- #349 claude/application-unit-lock (Codex on #348): 20261014030000 (LIVE) the
   same-unit application check reads the payment and charge FOR SHARE, so an
   application and a unit move serialize (one waits, then is refused).
   Verified rolled back: auto-apply, specific charge, credit on a new charge,
