@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireFinanceOrPortfolioAdmin } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 // Every RPC re-checks finance permission and association scope
 // (can_mutate_association_budget) in the database.
@@ -81,7 +82,13 @@ export async function applyAssessmentUpdate(formData: FormData) {
   const to = `${base(formData)}/assessments?${params.toString()}`;
   if (formData.get('confirm') !== 'on') go(to, 'error', 'Tick the confirmation box to update assessments.');
   const db = (await createClient()) as any;
-  const { error } = await db.rpc('apply_assessment_update', {
+  const done = `${base(formData)}/assessments?fiscal_year=${fy}`;
+  // One update per form: a double click posts it once.
+  const claim = await claimSubmission(db, formData, 'assessment_update');
+  if (claim.status === 'error') go(to, 'error', claim.message);
+  if (claim.status === 'duplicate') go(done, 'saved', 'Assessments updated.');
+  const token = (claim as { token: string }).token;
+  const { data: increaseId, error } = await db.rpc('apply_assessment_update', {
     p_association_id: s(formData, 'association_id'),
     p_fiscal_year: fy,
     p_budget_gl_account_id: s(formData, 'budget_gl_account_id'),
@@ -90,7 +97,11 @@ export async function applyAssessmentUpdate(formData: FormData) {
     p_frequency: s(formData, 'frequency'),
     p_effective_date: s(formData, 'effective_date') || null,
   });
-  if (error) go(to, 'error', error.message);
-  go(`${base(formData)}/assessments?fiscal_year=${fy}`, 'saved',
+  if (error) {
+    await releaseSubmission(db, token);
+    go(to, 'error', error.message);
+  }
+  await completeSubmission(db, token, String(increaseId));
+  go(done, 'saved',
     `Assessments updated. New recurring charges start ${s(formData, 'effective_date')}; owners' dues now show the new amount.`);
 }

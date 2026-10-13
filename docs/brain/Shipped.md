@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Budgets: budget vs actual compares the right months for fiscal years not
+  starting in January and shows real actuals (they were $0); applying an
+  earlier year's assessments can't cancel next year's; no double posting;
+  budget lines only through the worksheet; allocations add up
+  (20261014210000).
 - Owner portal: owners see only their own calendar events, without staff
   notes; a buyer's balance counts the seller's payments; owner pages fast
   at scale; tenants see their own records only; renter insurance uploads

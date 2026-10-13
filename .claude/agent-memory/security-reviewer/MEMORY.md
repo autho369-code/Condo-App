@@ -53,3 +53,5 @@
 - `set_config('app.x','on',true)` bypass flags (app.approval_decision, app.loan_ledger, app.inventory_movement) can't be forged via API: pg_catalog isn't exposed, no public exec/set_config wrapper, no db-pre-request. The real risk is every OTHER function patched to set the flag: check its own auth and state checks (tally_approval_vote ignores status='pending'; operator-only approval_votes_platform_all can reach it).
 
 - Webhook "undo on terminal status" fixes (AutoPay setup, 2026-10-13): check every `failAttempt`/status flip on a RETRY after a partial earlier delivery also undoes (else the undo waits on one more Stripe retry), and that an undo helper does not early-return on "nothing left to cancel" before finishing its later steps (method retire).
+
+- `if exists(...) raise` duplicate/"later schedule" guards in DEFINER RPCs (apply_assessment_update, adopt_budget, 20261014210000) race under READ COMMITTED: two calls both pass. Ask for a parent-row lock (`select ... from associations where id = .. for update`) first; form tokens only stop the same form twice.

@@ -35,7 +35,7 @@ export default async function BudgetTab({
   const sp = await searchParams;
 
   const db = (await createClient()) as any;
-  const { data: assoc } = await db.from('associations').select('id, name, address, fiscal_year_start').eq('id', id).maybeSingle();
+  const { data: assoc } = await db.from('associations').select('id, name, address, fiscal_year_start, portfolio_id').eq('id', id).maybeSingle();
   if (!assoc) notFound();
 
   const startMonth = assoc.fiscal_year_start;
@@ -46,7 +46,10 @@ export default async function BudgetTab({
   const window = fiscalWindow(fiscalYear, startMonth);
 
   const [accountsRes, linesRes, headerRes, priorBudgetRes, priorActualsRes] = await Promise.all([
-    db.from('gl_accounts').select('id, number, name, account_type').or(`association_id.eq.${id},association_id.is.null`).eq('active', true).order('number'),
+    // This company's accounts (a platform operator reads every company's).
+    // Inactive accounts are listed only when the budget already has a line
+    // on them, so a line no one can see is never counted.
+    db.from('gl_accounts').select('id, number, name, account_type, active').eq('portfolio_id', assoc.portfolio_id).or(`association_id.eq.${id},association_id.is.null`).order('number'),
     db.from('budget_lines').select('gl_account_id, monthly_amounts, notes').eq('association_id', id).eq('fiscal_year', fiscalYear),
     db.from('association_budgets').select('status, adopted_at, adoption_note').eq('association_id', id).eq('fiscal_year', fiscalYear).maybeSingle(),
     db.rpc('budget_worksheet_source', { p_association_id: id, p_fiscal_year: fiscalYear, p_source: 'prior_budget' }),
@@ -60,12 +63,13 @@ export default async function BudgetTab({
 
   const accounts: WorksheetAccount[] = (accountsRes.data ?? [])
     .filter((a: any) => INCOME.has(a.account_type) || EXPENSE.has(a.account_type))
+    .filter((a: any) => a.active || lineMap.has(a.id))
     .map((a: any) => {
       const l = lineMap.get(a.id);
       return {
         glAccountId: a.id,
         number: a.number ?? null,
-        name: a.name,
+        name: a.active ? a.name : `${a.name} (inactive)`,
         section: INCOME.has(a.account_type) ? 'income' : 'expense',
         amounts: l?.monthly_amounts ? l.monthly_amounts.map((n: any) => Number(n) || 0) : Array(12).fill(0),
         notes: l?.notes ?? '',

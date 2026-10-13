@@ -629,15 +629,47 @@ async function bankReconciliationRows(
   });
 }
 
+/** Month labels and first/last days of fiscal year `fy`, in fiscal order. */
+function fiscalMonths(fy: number, startMonth: number | null | undefined) {
+  const start = Number.isInteger(Number(startMonth)) && Number(startMonth) >= 1 && Number(startMonth) <= 12 ? Number(startMonth) : 1;
+  const startYear = start === 1 ? fy : fy - 1;
+  const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return Array.from({ length: 12 }, (_, i) => {
+    const first = new Date(Date.UTC(startYear, start - 1 + i, 1));
+    const last = new Date(Date.UTC(startYear, start + i, 0));
+    return {
+      label: labels[first.getUTCMonth()],
+      from: first.toISOString().slice(0, 10),
+      to: last.toISOString().slice(0, 10),
+    };
+  });
+}
+
+/** The fiscal year (the one that ends in calendar year N) containing `date`. */
+function fiscalYearOf(date: string, startMonth: number | null | undefined) {
+  const start = Number.isInteger(Number(startMonth)) && Number(startMonth) >= 1 && Number(startMonth) <= 12 ? Number(startMonth) : 1;
+  const year = Number(date.slice(0, 4));
+  const month = Number(date.slice(5, 7));
+  return start === 1 || month < start ? year : year + 1;
+}
+
+/**
+ * Budget vs actual per association, month by month in the association's
+ * fiscal year: budget_lines.monthly_amounts[i] is the i-th month of the fiscal
+ * year, so each is compared with that month's actuals. Columns are named by
+ * calendar month ("Jul budget") and come in fiscal order. Without an explicit
+ * fiscal year, each association's fiscal year containing `dateTo` is used.
+ */
 async function budgetVsActualRows(
   db: ServiceClient,
   portfolioId: string,
   associationId: string | null,
-  fiscalYear: number,
+  explicitFiscalYear: number | null,
+  dateTo: string,
 ) {
   let associationsQuery = db
     .from('associations')
-    .select('id, name')
+    .select('id, name, fiscal_year_start')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name');
@@ -647,6 +679,7 @@ async function budgetVsActualRows(
 
   const rows: Record<string, unknown>[] = [];
   for (const association of associations ?? []) {
+    const fiscalYear = explicitFiscalYear ?? fiscalYearOf(dateTo, association.fiscal_year_start);
     const { data, error } = await db
       .from('budget_lines')
       .select('id, category, notes, monthly_amounts, gl_account_id, gl_accounts!inner(number, name, account_type, portfolio_id, association_id)')
@@ -655,71 +688,48 @@ async function budgetVsActualRows(
       .eq('gl_accounts.portfolio_id', portfolioId)
       .order('gl_account_id');
     if (error) throw error;
-    for (const row of data ?? []) {
+    const lines = (data ?? []) as any[];
+    if (lines.length === 0) continue;
+    for (const row of lines) {
       const account = row.gl_accounts;
       if (!account || (account.association_id && account.association_id !== association.id)) {
         throw new Error('Budget account is outside the association scope.');
       }
-      const monthlyBudget = row.monthly_amounts ?? [];
-      const monthlyActuals: number[] = [];
-      for (let month = 1; month <= 12; month += 1) {
-        const dateFrom = `${fiscalYear}-${String(month).padStart(2, '0')}-01`;
-        const nextMonth = month === 12
-          ? `${fiscalYear + 1}-01-01`
-          : `${fiscalYear}-${String(month + 1).padStart(2, '0')}-01`;
-        const dateTo = new Date(`${nextMonth}T00:00:00.000Z`);
-        dateTo.setUTCDate(dateTo.getUTCDate() - 1);
-        const totals = await loadLedgerTotals(
-          db,
-          [row.gl_account_id],
-          association.id,
-          dateFrom,
-          dateTo.toISOString().slice(0, 10),
-        );
-        monthlyActuals.push(normalBalance(account, totals));
-      }
-      const annualBudget = monthlyBudget.reduce(
-        (sum: number, value: unknown) => sum + Number(value ?? 0),
-        0,
-      );
+    }
+
+    // One ledger total per fiscal month for every budgeted account (not one
+    // call per account per month).
+    const months = fiscalMonths(fiscalYear, association.fiscal_year_start);
+    const accountIds = lines.map((row) => row.gl_account_id as string);
+    const monthTotals: LedgerTotals[] = [];
+    for (const month of months) {
+      monthTotals.push(await loadLedgerTotals(db, accountIds, association.id, month.from, month.to));
+    }
+
+    for (const row of lines) {
+      const account = { id: row.gl_account_id as string, account_type: row.gl_accounts.account_type };
+      const monthlyBudget = (row.monthly_amounts ?? []) as unknown[];
+      const monthlyActuals = monthTotals.map((totals) => normalBalance(account, totals));
+      const annualBudget = monthlyBudget.reduce((sum: number, value) => sum + Number(value ?? 0), 0);
       const annualActual = monthlyActuals.reduce((sum, value) => sum + value, 0);
       const annualVariance = annualActual - annualBudget;
-      rows.push({
+      const out: Record<string, unknown> = {
         Association: association.name,
         'Fiscal year': fiscalYear,
         Category: row.category,
-        'Account #': account.number,
-        Account: account.name,
+        'Account #': row.gl_accounts.number,
+        Account: row.gl_accounts.name,
         Notes: row.notes ?? '',
         'Annual budget': annualBudget,
         'Annual actual': annualActual,
         'Annual variance': annualVariance,
         'Variance %': annualBudget === 0 ? 0 : (annualVariance / annualBudget) * 100,
-        'Jan budget': Number(monthlyBudget[0] ?? 0),
-        'Jan actual': Number(monthlyActuals[0] ?? 0),
-        'Feb budget': Number(monthlyBudget[1] ?? 0),
-        'Feb actual': Number(monthlyActuals[1] ?? 0),
-        'Mar budget': Number(monthlyBudget[2] ?? 0),
-        'Mar actual': Number(monthlyActuals[2] ?? 0),
-        'Apr budget': Number(monthlyBudget[3] ?? 0),
-        'Apr actual': Number(monthlyActuals[3] ?? 0),
-        'May budget': Number(monthlyBudget[4] ?? 0),
-        'May actual': Number(monthlyActuals[4] ?? 0),
-        'Jun budget': Number(monthlyBudget[5] ?? 0),
-        'Jun actual': Number(monthlyActuals[5] ?? 0),
-        'Jul budget': Number(monthlyBudget[6] ?? 0),
-        'Jul actual': Number(monthlyActuals[6] ?? 0),
-        'Aug budget': Number(monthlyBudget[7] ?? 0),
-        'Aug actual': Number(monthlyActuals[7] ?? 0),
-        'Sep budget': Number(monthlyBudget[8] ?? 0),
-        'Sep actual': Number(monthlyActuals[8] ?? 0),
-        'Oct budget': Number(monthlyBudget[9] ?? 0),
-        'Oct actual': Number(monthlyActuals[9] ?? 0),
-        'Nov budget': Number(monthlyBudget[10] ?? 0),
-        'Nov actual': Number(monthlyActuals[10] ?? 0),
-        'Dec budget': Number(monthlyBudget[11] ?? 0),
-        'Dec actual': Number(monthlyActuals[11] ?? 0),
+      };
+      months.forEach((month, i) => {
+        out[`${month.label} budget`] = Number(monthlyBudget[i] ?? 0);
+        out[`${month.label} actual`] = Number(monthlyActuals[i] ?? 0);
       });
+      rows.push(out);
     }
   }
   return rows;
@@ -810,9 +820,12 @@ export async function generateLiveExportRows(
   const dateTo = stringParam(rawParams, 'date_to')
     ?? (runZone && isValidTimeZone(runZone) ? todayInZone(runZone) : todayInZone());
   const dateFrom = stringParam(rawParams, 'date_from') ?? `${dateTo.slice(0, 4)}-01-01`;
-  const fiscalYearText = stringParam(rawParams, 'fiscal_year') ?? dateTo.slice(0, 4);
-  const fiscalYear = Number.parseInt(fiscalYearText, 10);
-  if (!Number.isInteger(fiscalYear) || fiscalYear < 2000 || fiscalYear > 2200) {
+  // An explicit fiscal year applies to every association; without one, each
+  // association's own fiscal year containing date_to (fiscal years can start
+  // in any month).
+  const fiscalYearText = stringParam(rawParams, 'fiscal_year');
+  const explicitFiscalYear = fiscalYearText == null ? null : Number.parseInt(fiscalYearText, 10);
+  if (explicitFiscalYear !== null && (!Number.isInteger(explicitFiscalYear) || explicitFiscalYear < 2000 || explicitFiscalYear > 2200)) {
     throw new Error('Fiscal year must be between 2000 and 2200.');
   }
   if (dateFrom > dateTo) throw new Error('Report start date must not be after end date.');
@@ -838,7 +851,7 @@ export async function generateLiveExportRows(
     case 'budget_vs_actual':
     case 'budget_vs_actuals':
     case 'annual_budget_comparative':
-      return budgetVsActualRows(db, portfolioId, associationId, fiscalYear);
+      return budgetVsActualRows(db, portfolioId, associationId, explicitFiscalYear, dateTo);
     case 'bank_reconciliation':
     case 'bank_account_reconciliation':
       return bankReconciliationRows(db, portfolioId, associationId, dateTo, false);
