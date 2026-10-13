@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#337 merged; open PR: claude/delinquent-units-scale; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#339 merged; open PR: #340 claude/rls-per-row-policies; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
 - #340 claude/rls-per-row-policies: e-signature reads once per
@@ -14,14 +14,13 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#337 merged; open PR: claude/delinque
   associations could not create/edit meetings or see/add agenda items, only
   company admins could (can_edit_association_mvp required an
   association_managers row); now the whole company, scoped managers keep
-  only theirs.
-- #338 claude/delinquent-units-scale: index charges(unit_id,
-  due_date) + delinquent_units reads charges directly with a per-charge
-  payment sum (20261013050000 LIVE). Dry run at 2,000 units / 6,000
-  charges: identical rows for manager, company admin, board, owner, scoped
-  manager; manager 620 -> 246 ms, board 693 -> 315 ms.
+  only theirs. 20261013130000 hardening: that branch needs hoa_role manager
+  and an enabled account.
 
 ## Merged 2026-10-12
+- #339 unapplied credits, page totals, NSF fee income, payment plan bounce,
+  locked reconciliations (20261013060000-090000, live).
+- #338 delinquent_units by (unit_id, due_date) index (20261013050000, live).
 - #337 aged_receivables by index (20261013040000, live).
 - #336 policy copies of association checks scoped (20261013030000, live).
 - #335 definer functions respect manager scope (20261013010000/020000, live).
@@ -443,10 +442,8 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#337 merged; open PR: claude/delinque
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- NEXT: receivables_page_totals / receivable_unit_totals at scale after
-  #337 and the delinquent_units fix: re-measure (were 1.1-1.6 s / 0.6-0.8 s
-  at 2,000 units); remaining cost is v_unapplied_credits and
-  receivable_payments_ledger correlated sums.
+- NEXT: Receivables page totals still ~0.55-0.85 s at 2,000 units (the
+  delinquent_units list ~350 ms under the generic plan).
 - The same RLS estimate (about one visible unit) can make any view that
   joins charges or payments to units nested-loop at scale; the fix pattern
   is a LATERAL lookup by the unit id (20261013040000).
@@ -458,15 +455,26 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#337 merged; open PR: claude/delinque
   company-wide rows editable by a scoped manager (require company admin).
   Security-definer views/RPCs
   over these tables are not narrowed by policies.
-- NEXT: remaining per-row policies measured at scale: owner_attachments
-  (can_view_owner_row), bank_transfers (app_can_view_bank_account),
-  signatures (can_manage_signatures), meeting items
-  (can_access_confidential_meeting_mvp), notices, association_budgets.
-  Budget lines done (#329).
-- NEXT: ledger flows not yet exercised: recurring charges, late fees (manual,
-  cron, flows), management-fee bills, NSF reversal, finishing a bank
-  reconciliation, payment plans, owner credit application. Rolled-back
-  transactions as the manager on Randolph Station.
+- NEXT (measured 2026-10-13, 5,000 rows each, rolled back): per-row
+  policies. signature_requests 0.6-1.4 s, signature_signers/events up to
+  4.1 s (even board/owner who see 0 rows ~1 s): can_manage_signatures per
+  row, twice; bank_transfers 0.65-0.8 s every role
+  (app_can_view_bank_account x2 per row); owner_attachments 0.25-0.36 s
+  staff (can_view_owner_row); notices 0.48 s owner portal
+  (is_notice_recipient per row); agenda_items 0.76 s company admin at 2,600
+  meetings (can_access_confidential_meeting_mvp per meeting; meeting
+  documents/action items same shape). association_budgets fine. Fix: set
+  helpers in rls_private (my_signature_portfolio_ids, my_signature_request_ids,
+  my_scoped_bank_account_ids, my_managed_owner_ids, my_notice_ids,
+  my_confidential_meeting_ids) used as col in (select ...).
+- DONE 2026-10-13: ledger flows exercised (rolled back, manager, Randolph):
+  recurring charges, late fees (manual/cron/overrides), management fees,
+  bank reconciliation, payment plans, owner credits PASS. Bugs: NSF fee
+  credited to 4000 Assessments instead of 4410 NSF Fees (post_nsf_fee has
+  no category, charge_gl_accounts has no nsf branch; due date today+15);
+  app_recheck_payment_plan ignores reversed payments (plan stays completed
+  after the payoff bounces); completed bank_reconciliations can be reopened
+  and un-cleared through the table, difference never checked in the DB.
 - DONE 2026-10-12: pages that loaded every row to count or sum (swept
   app/**, app/api/**, lib/**: every list is capped or uses fetchAllRows).
   Fixed: Owners, Units (pages), Chargebacks tile (#321, #322), Bank

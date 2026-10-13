@@ -28,4 +28,4 @@
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns
 - [Owners and vendors](owners-vendors.md) — association/login models, self-service guards, many-records-per-login checks
 - [Purge and FKs](purge-and-fks.md) — cascade/NO ACTION maps, polymorphic tables, trigger re-enable pitfalls
-- [Data writers](data-writers.md) — who writes token/company_name/imported_balances, receivables GL facts
+- [Data writers](data-writers.md) — who writes token/company_name/imported_balances, receivables GL facts, GL map keys, payment reversal, bank recon writers
