@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#355 merged; open PR: claude/meetings-list-order; next: executive-session attendee and agenda rows for unassigned staff; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#355 merged; open PR: #356 claude/meetings-list-order; next: executive-session attendee and agenda rows for unassigned staff; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/meetings-list-order: Codex on #355 - meeting
+- #356 claude/meetings-list-order: Codex on #355 - meeting
   lists (manager, board, owner, resident) put undated meetings last, so the
   row limit never fills with undated ones and hides recent dated meetings.
 
