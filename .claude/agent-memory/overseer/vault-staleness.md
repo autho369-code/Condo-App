@@ -88,5 +88,12 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   / payable checks / automation flows (#335 swept only record-id functions).
   Recommended promoting it, plus a rolled-back Stripe/online-payment ledger
   dry-run (the one flow never exercised) before Mirsad's pilot keys.
+- Moving a merged PR from Open PR to Merged (meetings-list-order pre-PR,
+  2026-10-13): the condensed Merged entry dropped the "Known, not fixed"
+  line (#355: unassigned staff read executive-session attendees/agenda),
+  leaving it nowhere in the vault. Grep the old Open PR text for "Known" /
+  "not fixed" / "follow-up" and carry each into Next gaps. Same pre-PR: line
+  3 "next:" named a gap Next gaps says was already fixed (scoped-manager
+  charges, 20261014060000).
 - Recurring 11th time (start check 2026-10-13, after #352 merged 06:16Z):
   Status line 3 + "## Open PR" still #352; caller already flagged it.

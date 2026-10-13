@@ -12,7 +12,8 @@ export default async function ResidentMeetingsPage() {
   const { data: meetings } = await (supabase as any)
     .from('meetings')
     .select('id, title, meeting_type, status, start_time, location, agenda, minutes, ai_summary')
-    .order('start_time', { ascending: false })
+    .order('start_time', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
     .limit(100);
 
   return (
