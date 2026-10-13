@@ -120,7 +120,7 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
         redirect(`/owners/forms?error=${encodeURIComponent('The request was recorded, but this owner has no email on file, so nothing was sent. Add an email or choose another delivery method.')}`);
       }
       const { queueEmails } = await import('@/lib/email/queue');
-      const company = me.portfolio?.company_name ?? 'Your management office';
+      const company = me.portfolio?.company_name ?? 'Your management company';
       const queued = await queueEmails(supabase, [{
         to: recipient.email,
         toName: recipient.full_name,
@@ -135,8 +135,12 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
           company,
         ].join('\n'),
         portfolioId: me.portfolio?.id,
-        fromName: company,
-        replyTo: me.portfolio?.support_email ?? me.portfolio?.brand_email ?? null,
+        // Sent under the company's own name; without one, delivery picks it
+        // (the queue only accepts the company's or association's name).
+        fromName: me.portfolio?.company_name ?? null,
+        // The company's support address, else the sender's own (the queue accepts
+        // those, or an address on the company's verified domain).
+        replyTo: me.portfolio?.support_email || me.email || null,
         sentBy: me.auth_user_id,
         ownerId,
       }]);

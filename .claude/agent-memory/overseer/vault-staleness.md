@@ -107,3 +107,10 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   already null payments.notes. grep `<table>_private` / move_*_private_fields
   before writing a "make X private" gap. Same PR: 3 policies set USING false
   + 2 functions revoked with no Mirsad "Optional cleanup: drop" TODO entries.
+- 2026-10-13 (email-queue-security pre-PR): 2nd time revoked functions
+  (upsert/delete_budget_line) with no Mirsad "Optional cleanup: drop" TODO.
+  TODO listed a drop of rls_private.email_queue_recent_count that no
+  migration file creates (live-only from in-session iteration): repo/live
+  drift - ask for an ACL read-back and record it in the migration or TODO.
+  A by-design visibility loss (operator monitors, owner email history lose
+  reset/invite rows) went only into the caller's message, not Decisions.

@@ -2,6 +2,13 @@
 
 Back to [[Home]]. Don't redo these.
 
+- **Sign-in emails are invisible in the app** (2026-10-13, 20261014220000):
+  password-reset, invitation, e-signature and upload emails (email_queue
+  holds_auth_link) show nowhere a signed-in user can read: not in an owner's
+  email history, the Communication Center or the platform-operator monitors
+  (system, insights). Their links would let the reader act as that person.
+  The request itself stays in the audit log; delivery is unaffected.
+
 - **Buyers see the payment applications on their unit's charges**
   (2026-10-13, 20261014190000): so a charge the seller paid shows as paid.
   The seller's payment rows stay hidden (move-in cutoff); an application

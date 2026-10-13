@@ -33,3 +33,9 @@ Rule: when a PR fixes a hole a reviewer recorded, its memory line must say "fixe
   triggers), migration (arch_msg relabels board rows). Reviewers write memory
   at finding time; the fix comes after. Every pre-PR: read each reviewer
   memory diff line against the final diff.
+- Recurring 7th time (email-queue-security pre-PR, 2026-10-13): security-reviewer
+  lines added in the diff (creator-can-read auth links, user_invitations.token
+  staff-readable, sent_by rate-limit bypass, definer-helper oracles, O(n^2)
+  loop) all fixed by 20261014220000 sections 6-8 but written as open. Also
+  Codex findings on merged #366 (legacy upsert/delete_budget_line bypass,
+  duplicate-in-progress reported as success) fixed with no reviewer lesson.

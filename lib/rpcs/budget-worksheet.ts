@@ -86,7 +86,12 @@ export async function applyAssessmentUpdate(formData: FormData) {
   // One update per form: a double click posts it once.
   const claim = await claimSubmission(db, formData, 'assessment_update');
   if (claim.status === 'error') go(to, 'error', claim.message);
-  if (claim.status === 'duplicate') go(done, 'saved', 'Assessments updated.');
+  if (claim.status === 'duplicate') {
+    // Only a finished first submission is a success; one still running (or
+    // about to fail) is not.
+    if (claim.resultId) go(done, 'saved', 'Assessments updated.');
+    go(to, 'error', 'This update is still being applied. Refresh the page in a moment to see the result.');
+  }
   const token = (claim as { token: string }).token;
   const { data: increaseId, error } = await db.rpc('apply_assessment_update', {
     p_association_id: s(formData, 'association_id'),
