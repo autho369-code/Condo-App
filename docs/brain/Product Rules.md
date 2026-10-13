@@ -131,6 +131,12 @@ Back to [[Home]].
 - **Resident pages filter to their own rows, not RLS alone** (2026-10-13): a
   login can also be an owner, board member or staff, whose policies show
   more; filter by the resident's own ids in the query.
+- **Undo by what a row is, not by an id held in memory** (2026-10-13): a
+  webhook that compensates (cancels what it created when the state changed
+  under it) must find the rows by their identity (owner, unit, method), so
+  a redelivered event, which no longer knows the id it created, undoes them
+  too; cancel a Stripe session before releasing the local reservation
+  (Codex on #363).
 - **A row guard checks the row as it is, not as requested** (2026-10-13):
   on UPDATE/DELETE, look up the parent through OLD (the row's real parent);
   checking NEW and then resetting it to OLD lets a request name an open

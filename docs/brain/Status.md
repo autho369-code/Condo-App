@@ -1,37 +1,24 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#362 merged; open PR: #363 claude/owner-portal-fixes; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#363 merged; open PR: #364 claude/autopay-cancel-race; next: budgets fixes; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #363 claude/owner-portal-fixes: owner portal deep check
-  (owner login, several records, portal off, sold owner, tenant; rolled-back
-  tests at 40k charges/payments). 20261014190000 (LIVE):
-  - calendar: owners/tenants read events only through
-    resident_calendar_events (title, type, time, location; association and
-    company-wide events as before, events about a unit only from the
-    resident's own start date); they saw internal notes, gate codes and
-    events about other owners;
-  - balance after a sale: the seller's payment applications are visible, so
-    paid seller-era charges no longer show as owed (pay page pre-filled the
-    higher amount); resident_unit_balances for the dashboard/assistant;
-  - owner payments/work orders/messages policies use one id set per query
-    (4.8 s -> 35 ms at 20k rows); tenants see work orders from lease start;
-  - owner service requests can't skip the New queue or back-date; ARC
-    messages carry the owner's own name (staff of another company count as
-    owners there); staff-only owner/unit documents
-    hidden; owners can't update occupancies; unused AutoPay RPCs revoked.
-  App: owner assistant sends only the AI company's records and fails
-  loudly; tenant pages filter to the tenant's own rows; renter insurance
-  upload reads the file size (always failed); owner certificate must be a
-  new upload; forms from every company; AutoPay runs on the association's
-  day, never charges if the online-payment setting can't be read, minimum
-  mode described as "your set amount, or less"; late Stripe checkout events
-  can't undo a refund; expired checkouts closed; 5 unfinished checkouts per
-  hour; canceled AutoPay setup can be retried at once. The lease page and
-  lease/resident RPCs were checked (own records only); payments.notes was
-  already private (payment_private), so no change.
+- #364 claude/autopay-cancel-race: Codex P1 on #363 - a
+  canceled AutoPay setup returning while Stripe's completion was being
+  processed could leave an active mandate after the page said nothing was
+  saved. The cancel return now expires the Stripe session first and
+  releases the setup only when Stripe confirms it can't complete (a
+  completed session goes ahead as an enrollment); the webhook undoes a
+  mandate it created if the setup was canceled meanwhile (by owner, unit
+  and method, so a redelivered event also undoes it; any non-completed end
+  state; the saved method is retired when nothing else uses it). The portal
+  never sends the owner to a Stripe session for a setup canceled meanwhile.
+  Test: webhook enrollment racing a cancel ends with no active AutoPay.
 
 ## Merged 2026-10-13
+- #363 owner portal: private calendar, right balance after a sale, fast
+  owner pages, tenant pages scoped, AutoPay and Stripe fixes
+  (20261014190000).
 - #362 reconciliation items: an update or delete is checked against the
   item's own reconciliation (Codex on #361; 20261014180000). Codex clean.
 - #361 banking: reserve funds guarded, closed months audited, reconciliations

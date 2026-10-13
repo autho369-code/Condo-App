@@ -443,6 +443,39 @@ export async function POST(request: NextRequest) {
             .eq('processor_account_id', stripeAccount)
             .select('id');
           if (completionError || completedAttempts?.length !== 1) {
+            const { data: latest, error: latestError } = await svc.from('stripe_setup_attempts')
+              .select('status').eq('id', attemptId).maybeSingle();
+            if (latestError) throw new Error(`AutoPay setup lookup failed: ${latestError.message}`);
+            if (latest && latest.status !== 'completed' && latest.status !== 'session_created') {
+              // The setup was canceled, expired or failed while this ran: no
+              // AutoPay for it. Undo by what the mandate is (not an id held in
+              // memory), so a redelivered event also undoes it.
+              const { error: undoError } = await svc.from('autopay_mandates')
+                .update({ status: 'canceled', canceled_at: now, updated_at: now })
+                .eq('portfolio_id', attempt.portfolio_id)
+                .eq('owner_id', attempt.owner_id)
+                .eq('unit_id', attempt.unit_id)
+                .eq('payment_method_id', savedMethod.id)
+                .neq('status', 'canceled');
+              if (undoError) throw new Error(`AutoPay setup was ${latest.status}; mandate undo failed: ${undoError.message}`);
+              // The owner was told nothing was saved: retire the saved method
+              // unless another live mandate uses it.
+              const { count: liveUses, error: usesError } = await svc.from('autopay_mandates')
+                .select('id', { count: 'exact', head: true })
+                .eq('payment_method_id', savedMethod.id)
+                .neq('status', 'canceled');
+              if (usesError) throw new Error(`Saved payment method check failed: ${usesError.message}`);
+              if ((liveUses ?? 0) === 0) {
+                const { error: retireError } = await svc.from('payment_methods')
+                  .update({ archived_at: now, is_default: false, updated_at: now })
+                  .eq('id', savedMethod.id)
+                  .eq('portfolio_id', attempt.portfolio_id)
+                  .eq('owner_id', attempt.owner_id)
+                  .is('archived_at', null);
+                if (retireError) throw new Error(`Saved payment method retire failed: ${retireError.message}`);
+              }
+              break;
+            }
             throw new Error(`AutoPay setup completion failed: ${completionError?.message ?? 'attempt state changed'}`);
           }
           break;

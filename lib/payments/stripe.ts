@@ -277,6 +277,23 @@ export async function createSetupCheckoutSession(params: {
   }, { stripeAccount: params.stripeAccount, idempotencyKey: params.idempotencyKey });
 }
 
+/** Read a Checkout Session on the association's connected account. */
+export async function getCheckoutSession(sessionId: string, stripeAccount: string) {
+  assertStripeId(sessionId, 'cs', 'Stripe Checkout Session id');
+  return stripeRequest<{ id: string; status: string | null }>(
+    `/checkout/sessions/${sessionId}`, undefined, { stripeAccount });
+}
+
+/**
+ * Expire an open Checkout Session so it can no longer be completed. Stripe
+ * refuses when the session is already complete.
+ */
+export async function expireCheckoutSession(sessionId: string, stripeAccount: string) {
+  assertStripeId(sessionId, 'cs', 'Stripe Checkout Session id');
+  return stripeRequest<{ id: string; status: string | null }>(
+    `/checkout/sessions/${sessionId}/expire`, {}, { stripeAccount, idempotencyKey: `expire-${sessionId}` });
+}
+
 export async function getSetupIntent(setupIntentId: string, stripeAccount: string) {
   assertStripeId(setupIntentId, 'seti', 'Stripe SetupIntent id');
   return stripeRequest<{
