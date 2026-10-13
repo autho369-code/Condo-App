@@ -151,6 +151,49 @@ async function finalizeAutopayRun(
   if (error) throw new Error(`AutoPay finalization failed: ${error.message}`);
 }
 
+/**
+ * A setup attempt that ended without completing (canceled, expired, failed)
+ * leaves no AutoPay: cancel every mandate it enrolled and retire the saved
+ * method nothing else uses. Found by the attempt link, so it is idempotent
+ * and also runs on a redelivered event.
+ */
+async function undoSetupEnrollment(db: any, attempt: { id: string; portfolio_id: string; owner_id: string }, now: string) {
+  // Every mandate of the attempt, canceled or not: a run that failed after
+  // canceling still finishes retiring the saved methods on a retry.
+  const { data: enrolled, error: enrolledError } = await db.from('autopay_mandates')
+    .select('id, status, payment_method_id')
+    .eq('setup_attempt_id', attempt.id)
+    .eq('portfolio_id', attempt.portfolio_id);
+  if (enrolledError) throw new Error(`AutoPay undo lookup failed: ${enrolledError.message}`);
+  const rows = (enrolled ?? []) as { id: string; status: string; payment_method_id: string | null }[];
+  if (rows.length === 0) return;
+  if (rows.some((r) => r.status !== 'canceled')) {
+    const { error: undoError } = await db.from('autopay_mandates')
+      .update({ status: 'canceled', canceled_at: now, updated_at: now })
+      .eq('setup_attempt_id', attempt.id)
+      .eq('portfolio_id', attempt.portfolio_id)
+      .neq('status', 'canceled');
+    if (undoError) throw new Error(`AutoPay mandate undo failed: ${undoError.message}`);
+  }
+  // The owner was told nothing was saved: retire each saved method unless
+  // another live mandate uses it.
+  for (const methodId of new Set(rows.map((r) => r.payment_method_id).filter(Boolean) as string[])) {
+    const { count: liveUses, error: usesError } = await db.from('autopay_mandates')
+      .select('id', { count: 'exact', head: true })
+      .eq('payment_method_id', methodId)
+      .neq('status', 'canceled');
+    if (usesError) throw new Error(`Saved payment method check failed: ${usesError.message}`);
+    if ((liveUses ?? 0) > 0) continue;
+    const { error: retireError } = await db.from('payment_methods')
+      .update({ archived_at: now, is_default: false, updated_at: now })
+      .eq('id', methodId)
+      .eq('portfolio_id', attempt.portfolio_id)
+      .eq('owner_id', attempt.owner_id)
+      .is('archived_at', null);
+    if (retireError) throw new Error(`Saved payment method retire failed: ${retireError.message}`);
+  }
+}
+
 const ACCOUNT_SCOPED_EVENTS = new Set([
   'checkout.session.completed',
   'checkout.session.expired',
@@ -282,6 +325,13 @@ export async function POST(request: NextRequest) {
               last_error: message.slice(0, 500),
               updated_at: now,
             }).eq('id', attemptId).neq('status', 'completed');
+            // An earlier delivery may have enrolled before dying: a setup that
+            // ends here leaves no AutoPay (a completed one is never touched).
+            const { data: ended } = await svc.from('stripe_setup_attempts')
+              .select('status').eq('id', attemptId).maybeSingle();
+            if (ended && ended.status !== 'completed' && ended.status !== 'session_created') {
+              await undoSetupEnrollment(svc, attempt, now);
+            }
             throw new Error(message);
           };
 
@@ -291,9 +341,14 @@ export async function POST(request: NextRequest) {
             await failAttempt('Stripe setup session does not match the locally authorized attempt');
           }
           if (attempt.status === 'completed') break;
-          // The owner canceled this setup in the portal (and may start a new
-          // one); a late completion of the old session activates nothing.
-          if (attempt.status === 'canceled') break;
+          // The setup ended without completing (the owner canceled it, it
+          // expired, or an earlier delivery failed it): a late or retried
+          // completion activates nothing, and undoes anything an earlier
+          // delivery enrolled before the attempt ended.
+          if (['canceled', 'expired', 'failed'].includes(attempt.status)) {
+            await undoSetupEnrollment(svc, attempt, now);
+            break;
+          }
           if (attempt.status !== 'session_created') {
             await failAttempt('AutoPay setup attempt is not awaiting Stripe completion');
           }
@@ -427,8 +482,19 @@ export async function POST(request: NextRequest) {
               fixed_amount_cents: attempt.fixed_amount_cents,
               minimum_amount_cents: attempt.minimum_amount_cents,
               include_late_fees: attempt.include_late_fees,
+              setup_attempt_id: attempt.id,
             });
             if (mandateError) throw new Error(`AutoPay mandate creation failed: ${mandateError.message}`);
+          }
+
+          if (existingMandate) {
+            // The reused mandate now belongs to this setup, so a late retry of
+            // an earlier, unfinished setup can't undo it.
+            const { error: relinkError } = await svc.from('autopay_mandates')
+              .update({ setup_attempt_id: attempt.id, updated_at: now })
+              .eq('id', existingMandate.id)
+              .eq('portfolio_id', attempt.portfolio_id);
+            if (relinkError) throw new Error(`AutoPay mandate relink failed: ${relinkError.message}`);
           }
 
           const { data: completedAttempts, error: completionError } = await svc.from('stripe_setup_attempts').update({
@@ -447,33 +513,8 @@ export async function POST(request: NextRequest) {
               .select('status').eq('id', attemptId).maybeSingle();
             if (latestError) throw new Error(`AutoPay setup lookup failed: ${latestError.message}`);
             if (latest && latest.status !== 'completed' && latest.status !== 'session_created') {
-              // The setup was canceled, expired or failed while this ran: no
-              // AutoPay for it. Undo by what the mandate is (not an id held in
-              // memory), so a redelivered event also undoes it.
-              const { error: undoError } = await svc.from('autopay_mandates')
-                .update({ status: 'canceled', canceled_at: now, updated_at: now })
-                .eq('portfolio_id', attempt.portfolio_id)
-                .eq('owner_id', attempt.owner_id)
-                .eq('unit_id', attempt.unit_id)
-                .eq('payment_method_id', savedMethod.id)
-                .neq('status', 'canceled');
-              if (undoError) throw new Error(`AutoPay setup was ${latest.status}; mandate undo failed: ${undoError.message}`);
-              // The owner was told nothing was saved: retire the saved method
-              // unless another live mandate uses it.
-              const { count: liveUses, error: usesError } = await svc.from('autopay_mandates')
-                .select('id', { count: 'exact', head: true })
-                .eq('payment_method_id', savedMethod.id)
-                .neq('status', 'canceled');
-              if (usesError) throw new Error(`Saved payment method check failed: ${usesError.message}`);
-              if ((liveUses ?? 0) === 0) {
-                const { error: retireError } = await svc.from('payment_methods')
-                  .update({ archived_at: now, is_default: false, updated_at: now })
-                  .eq('id', savedMethod.id)
-                  .eq('portfolio_id', attempt.portfolio_id)
-                  .eq('owner_id', attempt.owner_id)
-                  .is('archived_at', null);
-                if (retireError) throw new Error(`Saved payment method retire failed: ${retireError.message}`);
-              }
+              // The setup was canceled, expired or failed while this ran.
+              await undoSetupEnrollment(svc, attempt, now);
               break;
             }
             throw new Error(`AutoPay setup completion failed: ${completionError?.message ?? 'attempt state changed'}`);
