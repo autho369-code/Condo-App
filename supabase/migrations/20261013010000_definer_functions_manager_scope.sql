@@ -10,10 +10,13 @@
 --    association check behind can_access_unit, can_access_meeting,
 --    can_read_association_budget (budget lines, budget vs actuals, budget
 --    worksheet, meeting financial snapshot), can_mutate_association_budget,
---    can_manage_violations, set_owner_late_fee_override and
---    my_accessible_association_ids. It now also requires
---    can_view_association_row (true for everyone who is not a scoped
---    manager). No policy calls it directly.
+--    can_manage_violations and set_owner_late_fee_override. It now also
+--    requires can_view_association_row (true for everyone who is not a
+--    scoped manager). No policy calls it directly. Its row-level twin
+--    rls_private.my_accessible_association_ids (and my_accessible_unit_ids)
+--    stays company-wide: all 60 tables whose policies use it carry the
+--    restrictive mgr_assoc_scope policy (checked in pg_policies), which
+--    narrows them for scoped managers.
 -- 2. add_record_note / set_record_tags / update_record_note: the record must
 --    be in the caller's scope (new helper app_record_in_manager_scope).
 -- 3. calculate_meeting_quorum, rate_work_order, set_board_approval_settings:

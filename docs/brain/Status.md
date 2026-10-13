@@ -8,8 +8,9 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#334 merged; open PR: claude/definer-
   now also requires can_view_association_row, which scopes can_access_unit,
   can_access_meeting, budget reads (list_budget_lines, budget vs actuals,
   worksheet, meeting financial snapshot), can_manage_violations,
-  can_mutate_association_budget, late-fee override and
-  my_accessible_association_ids. Notes/tags check the record
+  can_mutate_association_budget and late-fee override (its row-level twin
+  rls_private.my_accessible_association_ids stays company-wide; all 60
+  tables using it carry mgr_assoc_scope). Notes/tags check the record
   (app_record_in_manager_scope); meeting quorum, work-order rating and board
   approval settings check the association. Functions patched in place with a
   match-exactly-once guard. Reviewed and left: owner/tenant/vendor/board/
