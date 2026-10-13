@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- E-signature lists 100-300x faster at scale (#340, 20261013100000).
+- Bank transfers, owner attachments, owner notices, meeting items checked
+  once per query; managers can create and edit meetings again (#340,
+  20261013110000/120000/130000).
 - Unapplied credits 3x faster; unfiltered Receivables totals read past-due
   units once (#339, 20261013060000/070000).
 - NSF fee to NSF income, payment plan reopens after a bounced payoff,

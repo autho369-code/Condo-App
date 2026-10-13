@@ -1,21 +1,25 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#338 merged; open PR: claude/receivables-money-fixes; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#339 merged; open PR: #340 claude/rls-per-row-policies; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #339 claude/receivables-money-fixes: 20261013060000
-  v_unapplied_credits one LATERAL sum per payment (manager 271 -> 71 ms,
-  identical rows for 7 roles); 20261013070000 receivables_page_totals reuses
-  the delinquent list on the unfiltered page (manager 901 -> 543 ms, board
-  951 -> 665 ms, identical results for 6 roles). Both LIVE. Stacked
-  20261013080000 (LIVE) money-flow fixes: NSF fee credited to NSF fee
-  income (4410; pattern '%nsf fee%' because "Transfer Fee" contains nsf);
-  payment plan reopens when its payoff payment bounces (recheck ignores
-  reversed payments and now fires on reversed_at); completed bank
-  reconciliations and their items are read-only and completing requires a
-  zero difference in the database. Verified in rolled-back transactions.
+- #340 claude/rls-per-row-policies: e-signature reads once per
+  query (20261013100000 LIVE): requests use the house portfolio form,
+  signers/events read through rls_private.my_signature_request_ids(). Dry run
+  5,000 requests/signers/events: identical rows for 7 roles; signers up to
+  3.6 s -> 11 ms, board/owner 1 s -> 1-3 ms. Stacked (all LIVE):
+  20261013110000 bank transfers, owner attachments, owner-portal notices,
+  meeting items once per query (36 role x table row sets identical, 0.3-0.85 s
+  -> under 10 ms); 20261013120000 BUG FIX: a manager not limited to some
+  associations could not create/edit meetings or see/add agenda items, only
+  company admins could (can_edit_association_mvp required an
+  association_managers row); now the whole company, scoped managers keep
+  only theirs. 20261013130000 hardening: that branch needs hoa_role manager
+  and an enabled account.
 
 ## Merged 2026-10-12
+- #339 unapplied credits, page totals, NSF fee income, payment plan bounce,
+  locked reconciliations (20261013060000-090000, live).
 - #338 delinquent_units by (unit_id, due_date) index (20261013050000, live).
 - #337 aged_receivables by index (20261013040000, live).
 - #336 policy copies of association checks scoped (20261013030000, live).
