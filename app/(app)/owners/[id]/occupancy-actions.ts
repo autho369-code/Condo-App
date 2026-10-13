@@ -12,7 +12,6 @@ import { queueEmails } from '@/lib/email/queue';
 import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { NEUTRAL_COMPANY_NAME } from '@/lib/tenant/resolve';
 import { hasVisibleText } from '@/lib/company-admin/settings';
-import { escapeLike } from '@/lib/db/escape-like';
 
 const BUCKET = 'association-documents';
 
@@ -424,8 +423,8 @@ export async function sendTenantPortalInvitation(tenantId: string, ownerId: stri
     .eq('portfolio_id', tenant.portfolio_id)
     .eq('hoa_role', 'tenant')
     .eq('status', 'pending')
-    .eq('metadata->>tenant_id', tenant.id)
-    .ilike('email', escapeLike(email));
+    // By resident, not address: an invitation sent to an earlier email goes too.
+    .eq('metadata->>tenant_id', tenant.id);
   if (revokeError) fail(ownerId, `Could not replace the earlier invitation: ${revokeError.message}`);
 
   const { data: invitation, error: inviteError } = await svc.from('user_invitations').insert({

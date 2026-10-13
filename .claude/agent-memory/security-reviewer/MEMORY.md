@@ -16,9 +16,12 @@
 - The baseline migration is NOT proof a policy exists in prod (budget_lines mgr_assoc_scope, wrong on #329). Unit/portfolio-keyed tables (charges, payments, unit_owners...) escape mgr_assoc_scope; see missed-checks.md.
 - rls_private set helpers (20261011050000+): API can't call them only while no migration grants USAGE on schema rls_private; EXECUTE to authenticated is required for policies and fine. Per-row -> set rewrites keep manager scoping via the separate restrictive mgr_assoc_scope; confirm it still exists on the table.
 
-- Manager scope: `can_access_association` is company-only; `can_manage_association`/`can_view_association_row` honour association_managers. DEFINER RPCs gated only by portfolio helpers (`can_manage_signatures` in rotate_signature_signer_token / void_signature_request) skip scoping even when the table has mgr_assoc_scope (audit 2026-10-12).
+- Manager scope: `can_access_association` also requires can_view_association_row since 20261013010000 (its RLS twin does not); `can_manage_association`/`can_view_association_row` honour association_managers. DEFINER RPCs gated only by portfolio helpers (`can_manage_signatures` in rotate_signature_signer_token / void_signature_request) skip scoping even when the table has mgr_assoc_scope (audit 2026-10-12).
 - Multi-association rows (journal_entries spanning associations): a restrictive guard added for DELETE alone leaves UPDATE open (draft can be posted/re-dated via REST; guard_posted only blocks old.posted). Check both (20261012130000).
 - Global `me.is_staff` + RLS read is not a staff proof: one login can be staff at A and owner at B (`lib/rpcs/violations.ts:166` verifyViolationAttachmentAccess -> svc update). Use can_manage_association like maintenance-attachments `staffCanManage`.
+
+- Changing a can_* helper body (e.g. can_access_association gains can_view_association_row, 20261013010000) does NOT change its policy twin (rls_private.my_accessible_association_ids / my_accessible_unit_ids have their own SQL). Check the twin in the same migration.
+- Sweep script for DEFINER RPCs with only company checks: parse latest create-or-replace per function, flag bodies with can_access_portfolio/can_manage_finance/current_portfolio_id but no association-scope helper; then grep later DO-block patches (20261007090000 finance_rpcs_association_scope, 20261013010000). Company-wide tables (accounting_periods, gl_account_map, inspection_templates) are out of scope by design.
 
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import
