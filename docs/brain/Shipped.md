@@ -5,7 +5,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 
 ## 2026-10-13
 - Policy copies of the association checks match a manager's scope; payout
-  matching filters in the query (open PR, 20261013030000).
+  matching filters in the query (#336, 20261013030000).
 - Database functions that checked only the company respect a manager's
   associations (#335, 20261013010000).
 

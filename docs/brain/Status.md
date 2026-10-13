@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-12 (#279-#335 merged; open PR: claude/rls-twin-scope; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/rls-twin-scope: Codex on #335. P1: policy copies
+- #336 claude/rls-twin-scope: Codex on #335. P1: policy copies
   rls_private.my_accessible_association_ids (+ unit ids) and
   my_budget_readable_association_ids narrowed for scoped managers like
   can_access_association (20261013030000 LIVE; mgr_assoc_scope already
