@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-12 (#279-#340 merged; open PR: claude/codex-339-followups; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/codex-339-followups: 20261013140000 (LIVE)
+- #341 claude/codex-339-followups: 20261013140000 (LIVE)
   payment plan recheck uses payment_plan_paid_amount (raw receipts could
   keep a bounced plan completed; verified it reopens); reconciliation item
   guard locks the parent FOR SHARE. NSF income GL-map key waits on Mirsad
