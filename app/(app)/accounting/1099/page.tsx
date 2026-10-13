@@ -1,6 +1,6 @@
 import { vendor1099Rows } from '@/lib/finance/totals';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -47,7 +47,7 @@ export default async function Tax1099Page({
 }: {
   searchParams: Promise<{ year?: string }>;
 }) {
-  const me = await requireStaff();
+  const me = await requireFinanceStaff();
   const { year: yearStr } = await searchParams;
   const taxYear = parseInt(yearStr ?? '') || CURRENT_YEAR;
 

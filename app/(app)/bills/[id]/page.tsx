@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
-import { Badge } from '@/components/ui/shell';
+import { Alert, Badge } from '@/components/ui/shell';
 import { Button, buttonClass } from '@/components/ui/button';
-import { approveBill, submitBillForApproval, voidBill, voidPaidCheck } from '@/lib/rpcs/bills';
+import { approveBill, recordBoardDecision, setBillExpenseAccount, submitBillForApproval, voidBill, voidPaidCheck } from '@/lib/rpcs/bills';
+import { Field, Input, Select } from '@/components/ui/input';
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -11,7 +12,7 @@ import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
-export default async function BillDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
+export default async function BillDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; saved?: string }> }) {
   await requireFinanceStaff();
   const { id } = await params;
   const sp = await searchParams;
@@ -41,6 +42,17 @@ export default async function BillDetailPage({ params, searchParams }: { params:
     .eq('bill_id', id)
     .order('issued_at', { ascending: false });
   const issuedCheck = (checks ?? []).find((check: any) => check.status === 'issued');
+  // Before approval the expense account can be set or changed (vendor
+  // invoices arrive without one); the RPC limits it to this association.
+  const codable = ['draft', 'pending_approval'].includes(b.status) && !b.archived_at;
+  const { data: expenseAccounts, error: expenseAccountsError } = codable
+    ? await (supabase as any).from('gl_accounts')
+      .select('id, number, name, association_id')
+      .eq('active', true)
+      .in('account_type', ['expense', 'cost_of_goods_sold', 'other_expense'])
+      .or(b.association_id ? `association_id.is.null,association_id.eq.${b.association_id}` : 'association_id.is.null')
+      .order('number')
+    : { data: [] as any[], error: null };
 
   return (
     <Workspace
@@ -57,11 +69,10 @@ export default async function BillDetailPage({ params, searchParams }: { params:
         />
       }
     >
-      {sp.error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          <span className="font-semibold">Could not update bill:</span> {sp.error}
-        </div>
-      )}
+      {sp.error && <Alert tone="danger" title="Could not update bill">{sp.error}</Alert>}
+      {sp.saved === 'account' && <Alert tone="success">Expense account saved.</Alert>}
+      {sp.saved === 'decision' && <Alert tone="success">Board decision recorded.</Alert>}
+      {expenseAccountsError && <Alert tone="danger" title="Expense accounts could not be loaded">{expenseAccountsError.message}</Alert>}
 
       <Section
         title="Details"
@@ -84,7 +95,7 @@ export default async function BillDetailPage({ params, searchParams }: { params:
               </dd>
             </div>
           )}
-          <div><dt className="text-gray-500">GL account</dt><dd className="text-gray-900">{b.gl_accounts ? `${b.gl_accounts.number} — ${b.gl_accounts.name}` : '—'}</dd></div>
+          <div><dt className="text-gray-500">Expense account</dt><dd className="text-gray-900">{b.gl_accounts ? `${b.gl_accounts.number} — ${b.gl_accounts.name}` : '—'}</dd></div>
           <div><dt className="text-gray-500">Bank account</dt><dd className="text-gray-900">{b.bank_accounts?.name ?? '—'}</dd></div>
           <div className="sm:col-span-2">
             <dt className="text-gray-500">Memo (prints on check)</dt>
@@ -93,6 +104,25 @@ export default async function BillDetailPage({ params, searchParams }: { params:
           <div><dt className="text-gray-500">Approved</dt><dd className="text-gray-900">{b.approved_at ? date(b.approved_at) : '—'}</dd></div>
           <div><dt className="text-gray-500">Paid</dt><dd className="text-gray-900">{b.paid_at ? date(b.paid_at) : '—'}</dd></div>
         </dl>
+        {codable && !expenseAccountsError && (expenseAccounts ?? []).length === 0 && (
+          <p className="mt-4 border-t border-gray-100 pt-4 text-sm text-amber-800">
+            No active expense accounts for this association. <Link href="/gl-accounts" className="font-medium underline">Add one in the chart of accounts</Link>, then set it here.
+          </p>
+        )}
+        {codable && (expenseAccounts ?? []).length > 0 && (
+          <form action={setBillExpenseAccount} className="mt-4 grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-[1fr_auto] sm:items-end">
+            <input type="hidden" name="bill_id" value={id} />
+            <Field label="Expense account" required hint={b.gl_account_id ? undefined : 'Needed before the bill can be approved.'}>
+              <Select name="gl_account_id" required defaultValue={b.gl_account_id ?? ''}>
+                <option value="" disabled>Choose an expense account…</option>
+                {(expenseAccounts ?? []).map((account: any) => (
+                  <option key={account.id} value={account.id}>{account.number} — {account.name}</option>
+                ))}
+              </Select>
+            </Field>
+            <Button type="submit" variant="secondary">Save account</Button>
+          </form>
+        )}
       </Section>
 
       {b.approval_required && (
@@ -105,9 +135,27 @@ export default async function BillDetailPage({ params, searchParams }: { params:
                   {approvalRequest.votes_for} approved · {approvalRequest.votes_against} rejected · {approvalRequest.required_votes} required
                 </div>
               </div>
-              <Link href={`/associations/${b.association_id}/approvals`} className="text-blue-700 hover:underline">Open board approvals</Link>
+              {b.association_id && <Link href={`/associations/${b.association_id}/approvals`} className="text-blue-700 hover:underline">Open board approvals</Link>}
             </div>
-          ) : (
+          ) : null}
+          {approvalRequest?.status === 'pending' && (
+            <form action={recordBoardDecision} className="mt-4 grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-[200px_1fr_auto] sm:items-end">
+              <input type="hidden" name="bill_id" value={id} />
+              <input type="hidden" name="approval_request_id" value={approvalRequest.id} />
+              <Field label="Board decision" required>
+                <Select name="decision" required defaultValue="">
+                  <option value="" disabled>Choose…</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </Select>
+              </Field>
+              <Field label="Note" hint="Where and when the board decided, e.g. the meeting or vote by email.">
+                <Input name="note" maxLength={1000} />
+              </Field>
+              <PendingSubmit pendingLabel="Recording…" confirm="Record the board's decision? It can't be changed afterwards.">Record decision</PendingSubmit>
+            </form>
+          )}
+          {!approvalRequest && (
             <p className="text-sm text-amber-800">This bill requires board approval but has not been routed yet.</p>
           )}
         </Section>

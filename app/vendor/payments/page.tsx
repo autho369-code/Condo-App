@@ -5,6 +5,7 @@ import { InvoiceSubmissionForm } from '@/components/vendor/invoice-submission-fo
 import { date, money } from '@/lib/utils';
 import { VENDOR_INVOICEABLE_STATUSES } from '@/lib/vendors/portal';
 import { Receipt } from 'lucide-react';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ export default async function VendorPaymentsPage({ searchParams }: { searchParam
   const supabase = await createClient();
   const db = supabase as any;
 
-  const [billResult, workOrderResult] = await Promise.all([
+  const [billResult, workOrderResult, totalsResult] = await Promise.all([
     db.from('payable_bills')
       .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, associations(name)')
       .in('vendor_id', me.vendor_ids).is('archived_at', null).order('bill_date', { ascending: false }).limit(100),
@@ -25,9 +26,16 @@ export default async function VendorPaymentsPage({ searchParams }: { searchParam
       .in('vendor_id', me.vendor_ids).is('archived_at', null)
       .in('status', [...VENDOR_INVOICEABLE_STATUSES])
       .order('created_at', { ascending: false }).limit(100),
+    // The totals cover every bill, not only the 100 listed.
+    fetchAllRows<any>(() => db.from('payable_bills')
+      .select('id, amount, credit_applied, status')
+      .in('vendor_id', me.vendor_ids).is('archived_at', null)
+      .in('status', ['pending_approval', 'approved', 'paid'])
+      .order('id')),
   ]);
   if (billResult.error) throw new Error(`Could not load vendor bills: ${billResult.error.message}`);
   if (workOrderResult.error) throw new Error(`Could not load assigned work orders: ${workOrderResult.error.message}`);
+  if (totalsResult.error) throw new Error(`Could not load bill totals: ${totalsResult.error}`);
   const bills = billResult.data;
   const workOrders = (workOrderResult.data ?? []).map((workOrder: any) => ({
     id: workOrder.id,
@@ -35,9 +43,9 @@ export default async function VendorPaymentsPage({ searchParams }: { searchParam
   }));
 
   const rows = bills ?? [];
-  const pending = rows.filter((b: any) => b.status === 'pending_approval');
-  const approved = rows.filter((b: any) => b.status === 'approved');
-  const paid = rows.filter((b: any) => b.status === 'paid');
+  const pending = totalsResult.rows.filter((b: any) => b.status === 'pending_approval');
+  const approved = totalsResult.rows.filter((b: any) => b.status === 'approved');
+  const paid = totalsResult.rows.filter((b: any) => b.status === 'paid');
   // Vendor credits applied to a bill are not paid (or owed) in cash.
   const sum = (list: any[]) => list.reduce((s, b) => s + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), 0);
 

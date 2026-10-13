@@ -1375,7 +1375,7 @@
    "route": "/accounting/1099",
    "file": "app/(app)/accounting/1099/page.tsx",
    "pageGuards": [
-    "requireStaff"
+    "requireFinanceStaff"
    ],
    "caps": {
     "link": [
@@ -1402,7 +1402,7 @@
      "table:vendors"
     ],
     "guard": [
-     "requireStaff"
+     "requireFinanceStaff"
     ],
     "confirm": []
    }
@@ -1412,7 +1412,7 @@
    "route": "/accounting/1099/print",
    "file": "app/(app)/accounting/1099/print/page.tsx",
    "pageGuards": [
-    "requireStaff"
+    "requireFinanceStaff"
    ],
    "caps": {
     "link": [],
@@ -1431,7 +1431,7 @@
      "table:vendors"
     ],
     "guard": [
-     "requireStaff"
+     "requireFinanceStaff"
     ],
     "confirm": []
    }

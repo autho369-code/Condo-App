@@ -1,12 +1,33 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#357 merged; open PR: #358 claude/vault-357-policy-sweep; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#358 merged; open PR: #359 claude/payables-fixes; next: payables minor items (credit-paid date, recurring_bills direct writes); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #358 claude/vault-357-policy-sweep: vault only - #357 merged;
-  policy subquery sweep measured at scale, no change needed.
+- #359 claude/payables-fixes: payables deep check (10,000 bills,
+  rolled back; every page/RPC under 140 ms for every role; visibility
+  correct). 20261014150000 (LIVE):
+  - vendor-portal invoices could never be approved (board always required,
+    no expense account, nothing could set it): they follow the association's
+    board setting; staff set the expense account on the bill page
+    (set_payable_bill_expense_account, under their own GL permissions);
+  - board approval had no path (board portal read-only, votes impossible)
+    while finance staff could UPDATE a request to approved: staff record the
+    board's decision on the bill page (record_approval_decision: who, when,
+    note, in approval_decisions); trigger approval_requests_approve_guard
+    refuses any other way to approved (flag app.approval_decision, or a
+    repair session); the old operator-only vote tally can't approve
+    (security review); the expense account must be an expense type;
+  - manual bills refuse a duplicate vendor invoice number (same lock as
+    import/vendor portal; voided bills excluded);
+  - payment/check dates: not before the bill date, at most 90 days ahead
+    (the error names the bill); a vendor invoice dated at most 30 days ahead;
+  - 1099 report-builder data keeps vendors archived after payment;
+  - voiding a payment keeps the bill's bank account.
+  App: vendor portal totals cover every bill (not the newest 100), the
+  dashboard's pending pay excludes drafts; 1099 pages need finance staff.
 
 ## Merged 2026-10-13
+- #358 vault: #357 merged; policy subquery sweep measured, no change.
 - #357 executive sessions hidden from staff outside the confidential-meeting
   set: meeting row, agenda text, attendees, quorum counts (20261014140000).
 - #356 meeting lists put undated meetings last (Codex clean).
@@ -470,6 +491,19 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#357 merged; open PR: #358 claude/vau
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- Payables, not covered by the duplicate-number and payment-date rules
+  (migration review): pay_owner_payable, recurring and purchase-order
+  generated bills. A bill's line items may override the header expense
+  account (check before relying on set_payable_bill_expense_account there).
+- Payables, not fixed (minor, from the deep check): a bill paid entirely by
+  a vendor credit gets paid_at = now() instead of the credit date and counts
+  as a $0 bill in 1099 bill_count; finance users can write recurring_bills
+  directly (next_post_date) without save_recurring_bill; both 1099 functions
+  call association_local_date per paid bill (~0.85 s at 50,000 paid bills a
+  year).
+- DONE 2026-10-13 (measured, no change): v_unit_account_summary at 2,000
+  units / 36,000 charges / 8,000 payments: one unit 11-94 ms by role, all
+  2,000 units 140 ms for a manager.
 - DONE 2026-10-13 (measured, no change): the remaining policies with a
   subquery over another RLS table are fast at scale (rolled back):
   journal_lines 30,000 lines - manager 25 ms, scoped manager 45 ms, board
@@ -506,9 +540,7 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#357 merged; open PR: #358 claude/vau
   manager meetings list loads every meeting with select * (6 MB at 3,000);
   saveMeetingNotes and addMeetingAttendee allow changes after
   publish/cancel.
-- Known, low priority: receivable_unit_totals(null) 239 ms at 2,000 units;
-  v_unit_account_summary one unit still ~90-290 ms at 36,000 charges (its
-  other correlated sums). Scoped-manager one-unit charge balances fixed by
+- Known, low priority: receivable_unit_totals(null) 239 ms at 2,000 units. Scoped-manager one-unit charge balances fixed by
   20261014060000 (419 -> 88 ms).
 - NEXT before the Stripe pilot: run checkout (app/api/payments) and the
   AutoPay route (app/api/payments/autopay-run) against Stripe TEST mode once
