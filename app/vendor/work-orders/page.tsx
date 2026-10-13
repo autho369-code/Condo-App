@@ -14,7 +14,9 @@ const FILTERS = [
   { id: 'all', label: 'All' },
 ] as const;
 
-const OPEN_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress', 'open'];
+// Real work_order_status values only: the tabs filter in the query, and an
+// unknown enum value makes Postgres reject the whole request.
+const OPEN_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress'];
 const PAGE_LIMIT = 200;
 
 export default async function VendorWorkOrders({

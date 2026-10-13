@@ -82,3 +82,24 @@ alter policy wo_updates_vendor_insert on public.work_order_updates
               and (work_order_id in (select wo.id from public.work_orders wo
                                       where wo.vendor_id in (select public.current_vendor_ids())))
               and (new_status is null or new_status::text = rls_private.vendor_work_order_status(work_order_id)));
+
+-- migration-reviewer: an occupancy still marked current after its move-out
+-- date passed the occupancy check, and current_resident_unit_since returned
+-- null (no cutoff) for it. The owner branch now also requires the unit to be
+-- one of the caller's current resident units, as the owner read policy does.
+do $$
+declare
+  v_def text := pg_get_functiondef('public.rate_work_order(uuid, integer, integer, integer, integer, boolean, text)'::regprocedure);
+  v_old text := $o$        and (public.current_resident_unit_since(wo.unit_id) is null$o$;
+  v_new text := $n$        and wo.unit_id in (select public.current_resident_unit_ids())
+        and (public.current_resident_unit_since(wo.unit_id) is null$n$;
+begin
+  if position('wo.unit_id in (select public.current_resident_unit_ids())' in v_def) > 0 then
+    return;
+  end if;
+  if (length(v_def) - length(replace(v_def, v_old, ''))) / length(v_old) <> 1 then
+    raise exception 'rate_work_order: move-in check not found exactly once';
+  end if;
+  execute replace(v_def, v_old, v_new);
+end
+$$;

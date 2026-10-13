@@ -23,6 +23,8 @@
 - Changing a can_* helper body (e.g. can_access_association gains can_view_association_row, 20261013010000) does NOT change its policy twin (rls_private.my_accessible_association_ids / my_accessible_unit_ids have their own SQL). Check the twin in the same migration.
 - Sweep script for DEFINER RPCs with only company checks: parse latest create-or-replace per function, flag bodies with can_access_portfolio/can_manage_finance/current_portfolio_id but no association-scope helper; then grep later DO-block patches (20261007090000 finance_rpcs_association_scope, 20261013010000). Company-wide tables (accounting_periods, gl_account_map, inspection_templates) are out of scope by design.
 
+- Moving a JS status filter into PostgREST (`.in`/`not.in`) on an enum column: every literal must be an enum value or the whole query errors 22P02 (vendor work-orders OPEN_STATUSES had 'open', not in work_order_status, 2026-10-13). Check the enum in the baseline + `add value` migrations.
+
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import
 - [Missed checks](missed-checks.md) -- domain-proof replay/relay, token minting, html_escape, storage cleanup, finance RPC scope triggers, hidden columns copied by DEFINER triggers (soft_delete_log), owner_visible_history writers
