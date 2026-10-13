@@ -117,3 +117,9 @@
   tables (budget_lines, meetings, signatures, bank_transfers) are still unmeasured.
 - Vault staleness (recurring 7x: Status header/Open PR after merge, Next gaps "In PR"): see [vault-staleness](vault-staleness.md) - check first.
 - Reviewer memory still naming holes the same PR fixed (5x): see [reviewer-memory-staleness](reviewer-memory-staleness.md).
+- Deep-audit plans by area (violations/WOs/meetings, 2026-10-13): plans list
+  owner/board/vendor/scoped mgr/other company but skip resident/tenant
+  (app/resident/*), company admin, support operator, disabled account; skip
+  public/API/AI/cron/storage routes; and DB-only DO blocks never exercise the
+  server actions (auth re-check, emails). Charges with no charge_gl_accounts
+  branch (fine, chargeback) fall to the category/default income: check GL.

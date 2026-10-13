@@ -26,6 +26,10 @@
 - Render caps (missed on PR #321, Codex caught it): when a page renders fewer rows than it loads/exports (owners, units 500-row cap), check every way the list leaves the page: print, CSV, PDF, email. ExportActions' Print used window.print() and printed only rendered rows; pass `printFromTables` (prints the export tables in their own window) on any capped page.
 - Alert (components/ui/shell.tsx) always sets role="alert"; persistent status banners ("AI is on") get announced on every load - nit, not a blocker.
 
+## Owner-facing state cards (portal/violations/[id], 2026-10-13)
+- Chained `a ? .. : b ? ..` status branches: a new state added lower (Hearing held :170) is shadowed by an earlier one (hearing_requested_at :164). Check branch order.
+- Owner timelines read `owner_visible_history` written by log_violation_event(..., true): read the SQL note text for staff-only instructions leaking to owners.
+
 ## ?error= sweeps (zero-row `.select()` checks, 2026-10)
 - For every action redirect, open the TARGET page and check every render branch, not just one: vendors/ach has 3 returns and only the two focus views render sp.error (list view at :371 drops it, so `Vendor not found.` is silent).
 - Redirect-only routes swallow query strings: app/(app)/associations/[id]/page.tsx redirects to /units without `?error=` (lib/rpcs/entities.ts:130,173 target it; dead today). Check that `page.tsx` isn't a bare redirect.

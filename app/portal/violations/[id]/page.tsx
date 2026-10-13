@@ -31,7 +31,7 @@ export default async function OwnerViolationDetail({
   const sp = await searchParams
 
   const { data: v } = await db.from('violations')
-    .select('id, title, description, violation_type, status, date_observed, hearing_date, hearing_at, hearing_required, hearing_requested_at, hearing_request_note, fine_amount, fines_total, fine_assessed_at, notice_sent_at, board_decision, attachments, governing_document_reference, units!inner(unit_number)')
+    .select('id, title, description, violation_type, status, date_observed, hearing_date, hearing_at, hearing_required, hearing_requested_at, hearing_request_note, fine_amount, fines_total, fine_assessed_at, notice_sent_at, board_decision, attachments, owner_visible_history, governing_document_reference, units!inner(unit_number)')
     .eq('id', id).in('owner_id', me.owner_ids).maybeSingle()
 
   if (!v) return notFound()
@@ -64,6 +64,13 @@ export default async function OwnerViolationDetail({
   const letters = (letterRows ?? []) as ViolationLetterRow[]
   const letterLinks = await signLetterLinks(letters)
   const fines = Number(v.fines_total ?? 0) > 0 ? Number(v.fines_total) : Number(v.fine_amount ?? 0)
+  // Timeline notes management marked as visible to the owner, newest first.
+  const history = (Array.isArray(v.owner_visible_history) ? v.owner_visible_history : [])
+    .filter((h: any) => h && typeof h.event === 'string' && h.event.trim())
+    .map((h: any) => ({ at: typeof h.at === 'string' ? h.at : null, event: String(h.event) }))
+    .reverse() as Array<{ at: string | null; event: string }>
+  const hearingOn = v.hearing_date ?? v.hearing_at
+  const hearingHeld = Boolean(v.board_decision) || (hearingOn ? new Date(hearingOn).getTime() < Date.now() : false)
 
   async function requestHearing(formData: FormData) {
     'use server'
@@ -134,15 +141,36 @@ export default async function OwnerViolationDetail({
         <ViolationLettersList letters={letters} links={letterLinks} />
       </Surface>
 
+      <Surface padded={false}>
+        <div className="border-b border-gray-100 px-5 py-3">
+          <h2 className="text-base font-semibold text-gray-950">Timeline</h2>
+          <p className="mt-0.5 text-sm text-gray-500">Updates from association management about this violation.</p>
+        </div>
+        {history.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-gray-500">No updates yet.</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {history.map((h, i) => (
+              <li key={`${h.at ?? ''}-${i}`} className="px-5 py-4">
+                <div className="whitespace-pre-wrap break-words text-sm text-gray-900">{h.event}</div>
+                {h.at && <div className="mt-1 text-xs text-gray-500">{date(h.at)}</div>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Surface>
+
       <Surface>
-        {v.hearing_requested_at ? (
+        {hearingOn && hearingHeld ? (
+          <div><h2 className="text-base font-semibold text-gray-950">{v.board_decision ? 'Hearing held' : 'Hearing date passed'}</h2><p className="mt-1 text-sm text-gray-500">{v.board_decision ? <>Your hearing was held on {date(hearingOn)}. Decision: violation {v.board_decision}.</> : <>The hearing date ({date(hearingOn)}) has passed. The decision will be posted here.</>}</p></div>
+        ) : hearingOn ? (
+          <div><h2 className="text-base font-semibold text-gray-950">Hearing scheduled</h2><p className="mt-1 text-sm text-gray-500">Your hearing is scheduled for {date(hearingOn)}.</p></div>
+        ) : v.hearing_requested_at ? (
           <div>
             <h2 className="text-base font-semibold text-gray-950">Hearing requested</h2>
             <p className="mt-1 text-sm text-gray-500">Submitted {date(v.hearing_requested_at)}. Management will post the date and location after scheduling.</p>
             {v.hearing_request_note && <p className="mt-3 whitespace-pre-wrap rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-700">{v.hearing_request_note}</p>}
           </div>
-        ) : v.hearing_date || v.hearing_at ? (
-          <div><h2 className="text-base font-semibold text-gray-950">Hearing scheduled</h2><p className="mt-1 text-sm text-gray-500">Your hearing is scheduled for {date(v.hearing_date ?? v.hearing_at)}.</p></div>
         ) : v.status === 'closed' || v.status === 'cured' ? (
           <p className="text-sm text-gray-500">This violation is closed, so a hearing can no longer be requested.</p>
         ) : (
