@@ -1,7 +1,7 @@
 import { File, Scale, ShieldCheck } from 'lucide-react';
 import { requireTenant } from '@/lib/auth/me';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { EmptyState, PageHeader, Surface } from '@/components/ui/shell';
+import { Alert, EmptyState, PageHeader, Surface } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
 import { isEntityDocumentStoragePath, isScopedStoragePath } from '@/lib/security/storage-paths';
 import { RESIDENT_SHARED_DOCUMENT_TYPES } from '@/lib/associations/operating-docs';
@@ -33,9 +33,15 @@ export default async function ResidentDocumentsPage() {
   const me = await requireTenant();
   const supabase = await createClient();
   const db = supabase as any;
-  const [{ data: documentRows }, { data: tenant }] = await Promise.all([
+  const [{ data: documentRows, error: documentsError }, { data: tenant, error: tenantError }] = await Promise.all([
     db.from('documents')
       .select('id, doc_type, entity_type, entity_id, file_name, file_url, uploaded_at')
+      // The resident rule here too, not RLS alone (the links below are signed
+      // with the service key): a login that is also an owner, board member
+      // or staff can read other documents.
+      .eq('entity_type', 'association')
+      .eq('share_scope', 'owners')
+      .in('entity_id', me.tenant_association_ids ?? [])
       .in('doc_type', RESIDENT_SHARED_DOCUMENT_TYPES)
       .order('uploaded_at', { ascending: false }),
     db.from('tenants')
@@ -73,6 +79,11 @@ export default async function ResidentDocumentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Documents" description="Community records and private occupancy documents shared with you." />
+      {documentsError || tenantError ? (
+        <Alert tone="danger" title="Could not load your documents">
+          {(documentsError ?? tenantError)?.message}
+        </Alert>
+      ) : null}
 
       {privateDocs.length > 0 ? (
         <Surface>

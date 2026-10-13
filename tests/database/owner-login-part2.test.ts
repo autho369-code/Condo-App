@@ -40,7 +40,7 @@ describe('owner login part 2: portal reads and writes', () => {
   });
 
   it('shows upcoming events from every association on the dashboard', () => {
-    expect(read('app/portal/page.tsx')).toContain(".from('calendar_events').select('id,title,start_datetime,location').in('association_id', assocIds)");
+    expect(read('app/portal/page.tsx')).toContain("db.rpc('resident_calendar_events', { p_association_ids: assocIds, p_limit: 5 })");
   });
 
   it('writes for the record that holds the unit', () => {

@@ -118,8 +118,8 @@
   app/api crons, lib all use fetchAllRows/limit). Don't re-propose it. Status
   "left per-row: small tables" predates the "judge RLS at scale" rule; those
   tables (budget_lines, meetings, signatures, bank_transfers) are still unmeasured.
-- Vault staleness (recurring 7x: Status header/Open PR after merge, Next gaps "In PR"): see [vault-staleness](vault-staleness.md) - check first.
-- Reviewer memory still naming holes the same PR fixed (5x): see [reviewer-memory-staleness](reviewer-memory-staleness.md).
+- Vault staleness (recurring 8x: Status header/Open PR after merge, Next gaps "In PR", stale gap premise, missing DROP TODO for USING-false policies): see [vault-staleness](vault-staleness.md) - check first.
+- Reviewer memory still naming holes the same PR fixed (6x, 5 reviewers at once 2026-10-13): see [reviewer-memory-staleness](reviewer-memory-staleness.md).
 - Deep-audit plans by area (violations/WOs/meetings, 2026-10-13): plans list
   owner/board/vendor/scoped mgr/other company but skip resident/tenant
   (app/resident/*), company admin, support operator, disabled account; skip

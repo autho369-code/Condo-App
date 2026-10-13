@@ -79,17 +79,19 @@ export default async function OwnerDocumentsPage() {
   // Forms the management company publishes to homeowners. Filtered
   // explicitly (not only by RLS) so an owner who is also staff sees just the
   // homeowner forms of their own management company.
-  const { data: ownerRow } = await db.from('owners').select('portfolio_id').in('id', me.owner_ids).limit(1).maybeSingle()
-  const { data: formRows, error: formsError } = ownerRow?.portfolio_id
+  // An owner can hold records with more than one management company.
+  const { data: ownerRows, error: ownerRowsError } = await db.from('owners').select('portfolio_id').in('id', me.owner_ids)
+  const formPortfolios = Array.from(new Set(((ownerRows ?? []) as { portfolio_id: string | null }[]).map((r) => r.portfolio_id).filter(Boolean))) as string[]
+  const { data: formRows, error: formsError } = formPortfolios.length > 0
     ? await db.from('form_templates')
         .select('id, portfolio_id, name, description, file_url, file_path, file_name')
-        .eq('portfolio_id', ownerRow.portfolio_id)
+        .in('portfolio_id', formPortfolios)
         .eq('audience', 'homeowner')
         .eq('active', true)
         .is('archived_at', null)
         .order('name')
     : { data: [], error: null }
-  const loadError = (ownUnits.error ? { message: ownUnits.error } : null) ?? docsError ?? formsError
+  const loadError = (ownUnits.error ? { message: ownUnits.error } : null) ?? docsError ?? ownerRowsError ?? formsError
   const forms = (formRows ?? []) as Array<{ id: string; portfolio_id: string; name: string; description: string | null; file_url: string | null; file_path: string | null; file_name: string | null }>
   const formLinks = await signFormFiles(forms, 3600)
 

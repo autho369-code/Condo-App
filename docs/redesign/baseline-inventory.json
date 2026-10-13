@@ -15631,13 +15631,13 @@
     ],
     "data": [
      "rpc:owner_open_emergencies",
+     "rpc:resident_calendar_events",
+     "rpc:resident_unit_balances",
      "table:associations",
-     "table:calendar_events",
      "table:communications_log",
      "table:occupancies",
      "table:payments",
      "table:portfolios",
-     "table:unit_balances",
      "table:v_charge_balances",
      "table:violations",
      "table:work_orders"
@@ -15955,8 +15955,8 @@
     "field": [],
     "button": [],
     "data": [
+     "rpc:resident_calendar_events",
      "table:associations",
-     "table:calendar_events",
      "table:maintenance_tasks",
      "table:meetings",
      "table:occupancies"
@@ -16898,7 +16898,7 @@
      "New service request"
     ],
     "data": [
-     "table:calendar_events",
+     "rpc:resident_calendar_events",
      "table:communications_log",
      "table:service_requests",
      "table:tenants"
@@ -16922,8 +16922,8 @@
     "field": [],
     "button": [],
     "data": [
+     "rpc:resident_calendar_events",
      "table:associations",
-     "table:calendar_events",
      "table:maintenance_tasks",
      "table:meetings"
     ],

@@ -253,6 +253,9 @@ Mostly on Mirsad / external; not code.
       `STRIPE_WEBHOOK_SECRET` + the Connect webhook endpoint) — the entire
       online-payments system is built and dormant behind this one config step.
       Flagged by every external audit round as the last env gap.
+      When creating the Connect webhook endpoint, include
+      `checkout.session.expired` in its events (added 2026-10-13: closes
+      unfinished checkouts and AutoPay setups).
 - [x] **AppFolio gap audits (all 4 rounds) executed 2026-07-06/07** — ~40 items:
       owner tax/1099/payout/prefs + attachments + audit log, packet config,
       reserve/loan/fee tracking, committees + lock-box creation, portal access

@@ -26,7 +26,7 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { requireCronSecret } from '@/lib/server/cron-auth';
 import { associationCanAcceptStripePayments, nextMonthlyRunDate } from '@/lib/payments/guards';
 import { assertStripeId } from '@/lib/payments/stripe-invariants';
-import { todayInZone } from '@/lib/time/zoned';
+import { addDaysToDate, todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -123,26 +123,38 @@ export async function GET(request: NextRequest) {
   if (processorLivemode === null) {
     return NextResponse.json({ error: 'stripe environment is not pinned' }, { status: 503 });
   }
-  const today = todayInZone();
+  // Each mandate runs on its association's own calendar day. Load every
+  // mandate that could be due somewhere (one day ahead of the default zone)
+  // and check the association's day per mandate below.
+  const latestToday = addDaysToDate(todayInZone(), 1);
   const summary = { due: 0, charged: 0, skipped: 0, failed: 0, details: [] as string[] };
 
   // Every due mandate (one request stops at 1,000 rows); a read error must
   // fail loudly instead of reporting "0 due".
   const { rows: mandates, error: mandatesError } = await fetchAllRows<any>(() => svc
     .from('autopay_mandates')
-    .select('*, payment_methods(processor_token, processor_customer_id, processor_account_id), associations(name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at), units(unit_number)')
+    .select('*, payment_methods(processor_token, processor_customer_id, processor_account_id), associations(name, timezone, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at), units(unit_number)')
     .eq('status', 'active')
-    .lte('next_run_date', today)
+    .lte('next_run_date', latestToday)
     .order('id'));
   if (mandatesError) return NextResponse.json({ error: `Could not load AutoPay mandates: ${mandatesError}` }, { status: 500 });
 
   for (const m of mandates ?? []) {
-    summary.due++;
     const scheduledFor = String(m.next_run_date);
+    let today: string;
+    try {
+      today = todayInZone(m.associations?.timezone || undefined);
+    } catch {
+      today = todayInZone();
+    }
+    if (scheduledFor > today) continue; // not yet the run day where the association is
+    summary.due++;
     const runAt = new Date().toISOString();
+    // The next run is next month on the association's calendar (not UTC's:
+    // late on the last day of a month UTC is already in the next one).
     const advance = () => svc
       .from('autopay_mandates')
-      .update({ next_run_date: nextMonthlyRunDate(m.day_of_month), last_run_at: runAt })
+      .update({ next_run_date: nextMonthlyRunDate(m.day_of_month, new Date(`${today}T12:00:00Z`)), last_run_at: runAt })
       .eq('id', m.id)
       .eq('next_run_date', scheduledFor)
       .eq('status', 'active');
@@ -175,7 +187,14 @@ export async function GET(request: NextRequest) {
       summary.details.push(`mandate ${m.id}: owner no longer owns this unit; AutoPay canceled`);
       continue;
     }
-    const { data: blocked } = await svc.from('occupancies').select('id').eq('unit_id', m.unit_id).eq('status', 'current').eq('allow_online_payments', false).limit(1);
+    // The same rule as a portal payment: this homeowner's own setting.
+    const { data: blocked, error: blockedError } = await svc.from('occupancies').select('id').eq('unit_id', m.unit_id).eq('owner_id', m.owner_id).eq('status', 'current').eq('allow_online_payments', false).limit(1);
+    if (blockedError) {
+      // Never charge when the "online payments off" setting can't be read.
+      summary.failed++;
+      summary.details.push(`mandate ${m.id}: online-payment setting could not be checked - ${blockedError.message}`);
+      continue;
+    }
     if (blocked?.length) {
       summary.skipped++;
       summary.details.push(`mandate ${m.id}: online payments disabled for this homeowner`);
@@ -235,7 +254,7 @@ export async function GET(request: NextRequest) {
         due -= await unitCredit(svc, m.unit_id);
         due -= pending;
         const dueCents = Math.max(0, Math.round(due * 100));
-        // Minimum: the owner's minimum, but never more than is due.
+        // Minimum: the owner's set amount, but never more than is due.
         amountCents = m.mode === 'minimum' ? Math.min(m.minimum_amount_cents ?? 0, dueCents) : dueCents;
       }
     } catch (err: any) {

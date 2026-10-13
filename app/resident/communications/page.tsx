@@ -19,8 +19,13 @@ export default async function ResidentCommunicationsPage({
   const me = await requireTenant();
   const supabase = await createClient();
   const db = supabase as any;
-  const [{ data: announcements }, { data: messages }] = await Promise.all([
-    db.from('communications_log').select('id, subject, body, created_at').eq('channel', 'announcement').order('created_at', { ascending: false }).limit(50),
+  const [{ data: announcements, error: announcementsError }, { data: messages, error: messagesError }] = await Promise.all([
+    // Announcements for residents of their own associations (not RLS alone:
+    // a login that is also an owner or staff can read other announcements).
+    db.from('communications_log').select('id, subject, body, created_at').eq('channel', 'announcement')
+      .in('association_id', me.tenant_association_ids ?? [])
+      .or('announcement_audience.is.null,announcement_audience.in.(tenants,both)')
+      .order('created_at', { ascending: false }).limit(50),
     db.from('communications_log').select('id, subject, body, status, created_at').eq('sender_id', me.auth_user_id).order('created_at', { ascending: false }).limit(50),
   ]);
 
@@ -29,6 +34,11 @@ export default async function ResidentCommunicationsPage({
       <PageHeader title="Communications" description="Send a secure message to management and read community announcements." />
       {banner.sent ? <Alert tone="success">Your message was sent to management.</Alert> : null}
       {banner.error ? <Alert>{banner.error}</Alert> : null}
+      {announcementsError || messagesError ? (
+        <Alert tone="danger" title="Could not load your messages">
+          {(announcementsError ?? messagesError)?.message}
+        </Alert>
+      ) : null}
 
       <Surface>
         <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Contact management</h2>

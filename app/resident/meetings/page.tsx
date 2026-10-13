@@ -1,17 +1,23 @@
 import { CalendarDays } from 'lucide-react';
 import { requireTenant } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { Badge, EmptyState, PageHeader, Surface } from '@/components/ui/shell';
+import { Alert, Badge, EmptyState, PageHeader, Surface } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ResidentMeetingsPage() {
-  await requireTenant();
+  const me = await requireTenant();
   const supabase = await createClient();
-  const { data: meetings } = await (supabase as any)
+  // The resident rules here too, not RLS alone: a login that is also a board
+  // member or staff can read executive sessions and unpublished minutes.
+  const { data: meetings, error: meetingsError } = await (supabase as any)
     .from('meetings')
     .select('id, title, meeting_type, status, start_time, location, agenda, minutes, ai_summary')
+    .in('association_id', me.tenant_association_ids ?? [])
+    .is('archived_at', null)
+    .neq('meeting_type', 'executive_session')
+    .or('status.in.(scheduled,in_progress),and(status.eq.completed,minutes.not.is.null)')
     .order('start_time', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(100);
@@ -19,6 +25,7 @@ export default async function ResidentMeetingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Community meetings" description="Upcoming meetings and published minutes from completed meetings." />
+      {meetingsError ? <Alert tone="danger" title="Could not load meetings">{meetingsError.message}</Alert> : null}
       {(meetings ?? []).length === 0 ? (
         <Surface padded={false}><EmptyState icon={CalendarDays} title="No meetings published" description="Scheduled meetings and approved minutes will appear here." /></Surface>
       ) : (

@@ -162,7 +162,7 @@ async function cancelReservation(formData: FormData) {
     .select('id')
 
   if (error) { failTo(error.message || 'Could not cancel that reservation'); return }
-  if (!cancelled || cancelled.length === 0) { failTo('That reservation can no longer be cancelled. Contact management.'); return }
+  if (!cancelled || cancelled.length === 0) { failTo('That reservation can no longer be cancelled. Contact your management company.'); return }
 
   revalidatePath('/portal/amenities')
   redirect('/portal/amenities?cancelled=1')

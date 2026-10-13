@@ -81,3 +81,8 @@
 ## Payables (bills/[id], 2026-10-13)
 - bills/[id]/page.tsx:72 still renders sp.error in a hand-rolled red div (not Alert) and has no ?saved= branch; new forms there (expense account, Record decision) redirect clean on success. Irreversible board-decision submits want PendingSubmit `confirm`.
 - Option-list queries for new Selects (gl_accounts expense list) often skip the error check and the empty-list state: a required Select with only a disabled placeholder is a dead end.
+
+## Owner/resident portal data scoping (2026-10-13, owner-portal-fixes)
+- portal/pay/page.tsx:128 renders sp.error in a hand-rolled red div (not Alert); new pay actions' ?error= land there. Flag until fixed.
+- Resident pages (app/resident/*) ignore query errors; when a scoping RPC (current_tenant_ids) fails the page shows the "not linked"/empty state instead of an Alert. Check error capture when filters are added.
+- lib/calendar/association-feed.ts meetings query has no executive_session filter while resident/meetings excludes them: check sibling feeds agree.

@@ -74,3 +74,6 @@
 
 ## Payables / approvals quick refs (20261014150000)
 - `gl_account_type` expense-like values: expense, cost_of_goods_sold, other_expense. `approval_request_status`: pending/approved/rejected/cancelled; `approval_decisions.decision` CHECK approve/reject/abstain, UNIQUE (approval_request_id, decided_by). `board_approval_settings.sends_bills_to_board` CHECK never/always/over_threshold. New RPCs `set_payable_bill_expense_account(p_bill_id,p_gl_account_id)`, `record_approval_decision(p_request_id,p_decision text,p_note)`; a trigger blocks approval_requests -> 'approved' unless `app.approval_decision`='on'. `fetchAllRows` returns `{rows, truncated, error: string|null}` (error is already a string). (2026-10-13, clean.)
+
+## Resident calendar / balances RPCs (20261014190000)
+- Residents read events via `resident_calendar_events(p_association_ids,p_from,p_to,p_limit)` (direct calendar_events resident/tenant policies set USING false); it drops `association_id is null` portfolio-wide events the old policies showed. `resident_unit_balances()` returns unit_id/balance for all current_resident_unit_ids (filter to the page's unitIds). `calendar_events.title/location` are text, event_type enum `event_type`. Board ARC/WO message inserts were already disabled (20261005111000), so ARC author triggers forcing 'owner' don't regress the board. (2026-10-13, clean.)

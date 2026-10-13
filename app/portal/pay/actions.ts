@@ -76,6 +76,22 @@ export async function startOnlinePayment(formData: FormData) {
     redirect(`${RETURN}?error=${encodeURIComponent('Online payments are not enabled for your association yet — please use the payment instructions below.')}`);
   }
 
+  // A cap on unfinished checkouts, so the button can't create unlimited
+  // payment attempts (each expires in Stripe and is closed by the webhook).
+  const { count: openAttempts, error: openAttemptsError } = await svc
+    .from('payment_intents')
+    .select('id', { count: 'exact', head: true })
+    .eq('owner_id', occ.owner_id)
+    .eq('unit_id', unitId)
+    .eq('status', 'pending')
+    .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+  if (openAttemptsError) {
+    redirect(`${RETURN}?error=${encodeURIComponent('Could not start the payment. Please try again.')}`);
+  }
+  if ((openAttempts ?? 0) >= 5) {
+    redirect(`${RETURN}?error=${encodeURIComponent('Several payments were started and not finished in the last hour. Finish one of them, or start a new payment in an hour.')}`);
+  }
+
   const intentId = randomUUID();
   const idempotencyKey = `checkout-${intentId}`;
   const processorLivemode = expectedStripeLivemode();

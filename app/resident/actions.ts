@@ -159,7 +159,9 @@ export async function saveResidentInsuranceDocument(input: {
   };
   const { data: objectInfo, error: objectError } = await service.storage.from(RESIDENT_DOCUMENT_BUCKET).info(input.path);
   if (objectError || !objectInfo) return { error: 'The uploaded document could not be verified.' };
-  const storedSize = Number(objectInfo.metadata?.size ?? objectInfo.metadata?.contentLength);
+  // storage-js info() returns the size at the top level (as the ARC and forms
+  // uploads read it); metadata is a fallback for older responses.
+  const storedSize = Number(objectInfo.size ?? objectInfo.metadata?.size ?? objectInfo.metadata?.contentLength);
   if (!Number.isFinite(storedSize) || storedSize <= 0 || storedSize > MAX_RESIDENT_DOCUMENT_BYTES) {
     return reject('The uploaded document is empty, too large, or could not be verified safely.');
   }
