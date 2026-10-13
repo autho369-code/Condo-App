@@ -302,63 +302,6 @@ export async function addNote(workOrderId: string, formData: FormData) {
   revalidatePath(`/work-orders/${workOrderId}`);
 }
 
-/**
- * Create a new work order from a service request.
- * Used by staff to triage owner-submitted requests.
- */
-export async function createWorkOrderFromServiceRequest(serviceRequestId: string, formData: FormData) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
-  const supabase = await createClient();
-
-  const { data: sr, error: srErr } = await (supabase as any).from('service_requests')
-    .select('id, portfolio_id, association_id, unit_id, description, priority')
-    .eq('id', serviceRequestId).maybeSingle();
-  if (srErr || !sr) return { error: srErr?.message ?? 'Service request not found' };
-
-  const title    = (formData.get('title') as string) || sr.description.slice(0, 80);
-  const category = (formData.get('category') as string) || 'other';
-  const trade    = (formData.get('trade') as string) || null;
-  const vendorId = (formData.get('vendor_id') as string) || null;
-  const scheduledDate = (formData.get('scheduled_date') as string) || null;
-
-  if (vendorId) {
-    const { data: vendor, error: vendorError } = await (supabase as any)
-      .from('vendors')
-      .select('id, portfolio_id')
-      .eq('id', vendorId)
-      .maybeSingle();
-    if (vendorError || !vendor || !sr.portfolio_id || vendor.portfolio_id !== sr.portfolio_id) {
-      return { error: vendorError?.message ?? 'The selected vendor is not accessible in the service request portfolio.' };
-    }
-  }
-
-  const { data: wo, error } = await (supabase as any).from('work_orders').insert({
-    portfolio_id:       sr.portfolio_id,
-    association_id:     sr.association_id,
-    unit_id:            sr.unit_id,
-    service_request_id: serviceRequestId,
-    title,
-    issue:              sr.description,
-    category,
-    trade,
-    priority:           sr.priority,
-    vendor_id:          vendorId,
-    scheduled_date:     scheduledDate,
-    status:             vendorId ? 'assigned' : 'new',
-  }).select('id').single();
-  if (error || !wo) return { error: error?.message ?? 'Failed to create work order' };
-
-  const { error: activityError } = await (supabase as any).from('work_order_updates').insert({
-    work_order_id: wo.id,
-    note: `Work order created from service request #${serviceRequestId.slice(0, 8)}`,
-    new_status: vendorId ? 'assigned' : 'new',
-  });
-  if (activityError) return { error: `Work order created, but its activity entry could not be recorded: ${activityError.message}` };
-
-  revalidatePath('/work-orders');
-  redirect(`/work-orders/${wo.id}`);
-}
-
 /** Bill the cost of an owner-caused repair back to the unit's owner ledger. */
 export async function chargeBackWorkOrder(workOrderId: string, formData: FormData) {
   // Finance staff and company admins (both pass can_manage_finance in the RPC,

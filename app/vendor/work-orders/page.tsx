@@ -15,6 +15,7 @@ const FILTERS = [
 ] as const;
 
 const OPEN_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress', 'open'];
+const PAGE_LIMIT = 200;
 
 export default async function VendorWorkOrders({
   searchParams,
@@ -26,21 +27,20 @@ export default async function VendorWorkOrders({
   const filter = (FILTERS.find((f) => f.id === sp.f)?.id ?? 'open') as (typeof FILTERS)[number]['id'];
 
   const supabase = await createClient();
-  const { data, error } = await (supabase as any)
+  // The tab filters in the query: filtering the newest rows afterwards hid
+  // older open jobs once a vendor had more than one page of work orders.
+  let query = (supabase as any)
     .from('work_orders')
     .select('id, number, title, status, priority, scheduled_date, completed_date, created_at, associations(name), units(unit_number)')
     .in('vendor_id', me.vendor_ids)
-    .is('archived_at', null)
+    .is('archived_at', null);
+  if (filter === 'open') query = query.in('status', OPEN_STATUSES);
+  if (filter === 'done') query = query.not('status', 'in', `(${[...OPEN_STATUSES, 'cancelled'].join(',')})`);
+  const { data, error } = await query
     .order('created_at', { ascending: false })
-    .limit(200);
+    .limit(PAGE_LIMIT);
 
-  const all = data ?? [];
-  const rows = all.filter((w: any) => {
-    const s = (w.status ?? '').toLowerCase();
-    if (filter === 'open') return OPEN_STATUSES.includes(s);
-    if (filter === 'done') return !OPEN_STATUSES.includes(s) && s !== 'cancelled';
-    return true;
-  });
+  const rows = data ?? [];
 
   return (
     <div>
@@ -51,6 +51,10 @@ export default async function VendorWorkOrders({
 
       <SegmentedLinks label="Show work orders" className="mb-4" current={filter}
         items={FILTERS.map((f) => ({ id: f.id, label: f.label, href: `/vendor/work-orders?f=${f.id}` }))} />
+
+      {rows.length >= PAGE_LIMIT && (
+        <p className="mb-3 text-[13px] text-gray-500">Showing the newest {PAGE_LIMIT} work orders.</p>
+      )}
 
       <Surface padded={false}>
         {rows.length === 0 ? (
