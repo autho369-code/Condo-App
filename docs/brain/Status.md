@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#352 merged; open PRs: #353 claude/violation-fixes, #354 claude/work-order-fixes; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#353 merged; open PRs: #354 claude/work-order-fixes, #355 claude/meeting-fixes; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #354 claude/work-order-fixes (stacked on #353; merge #353 first):
+- #354 claude/work-order-fixes:
   20261014090000 (LIVE): triage cuts work_orders.description to 2,000 (full
   text stays in issue) so long service requests convert; rate_work_order
   owner branch requires a current resident unit and a job created since
@@ -13,21 +13,10 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#352 merged; open PRs: #353 claude/vi
   dead createWorkOrderFromServiceRequest removed. Reviews: security (enum
   value 'open' in the filter broke both tabs - fixed), migration (moved-out
   owner could still rate - fixed).
-- #353 claude/violation-fixes (deep check of violations, work orders, meetings
-  requested by Mirsad 2026-10-13). 20261014080000 (LIVE): fines without a
-  GL account post to the active "violation"/"fine" income account (was 4000
-  ASSESSMENTS); fines, late fees and NSF fees post on the day assessed (was
-  the due date, 30 days later for fines); owner hearing requests only inside
-  hearing_request_days after the first notice, same clock as the fine gate
-  (any time before, blocking
-  every later fine); hearing follow-up uses the association's local date.
-  Owner violation page shows the timeline notes (owner_visible_history was
-  written but never shown) and "Hearing held" after the date; staff note
-  labels no longer say the board can see them (board sees no violations).
-  Reviews: staff-only fine-credit reminder no longer reaches the owner
-  timeline; backfill_receivables_to_gl dates charges like post_charge_to_gl.
 
 ## Merged 2026-10-13
+- #353 violations: fines to Violation Fees on the day assessed, hearing
+  window, owner timeline (20261014080000, live).
 - #352 charge balances and category totals add up applications once
   (20261014060000/070000, live; Codex clean).
 - #351 vault: all 120 reports under 230 ms at 2,000 units.
