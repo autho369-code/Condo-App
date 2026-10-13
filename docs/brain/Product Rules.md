@@ -109,6 +109,18 @@ Back to [[Home]].
   through public.app_is_repair_session() (service role, or a direct database
   session with no request). Inside a SECURITY DEFINER function current_user
   is the owner, so never test it for the caller's role (20261014130000).
+- **A table-wide UPDATE grant can't be narrowed by revoking a column**
+  (2026-10-13): where authenticated holds UPDATE on the whole table, protect
+  a column with a BEFORE UPDATE OF trigger that refuses `current_user in
+  ('authenticated','anon')` (SECURITY DEFINER functions run as their owner
+  and pass). Inside such a trigger shared by tables, nest the column checks
+  under `if tg_table_name = ...`: PL/pgSQL resolves every field in a
+  condition, so `tg_table_name = 'x' and new.col ...` fails on the other
+  table (20261014170000).
+- **Rules the API enforces belong in the database too** (2026-10-13): a
+  check in an API route (dates, order, one in progress) is bypassed by a
+  direct table write; values the server computes (balances, amounts) are
+  recomputed in the trigger, never taken from the request.
 - **Per-row calls to SET search_path helpers are slow** (2026-10-13): a
   function with SET (search_path, etc.) is never inlined, so calling one per
   row costs a full call each (gl_normal_amount on 24,000 lines = 1.2 s).

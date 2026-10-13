@@ -35,6 +35,8 @@
 
 - Narrowing a SELECT policy (e.g. exec sessions -> my_confidential_meeting_association_ids, 20261014140000): sweep DEFINER RPCs on the same rows; they bypass RLS. `can_view_association_row`/`manager_is_scoped()` is TRUE for staff with ZERO association_managers rows, so an unassigned assistant passes it (calculate_meeting_quorum).
 
+- A guard that recomputes a total from child rows must also fix the child rows' CLASS (type/sign) and forbid duplicates; recomputing amounts alone still lets a client mislabel or double a row (20261014170000 recon items). Treat every terminal status (void, cancelled) as terminal, not just 'completed'.
+
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns

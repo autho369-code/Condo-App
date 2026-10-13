@@ -52,7 +52,6 @@ export default async function BankReconciliationPage({
   // Fetch existing reconciliations for the selected account
   let reconciliations: any[] = [];
   let reconciliationItems: any[] = [];
-  let journalLines: any[] = [];
   let glAccount: any = null;
   let recentReconciliation: any = null;
   const loadErrors: string[] = [];
@@ -103,13 +102,13 @@ export default async function BankReconciliationPage({
         .order('id'));
       if (itemsError) loadErrors.push(`Reconciliation items: ${itemsError}`);
       reconciliationItems = items;
-      journalLines = items.map((i: any) => i.journal_lines).filter(Boolean);
     }
   }
 
   // Build display items: merge reconciliation items with journal line data
   const baseItems = reconciliationItems.map((item: any) => {
-    const line = journalLines.find((l: any) => l.id === item.journal_line_id);
+    // The item embeds its own ledger line (a lookup per item was O(n²)).
+    const line = item.journal_lines ?? null;
     const amount = line
       ? (line.debit_amount ?? 0) - (line.credit_amount ?? 0)
       : Number(item.amount ?? 0);

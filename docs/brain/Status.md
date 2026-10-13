@@ -1,17 +1,40 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#359 merged; open PR: #360 claude/payables-followups; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#360 merged; open PR: claude/banking-fixes; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #360 claude/payables-followups: Codex on #359 - 1099
-  reporting link shown only to finance staff (NAV_ACCESS); vendor portal
-  warns when its totals hit the row cap. 20261014160000 (LIVE): direct
-  writes to recurring_bills withdrawn (RPCs only); pay_owner_payable date
-  not before the payable date, at most 90 days ahead; a bill paid fully by
-  vendor credit is paid on the association's day; 1099 bill counts skip
-  credit-only bills.
+- (number on open) claude/banking-fixes: banking deep check (20,000 bank
+  lines, rolled back; every query under 110 ms; owners/vendors see no bank
+  data, board sees names only, account numbers hidden by column grants).
+  20261014170000 (LIVE):
+  - fund_type follows purpose (reserve/special_assessment/operating) and
+    existing accounts are backfilled: a reserve account was 'operating', so
+    reserve -> operating transfers skipped the board authorization;
+  - accounting_periods written only by its functions (a plain UPDATE/DELETE
+    reopened or removed a closed month with no reason or audit); a scoped
+    manager can't close or reopen company-wide months;
+  - reconciliation rules in the database: statement not in the future, after
+    the last completed one, one in progress per account; the book balance is
+    computed in the database (app_bank_book_balance), item amounts come from
+    the ledger line/adjustment, a line can't be cleared twice;
+    last_reconciliation_date only by completing one;
+  - void_bank_transfer: void date not before the transfer;
+  - payments.bank_deposit_id only through the deposit functions;
+  - bank_reconcilable_lines filters in SQL (the API paged every line ever
+    posted and every cleared item); reconcile page builds items without an
+    O(n^2) lookup.
+  Security/migration review (same migration, LIVE): the definer guards check
+  the caller's access to the bank account first (app_can_reconcile_bank:
+  another company's account was reachable by id; a scoped manager can't
+  reconcile a company-wide account); items get their type from what they
+  are, one item per line/adjustment (unique indexes); void is final;
+  completion re-checks order and double clearing and sets reconciled_balance,
+  completed_by/at; other_receipts.bank_deposit_id guarded; scoped managers
+  can't create months; explicit insurance/escrow fund types are kept.
 
 ## Merged 2026-10-13
+- #360 payables follow-ups: 1099 link finance-only; recurring bills via
+  RPCs; payable dates; credit-paid bills (20261014160000).
 - #359 payables: vendor invoices approvable; staff record board decisions;
   duplicate invoices and payment dates checked; 1099 report keeps archived
   vendors (20261014150000).
@@ -479,6 +502,10 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#359 merged; open PR: #360 claude/pay
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- Banking, not changed (from the deep check): a completed reconciliation
+  has no undo (only the service role); year-end close is a snapshot
+  package and does not lock months; a bank adjustment already cleared can
+  still be edited (the reconciliation keeps its own copy of the amount).
 - Payables (migration review): recurring and management-fee bills are
   system-generated (no vendor invoice number, no payment), so the duplicate
   and date rules do not apply; purchase-order bills go through
