@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-12 (#279-#343 merged; open PR: claude/plan-future-reversal; next: Receivables page totals at 2,000 units (keep watching CSP); Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/plan-future-reversal: 20261013190000 (LIVE, Codex on #343)
+- #344 claude/plan-future-reversal: 20261013190000 (LIVE, Codex on #343)
   a reversal charge of a receipt from outside the plan window counts once the
   bounce is recorded, even when dated in the future (nothing rechecks the plan
   on that date). Verified: old stayed completed; new reopens, paid 1200 -> 700.
