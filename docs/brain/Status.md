@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#356 merged; open PR: claude/exec-session-visibility; next: other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#356 merged; open PR: #357 claude/exec-session-visibility; next: other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/exec-session-visibility: 20261014140000 (LIVE)
+- #357 claude/exec-session-visibility: 20261014140000 (LIVE)
   executive sessions (meeting row with its agenda text, and attendees) follow
   rls_private.my_confidential_meeting_association_ids like their agenda
   items, documents and follow-ups; an unassigned assistant manager no longer
