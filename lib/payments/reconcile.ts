@@ -38,12 +38,7 @@ export async function reconcilePayouts(svc: SupabaseClient, options: { portfolio
   // mismatch, unmapped or double-claimed charges) are left for a person.
   // Paged and ordered: unmatched payouts must not crowd out newer ones.
   const columns = 'id, portfolio_id, association_id, processor_account_id, settlement_bank_account_id, processor_payout_id, amount, arrival_date, status';
-  // associationIds: a manager assigned to some associations matches only theirs.
-  const scoped = (q: any) => {
-    let r = options.portfolioId ? q.eq('portfolio_id', options.portfolioId) : q;
-    if (options.associationIds) r = r.in('association_id', options.associationIds);
-    return r;
-  };
+  const scoped = (q: any) => (options.portfolioId ? q.eq('portfolio_id', options.portfolioId) : q);
   const [paid, awaitingAccount] = await Promise.all([
     fetchAllRows<any>(() => scoped(db.from('payout_batches').select(columns)
       .eq('status', 'paid').is('bank_transaction_id', null)).order('arrival_date', { ascending: false }).order('id')),
@@ -51,7 +46,11 @@ export async function reconcilePayouts(svc: SupabaseClient, options: { portfolio
       .eq('status', 'needs_review').is('bank_transaction_id', null).like('notes', `${SETTLEMENT_ACCOUNT_NOTE.slice(0, 40)}%`)).order('id')),
   ]);
   if (paid.error || awaitingAccount.error) throw new Error(`payout lookup failed: ${paid.error ?? awaitingAccount.error}`);
-  const payouts = [...paid.rows, ...awaitingAccount.rows];
+  // associationIds: a manager assigned to some associations matches only
+  // theirs (filtered here, not as a long id list in the request URL).
+  const allowed = options.associationIds ? new Set(options.associationIds) : null;
+  const payouts = [...paid.rows, ...awaitingAccount.rows]
+    .filter((p) => !allowed || (p.association_id && allowed.has(p.association_id)));
 
   for (const payout of payouts ?? []) {
     summary.examined++;

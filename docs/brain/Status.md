@@ -1,25 +1,25 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#333 merged; open PR: claude/scope-review-followups; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#334 merged; open PR: claude/definer-scope-sweep; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #334 claude/scope-review-followups: reviewer follow-ups to #333 (all LIVE): 20261012130000 a
-  scoped manager cannot delete an entry with another association's lines
-  (lines cascade), template ids compared as text, helpers empty for
-  unscoped callers; 20261012140000 signature reminder/void check
-  can_view_association_row. Service-client audit (82 uses, no high leak):
-  violation photos need can_manage_association (staff in one company,
-  owner in another); payout matching limited to a scoped manager's
-  associations; ending a tenancy revokes only that resident's invitations;
-  owner attachment resolves the owner through RLS before upload. Staff
-  count on business metrics stays company-wide (no association data).
-  20261012150000: the same rule for UPDATE (a scoped manager could post a
-  mixed draft through the API), template ids compared lower-case. Codex P2
-  on #333: association lists paged (fetchAllRows), legacy files filtered
-  in memory instead of a long id list. endTenancy revokes by tenant id
-  only (an invite to an earlier email goes too).
+- (number on open) claude/definer-scope-sweep: sweep of definer functions
+  that checked only the company (20261013010000 LIVE). can_access_association
+  now also requires can_view_association_row, which scopes can_access_unit,
+  can_access_meeting, budget reads (list_budget_lines, budget vs actuals,
+  worksheet, meeting financial snapshot), can_manage_violations,
+  can_mutate_association_budget, late-fee override and
+  my_accessible_association_ids. Notes/tags check the record
+  (app_record_in_manager_scope); meeting quorum, work-order rating and board
+  approval settings check the association. Functions patched in place with a
+  match-exactly-once guard. Reviewed and left: owner/tenant/vendor/board/
+  platform/company-admin-only functions and company-wide settings. Dry run:
+  330 role x table counts unchanged, no slowdown. Codex P2s on #334: tenant
+  re-invite revokes by tenant id only; payout matching filters associations
+  in memory (no long id list in the URL).
 
 ## Merged 2026-10-12
+- #334 reviewer follow-ups to #333 (20261012130000/140000/150000, live).
 - #333 journal entry headers, recurring JEs, document repair
   (20261012120000, live).
 - #332 manager scope on entity_type tables + deleted-records log
@@ -451,10 +451,6 @@ Back to [[Home]]. Updated 2026-10-12 (#279-#333 merged; open PR: claude/scope-re
   company-wide rows editable by a scoped manager (require company admin).
   Security-definer views/RPCs
   over these tables are not narrowed by policies.
-- NEXT (very next PR): sweep definer functions that take a record id and
-  check only the company (can_access_portfolio, can_access_association,
-  can_manage_signatures, ...); add can_view_association_row /
-  can_manage_association like 20261012140000 (security-reviewer on #333).
 - NEXT: remaining per-row policies measured at scale: owner_attachments
   (can_view_owner_row), bank_transfers (app_can_view_bank_account),
   signatures (can_manage_signatures), meeting items
