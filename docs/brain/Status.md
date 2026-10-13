@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#360 merged; open PR: claude/banking-fixes; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#360 merged; open PR: #361 claude/banking-fixes; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/banking-fixes: banking deep check (20,000 bank
+- #361 claude/banking-fixes: banking deep check (20,000 bank
   lines, rolled back; every query under 110 ms; owners/vendors see no bank
   data, board sees names only, account numbers hidden by column grants).
   20261014170000 (LIVE):
