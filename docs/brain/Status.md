@@ -1,26 +1,18 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-12 (#279-#334 merged; open PR: claude/definer-scope-sweep; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-12 (#279-#335 merged; open PR: claude/rls-twin-scope; next: watch CSP a few more days; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #335 claude/definer-scope-sweep: sweep of definer functions
-  that checked only the company (20261013010000 LIVE). can_access_association
-  now also requires can_view_association_row, which scopes can_access_unit,
-  can_access_meeting, budget reads (list_budget_lines, budget vs actuals,
-  worksheet, meeting financial snapshot), can_manage_violations,
-  can_mutate_association_budget and late-fee override (its row-level twin
-  rls_private.my_accessible_association_ids stays company-wide; all 60
-  tables using it carry mgr_assoc_scope; 20261013020000 fixes its comment
-  and makes app_record_in_manager_scope internal). Notes/tags check the record
-  (app_record_in_manager_scope); meeting quorum, work-order rating and board
-  approval settings check the association. Functions patched in place with a
-  match-exactly-once guard. Reviewed and left: owner/tenant/vendor/board/
-  platform/company-admin-only functions and company-wide settings. Dry run:
-  330 role x table counts unchanged, no slowdown. Codex P2s on #334: tenant
-  re-invite revokes by tenant id only; payout matching filters associations
-  in memory (no long id list in the URL).
+- (number on open) claude/rls-twin-scope: Codex on #335. P1: policy copies
+  rls_private.my_accessible_association_ids (+ unit ids) and
+  my_budget_readable_association_ids narrowed for scoped managers like
+  can_access_association (20261013030000 LIVE; mgr_assoc_scope already
+  covered all 62 tables, so no data was exposed). P2: payout matching filters
+  associations in the query, chunks of 100 ids. Dry run: 434 counts (7
+  roles incl. a scoped manager x 62 tables) unchanged, no slowdown.
 
 ## Merged 2026-10-12
+- #335 definer functions respect manager scope (20261013010000/020000, live).
 - #334 reviewer follow-ups to #333 (20261012130000/140000/150000, live).
 - #333 journal entry headers, recurring JEs, document repair
   (20261012120000, live).
