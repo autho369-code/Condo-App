@@ -8637,6 +8637,7 @@
      "Update"
     ],
     "data": [
+     "rpc:calculate_meeting_quorum",
      "rpc:reorder_agenda_items",
      "table:agenda_items",
      "table:associations",
@@ -8646,7 +8647,6 @@
      "table:meeting_documents",
      "table:meeting_private",
      "table:meetings",
-     "table:occupancies",
      "table:units"
     ],
     "guard": [

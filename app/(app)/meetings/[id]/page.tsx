@@ -25,7 +25,7 @@ import {
   updateMeetingDetails,
 } from './actions';
 import { displayTimeZone } from '@/lib/time/display-zone';
-import { DEFAULT_TIME_ZONE, isoToWallDateTime, todayInZone } from '@/lib/time/zoned';
+import { DEFAULT_TIME_ZONE, isoToWallDateTime } from '@/lib/time/zoned';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
@@ -106,28 +106,17 @@ export default async function MeetingDetailPage({
     : { data: [] as any[] };
   const signedInIds = new Set((attendees ?? []).map((attendee: any) => attendee.owner_id).filter(Boolean));
   const presentCount = (attendees ?? []).filter((attendee: any) => attendee.present).length;
-  // Quorum counts only distinct, voting-eligible owners present who owned in
-  // the association on the meeting date — the same rule as
-  // calculate_meeting_quorum. Managers and guests never count, and a later
-  // sale does not change a past meeting's result.
+  // calculate_meeting_quorum (read only) is the one quorum rule: distinct,
+  // voting-eligible owners present who owned in the association on the
+  // meeting date; the number needed is the meeting's quorum or, when none is
+  // set, the association's percentage of its units. A completed meeting
+  // reports the result recorded when it was held.
   const meetingZone = meeting.associations?.timezone || DEFAULT_TIME_ZONE;
-  const meetingDate = meeting.start_time ? todayInZone(meetingZone, new Date(meeting.start_time)) : todayInZone(meetingZone);
-  const voterIds = [...new Set((attendees ?? [])
-    .filter((attendee: any) => attendee.present && attendee.voting_eligible && attendee.owner_id)
-    .map((attendee: any) => attendee.owner_id as string))];
-  const { data: voterOccs, error: votersError } = voterIds.length && meeting.association_id
-    ? await db.from('occupancies').select('owner_id, status, move_in_date, move_out_date').in('owner_id', voterIds)
-      .eq('association_id', meeting.association_id).eq('occupancy_type', 'owner')
-    : { data: [] as any[], error: null };
-  const votingPresent = new Set(((voterOccs ?? []) as any[])
-    .filter((o) => o.status !== 'past' || o.move_out_date)
-    .filter((o) => (!o.move_in_date || o.move_in_date <= meetingDate) && (!o.move_out_date || o.move_out_date > meetingDate))
-    .map((o) => o.owner_id)).size;
-  const quorum = votersError ? null : meeting.quorum_requirement ?? null;
-  // A completed meeting keeps the result recorded when it was held.
-  const quorumMet = quorum == null ? null
-    : meeting.status === 'completed' && meeting.quorum_met != null ? Boolean(meeting.quorum_met)
-    : votingPresent >= quorum;
+  const { data: quorumRow, error: quorumError } = await db.rpc('calculate_meeting_quorum', { p_meeting_id: id });
+  // No badge when nothing can be needed (no quorum set and no units).
+  const quorum: number | null = !quorumError && Number(quorumRow?.quorum_needed) > 0 ? Number(quorumRow.quorum_needed) : null;
+  const votingPresent = Number(quorumRow?.owner_count ?? 0);
+  const quorumMet = quorum == null ? null : Boolean(quorumRow?.quorum_reached);
   const agendaEditable = meeting.status !== 'completed' && meeting.status !== 'cancelled';
   const saved = successMessage(sp.saved);
 
@@ -144,7 +133,7 @@ export default async function MeetingDetailPage({
     >
       <div className="max-w-5xl space-y-4">
         {sp.error && <Alert tone="danger" title="Action failed">{sp.error}</Alert>}
-        {votersError && <Alert tone="danger" title="Quorum could not be checked">{votersError.message}</Alert>}
+        {quorumError && <Alert tone="danger" title="Quorum could not be checked">{quorumError.message}</Alert>}
         {saved && <Alert tone="success" title={saved} />}
 
         <Surface className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">

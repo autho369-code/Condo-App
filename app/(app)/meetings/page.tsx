@@ -6,7 +6,7 @@ import { CalendarDays, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { buttonClass } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
-import { EmptyState, PageHeader, PageShell, Surface } from '@/components/ui/shell';
+import { Alert, EmptyState, PageHeader, PageShell, Surface } from '@/components/ui/shell';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 
@@ -25,6 +25,10 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelled',
 };
 
+// The list shows the newest meetings; filters narrow it. Narrow columns:
+// agenda and minutes text are not needed here.
+const LIST_LIMIT = 500;
+
 const STATUS_TONES: Record<string, Tone> = {
   scheduled: 'info',
   in_progress: 'success',
@@ -37,6 +41,7 @@ export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [associations, setAssociations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     association_id: '',
     meeting_type: '',
@@ -51,8 +56,9 @@ export default function MeetingsPage() {
     const db = supabase as any;
     let query = db
       .from('meetings')
-      .select('*, associations(name)')
-      .order('start_time', { ascending: false });
+      .select('id, title, location, meeting_type, start_time, status, associations(name)')
+      .order('start_time', { ascending: false })
+      .limit(LIST_LIMIT);
 
     if (filters.association_id) {
       query = query.eq('association_id', filters.association_id);
@@ -74,9 +80,8 @@ export default function MeetingsPage() {
     }
 
     const { data, error } = await query;
-    if (!error) {
-      setMeetings(data || []);
-    }
+    setLoadError(error ? error.message : null);
+    setMeetings(error ? [] : data || []);
     setLoading(false);
   }, [supabase, filters]);
 
@@ -165,6 +170,11 @@ export default function MeetingsPage() {
       </Surface>
 
       {/* Table */}
+      {loadError && <Alert tone="danger" title="Could not load meetings:" className="mb-4">{loadError}</Alert>}
+      {!loading && meetings.length >= LIST_LIMIT && (
+        <p className="mb-3 text-[13px] text-gray-500">Showing the newest {LIST_LIMIT} meetings. Filter by association or date to find older ones.</p>
+      )}
+
       {loading ? (
         <div className="rounded-2xl border border-line bg-white py-16 text-center text-sm text-gray-400 shadow-sm">
           Loading meetings…

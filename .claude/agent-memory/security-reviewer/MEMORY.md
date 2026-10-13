@@ -25,6 +25,10 @@
 
 - Moving a JS status filter into PostgREST (`.in`/`not.in`) on an enum column: every literal must be an enum value or the whole query errors 22P02 (vendor work-orders OPEN_STATUSES had 'open', not in work_order_status, 2026-10-13). Check the enum in the baseline + `add value` migrations.
 
+- DEFINER RPC writes gated by `can_edit_association_mvp` (or any helper with a bare `is_platform_operator()` branch) skip the restrictive operator_writes_need_admin policies: add `operator_may_write()` (calculate_meeting_quorum, 20261014100000).
+- Two-request "record then complete" flows (RPC, then status update) are not atomic; prefer a BEFORE UPDATE trigger on the status change (publishMeetingMinutes, 2026-10-13).
+- Service-role exemptions in DEFINER triggers: `current_user = 'service_role'` never matches (current_user is the owner); `coalesce(auth.role(),'service_role')` fails open if claims are ever absent. Prefer `auth.role()='service_role' or session_user <> 'authenticator'` (app_is_repair_session, 20261014130000).
+
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import
 - [Missed checks](missed-checks.md) -- domain-proof replay/relay, token minting, html_escape, storage cleanup, finance RPC scope triggers, hidden columns copied by DEFINER triggers (soft_delete_log), owner_visible_history writers

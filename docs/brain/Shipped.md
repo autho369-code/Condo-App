@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Meetings: owners and view-only staff can no longer change a meeting's
+  quorum; the quorum is recorded when minutes are published; notes and
+  attendance lock after completion; meetings list loads fast
+  (20261014100000).
 - Work orders: long service requests convert, vendors' Open tab shows every
   open job, vendors can't post fake status entries, owners rate only their
   own jobs (20261014090000).
