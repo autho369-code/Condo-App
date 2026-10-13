@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-13 (#279-#345 merged; open PR: claude/plan-recheck-existing; next: no open product gap listed, keep watching CSP and runtime logs; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/plan-recheck-existing: 20261013230000 (LIVE, Codex on #345) runs
+- #346 claude/plan-recheck-existing: 20261013230000 (LIVE, Codex on #345) runs
   app_recheck_payment_plan once for every unit with an active or completed
   plan, so plans marked completed under the old measure follow the new one
   (verified rolled back: a stale completed plan reopens, paid 500; a second
