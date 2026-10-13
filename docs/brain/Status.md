@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-13 (#279-#352 merged; open PR: claude/violation-fixes; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/violation-fixes (deep check of violations, work orders, meetings
+- #353 claude/violation-fixes (deep check of violations, work orders, meetings
   requested by Mirsad 2026-10-13). 20261014080000 (LIVE): fines without a
   GL account post to the active "violation"/"fine" income account (was 4000
   ASSESSMENTS); fines, late fees and NSF fees post on the day assessed (was
