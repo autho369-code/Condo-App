@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#362 merged; open PR: claude/owner-portal-fixes; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#362 merged; open PR: claude/owner-portal-fixes; next: owner portal deep check; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
 - (number on open) claude/owner-portal-fixes: owner portal deep check.

@@ -97,3 +97,7 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   charges, 20261014060000).
 - Recurring 11th time (start check 2026-10-13, after #352 merged 06:16Z):
   Status line 3 + "## Open PR" still #352; caller already flagged it.
+- Recurring 12th time (start check 2026-10-13, after #362 merged 18:03Z
+  6cf899c8): Status line 3 + "## Open PR" still #362; caller already
+  planned the move. Line 3 "next:" also named the NSF setting, not the
+  task actually picked (owner-portal deep check) - line 3 must follow.

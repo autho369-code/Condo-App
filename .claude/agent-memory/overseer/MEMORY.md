@@ -126,3 +126,8 @@
   public/API/AI/cron/storage routes; and DB-only DO blocks never exercise the
   server actions (auth re-check, emails). Charges with no charge_gl_accounts
   branch (fine, chargeback) fall to the category/default income: check GL.
+- Owner-portal deep check (2026-10-13): one owner test user isn't enough -
+  need a multi-record login (owner_portal_logins, ?record=), a paused portal,
+  an owner with no current unit (sold: no access), a resident/tenant login
+  (app/resident uses requireTenant; tenant portal scope is Mirsad's open
+  decision - audit holes, don't add features), and app/portal/lease (rental?).
