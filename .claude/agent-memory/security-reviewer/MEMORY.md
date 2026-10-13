@@ -29,6 +29,8 @@
 - Two-request "record then complete" flows (RPC, then status update) are not atomic; prefer a BEFORE UPDATE trigger on the status change (publishMeetingMinutes, 2026-10-13).
 - Service-role exemptions in DEFINER triggers: `current_user = 'service_role'` never matches (current_user is the owner); `coalesce(auth.role(),'service_role')` fails open if claims are ever absent. Prefer `auth.role()='service_role' or session_user <> 'authenticator'` (app_is_repair_session, 20261014130000).
 
+- `revoke insert/update/delete ... from authenticated` (recurring_bills, 20261014160000): confirm no app `.insert/.update` on the table and every writer function is DEFINER (grep migrations for `update public.<t>`); FK actions run as owner. DO-block "already applied" guards keyed on a generic substring (`count(*) filter`) can silently skip; check the old body lacks it.
+
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import
 - [Missed checks](missed-checks.md) -- domain-proof replay/relay, token minting, html_escape, storage cleanup, finance RPC scope triggers, hidden columns copied by DEFINER triggers (soft_delete_log), owner_visible_history writers

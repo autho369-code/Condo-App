@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Payables follow-ups: 1099 link for finance staff only; recurring bills
+  change only through their screens; homeowner payable dates checked;
+  credit-paid bills dated correctly and left out of 1099 counts
+  (20261014160000).
 - Payables: vendor-portal invoices can be approved and paid; staff record
   the board's decision on a bill (no silent approval); duplicate invoice
   numbers refused; payment dates checked; 1099 report keeps archived

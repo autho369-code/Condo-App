@@ -37,7 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const NAV_ACCESS: Record<string, 'finance' | 'finance_or_admin' | 'admin'> = {
     '/bills': 'finance', '/bills/check-run': 'finance', '/bills/recurring': 'finance',
     '/receipts': 'finance', '/receipts/other': 'finance',
-    '/accounting/loans': 'finance', '/accounting/management-fees': 'finance',
+    '/accounting/loans': 'finance', '/accounting/management-fees': 'finance', '/accounting/1099': 'finance',
     '/bank-accounts/lockbox': 'finance', '/purchase-orders': 'finance',
     '/accounting-periods': 'finance_or_admin', '/accounting/year-end': 'finance_or_admin',
     '/vendors/ach': 'finance_or_admin',

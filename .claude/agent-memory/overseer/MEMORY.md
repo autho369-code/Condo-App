@@ -42,6 +42,9 @@
   final code: the sweep PR (2026-10-07) dropped `update_record_note`
   (portfolio-only check) from the gap list without fixing it. Also count the
   vault's "N fixed" against the diff (vault said 35 saves, diff has 30 checks).
+  Again 2026-10-13 (payables-followups): "purchase-order generated bills"
+  dropped from the gap silently (they go through create_payable_bill, so
+  covered - but the vault must say so).
 - "Only error handling changed" on `app/**` pages still triggers
   design-reviewer: the error lands in an ad-hoc red div, not `<Alert>`
   (letters/templates edit, portal/profile).

@@ -1,32 +1,20 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#358 merged; open PR: #359 claude/payables-fixes; next: payables minor items (credit-paid date, recurring_bills direct writes); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#359 merged; open PR: claude/payables-followups; next: NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #359 claude/payables-fixes: payables deep check (10,000 bills,
-  rolled back; every page/RPC under 140 ms for every role; visibility
-  correct). 20261014150000 (LIVE):
-  - vendor-portal invoices could never be approved (board always required,
-    no expense account, nothing could set it): they follow the association's
-    board setting; staff set the expense account on the bill page
-    (set_payable_bill_expense_account, under their own GL permissions);
-  - board approval had no path (board portal read-only, votes impossible)
-    while finance staff could UPDATE a request to approved: staff record the
-    board's decision on the bill page (record_approval_decision: who, when,
-    note, in approval_decisions); trigger approval_requests_approve_guard
-    refuses any other way to approved (flag app.approval_decision, or a
-    repair session); the old operator-only vote tally can't approve
-    (security review); the expense account must be an expense type;
-  - manual bills refuse a duplicate vendor invoice number (same lock as
-    import/vendor portal; voided bills excluded);
-  - payment/check dates: not before the bill date, at most 90 days ahead
-    (the error names the bill); a vendor invoice dated at most 30 days ahead;
-  - 1099 report-builder data keeps vendors archived after payment;
-  - voiding a payment keeps the bill's bank account.
-  App: vendor portal totals cover every bill (not the newest 100), the
-  dashboard's pending pay excludes drafts; 1099 pages need finance staff.
+- (number on open) claude/payables-followups: Codex on #359 - 1099
+  reporting link shown only to finance staff (NAV_ACCESS); vendor portal
+  warns when its totals hit the row cap. 20261014160000 (LIVE): direct
+  writes to recurring_bills withdrawn (RPCs only); pay_owner_payable date
+  not before the payable date, at most 90 days ahead; a bill paid fully by
+  vendor credit is paid on the association's day; 1099 bill counts skip
+  credit-only bills.
 
 ## Merged 2026-10-13
+- #359 payables: vendor invoices approvable; staff record board decisions;
+  duplicate invoices and payment dates checked; 1099 report keeps archived
+  vendors (20261014150000).
 - #358 vault: #357 merged; policy subquery sweep measured, no change.
 - #357 executive sessions hidden from staff outside the confidential-meeting
   set: meeting row, agenda text, attendees, quorum counts (20261014140000).
@@ -491,14 +479,12 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#358 merged; open PR: #359 claude/pay
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- Payables, not covered by the duplicate-number and payment-date rules
-  (migration review): pay_owner_payable, recurring and purchase-order
-  generated bills. A bill's line items may override the header expense
+- Payables (migration review): recurring and management-fee bills are
+  system-generated (no vendor invoice number, no payment), so the duplicate
+  and date rules do not apply; purchase-order bills go through
+  create_payable_bill (checked); pay_owner_payable now checks dates. A bill's line items may override the header expense
   account (check before relying on set_payable_bill_expense_account there).
-- Payables, not fixed (minor, from the deep check): a bill paid entirely by
-  a vendor credit gets paid_at = now() instead of the credit date and counts
-  as a $0 bill in 1099 bill_count; finance users can write recurring_bills
-  directly (next_post_date) without save_recurring_bill; both 1099 functions
+- Payables, measured not changed: both 1099 functions
   call association_local_date per paid bill (~0.85 s at 50,000 paid bills a
   year).
 - DONE 2026-10-13 (measured, no change): v_unit_account_summary at 2,000
