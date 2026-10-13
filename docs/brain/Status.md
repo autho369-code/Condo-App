@@ -1,18 +1,25 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#345 merged; open PR: claude/plan-recheck-existing; next: no open product gap listed, keep watching CSP and runtime logs; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#346 merged; open PR: claude/scope-sweep-and-online-payments; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #346 claude/plan-recheck-existing: 20261013230000 (LIVE, Codex on #345) runs
-  app_recheck_payment_plan once for every unit with an active or completed
-  plan, so plans marked completed under the old measure follow the new one
-  (verified rolled back: a stale completed plan reopens, paid 500; a second
-  run changes nothing). Production had 0 plans, so nothing changed there.
-  migration-reviewer: clean. Note: a completed plan now unpaid while its
-  case is in legal review is cancelled without a notice (existing recheck
-  behaviour); bulk recheck runs in one transaction (fine at current size).
+- #347 claude/scope-sweep-and-online-payments: definer sweep and online
+  payments verified (no change, see Next gaps), plus (both LIVE, read back):
+  20261014000000 money policies without nested RLS: inline subqueries in
+  policies on charges, payments, payment_applications moved into
+  rls_private SECURITY INVOKER set functions (caller's own policies still
+  decide), so the planner stops expanding nested policies. Same visible ids
+  for 7 roles (seeded 3 associations / 2 companies). At 2,000 units: owner
+  unit summary 311 -> 10 ms, charge balances 211 -> 1 ms, board 226 -> 13,
+  manager 220 -> 8. At 1,000 units x 36 months nothing slower (manager one
+  unit 381 -> 139 ms; scoped manager 571 -> 341 ms; owner 209 -> 3 ms).
+  Writes unchanged (scoped manager in/out of scope, auto-apply).
+  20261014010000 a payment can only be applied to a charge on the same unit
+  (security-reviewer: finance policy checked only payment_id).
 
 ## Merged 2026-10-13
+- #346 recheck existing payment plans under the new measure
+  (20261013230000, live; Codex clean).
 - #345 payment plan measure by recording time (cases A-G), report uses it,
   Receivables receipts from payments (20261013200000-220000, live).
 - #344 future-dated bounce reopens a plan; new dues don't (20261013190000,
@@ -458,9 +465,28 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#345 merged; open PR: claude/plan-rec
 - The same RLS estimate (about one visible unit) can make any view that
   joins charges or payments to units nested-loop at scale; the fix pattern
   is a LATERAL lookup by the unit id (20261013040000).
-- Security-definer views/RPCs over payment_methods / physical mail /
-  payable checks / automation flows are not narrowed by policies (check
-  each when touched).
+- DONE 2026-10-13 (verified, no change): online payments end to end, rolled
+  back on production (Randolph, test Stripe account id): webhook ledger post
+  (post_stripe_ledger_payment as service_role) card and ACH, a repeated
+  event returns the same payment (1 row), journal Dr Operating cash / Cr AR
+  balanced, intent succeeded, an active payment plan completes; a manager
+  reversal (dispute lost / ACH return R01) with NSF fee: Dr AR / Cr cash and
+  Dr AR / Cr NSF Fees Collected, plan reopens, balance +250 +35. AutoPay:
+  claim once (second claim same day returns nothing), failed finalize counts
+  one failure, moves next run a month, repeat finalize is a no-op, no same-day
+  retry after a Stripe failure. Refunds/disputes only flag the intent for a
+  manager (by design, header of app/api/stripe/webhook/route.ts).
+- DONE 2026-10-13 (verified, no change): definer functions/views over
+  payment_methods, physical mail, payable checks, automation flows and
+  owner payables. No view reads them. Signed-in callable ones all check the
+  manager's associations (owner payables via app_owner_payable_for_update ->
+  can_manage_association, which includes can_view_association_row;
+  void_payable_check scoped) or are company-admin only
+  (record_manual_certified_mail_delivery: can_admin_portfolio);
+  enroll_autopay is invoker (RLS). claim/complete/fail_physical_mail,
+  capture_issued_payable_check, claim_automation_flow_run: no signed-in
+  execute (service/trigger only). Production clean since 2026-10-09
+  (runtime errors: one expired refresh token; no CSP blocks in 7 days).
 - DONE in #340 (20261013100000-110000; measured 2026-10-13, 5,000 rows each, rolled back): per-row
   policies. signature_requests 0.6-1.4 s, signature_signers/events up to
   4.1 s (even board/owner who see 0 rows ~1 s): can_manage_signatures per

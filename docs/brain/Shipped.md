@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Owner portal and board money pages up to 30x faster: access rules on
+  charges/payments/applications no longer expand inside each query
+  (20261014000000); payments apply only to charges on their own unit
+  (20261014010000).
 - Existing payment plans rechecked under the new measure (Codex on #345,
   20261013230000).
 - Payment plans: one window by recording time; charges posted after a payoff,

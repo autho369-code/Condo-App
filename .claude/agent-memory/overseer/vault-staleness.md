@@ -81,3 +81,10 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   Also reviewer memory (migration-reviewer data-writers.md) said
   "report_data_payment_plans still uses its own raw sum" while 210000 in the
   same PR fixed it.
+- Recurring 10th time (start check 2026-10-12, after #346 merged
+  161273b9): Status line 3 + "## Open PR" still #346. Also Next gaps had no
+  NEXT item; the only open engineering item was the "check each when
+  touched" note on definer views/RPCs over payment_methods / physical mail
+  / payable checks / automation flows (#335 swept only record-id functions).
+  Recommended promoting it, plus a rolled-back Stripe/online-payment ledger
+  dry-run (the one flow never exercised) before Mirsad's pilot keys.

@@ -20,3 +20,10 @@ Reviewed 2026-10-10: algebraically equivalent to the helper definitions (includi
   scope); a scoped manager calling them via /rest/v1/rpc enumerates every company association/unit id
   (UUIDs only; low). Never use them alone for scoped-manager decisions in app code.
 - Storage policies (storage.objects) were not rewritten; they still call the originals.
+- 20261013240000 moves inline policy subqueries into rls_private SECURITY INVOKER setof functions
+  (visible_unit_ids, board_payment_ids...). Equivalent: the body runs as the caller under their RLS, so
+  it can only narrow (e.g. owner-run definer views now see caller RLS inside the policy), never widen.
+  Review: diff each body against the baseline/loop text it replaces, confirm restrictive + WITH CHECK kept,
+  and a DEFINER marker on any such helper would be a real widening.
+- Pre-existing gap (not from that migration): payment_apps_finance checks only payment_id; charge_id is
+  unchecked for unscoped finance staff and no trigger ties charge and payment to one unit/company.
