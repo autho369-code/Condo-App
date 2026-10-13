@@ -93,5 +93,10 @@ Back to [[Home]].
   pg_safeupdate refuses a DELETE with no WHERE from API sessions, even
   inside a security definer RPC. Clear a per-call temp table with
   `truncate`.
+- **A changed measure rechecks stored statuses** (2026-10-13): when a
+  migration changes a function a stored status is derived from (e.g.
+  payment_plan_paid_amount -> payment_plans.status), the same migration
+  runs the recheck for existing rows; triggers only fire on the next write
+  (20261013230000).
 - Every form field has a name a screen reader can read: a <label htmlFor> tied to the control (use Field + Input/Select/Textarea), a fieldset/legend for radio groups, or aria-label. `npm run lint` enforces labels (jsx-a11y/label-has-associated-control). Field ties its label to a single Input/Select/Textarea child itself; with several controls pass htmlFor + id. (2026-10-11)
 - Scripts: app pages run under an enforced nonce CSP (lib/server/csp.ts). No inline <script> or on*= handlers in app pages; a new third-party script/frame host must be added to lib/server/csp.ts; an inline script in a blob/print window needs its sha256 in the policy (see PRINT_SCRIPT_HASH). (2026-10-11)

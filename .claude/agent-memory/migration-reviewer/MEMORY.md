@@ -25,6 +25,7 @@
 - A measure bounded by `current_date` but rechecked only by event triggers misses future-dated rows: nothing re-fires when the date arrives. #343 `payment_plan_paid_amount` skipped bounce charges with a future due date, so the plan stayed completed (Codex caught it, I missed it). Ask "what recheck fires on day X?"
 - Windowed measures (payment_plan_paid_amount, 20261013200000): bound BOTH sides by the same clock. Receipts used created_at but charges used due_date <= completed_at::date, so a dues/late-fee charge posted later the same UTC day (or backdated) entered a frozen completed plan; and a backdated bounce (due < plan start) of a pre-plan receipt was never counted. Use recording time (created_at/reversed_at) for window edges.
 - Multi-plan units: ask which plan owns a bounce, for EVERY receipt age (inside plan 1, between plans, before both). 20261013200000 v2 fixed in-window receipts but a receipt older than both plans still hit both. Exclusions of 'another plan's' rows must copy that plan's own filters exactly (created_at bound too), or rows fall between plans.
+- A changed measure needs a recheck of stored statuses: rows already completed/flagged under the old measure stay stale until an event re-fires. #345 changed payment_plan_paid_amount without rechecking plans (Codex caught; fix 20261013230000 loops app_recheck_payment_plan per unit). Ask "what re-evaluates existing rows?"
 - Narrowing a permissive USING (true) policy: demand per-role before/after row counts; shared portfolio_id-NULL rows may rely on it (20261012010000).
 
 ## Topic files

@@ -184,3 +184,7 @@ Back to [[Home]]. Don't redo these.
   after it is not the plan's (200000). Edges use recording times
   (created_at, reversed_at), not due dates. On a unit with several plans,
   money recorded inside a plan's window (not cancelled) is that plan's.
+- 2026-10-13: when a migration changes how a stored status is derived
+  (payment_plan_paid_amount -> plan status), the same PR rechecks existing
+  rows (20261013230000); a measure change alone leaves stale statuses until
+  the next triggering write.
