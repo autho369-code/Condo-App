@@ -1,21 +1,13 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#349 merged; open PR: claude/finance-speed; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#350 merged; open PR: claude/vault-reports-at-scale; next: scoped managers still build their whole visible charge set per query (341 ms per unit at 36k charges) - a per-row or narrower helper; other tables with inline policy subqueries over RLS tables (same fix); NSF fee income GL setting waits on Mirsad's constraint SQL; Mirsad: Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #350 claude/finance-speed (both LIVE, read back): 20261014040000 budget vs
-  actuals, budget worksheet actuals and annual budget forecast sum journal
-  lines per account/month before the GL helpers (non-inlinable because of
-  SET search_path): 4.6 s -> 124 ms, 2.4 s -> 131 ms, 1.37 s -> 84 ms at
-  48,000 lines, identical output. 20261014050000 journal_line_totals plpgsql
-  with force_custom_plan (the sql body ran a generic plan): ~880 -> ~105 ms
-  for manager/operator, 937 -> 164 board, identical output for 5 roles.
-  Measured at 2,000 units, fine as is: receivable_summary 70-80 ms,
-  billing_collection_totals 28, aging buckets 74, receivable_unit_totals 239,
-  chargeback/unpaid bills/deposit groups under 30. No table plans slowly any
-  more (max 22 ms, audit_logs for an owner).
+- claude/vault-reports-at-scale: vault only (report timings below).
 
 ## Merged 2026-10-13
+- #350 budget pages 15-35x faster, ledger totals ~8x faster
+  (20261014040000/050000, live; Codex clean).
 - #349 application/unit-move race closed (20261014030000, live; Codex clean).
 - #348 applied payments/charges keep their unit (20261014020000, live);
   Stripe webhook route tests.
@@ -468,6 +460,15 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#349 merged; open PR: claude/finance-
 - The same RLS estimate (about one visible unit) can make any view that
   joins charges or payments to units nested-loop at scale; the fix pattern
   is a LATERAL lookup by the unit id (20261013040000).
+- DONE 2026-10-13 (measured, no change): all 120 report_data_* reports at
+  2,000 units (12,000 charges, 8,000 payments, 24,000 journal lines,
+  rolled back) with default parameters finish under 230 ms (slowest:
+  account_totals 225, trial_balance_association 223, journal_entry_register
+  185, charge_detail 178, income_register 172); homeowner_ledger needs a
+  unit (expected error without one).
+- Known, low priority: a manager limited to some associations still builds
+  the whole visible charge set per payment_applications query (341 ms per
+  unit at 36,000 charges, was 571); receivable_unit_totals(null) 239 ms.
 - NEXT before the Stripe pilot: run checkout (app/api/payments) and the
   AutoPay route (app/api/payments/autopay-run) against Stripe TEST mode once
   Mirsad sets test keys; only the database side and the webhook route are
