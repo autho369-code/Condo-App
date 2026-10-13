@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#365 merged; open PR: claude/budgets-fixes; next: pick the next deep-check area; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#365 merged; open PR: #366 claude/budgets-fixes; next: pick the next deep-check area; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/budgets-fixes: budgets deep check (no security
+- #366 claude/budgets-fixes: budgets deep check (no security
   hole found; access holds for every role). 20261014210000 (LIVE):
   - budget_lines written only by the budget functions (a direct write could
     store negative amounts, an expense as income, a cash account);
