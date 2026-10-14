@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PRs: #383 removed late fee status, owner portal fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PRs: #383 removed late fee status, #384 owner portal fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/owner-portal-fixes (no PR number yet): owner portal fixes, app
+- #384 claude/owner-portal-fixes: owner portal fixes, app
   code only (no migrations).
   - Ledger: a previous owner's paid charges are hidden; charges still open
     stay (screen and export). Unit column on charges and payments; the
