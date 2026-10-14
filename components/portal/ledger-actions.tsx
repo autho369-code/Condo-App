@@ -12,6 +12,8 @@ import { groupByAssociation } from '@/lib/portal/ledger-rows';
 export type LedgerChargeRow = {
   /** The unit's association: the export has one header per association. */
   association: string;
+  /** Groups the export (association names are not unique). */
+  associationId?: string;
   unit: string;
   date: string;
   description: string;
@@ -23,6 +25,7 @@ export type LedgerChargeRow = {
 
 export type LedgerPaymentRow = {
   association: string;
+  associationId?: string;
   unit: string;
   date: string;
   method: string;

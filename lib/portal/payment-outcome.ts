@@ -22,7 +22,9 @@ const NOT_COMPLETED: Record<string, PaymentNotCompleted> = {
   },
   chargeback: {
     title: 'This payment was disputed',
-    body: (a) => `Your ${a} payment was disputed with your bank or card issuer, so it no longer counts toward your balance. Contact your management company with any questions.`,
+    // A dispute can be for part of the payment: the ledger shows the amount
+    // actually taken back, so this never claims the whole payment was.
+    body: (a) => `Your ${a} payment was disputed with your bank or card issuer. Your ledger shows any amount taken back from your balance. Contact your management company with any questions.`,
   },
 };
 

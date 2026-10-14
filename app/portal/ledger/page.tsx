@@ -30,11 +30,11 @@ export default async function LedgerPage() {
     // header (v_charge_balances is a view with no foreign key to embed).
     (supabase as any)
       .from('units')
-      .select('id, unit_number, buildings(associations(name))')
+      .select('id, unit_number, buildings(associations(id, name))')
       .in('id', myUnits),
   ]);
-  const unitInfo = new Map<string, { unit: string; association: string }>(
-    ((unitRows ?? []) as any[]).map((u) => [u.id, { unit: u.unit_number ?? '', association: u.buildings?.associations?.name ?? '' }]),
+  const unitInfo = new Map<string, { unit: string; association: string; associationId: string }>(
+    ((unitRows ?? []) as any[]).map((u) => [u.id, { unit: u.unit_number ?? '', association: u.buildings?.associations?.name ?? '', associationId: u.buildings?.associations?.id ?? '' }]),
   );
   const unitLabel = (unitId: string | null | undefined) => (unitId ? unitInfo.get(unitId)?.unit : '') || '—';
 
@@ -69,6 +69,7 @@ export default async function LedgerPage() {
 
   const exportCharges: LedgerChargeRow[] = charges.map((c: any) => ({
     association: unitInfo.get(c.unit_id)?.association ?? '',
+    associationId: unitInfo.get(c.unit_id)?.associationId ?? '',
     unit: unitLabel(c.unit_id),
     date: c.due_date ? date(c.due_date) : '',
     description: c.description ?? '',
@@ -79,6 +80,7 @@ export default async function LedgerPage() {
   }));
   const exportPayments: LedgerPaymentRow[] = (payments ?? []).map((p: any) => ({
     association: unitInfo.get(p.unit_id)?.association ?? '',
+    associationId: unitInfo.get(p.unit_id)?.associationId ?? '',
     unit: p.units?.unit_number ?? unitLabel(p.unit_id),
     date: p.payment_date ? date(p.payment_date) : '',
     // A removed late fee is a credit, not a payment received.

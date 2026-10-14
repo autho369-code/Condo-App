@@ -23,23 +23,25 @@ export function ownerPaymentMethodLabel(p: PaymentLike, fallback = 'payment'): s
 
 /**
  * Splits export rows by association (one header per association) in the
- * order the associations first appear. Rows without an association go under
- * `fallback`.
+ * order the associations first appear. Grouped by association id (names are
+ * not unique); the name is only the header. Rows without an association go
+ * under `fallback`.
  */
-export function groupByAssociation<C extends { association?: string }, P extends { association?: string }>(
+export function groupByAssociation<C extends { association?: string; associationId?: string }, P extends { association?: string; associationId?: string }>(
   charges: C[],
   payments: P[],
   fallback: string,
 ): { association: string; charges: C[]; payments: P[] }[] {
   const groups = new Map<string, { association: string; charges: C[]; payments: P[] }>();
-  const group = (name: string | undefined) => {
-    const key = name?.trim() || fallback;
+  const group = (id: string | undefined, name: string | undefined) => {
+    const label = name?.trim() || fallback;
+    const key = id?.trim() || `name:${label}`;
     let g = groups.get(key);
-    if (!g) { g = { association: key, charges: [], payments: [] }; groups.set(key, g); }
+    if (!g) { g = { association: label, charges: [], payments: [] }; groups.set(key, g); }
     return g;
   };
-  for (const c of charges) group(c.association).charges.push(c);
-  for (const p of payments) group(p.association).payments.push(p);
+  for (const c of charges) group(c.associationId, c.association).charges.push(c);
+  for (const p of payments) group(p.associationId, p.association).payments.push(p);
   if (groups.size === 0) groups.set(fallback, { association: fallback, charges: [], payments: [] });
   return [...groups.values()];
 }

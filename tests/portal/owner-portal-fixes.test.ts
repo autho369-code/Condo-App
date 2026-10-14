@@ -93,6 +93,22 @@ describe('ledger export by association', () => {
     expect(groups[1].payments.map((p) => p.id)).toEqual([4]);
   });
 
+  it('keeps two associations with the same name apart (grouped by id)', () => {
+    const groups = groupByAssociation(
+      [{ association: 'Oak', associationId: 'a1', id: 1 }, { association: 'Oak', associationId: 'a2', id: 2 }],
+      [],
+      'Association',
+    );
+    expect(groups.length).toBe(2);
+    expect(groups.map((g) => g.association)).toEqual(['Oak', 'Oak']);
+  });
+
+  it('a chargeback never claims the whole payment was taken back', () => {
+    const body = paymentNotCompleted('chargeback')!.body('$100.00');
+    expect(body).not.toContain('no longer counts');
+    expect(body).toContain('Your ledger shows any amount taken back');
+  });
+
   it('still has one section when there are no rows', () => {
     expect(groupByAssociation([], [], 'Oak')).toEqual([{ association: 'Oak', charges: [], payments: [] }]);
   });
