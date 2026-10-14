@@ -140,7 +140,7 @@ export function toneForStatus(status?: string | null): Tone {
   if (['complete', 'completed', 'done', 'paid', 'approved', 'resolved', 'cured', 'closed'].includes(s)) return 'complete';
   if (['waiting', 'on_hold', 'hold'].includes(s)) return 'waiting';
   if (['cancelled', 'canceled', 'void', 'rejected', 'failed', 'overdue', 'escalated', 'expired'].includes(s)) return 'danger';
-  if (['inactive', 'archived', 'past', 'na'].includes(s)) return 'inactive';
+  if (['inactive', 'archived', 'past', 'na', 'removed'].includes(s)) return 'inactive';
   return 'info';
 }
 

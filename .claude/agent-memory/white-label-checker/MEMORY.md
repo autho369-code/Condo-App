@@ -87,3 +87,4 @@
 
 ## Codex #379/#380/#381 follow-ups (Oct 2026, 20261015110000/120000)
 - Amenity guard raises ("outside the amenity's hours", "must end by the next day"), signature "archived association" raise, portal/amenities hints and inspections inspection_search RPC: clean. Anchor-patch `raise exception '<fn>: anchor not found'` text runs at migration time only, never user-facing: skip.
+- 'removed' charge status (20261015130000, Oct 2026): v_charge_balances payment_status 'removed' renders via Badge (status.replace('_',' ')) on portal/ledger + units/[id]; toneForStatus maps it inactive. Marker-trigger raise 'Late fees are removed from the unit page' (staff typing reference 'Late fee removed'): clean, no period.

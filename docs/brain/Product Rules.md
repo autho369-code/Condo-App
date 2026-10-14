@@ -203,6 +203,9 @@ Back to [[Home]].
 - **Managers can remove a late fee** (Mirsad, 2026-10-13): remove_late_fee
   credits the open amount back to the fee's income account with a reason;
   the fee's late_fee_assessments row stays so it is never charged again.
+  A removed fee reads "removed" (not "paid") wherever charge status shows;
+  only remove_late_fee can mark its credit (reference 'Late fee removed'),
+  signed-in users can't set or change that mark (20261015130000).
 - **Reverse from the posting, not the mapping** (Codex on #375, 2026-10-13):
   undoing money (a removed fee, a returned payment) debits or credits the
   account the original journal entry used, read from its posted lines; the

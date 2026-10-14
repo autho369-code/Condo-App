@@ -1,28 +1,22 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: #382 (Codex on #379-#381); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PR: claude/removed-late-fee-status; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #382 claude/codex-379-380-followups: Codex on #379, #380 and #381.
-  20261015110000 LIVE as 20261014022209, 20261015120000 LIVE as
-  20261014022727 (both dry-run rolled back on production first, read back;
-  migration, security, design, schema and white-label reviewers ran; their
-  findings fixed).
-  - Portal amenities: request form and list on the shared components;
-    overnight reservations show the end date; next-day hint.
-  - Board seats that still matched a board login by email are linked to it,
-    then the email-match branch goes (#379; production: already gone).
-  - Amenity hours past midnight (e.g. 18:00-02:00) checked by the database
-    and the portal (#380).
-  - Inspections search covers every match: inspection_search in the
-    database over type, association, unit, inspector and staff notes, no
-    200-id cap; built once as sets (5,000 inspections: ~320 -> ~220 ms).
-  - E-signature request linked to an association's record is filed under
-    that association even when none is sent (was company-wide, so managers
-    of other associations could read its signers); archived association
-    refused (#381; live: 0 requests misfiled).
+- claude/removed-late-fee-status: a removed late fee reads "Removed", not
+  "Paid", on the owner's ledger and the unit page (v_charge_balances;
+  balances unchanged); only remove_late_fee can mark its credit; past due
+  by the association's local date. 20261015130000 LIVE as 20261014024847,
+  20261015140000 (clearer reserved-reference message) LIVE as 20261014025022
+  (dry-run rolled back on production first: manager and owner see removed,
+  unremoved fee outstanding, due-today not past due, marker guard blocks
+  setting, changing or re-typing it; read back). Migration, security and
+  design reviewers ran; their suggestions done (method locked, UTC
+  fallback date, past-due badge stays red on the unit page).
 
 ## Merged 2026-10-14
+- #382 Codex follow-ups on #379-#381 (20261015110000 LIVE as
+  20261014022209, 20261015120000 LIVE as 20261014022727). Codex clean.
 - #381 architectural reviews, documents, forms, e-sign (20261015090000 LIVE
   as 20261014011059). Codex: P1 board decision RPC (already not executable
   by signed-in users), P2 association date for on-behalf filing (fixed
@@ -724,10 +718,8 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: #382 (Codex on 
 ## Next gaps (pick up here, top first)
 - DONE in the journal-source-guard PR (20261015060000): direct journal writes
   revoked from signed-in users.
-- Owner ledger: a removed late fee still shows status "paid" (v_charge_balances
-  has no removed/waived state; its credit row reads "Late fee removed").
-  Needs a view change (a credit-covered late fee -> "Removed"); not done in
-  the collections PR to keep the view change separate.
+- DONE 2026-10-14 (20261015130000): a removed late fee reads "removed" on
+  the owner's ledger and the unit page.
 - DONE 2026-10-13 (verified live, no change): payable_bill_line_items
   policies already use the once-per-query helpers (my_finance_portfolio,
   is_platform_operator, my_managed_association_ids) through an EXISTS on
