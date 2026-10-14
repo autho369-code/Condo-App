@@ -259,7 +259,7 @@ export default async function PurchaseOrderDetailPage({
                   ))}
                 </ul>
               ) : (
-                <p className="px-5 py-4 text-sm text-gray-500">Waiting on the board's decision. Record it here once the board has decided.</p>
+                <p className="px-5 py-4 text-sm text-gray-500">Waiting on the board&rsquo;s decision. Record it here once the board has decided.</p>
               )}
               {request.status === 'pending' && (
                 <form action={recordPurchaseOrderBoardDecision} className="grid gap-3 border-t border-gray-100 px-5 py-4 sm:grid-cols-[200px_1fr_auto] sm:items-end">
