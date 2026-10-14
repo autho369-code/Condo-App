@@ -87,7 +87,8 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Invoice extraction error:', error);
     return NextResponse.json({
-      error: error.message || 'Extraction failed',
+      // Provider details stay in the server log.
+      error: 'The invoice could not be read right now. Enter the details by hand or try again.',
       hint: 'Check your AI provider settings and API key.',
     }, { status: 500 });
   }
