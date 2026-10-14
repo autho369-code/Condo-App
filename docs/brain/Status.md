@@ -13,7 +13,9 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PR: #383 (removed l
   20261015160000 (Codex P2: reversed_at locked on a removal credit) LIVE as
   20261014030321,
   20261015180000 (Codex P1: removal credits can't be deleted) LIVE as
-  20261014030816
+  20261014030816,
+  20261015190000 (Codex P1: a removal credit's applications can't be
+  deleted by hand either) LIVE as 20261014031317
   (dry-run rolled back on production first: manager and owner see removed,
   unremoved fee outstanding, due-today not past due, marker guard blocks
   setting, changing or re-typing it; read back). Migration, security and
