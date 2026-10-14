@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#376 merged; open PR: claude/journal-source-guard (PR not opened yet); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#376 merged; open PR: #377 claude/journal-source-guard; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (PR not opened yet) claude/journal-source-guard: Codex on #376 (P1) and the
+- #377 claude/journal-source-guard: Codex on #376 (P1) and the
   security review on #375. 20261015060000: signed-in users can't insert,
   update or delete journal_entries / journal_lines directly (the app only
   reads them; every posting goes through definer functions and triggers;
