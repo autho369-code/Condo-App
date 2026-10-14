@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: claude/codex-379-380-followups (Codex on #379-#381); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: #382 (Codex on #379-#381); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/codex-379-380-followups: Codex on #379, #380 and #381.
+- #382 claude/codex-379-380-followups: Codex on #379, #380 and #381.
   20261015110000 LIVE as 20261014022209, 20261015120000 LIVE as
   20261014022727 (both dry-run rolled back on production first, read back;
   migration, security, design, schema and white-label reviewers ran; their
