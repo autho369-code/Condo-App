@@ -8,12 +8,6 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#393 merged; open PR: platform mail f
   security, migration, design, white-label; all findings fixed. After
   deploy Mirsad may drop capital_project_spend_totals /
   project_budget_vs_actual (replaced).
-- claude/platform-mail-flag: platform mail is marked by the server
-  (email_queue.platform_mail), not recognised by a "Portier369" sender name:
-  suspended-company hold, unsubscribe link and the worker's sending address
-  use the flag; signed-in writes can't set it. 20261016210000 LIVE as
-  20261014172807 (dry-run rolled back first; read back). Reviewers: security,
-  migration (clean).
 
 ## Merged 2026-10-14
 - #396 decisions 8-10: inventory for company admins, work order # within the company, late fees held for due AutoPay after reactivation and for money in flight (20261014181309).
