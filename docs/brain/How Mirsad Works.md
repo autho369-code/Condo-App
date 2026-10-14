@@ -26,3 +26,6 @@ Back to [[Home]]. Follow these without being told.
   associations, units or other records to the live database on your own,
   and never treat an import page's preview of his file as something he
   wants saved.
+- Follow AppFolio; don't complicate or invent (2026-10-14, again): fix
+  bugs, but never change how a money or business rule works on my own
+  judgment (interest was removed: "THERE IS NO INTEREST"). Ask, or leave it as built.

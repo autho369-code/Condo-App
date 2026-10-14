@@ -1,9 +1,27 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#375 merged; open PR: #376 claude/collections-codex-fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#376 merged; open PR: #377 claude/journal-source-guard; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #376 claude/collections-codex-fixes: Codex on #375 (two P1s).
+- #377 claude/journal-source-guard: Codex on #376 (P1) and the
+  security review on #375. 20261015060000: signed-in users can't insert,
+  update or delete journal_entries / journal_lines directly (the app only
+  reads them; every posting goes through definer functions and triggers;
+  the one invoker writer, record_check_run_legacy, is postgres-only). A
+  finance user could insert a posted-style entry with source_type 'charge'
+  and steer remove_late_fee's reversal account; rolled back on production:
+  allowed before, refused (42501) after; a charge and remove_late_fee still
+  post.
+  - LIVE as applied (journal revoke). Production had no hand-made journal
+    entries (all 16 match their source's company).
+  - Interest removed (Mirsad: "THERE IS NO INTEREST", "ITS ONE TIME LATE
+    CHARGE"): no interest settings on the association page, no daily
+    interest job (route + cron removed). Database leftovers: drop SQL in
+    TODO. Late fee = one fee per overdue charge, charged once (as built).
+
+## Merged 2026-10-13
+- #376 claude/collections-codex-fixes: Codex on #375 (two P1s). Codex: P1
+  (client-authored journal entries could steer the lookup; next PR).
   20261015050000 LIVE as 20261013234941 (read back; reviewers clean).
   - remove_late_fee debits the income account the fee's own posting
     credited (from its posted charge journal entry), not today's mapping;
@@ -22,7 +40,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#375 merged; open PR: #376 claude/col
     completes (300/300); a charge recorded after the plan, due that day,
     counts (500 - 300 = 200); start_date local.
 
-## Merged 2026-10-13
 - #375 claude/collections-deep-check: Codex P1 x2 (fixed in the next PR). DEEP CHECK of delinquencies
   and collections (rolled back on production at 2,000 units) + Mirsad's
   "THE MANAGER SHOULD BE ABLE TO REMOVE LATE FEES". 20261015040000 LIVE as
@@ -36,7 +53,7 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#375 merged; open PR: #376 claude/col
     could be charged a day early and dated tomorrow on a US evening),
     overrides, ladder days past due, referral readiness, plan schedule and
     paid amount (plans rechecked), plan/offer/vote date checks.
-  - Interest on principal only (no interest on late/NSF fees or a previous
+  - (SUPERSEDED: interest removed entirely, Mirsad) Interest on principal only (no interest on late/NSF fees or a previous
     owner's charges). The unit query went from 8 to 58 ms at 2,000 units
     (the ownership check runs once per unit; offset 0 stops it running per
     charge): fine for a monthly run, where posting the interest charges is
@@ -686,14 +703,8 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#375 merged; open PR: #376 claude/col
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- NEXT PR (security review on the #375 fix): finance staff can insert or
-  update journal_entries directly (grants + journal_entries_finance_all),
-  including source_type/source_id, so a posted entry can claim to be a
-  charge's or payment's posting. The app never writes journal_entries
-  directly (RPCs only); record_check_run_legacy is the one invoker writer.
-  Guard: signed-in users can't set system source types (charge, payment,
-  ...) or change source_id; lookups by source also match portfolio_id
-  (remove_late_fee does since 20261015050000).
+- DONE in the journal-source-guard PR (20261015060000): direct journal writes
+  revoked from signed-in users.
 - Owner ledger: a removed late fee still shows status "paid" (v_charge_balances
   has no removed/waived state; its credit row reads "Late fee removed").
   Needs a view change (a credit-covered late fee -> "Removed"); not done in

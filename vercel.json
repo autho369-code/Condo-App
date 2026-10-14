@@ -51,10 +51,6 @@
       "schedule": "*/5 * * * *"
     },
     {
-      "path": "/api/billing/assess-interest",
-      "schedule": "15 15 * * *"
-    },
-    {
       "path": "/api/billing/run-management-fees",
       "schedule": "0 16 * * *"
     },
