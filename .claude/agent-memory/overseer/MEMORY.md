@@ -76,6 +76,11 @@
   actions are user-facing (white-label-checker scope). Check the diff for
   new string literals in redirects. Again 2026-10-13 (reconcile statement
   balance: 3 error redirects + success Alert + hint, only security+design ran).
+  Also SQL `raise exception '...'` text in RPCs reaches users via ?error=
+  (collections-codex-fixes 2026-10-13: new "income account ... inactive").
+- Hardening added after a reviewer's pass (security pin added to a definer RPC
+  after migration-reviewer's "clean"): ask whether migration-reviewer saw the
+  FINAL file; its memory note should mention the change.
 - Status said "Claude applies once Codex is clean" — PR Rules say apply the
   additive migration as soon as the SQL is settled and put "do not merge
   until the migration is live" in the PR body. Check the wording.

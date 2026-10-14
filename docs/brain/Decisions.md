@@ -261,7 +261,9 @@ Back to [[Home]]. Don't redo these.
   delinquency, not the old plan (190000). The plan window runs from its start
   to completion or cancellation, for receipts and charges alike; activity
   after it is not the plan's (200000). Edges use recording times
-  (created_at, reversed_at), not due dates. On a unit with several plans,
+  (created_at, reversed_at), not due dates; since 20261015050000 that
+  includes the start edge for charges (a charge counts when recorded after
+  the plan was made; charges already on the balance are in its total). On a unit with several plans,
   money recorded inside a plan's window (not cancelled) is that plan's.
 - 2026-10-13: when a migration changes how a stored status is derived
   (payment_plan_paid_amount -> plan status), the same PR rechecks existing

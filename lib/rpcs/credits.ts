@@ -63,7 +63,8 @@ export async function removeLateFee(formData: FormData) {
 
   const db = (await createClient()) as any;
   const { error } = await db.rpc('remove_late_fee', { p_charge_id: chargeId, p_reason: reason.slice(0, 400) });
-  if (error) fail(error.message);
+  // Database messages have no full stop; end them like this action's own.
+  if (error) fail(/[.!?]$/.test(error.message) ? error.message : `${error.message}.`);
   revalidatePath(back);
   redirect(`${back}?saved=late_fee_removed#late-fees`);
 }
