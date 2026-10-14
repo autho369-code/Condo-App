@@ -158,7 +158,7 @@ describe('20261015235000_reserve_component_asset_lock migration', () => {
 });
 
 describe('20261015235500_approval_votes_no_signed_in_writes migration', () => {
-  it('signed-in users can't update or delete board votes either', () => {
+  it('signed-in users cannot update or delete board votes either', () => {
     const m = read('supabase/migrations/20261015235500_approval_votes_no_signed_in_writes.sql');
     expect(m).toContain('as restrictive for update to authenticated, anon');
     expect(m).toContain('as restrictive for delete to authenticated, anon');
