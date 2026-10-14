@@ -11,6 +11,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   paid charges or statements; the homeowner page's payment history and YTD
   figures cover only that owner's ownership; move-out and sale dates use the
   association's calendar.
+- Purchase orders deep check (20261015230000 live as 20261014092828): the
+  board's decision on a PO can be recorded (POs over the threshold were
+  stuck); bills from a PO count toward project spend; board routing at
+  submit time; approval requests can't be changed or deleted directly;
+  fixed assets keep their reserve link's association; local dates.
 - Work orders follow-ups (20261015220000 live as 20261014083421): vendors
   are emailed about recurring jobs (nightly and "Generate now"), once each;
   a completed request goes back to waiting when an open work order is

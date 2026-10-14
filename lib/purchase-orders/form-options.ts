@@ -2,8 +2,12 @@ import type { ApprovalRule } from '@/components/purchase-orders/po-form';
 import type { VendorOption } from '@/components/vendors/vendor-select';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
-/** Options + per-association approval rules for the purchase order form. */
-export async function loadPurchaseOrderFormOptions(supabase: any, portfolioId: string | undefined) {
+/**
+ * Options + per-association approval rules for the purchase order form.
+ * `keepWorkOrderId` (the PO being edited) is always offered, even when it is
+ * closed or older than the list, so saving doesn't silently unlink it.
+ */
+export async function loadPurchaseOrderFormOptions(supabase: any, portfolioId: string | undefined, keepWorkOrderId?: string | null) {
   const [
     { data: associations },
     { data: vendors },
@@ -23,6 +27,14 @@ export async function loadPurchaseOrderFormOptions(supabase: any, portfolioId: s
       .limit(300),
     supabase.from('board_approval_settings').select('association_id, sends_pos_to_board, pos_threshold'),
   ]);
+  const workOrderRows = (workOrders ?? []) as any[];
+  if (keepWorkOrderId && !workOrderRows.some((w) => w.id === keepWorkOrderId)) {
+    const { data: kept } = await supabase.from('work_orders')
+      .select('id, number, title, association_id, status')
+      .eq('id', keepWorkOrderId)
+      .maybeSingle();
+    if (kept) workOrderRows.push(kept);
+  }
 
   const rules: Record<string, ApprovalRule> = {};
   for (const s of settings ?? []) {
@@ -33,7 +45,7 @@ export async function loadPurchaseOrderFormOptions(supabase: any, portfolioId: s
     associations: (associations ?? []) as { id: string; name: string }[],
     vendors: (vendors ?? []) as VendorOption[],
     glAccounts: (glAccounts ?? []) as { id: string; number: string | null; name: string; association_id: string | null }[],
-    workOrders: ((workOrders ?? []) as any[]).map((w) => ({
+    workOrders: workOrderRows.map((w) => ({
       id: w.id as string,
       association_id: w.association_id as string | null,
       label: `${w.number ? `#${w.number} · ` : ''}${w.title ?? 'Work order'}`,

@@ -77,6 +77,32 @@ export async function submitPurchaseOrder(formData: FormData) {
   redirect(`/purchase-orders/${id}`);
 }
 
+/**
+ * Record the board's decision on a PO's approval request. The board portal
+ * is read-only, so staff record the decision the board made (meeting or vote
+ * by email), as on the bill page.
+ */
+export async function recordPurchaseOrderBoardDecision(formData: FormData) {
+  await requireFinanceStaff();  // in-action guard: server actions are callable endpoints
+  const id = String(formData.get('id') ?? '');
+  const requestId = String(formData.get('approval_request_id') ?? '');
+  const decision = String(formData.get('decision') ?? '');
+  const note = String(formData.get('note') ?? '').trim().slice(0, 1000);
+  if (!id) redirect(`/purchase-orders?error=${encodeURIComponent('Purchase order not found.')}`);
+  const failTo = (msg: string): never => redirect(`/purchase-orders/${id}?error=${encodeURIComponent(msg)}`);
+  if (decision !== 'approved' && decision !== 'rejected') failTo('Choose whether the board approved or rejected the purchase order.');
+  const supabase = await createClient();
+  // The request must be the one this PO points at.
+  const { data: po } = await (supabase as any).from('purchase_orders').select('approval_request_id').eq('id', id).maybeSingle();
+  if (!po || !requestId || po.approval_request_id !== requestId) failTo('This purchase order has no open board approval request.');
+  // The RPC re-checks finance access and the association, and records who recorded the decision.
+  const { error } = await (supabase as any).rpc('record_approval_decision', { p_request_id: requestId, p_decision: decision, p_note: note || null });
+  if (error) failTo(error.message);
+  revalidatePath('/purchase-orders');
+  revalidatePath(`/purchase-orders/${id}`);
+  redirect(`/purchase-orders/${id}`);
+}
+
 export async function cancelPurchaseOrder(formData: FormData) {
   await requireFinanceStaff();
   const id = formData.get('id') as string;

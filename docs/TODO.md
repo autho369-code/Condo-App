@@ -13,6 +13,44 @@ Everything Claude can do alone is done; these need Mirsad (accounts, keys,
 DNS or decisions). Details for the older items are further down.
 
 **Housekeeping (quick)**
+- [ ] **Unit sales: 5 quick decisions** (deep check 2026-10-14; built as
+      described today, my recommendation in brackets):
+      1. A board member who sells their unit keeps their board seat and board
+         access. End the seat when they no longer own a unit? [yes]
+      2. The seller's open fines/dues and prepaid credit stay with the unit,
+         so the buyer (and the buyer's AutoPay) pays them. Settle at closing
+         instead (seller's balance due at sale, credit refunded)? [settle at
+         closing; staff record the payoff when they record the sale]
+      3. After moving out, the seller sees nothing for the sold unit in the
+         portal. Keep read-only access to their own period? [yes]
+      4. A buyer sees unit documents uploaded during the seller's time.
+         Limit to documents from their own period, plus association-wide
+         ones? [yes]
+      5. Statements for co-owners: one function sends every co-owner the
+         full statement, the monthly one only the primary owner. Which?
+         [every co-owner]
+- [ ] **Purchase orders, projects, inventory: 9 quick decisions** (deep check
+      2026-10-14; built as described today, my recommendation in brackets):
+      1. Staff record the board's decision on a PO, including one they
+         created themselves. OK? [yes, like bills; the note says where the
+         board decided]
+      2. A bill from a board-approved PO goes to the board again when it is
+         over the bills threshold. Keep? [no: skip it when the bill is within
+         the approved PO amount]
+      3. Vendors aren't told about POs (no email, no vendor-portal page).
+         Email the vendor when a PO is approved, like AppFolio? [yes]
+      4. A recurring PO started in the past creates a draft for every missed
+         period (up to 12). Only create the next one? [yes]
+      5. Project "Committed" counts approved and paid bills only. Also count
+         open PO balances and pending bills? [yes, as "Committed"; keep
+         "Spent" as paid]
+      6. PO numbers are optional and not unique. Number them automatically?
+         [yes, per company]
+      7. Non-finance staff can read POs in the database though the pages need
+         finance access. Match the pages? [yes]
+      8. Company admins can't see inventory. Intended? [no: let them see it]
+      9. Inventory "used on work order #N" finds the work order by number,
+         which isn't unique. Tighten to the association's work order? [yes]
 - [ ] **Email opt-out: two defaults to confirm** (2026-10-13). Answered:
       every owner and tenant gets email, sender picks owners, tenants or
       both (preferred contact and electronic consent don't stop it). Built

@@ -234,3 +234,13 @@ Back to [[Home]].
   a row's source fields (source_type/source_id) needs that guarantee.
 - Every form field has a name a screen reader can read: a <label htmlFor> tied to the control (use Field + Input/Select/Textarea), a fieldset/legend for radio groups, or aria-label. `npm run lint` enforces labels (jsx-a11y/label-has-associated-control). Field ties its label to a single Input/Select/Textarea child itself; with several controls pass htmlFor + id. (2026-10-11)
 - Scripts: app pages run under an enforced nonce CSP (lib/server/csp.ts). No inline <script> or on*= handlers in app pages; a new third-party script/frame host must be added to lib/server/csp.ts; an inline script in a blob/print window needs its sha256 in the policy (see PRINT_SCRIPT_HASH). (2026-10-11)
+
+- **Board decisions on money go through record_approval_decision only**
+  (deep check 2026-10-14, 20261015230000): the board portal is read-only, so
+  staff record the board's decision on the bill or PO page. Signed-in users
+  can't change an approval request's status, votes, voting rules, type,
+  association or (once decided) notes, can't delete one and can't add board
+  votes; database functions decide it.
+- **A rule stored on a draft is re-read when it is used**: board routing is
+  decided at submit from the association's current settings, not the value
+  saved with the draft.

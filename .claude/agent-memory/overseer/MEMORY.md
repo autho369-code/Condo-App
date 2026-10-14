@@ -128,3 +128,6 @@
   generate_recurring_work_order_now) runs as `authenticated`: email_queue
   sender/rate/required-key checks apply. Prefer the app route + service
   client (notifyVendorOfAssignment) for staff paths; SQL only in definer/cron.
+- Rule changes Mirsad gives in chat (e.g. auto-merge allowed, 2026-10-14) land
+  in the user's auto-memory but not in docs/brain/PR Rules.md / CLAUDE.md,
+  which still say "never merge". Check the vault records them before acting.

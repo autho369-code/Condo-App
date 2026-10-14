@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: claude/ownership-fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#387 merged; open PR: #388 ownership fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/ownership-fixes (sale and move-out, from a deep check of the
+- #388 claude/ownership-fixes (sale and move-out, from a deep check of the
   change-homeowner flow). Migration 20261016010000_ownership_fixes.sql
   LIVE as 20261014102121 (final file dry-run rolled back on production by the
   main session first: future sale refused; Sept owner statements to seller
@@ -68,7 +68,35 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: claude/ownershi
     (unlikely; the seller is no longer primary).
 
 ## Merged 2026-10-14
-- #386 claude/work-orders-followups (merged 2026-10-14; the two Next gaps left by #385):
+- #387 (merged 2026-10-14) claude/po-projects-deep-check: deep check of purchase orders, projects,
+  inventory and fixed assets (rolled back at 5,000 rows, every role; all
+  lists under 45 ms). 20261015230000 LIVE as 20261014092828 (dry-run rolled
+  back on production first; read back; guard re-checked live, rolled back):
+  - A PO sent to the board could never be approved (board portal is
+    read-only, no form recorded the decision): the PO page now records the
+    board's decision like the bill page (record_approval_decision).
+  - A bill from a PO carries the PO's work order, so it counts toward the
+    capital project's spend (was always 0).
+  - Board routing is decided when the PO is submitted, by today's rules.
+  - Signed-in users can't change, re-point or delete an approval request
+    directly, edit its notes once decided, or add board votes.
+  - A fixed asset can't move away from a reserve component that links it;
+    an asset with no association can't be linked.
+  - Editing a PO keeps its work order; PO dates use the association's day.
+  - Codex: an auto-approved resubmission drops its old rejected request
+    (20261015233000 LIVE as 20261014094012; dry-run rolled back first).
+  - Codex: a decided request's title, description, due date, attachments
+    and requester are frozen too (20261015234500 LIVE as 20261014094714).
+    Codex's FK concern checked: deleting a vendor with a decided request
+    still works (FK SET NULL runs as the table owner).
+  - Codex: linking a reserve component share-locks the asset, so a
+    concurrent asset move serializes (20261015235000 LIVE as 20261014095415).
+  - Codex: signed-in users can't update or delete board vote rows either
+    (20261015235500 LIVE as 20261014100016; platform operator: 0 rows).
+  Reviewers: migration (twice, final file), security (DELETE/re-point gaps
+  fixed), design (note hint moved under the row, bill page too),
+  white-label (two messages reworded). 9 business-rule questions -> TODO.
+- #386 (merged 2026-10-14) work orders follow-ups:
   - Recurring work orders the nightly database generator assigns to a
     vendor now email that vendor: /api/work-orders/notify-recurring (Vercel
     cron 12:00 UTC, after pg_cron's 11:30 generator) sends the same
@@ -88,8 +116,6 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: claude/ownershi
     Migration, security and schema reviewers ran; security's duplicate-send
     finding fixed (vendor_notified_at). Note: a request can now send the
     service_request.resolved webhook again after a reopen.
-
-## Merged 2026-10-14
 - #383 (merged 2026-10-14) a removed late fee reads "Removed", not
   "Paid", on the owner's ledger and the unit page (v_charge_balances;
   balances unchanged); only remove_late_fee can mark its credit; past due
@@ -843,6 +869,19 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: claude/ownershi
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- DONE (claude/po-projects-deep-check): deep check of purchase orders,
+  projects, inventory and fixed assets; 7 bugs fixed, 9 rule questions in
+  TODO for Mirsad.
+- NEXT: DEEP CHECK of ownership changes and unit records: owner move-in /
+  move-out and unit sales (balances, AutoPay, portal access and board seats
+  follow the right owner), unit account statements and owner statements;
+  rolled back at scale, every role, then fix.
+- After Mirsad answers the 9 PO/project/inventory questions in TODO: build
+  the ones he says yes to.
+- BLOCKED on Mirsad: Stripe TEST-mode checkout and AutoPay run (Vercel has
+  no STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET).
+- Watching: CSP (0 blocked in 48 h on 2026-10-14; runtime errors only from
+  the 2026-10-08 Supabase outage and one refresh token on 10-12).
 - DONE (claude/work-orders-followups): recurring work orders email their
   vendor; a completed request follows open work orders moved, unarchived
   or reopened into it.
