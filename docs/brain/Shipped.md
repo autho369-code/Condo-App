@@ -4,6 +4,14 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Work orders and service requests (20261015170000 live as
+  20261014034204): one work order per request and
+  the request follows its work orders (complete, reopen); status emails to
+  the requester; permission to enter for staff and the assigned vendor;
+  vendor assignment emails; bulk status skips unchanged rows; service
+  request search in the database; resident tenure and request dates by the
+  association's local date; residents post only on their own visible
+  work orders.
 - Codex follow-ups on #379-#381 (20261015110000 live as 20261014022209,
   20261015120000 live as 20261014022727): board seats linked to their login
   before email matching is removed; amenity hours past midnight enforced;

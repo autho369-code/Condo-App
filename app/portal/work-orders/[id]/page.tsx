@@ -87,7 +87,7 @@ export default async function OwnerWorkOrderDetail({ params, searchParams }: { p
           <ArcMessageThread
             messages={(messages ?? []) as ArcMessage[]}
             postAction={postAction as any}
-            placeholder="Ask a question or add details for the management team…"
+            placeholder="Message your management team and the assigned vendor…"
           />
         </CardBody>
       </Card>

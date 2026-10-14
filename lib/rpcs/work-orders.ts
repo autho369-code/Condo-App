@@ -4,6 +4,7 @@ import { requireFinanceOrPortfolioAdmin, requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
+import { notifyVendorOfAssignment } from '@/lib/notifications/vendor-assignment';
 import { workOrderStaff } from '@/lib/maintenance/staff';
 import { todayInZone } from '@/lib/time/zoned';
 import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
@@ -132,7 +133,7 @@ export async function assignVendor(workOrderId: string, formData: FormData) {
   // prevents a vendor id from another tenant being assigned even if a future
   // policy accidentally makes that vendor visible.
   const [{ data: workOrder, error: workOrderError }, { data: vendor, error: vendorError }] = await Promise.all([
-    (supabase as any).from('work_orders').select('id, portfolio_id').eq('id', workOrderId).maybeSingle(),
+    (supabase as any).from('work_orders').select('id, portfolio_id, vendor_id').eq('id', workOrderId).maybeSingle(),
     (supabase as any).from('vendors').select('id, name, portfolio_id').eq('id', vendorId).maybeSingle(),
   ]);
   if (workOrderError || !workOrder) { failTo(workOrderError?.message ?? 'Work order not found or not accessible.'); return; }
@@ -170,6 +171,11 @@ export async function assignVendor(workOrderId: string, formData: FormData) {
   // Auto keep homeowner informed when assignment also changed the status
   if (bumpStatus) {
     await notifyOwnerOfStatusChange({ kind: 'work_order', id: workOrderId, newStatus: 'assigned' });
+  }
+  // Tell the newly assigned vendor (never fails the action; re-saving the
+  // same vendor sends nothing).
+  if (workOrder.vendor_id !== vendorId) {
+    await notifyVendorOfAssignment({ vendorId, workOrderIds: [workOrderId] });
   }
   revalidatePath(`/work-orders/${workOrderId}`);
   revalidatePath('/work-orders');
