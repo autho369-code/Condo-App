@@ -149,10 +149,11 @@ export default async function BillDetailPage({ params, searchParams }: { params:
                   <option value="rejected">Rejected</option>
                 </Select>
               </Field>
-              <Field label="Note" hint="Where and when the board decided, e.g. the meeting or vote by email.">
+              <Field label="Note">
                 <Input name="note" maxLength={1000} />
               </Field>
               <PendingSubmit pendingLabel="Recording…" confirm="Record the board's decision? It can't be changed afterwards.">Record decision</PendingSubmit>
+              <p className="text-xs text-gray-500 sm:col-span-3">In the note, say where and when the board decided, e.g. the meeting or a vote by email.</p>
             </form>
           )}
           {!approvalRequest && (

@@ -1,10 +1,26 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: none (deep check of purchase orders, projects, inventory and fixed assets running); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: purchase orders deep-check fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (none yet) claude/po-projects-deep-check: deep check of purchase orders,
-  projects, inventory and fixed assets.
+- claude/po-projects-deep-check: deep check of purchase orders, projects,
+  inventory and fixed assets (rolled back at 5,000 rows, every role; all
+  lists under 45 ms). 20261015230000 LIVE as 20261014092828 (dry-run rolled
+  back on production first; read back; guard re-checked live, rolled back):
+  - A PO sent to the board could never be approved (board portal is
+    read-only, no form recorded the decision): the PO page now records the
+    board's decision like the bill page (record_approval_decision).
+  - A bill from a PO carries the PO's work order, so it counts toward the
+    capital project's spend (was always 0).
+  - Board routing is decided when the PO is submitted, by today's rules.
+  - Signed-in users can't change, re-point or delete an approval request
+    directly, edit its notes once decided, or add board votes.
+  - A fixed asset can't move away from a reserve component that links it;
+    an asset with no association can't be linked.
+  - Editing a PO keeps its work order; PO dates use the association's day.
+  Reviewers: migration (twice, final file), security (DELETE/re-point gaps
+  fixed), design (note hint moved under the row, bill page too),
+  white-label (two messages reworded). 9 business-rule questions -> TODO.
 
 ## Merged 2026-10-14
 - #386 (merged 2026-10-14) work orders follow-ups:
@@ -780,9 +796,9 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: none (deep chec
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- NEXT (running): DEEP CHECK of purchase orders (incl. recurring and PO ->
-  bill, board threshold), projects (budget lines vs spend), inventory and
-  fixed assets; rolled back at scale, every role, then fix.
+- DONE (claude/po-projects-deep-check): deep check of purchase orders,
+  projects, inventory and fixed assets; 7 bugs fixed, 9 rule questions in
+  TODO for Mirsad.
 - BLOCKED on Mirsad: Stripe TEST-mode checkout and AutoPay run (Vercel has
   no STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET).
 - Watching: CSP (0 blocked in 48 h on 2026-10-14; runtime errors only from

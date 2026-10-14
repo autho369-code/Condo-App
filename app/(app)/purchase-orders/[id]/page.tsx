@@ -9,13 +9,14 @@ import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
-import { billPurchaseOrder, cancelPurchaseOrder, submitPurchaseOrder } from '@/lib/rpcs/purchase-orders';
+import { billPurchaseOrder, cancelPurchaseOrder, recordPurchaseOrderBoardDecision, submitPurchaseOrder } from '@/lib/rpcs/purchase-orders';
 import { saveRecurringPurchaseOrder } from '@/lib/rpcs/recurring-purchase-orders';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 import { mergePrivateFieldsOne } from '@/lib/private-fields';
 import { ApprovalStatusChip, OrderStatusChip } from '../status-chips';
 import { todayInZone } from '@/lib/time/zoned';
+import { isValidTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,7 @@ export default async function PurchaseOrderDetailPage({
 
   const { data: po } = await db
     .from('purchase_orders')
-    .select('*, vendors(id, name), associations(id, name), work_orders(id, number, title)')
+    .select('*, vendors(id, name), associations(id, name, timezone), work_orders(id, number, title)')
     .eq('id', id)
     .maybeSingle();
   if (!po) notFound();
@@ -92,7 +93,9 @@ export default async function PurchaseOrderDetailPage({
         .in('account_type', ['expense', 'other_expense', 'cost_of_goods_sold']).order('number')
     : { data: [] };
   const glOptions = ((glChoices ?? []) as any[]).filter((g) => !g.association_id || g.association_id === po.association_id);
-  const today = todayInZone();
+  // Bill and first-order dates default to the association's own day.
+  const zone = po.associations?.timezone;
+  const today = todayInZone(typeof zone === 'string' && isValidTimeZone(zone) ? zone : undefined);
   const title = `PO ${po.number ?? po.id.slice(0, 8)}`;
 
   const timeline = [
@@ -256,7 +259,25 @@ export default async function PurchaseOrderDetailPage({
                   ))}
                 </ul>
               ) : (
-                <p className="px-5 py-4 text-sm text-gray-500">Waiting on board members. They vote from the board portal under Approvals.</p>
+                <p className="px-5 py-4 text-sm text-gray-500">Waiting on the board's decision. Record it here once the board has decided.</p>
+              )}
+              {request.status === 'pending' && (
+                <form action={recordPurchaseOrderBoardDecision} className="grid gap-3 border-t border-gray-100 px-5 py-4 sm:grid-cols-[200px_1fr_auto] sm:items-end">
+                  <input type="hidden" name="id" value={id} />
+                  <input type="hidden" name="approval_request_id" value={request.id} />
+                  <Field label="Board decision" required>
+                    <Select name="decision" required defaultValue="">
+                      <option value="" disabled>Choose…</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </Select>
+                  </Field>
+                  <Field label="Note">
+                    <Input name="note" maxLength={1000} />
+                  </Field>
+                  <PendingSubmit pendingLabel="Recording…" confirm="Record the board's decision? It can't be changed afterwards.">Record decision</PendingSubmit>
+                  <p className="text-xs text-gray-500 sm:col-span-3">In the note, say where and when the board decided, e.g. the meeting or a vote by email.</p>
+                </form>
               )}
             </Section>
           )}
