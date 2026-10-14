@@ -85,9 +85,18 @@ describe('inspection search runs in the database', () => {
   it('is a security invoker function over every related name and the notes', () => {
     expect(sql).toMatch(/create or replace function public\.inspection_search\(p_term text\)\nreturns setof public\.inspections/);
     expect(sql).toContain('security invoker');
-    for (const part of ['a.name ilike t.pat', 'u.unit_number ilike t.pat', 'v.name ilike t.pat', 'p.notes ilike t.pat', 'i.inspection_type ilike t.pat']) {
+    for (const part of [
+      'i.inspection_type ilike (select t.pat from t)',
+      'i.association_id in (select a.id from public.associations a, t where a.name ilike t.pat)',
+      'i.unit_id in (select u.id from public.units u, t where u.unit_number ilike t.pat)',
+      'i.inspector_vendor_id in (select v.id from public.vendors v, t where v.name ilike t.pat)',
+      'i.id in (select p.inspection_id from public.inspection_private p, t where p.notes ilike t.pat)',
+    ]) {
       expect(sql).toContain(part);
     }
+    // Inlinable: no search_path setting and no per-row exists.
+    const fn = sql.slice(sql.indexOf('create or replace function public.inspection_search'), sql.indexOf('$function$;'));
+    expect(fn).not.toMatch(/set search_path|exists \(/);
     expect(sql).toContain('revoke all on function public.inspection_search(text) from public, anon;');
     expect(sql).toContain('grant execute on function public.inspection_search(text) to authenticated;');
     expect(sql).not.toMatch(/\b(delete from|drop )/i);

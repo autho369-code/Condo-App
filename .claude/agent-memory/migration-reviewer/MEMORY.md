@@ -58,6 +58,8 @@
 
 - Private-notes side tables (X_private): if the policy re-encodes the parent's scope instead of `staff check and exists(select 1 from parent where id=...)` (parent RLS applies inside), it drifts: 20261015080000:36-50 dropped the parent's association_id-NULL branch. Also check the side table's views keep column order (v_upcoming_expirations did).
 
+- Search RPCs called as db.rpc(..).select().eq().range() (20261015110000 inspection_search): a SET clause blocks SRF inlining, so page filters/count run over the full match set; prefer OR-ed `i.x in (select ...)` sets over per-row EXISTS into tables with per-row policies (inspection_private).
+
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns

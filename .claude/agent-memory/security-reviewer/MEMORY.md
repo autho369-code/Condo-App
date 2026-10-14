@@ -43,6 +43,8 @@
 
 - "Same rows" speed rewrites that drive from a parent (associations join instead of a definer lookup like association_local_date, which falls back on NULL): inner join drops child rows whose FK is nullable (payable_bills.association_id; company-level bills allowed, vendor_1099_totals 20261015030000). Check nullability; use left join. Also check the parent's RLS matches the child's for every role (vendors: associations_vendor_bill_read).
 
+- Email-match -> linked-login backfills (board seats, 20261015110000): safe when the linked branch re-checks the same runtime conditions (role, company, disabled) so linking grants nothing new; INVOKER search RPCs (inspection_search) inherit RLS on every subquery, so staff-only side tables stay hidden.
+
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import
 - [Missed checks](missed-checks.md) -- domain-proof replay/relay, token minting, html_escape, storage cleanup, finance RPC scope triggers, hidden columns copied by DEFINER triggers (soft_delete_log), owner_visible_history writers

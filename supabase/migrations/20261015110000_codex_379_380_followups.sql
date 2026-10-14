@@ -90,20 +90,22 @@ returns setof public.inspections
 language sql
 stable
 security invoker
-set search_path = pg_catalog, public
+-- No search_path setting (everything is schema-qualified), so the function
+-- inlines and the page's filters, count and range reach the inspections scan.
+-- Each related match is built once as a set, not checked per row.
 as $function$
   with t as (
     select '%' || replace(replace(replace(btrim(coalesce(p_term, '')), '\', '\\'), '%', '\%'), '_', '\_') || '%' as pat
   )
   select i.*
-    from public.inspections i, t
+    from public.inspections i
    where btrim(coalesce(p_term, '')) <> ''
-     and (i.inspection_type ilike t.pat
-          or exists (select 1 from public.associations a where a.id = i.association_id and a.name ilike t.pat)
-          or exists (select 1 from public.units u where u.id = i.unit_id and u.unit_number ilike t.pat)
-          or exists (select 1 from public.vendors v where v.id = i.inspector_vendor_id and v.name ilike t.pat)
+     and (i.inspection_type ilike (select t.pat from t)
+          or i.association_id in (select a.id from public.associations a, t where a.name ilike t.pat)
+          or i.unit_id in (select u.id from public.units u, t where u.unit_number ilike t.pat)
+          or i.inspector_vendor_id in (select v.id from public.vendors v, t where v.name ilike t.pat)
           -- Staff-only notes: row-level security on inspection_private applies.
-          or exists (select 1 from public.inspection_private p where p.inspection_id = i.id and p.notes ilike t.pat));
+          or i.id in (select p.inspection_id from public.inspection_private p, t where p.notes ilike t.pat));
 $function$;
 
 revoke all on function public.inspection_search(text) from public, anon;
