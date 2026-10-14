@@ -1,11 +1,14 @@
 -- Purchase order / project decisions (Mirsad, 2026-10-14).
 -- 2. A bill from a board-approved PO doesn't go to the board again while the
 --    PO's bills (this one included) stay within the approved PO amount.
--- 4. A recurring PO that fell behind creates only the next period, not one
---    draft for every missed period (whose needed-by dates had already gone).
+-- 4. A recurring PO that fell behind creates only the current period (the
+--    latest scheduled date on or before today), not one draft for every
+--    missed period (whose needed-by dates had already gone).
 --    "Today" is the association's own day.
 -- 5. Project cost: Committed = open balances of approved POs on the project's
---    work orders + unpaid bills; Spent = paid bills. New functions
+--    work orders + unpaid bills; Spent = paid bills. Purchase orders are
+--    finance-only (7), so the PO amounts count only for finance staff and
+--    the platform operator; other staff see bill-only totals. New functions
 --    capital_project_cost_totals / project_cost_by_category (the old
 --    capital_project_spend_totals / project_budget_vs_actual return one
 --    figure and can't change shape without a DROP; they stay until the new
@@ -226,7 +229,7 @@ end;
 $function$;
 
 -- ---------------------------------------------------------------------------
--- 4. Recurring POs: only the next period.
+-- 4. Recurring POs: only the current period.
 create or replace function public.generate_recurring_purchase_orders()
  RETURNS integer
  LANGUAGE plpgsql
@@ -237,6 +240,7 @@ declare
   t record;
   v_today date;
   v_date date;
+  v_next date;
   v_guard integer;
   n integer := 0;
 begin
@@ -251,11 +255,16 @@ begin
       v_today := coalesce(public.association_local_date(t.association_id), current_date);
       v_date := t.next_post_date;
       -- po_decisions: a schedule that fell behind (first date in the past,
-      -- or resumed late) skips the missed periods without creating them;
-      -- only the next period, on or after today, is created.
+      -- a missed run, or resumed late) skips the older missed periods
+      -- without creating them and creates the current one: the latest
+      -- scheduled date on or before today. (A schedule whose next date is
+      -- still in the future isn't selected above, so nothing is created
+      -- until it's due.)
       v_guard := 0;
-      while v_date < v_today and v_guard < 10000 loop
-        v_date := public.recurring_next_date(v_date, t.frequency::text, t.interval_count, extract(day from coalesce(t.start_date, t.next_post_date))::integer);
+      loop
+        v_next := public.recurring_next_date(v_date, t.frequency::text, t.interval_count, extract(day from coalesce(t.start_date, t.next_post_date))::integer);
+        exit when v_next is null or v_next <= v_date or v_next > v_today or v_guard >= 10000;
+        v_date := v_next;
         v_guard := v_guard + 1;
       end loop;
       if t.end_date is null or v_date <= t.end_date then
@@ -291,6 +300,9 @@ declare
   v_op boolean := coalesce(public.is_platform_operator(), false);
   v_pf uuid := public.my_access_portfolio();
   v_scoped boolean := coalesce(public.manager_is_scoped(), false);
+  -- Purchase orders are finance-only: their open amounts count only for
+  -- finance staff (same check as the purchase_orders policy).
+  v_fin boolean := v_op or coalesce(public.my_finance_portfolio() = v_pf, false);
 begin
   if not (v_op or v_pf is not null) then
     return;
@@ -329,7 +341,8 @@ begin
       from links lk
       join public.purchase_orders po on po.work_order_id = lk.work_order_id
       join public.purchase_order_line_items l on l.purchase_order_id = po.id
-     where po.archived_at is null
+     where v_fin
+       and po.archived_at is null
        and po.association_id = lk.association_id
        and po.approval_status = 'approved'
        and po.status::text <> 'cancelled'
@@ -366,6 +379,7 @@ set search_path = pg_catalog, public
 as $function$
 declare
   p public.capital_projects;
+  v_fin boolean;
 begin
   select * into p from public.capital_projects where id = p_project_id;
   if not found
@@ -374,6 +388,11 @@ begin
      or not public.can_view_association_row(p.association_id) then
     raise exception 'Project not found' using errcode = '42501';
   end if;
+  -- Purchase orders are finance-only: their open amounts count only for
+  -- finance staff (same check as the purchase_orders policy); other staff
+  -- see bill-only figures.
+  v_fin := coalesce(public.is_platform_operator(), false)
+           or coalesce(public.my_finance_portfolio() = p.portfolio_id, false);
 
   return query
   with links as (
@@ -395,7 +414,8 @@ begin
       from links lk
       join public.purchase_orders po on po.work_order_id = lk.work_order_id
       join public.purchase_order_line_items l on l.purchase_order_id = po.id
-     where po.archived_at is null
+     where v_fin
+       and po.archived_at is null
        and po.association_id = p.association_id
        and po.approval_status = 'approved'
        and po.status::text <> 'cancelled'

@@ -8,11 +8,14 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); }),
   revalidatePath: vi.fn(),
   rpc: vi.fn(),
-  notify: vi.fn(async () => true),
-  po: null as null | { approval_request_id: string | null },
+  notify: vi.fn(async (): Promise<{ sent: boolean; reason: string | null }> => ({ sent: true, reason: null })),
+  po: null as null | { approval_request_id: string | null; portfolio_id?: string },
 }));
 
-vi.mock('@/lib/notifications/purchase-order-approved', () => ({ notifyVendorOfPurchaseOrderApproval: mocks.notify }));
+vi.mock('@/lib/notifications/purchase-order-approved', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/notifications/purchase-order-approved')>()),
+  notifyVendorOfPurchaseOrderApproval: mocks.notify,
+}));
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }));
 vi.mock('@/lib/auth/me', () => ({ requireFinanceStaff: mocks.requireFinanceStaff, requireStaff: vi.fn() }));
@@ -43,9 +46,9 @@ async function run(fields: Record<string, string>) {
 describe('recordPurchaseOrderBoardDecision', () => {
   beforeEach(() => {
     mocks.requireFinanceStaff.mockReset().mockResolvedValue({ portfolio: { id: 'pf-1' } });
-    mocks.notify.mockClear();
+    mocks.notify.mockReset().mockResolvedValue({ sent: true, reason: null });
     mocks.rpc.mockReset().mockResolvedValue({ error: null });
-    mocks.po = { approval_request_id: REQ };
+    mocks.po = { approval_request_id: REQ, portfolio_id: 'pf-1' };
     const q: any = {};
     q.select = vi.fn(() => q);
     q.eq = vi.fn(() => q);
@@ -60,6 +63,25 @@ describe('recordPurchaseOrderBoardDecision', () => {
     expect(out).toBe(`REDIRECT:/purchase-orders/${PO}`);
     // The board approved: the vendor is emailed, within the caller's company.
     expect(mocks.notify).toHaveBeenCalledWith({ purchaseOrderId: PO, portfolioId: 'pf-1' });
+  });
+
+  it('says so when the approved PO\'s vendor was not emailed', async () => {
+    mocks.notify.mockResolvedValue({ sent: false, reason: 'the vendor has no email address on file' });
+    const out = await run({ id: PO, approval_request_id: REQ, decision: 'approved' });
+    expect(out).toBe(`REDIRECT:/purchase-orders/${PO}?warning=${encodeURIComponent('Approved \u2014 vendor not emailed: the vendor has no email address on file.')}`);
+  });
+
+  it('emails the vendor for the platform operator, within the PO\'s company', async () => {
+    mocks.requireFinanceStaff.mockResolvedValue({ portfolio: null });
+    mocks.po = { approval_request_id: REQ, portfolio_id: 'pf-9' };
+    await run({ id: PO, approval_request_id: REQ, decision: 'approved' });
+    expect(mocks.notify).toHaveBeenCalledWith({ purchaseOrderId: PO, portfolioId: 'pf-9' });
+  });
+
+  it('does not email the vendor when the board rejected', async () => {
+    const out = await run({ id: PO, approval_request_id: REQ, decision: 'rejected' });
+    expect(mocks.notify).not.toHaveBeenCalled();
+    expect(out).toBe(`REDIRECT:/purchase-orders/${PO}`);
   });
 
   it('refuses a request that is not the PO\'s', async () => {

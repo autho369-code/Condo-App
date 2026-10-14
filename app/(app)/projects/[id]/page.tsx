@@ -11,6 +11,7 @@ import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { deleteProjectBudgetLine, saveProjectBudgetLine } from '@/lib/rpcs/project-budget';
 import { PendingSubmit } from '@/components/ui/pending-submit';
+import { MetricStrip } from '@/components/operations/metric-strip';
 
 export const dynamic = 'force-dynamic';
 
@@ -178,18 +179,22 @@ export default async function ProjectDetailPage({
     redirect(`/projects/${projectId}`);
   }
 
+  const remainingTotal = budget - committed - spent;
+
   return (
     <Workspace header={<WorkspaceHeader eyebrow={<><Link href="/projects" className="hover:text-gray-700">Capital projects</Link> · {project.associations?.name}</>} title={project.name} subtitle={project.description ?? 'No project scope recorded.'} actions={<Badge status={project.status}>{project.status.replace(/_/g, ' ')}</Badge>} />}>
       {sp.error && <Alert className="mb-5" title="Could not update project">{sp.error}</Alert>}
       {sp.saved && <Alert className="mb-5" tone="success">{sp.saved}</Alert>}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Approved budget</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget)}</div></div>
-        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Committed</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(committed)}</div></div>
-        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Spent</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(spent)}</div></div>
-        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Remaining</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget - committed - spent)}</div></div>
-        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Milestones</div><div className="mt-1 text-xl font-semibold tabular-nums">{(milestones ?? []).filter((m: any) => m.status === 'completed').length}/{(milestones ?? []).length}</div></div>
-      </div>
+      <MetricStrip
+        metrics={[
+          { label: 'Approved budget', value: currency(budget) },
+          { label: 'Committed', value: currency(committed) },
+          { label: 'Spent', value: currency(spent) },
+          { label: 'Remaining', value: <span className={remainingTotal < 0 ? 'text-red-700' : undefined}>{currency(remainingTotal)}</span> },
+          { label: 'Milestones', value: `${(milestones ?? []).filter((m: any) => m.status === 'completed').length}/${(milestones ?? []).length}` },
+        ]}
+      />
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div>

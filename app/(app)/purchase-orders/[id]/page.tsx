@@ -30,7 +30,7 @@ export default async function PurchaseOrderDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; warning?: string }>;
 }) {
   await requireFinanceStaff();
   const { id } = await params;
@@ -127,6 +127,7 @@ export default async function PurchaseOrderDetailPage({
       }
     >
       {sp.error && <Alert tone="danger" title="Could not update purchase order:" className="mb-5">{sp.error}</Alert>}
+      {sp.warning && <Alert tone="warning" className="mb-5">{sp.warning}</Alert>}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">

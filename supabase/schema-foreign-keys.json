@@ -454,6 +454,7 @@
 "provider_services.service_id":"services",
 "purchase_order_line_items.gl_account_id":"gl_accounts",
 "purchase_order_line_items.purchase_order_id":"purchase_orders",
+"purchase_order_number_counters.portfolio_id":"portfolios",
 "purchase_order_private.purchase_order_id":"purchase_orders",
 "purchase_orders.approval_request_id":"approval_requests",
 "purchase_orders.association_id":"associations",

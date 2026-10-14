@@ -5,7 +5,7 @@ import { requireFinanceStaff, requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { savePrivateFields } from '@/lib/private-fields';
 import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
-import { notifyVendorOfPurchaseOrderApproval } from '@/lib/notifications/purchase-order-approved';
+import { notifyVendorOfPurchaseOrderApproval, purchaseOrderPageAfterApproval, type PurchaseOrderApprovalEmailResult } from '@/lib/notifications/purchase-order-approved';
 
 export type PurchaseOrderLineInput = {
   description: string;
@@ -64,10 +64,12 @@ export async function savePurchaseOrder(formData: FormData) {
   });
   if (notesError) redirect(`/purchase-orders/${data}?error=${encodeURIComponent(`Saved, but the internal notes could not be saved: ${notesError.message}`)}`);
   // Submitted and approved within the manager's authority: the vendor gets the order.
-  if (formData.get('intent') === 'submit') await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: String(data), portfolioId });
+  const emailed = formData.get('intent') === 'submit'
+    ? await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: String(data), portfolioId })
+    : null;
 
   revalidatePath('/purchase-orders');
-  redirect(`/purchase-orders/${data}`);
+  redirect(purchaseOrderPageAfterApproval(String(data), emailed));
 }
 
 export async function submitPurchaseOrder(formData: FormData) {
@@ -77,9 +79,16 @@ export async function submitPurchaseOrder(formData: FormData) {
   const { data, error } = await (supabase as any).rpc('submit_purchase_order', { p_purchase_order_id: id });
   if (error) redirect(`/purchase-orders/${id}?error=${encodeURIComponent(error.message)}`);
   // Approved within the manager's authority: the vendor gets the order.
-  if (data === 'approved') await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: id, portfolioId: me.portfolio?.id });
+  let emailed: PurchaseOrderApprovalEmailResult | null = null;
+  if (data === 'approved') {
+    // The platform operator has no company of its own: use the company of the
+    // PO read through the caller's own session (RLS-limited); the email helper
+    // re-checks the PO belongs to it.
+    const { data: po } = await (supabase as any).from('purchase_orders').select('portfolio_id').eq('id', id).maybeSingle();
+    emailed = await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: id, portfolioId: me.portfolio?.id ?? po?.portfolio_id });
+  }
   revalidatePath('/purchase-orders');
-  redirect(`/purchase-orders/${id}`);
+  redirect(purchaseOrderPageAfterApproval(id, emailed));
 }
 
 /**
@@ -98,16 +107,20 @@ export async function recordPurchaseOrderBoardDecision(formData: FormData) {
   if (decision !== 'approved' && decision !== 'rejected') failTo('Choose whether the board approved or rejected the purchase order.');
   const supabase = await createClient();
   // The request must be the one this PO points at.
-  const { data: po } = await (supabase as any).from('purchase_orders').select('approval_request_id').eq('id', id).maybeSingle();
+  const { data: po } = await (supabase as any).from('purchase_orders').select('approval_request_id, portfolio_id').eq('id', id).maybeSingle();
   if (!po || !requestId || po.approval_request_id !== requestId) failTo('This purchase order has no open board approval request.');
   // The RPC re-checks finance access and the association, and records who recorded the decision.
   const { error } = await (supabase as any).rpc('record_approval_decision', { p_request_id: requestId, p_decision: decision, p_note: note || null });
   if (error) failTo(error.message);
   // The board approved: the vendor gets the order.
-  if (decision === 'approved') await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: id, portfolioId: me.portfolio?.id });
+  // The platform operator has no company of its own: the PO's company (read
+  // above through the caller's session) stands in; the helper re-checks it.
+  const emailed = decision === 'approved'
+    ? await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: id, portfolioId: me.portfolio?.id ?? po.portfolio_id })
+    : null;
   revalidatePath('/purchase-orders');
   revalidatePath(`/purchase-orders/${id}`);
-  redirect(`/purchase-orders/${id}`);
+  redirect(purchaseOrderPageAfterApproval(id, emailed));
 }
 
 export async function cancelPurchaseOrder(formData: FormData) {

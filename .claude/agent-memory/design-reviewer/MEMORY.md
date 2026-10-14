@@ -70,3 +70,6 @@
 ## Reports (claude/reports-deep-check, 2026-10-14)
 - reports/[slug] tile rows: most are still `grid-cols-3/4` with no mobile breakpoint (precedent :986 `grid-cols-2 sm:grid-cols-4`); flag when a row is touched. Tile (components/reports/workspace.tsx) is 24px text in a ~165px column at 375px: 5-digit money can overflow; suggest `min-w-0` + `break-words` or smaller mobile text.
 - Download routes that `back(?error=)` to a detail page: if the page does `if (!run) notFound()`, a "not found / no access" error becomes a bare 404 (reports/runs/[id]/download). Send not-visible cases to the list/index page, which renders sp.error.
+## Card-grid column bumps (projects/[id], po-decisions, 2026-10-14)
+- 5th hand-rolled stat card + `lg:grid-cols-5`: content at xl is ~672px (1280 - w-60 sidebar - 304 TasksRail - lg:px-8), ~90px per card for text-xl money, no wrap; grid min-width:auto pushes the page sideways. Fix: operations `MetricStrip` ([overflow-wrap:anywhere]) or cap at 3 cols.
+- Shared create/edit forms: a "leave blank" hint must hold on edit too (PO number trigger keeps the old number when cleared on edit).

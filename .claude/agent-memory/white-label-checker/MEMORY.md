@@ -90,5 +90,6 @@
 - SQL "is this platform mail?" must match isPlatformSenderName: `lower(btrim(from_name)) like 'portier369%'`, not an exact list.
 - Slug-only links in SQL mail justified as "sign-in address" are often ordinary links: need the verified-custom-domain case.
 - Portal/vendor copy: "your management company", not "management office"/"property manager"/bare "management".
-- Reference company-mail helper: lib/notifications/vendor-assignment.ts.
+- Reference company-mail helper: lib/notifications/vendor-assignment.ts (also followed cleanly by purchase-order-approved.ts, Oct 2026: no link, no platformMail).
+- To tell a carried-over raise/fallback from a new one, grep the exact string across older migrations (e.g. 'Management staff' dates from 20261005094000).
 - Per-branch audit history (what was clean, lineages like submit_owner_message): see audited-branches.md.
