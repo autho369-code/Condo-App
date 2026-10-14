@@ -95,3 +95,6 @@
 
 ## RPC returning `setof <table>` + embeds
 - `db.rpc('fn', args, { count: 'exact' }).select('..., assoc(name), vendors:fk_col(name)')` works when the function `returns setof public.<table>`: PostgREST uses that table's FKs for embeds, and filters/order/range apply. Verify the embeds against the base table's FKs. Example: inspection_search (20261015110000) on app/(app)/inspections/page.tsx:86. `inspections.inspection_type` is text (ilike ok). `amenity_reservations.status` CHECK: pending/approved/denied/cancelled. (2026-10-14, clean.)
+
+## Owner portal quick refs (2026-10-14, owner-portal-fixes clean)
+- Removed late fee = payments row via `post_homeowner_credit` (method 'credit'), then reference set to 'Late fee removed' (20261015040000/050000); app helper `isLateFeeRemoval` in lib/portal/ledger-rows.ts needs `reference` selected. `payment_intents.status` CHECK: pending/processing/succeeded/failed/canceled (one l)/returned/refunded/chargeback. `occupancies.allow_online_payments` exists. payments, violations, work_orders each have ONE FK to units (embeds unambiguous); `v_charge_balances` has no FK (load unit names separately).

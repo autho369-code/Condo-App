@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { Badge, Alert } from '@/components/ui/shell'
+import { Badge, Alert, Surface } from '@/components/ui/shell'
 import { money, date } from '@/lib/utils'
 import { buttonClass } from '@/components/ui/button'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
@@ -64,15 +64,15 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
       </div>
 
       {banner.reported === '1' && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <Alert tone="success">
           {banner.notice === 'already_submitted'
             ? 'That concern was already sent — we didn’t send a second copy.'
             : 'Thanks — your concern was sent to management for review.'}
-        </div>
+        </Alert>
       )}
 
       {violsError && <Alert tone="danger" title="Could not load violations:">{violsError.message}</Alert>}
-      {tilesError && <Alert tone="danger" title="Could not load your violation totals:">{tilesError}. Please refresh.</Alert>}
+      {!violsError && tilesError && <Alert tone="danger" title="Could not load your violation totals:">{tilesError}. Please refresh.</Alert>}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
@@ -80,19 +80,19 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
           { label: 'Total Fines', value: tilesError ? '—' : money(finesRes.rows.reduce((s: number, v: any) => s + fineOf(v), 0)) },
           { label: 'Hearings Scheduled', value: tilesError ? '—' : (hearingRes.count ?? 0) },
         ].map(s => (
-          <div key={s.label} className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <Surface key={s.label} padded={false} className="px-4 py-3.5">
             <div className="text-[13px] font-medium text-gray-500">{s.label}</div>
             <div className="mt-1.5 font-display text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-ink">{s.value}</div>
-          </div>
+          </Surface>
         ))}
       </div>
 
       {violsError ? null : all.length === 0 ? (
-        <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <Surface padded={false} className="px-6 py-12 text-center">
           <p className="text-sm text-gray-500">No violations on your record.</p>
-        </div>
+        </Surface>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <Surface padded={false} className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
               <tr>
@@ -119,7 +119,7 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
               ))}
             </tbody>
           </table>
-        </div>
+        </Surface>
       )}
 
       {!violsError && pages > 1 && (

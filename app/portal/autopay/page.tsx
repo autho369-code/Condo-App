@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/me';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
-import { Alert } from '@/components/ui/shell';
+import { Alert, Surface } from '@/components/ui/shell';
 import { StatusChip } from '@/components/operations/status-chip';
 import { date, money } from '@/lib/utils';
 import {
@@ -18,7 +18,6 @@ import { associationZone } from '../_lib/tenure';
 
 export const dynamic = 'force-dynamic';
 
-const card = 'rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
 const RETURN = '/portal/autopay';
 
 const MODES = [
@@ -120,7 +119,7 @@ async function startAutopaySetup(formData: FormData) {
   // Management can switch online payments off per account; the AutoPay run
   // skips such accounts, so never enroll one.
   if (occ.allow_online_payments === false) {
-    redirect(`${RETURN}?error=${encodeURIComponent('Online payments are off for this account. Please contact the management office.')}`);
+    redirect(`${RETURN}?error=${encodeURIComponent('Online payments are off for this account. Please contact your management company.')}`);
   }
 
   const { data: existingMandate } = await svc
@@ -318,7 +317,7 @@ export default async function AutopayPage({
         const onHold = m.skip_until && m.skip_until >= today;
         const paused = onlineOff.has(`${m.owner_id}:${m.unit_id}`);
         return (
-          <div key={m.id} className={card}>
+          <Surface key={m.id}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">
@@ -338,9 +337,10 @@ export default async function AutopayPage({
                     : `${(m.payment_methods?.brand ?? 'Card').toUpperCase()} ••••${m.payment_methods?.last_four ?? ''}`}
                   {' · '}next run {date(m.next_run_date)}
                 </p>
+                {paused && <p className="mt-0.5 text-[13px] text-gray-500">Online payments are off for this account.</p>}
               </div>
               {paused
-                ? <StatusChip tone="warning">Paused – online payments are off for this account</StatusChip>
+                ? <StatusChip tone="warning">Paused</StatusChip>
                 : <StatusChip tone={onHold ? 'warning' : 'success'}>{onHold ? `On hold until ${date(m.skip_until)}` : 'Active'}</StatusChip>}
             </div>
 
@@ -376,13 +376,13 @@ export default async function AutopayPage({
                 <Button type="submit" variant="secondary" className="gap-1.5 text-red-700 hover:bg-red-50"><XCircle className="h-4 w-4" /> Cancel AutoPay</Button>
               </form>
             </div>
-          </div>
+          </Surface>
         );
       })}
 
       {/* ── Enrollment ────────────────────────────────── */}
       {enrollableUnits.length > 0 ? (
-        <div className={card}>
+        <Surface>
           <div className="mb-4 flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-950">
               <RefreshCcw className="h-4.5 w-4.5 text-white" />
@@ -437,14 +437,14 @@ export default async function AutopayPage({
               than your cap, and you can skip a month, set vacation mode, or cancel any time.
             </p>
           </form>
-        </div>
+        </Surface>
       ) : !loadError && (mandates ?? []).length === 0 ? (
-        <div className={`${card} text-center`}>
+        <Surface className="text-center">
           <p className="text-sm text-gray-500">
             AutoPay becomes available once your association enables online payments.
             Meanwhile, see <Link href="/portal/pay" className="font-medium text-gray-700 underline">How to Pay</Link>.
           </p>
-        </div>
+        </Surface>
       ) : null}
     </div>
   );

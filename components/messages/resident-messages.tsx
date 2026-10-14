@@ -50,7 +50,7 @@ export function ResidentConversationList({
         actions={!compose ? <Link href={`${base}?compose=1`} className={buttonClass()}><Send className="h-4 w-4" /> New message</Link> : null}
       />
       {error ? <Alert>{error}</Alert> : null}
-      {loadError ? <Alert tone="danger">{loadError}. Please refresh.</Alert> : null}
+      {loadError ? <Alert tone="danger">{loadError.replace(/\.\s*$/, '')}. Please refresh.</Alert> : null}
 
       {compose ? (
         <Surface>

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ownerTenureCutoffs, ownerVisibleCharge, type TenureCutoffs } from '@/app/portal/_lib/tenure';
 import { groupByAssociation, isLateFeeRemoval, ownerPaymentMethodLabel } from '@/lib/portal/ledger-rows';
 import { pageCount, pageHref, pageRange, parsePage } from '@/lib/portal/paging';
+import { paymentNotCompleted } from '@/lib/portal/payment-outcome';
 
 // Owner portal fixes: tenure-scoped charges, AutoPay respecting "online
 // payments off", hearing dates and fines, paging, loud read errors, failed
@@ -164,7 +165,10 @@ describe('AutoPay respects "online payments off"', () => {
 
   it('does not offer such units and shows existing enrollments as paused', () => {
     expect(page).toContain('&& o.allow_online_payments !== false');
-    expect(page).toContain('Paused – online payments are off for this account');
+    expect(page).toContain('<StatusChip tone="warning">Paused</StatusChip>');
+    expect(page).toContain('Online payments are off for this account.</p>}');
+    expect(page).toContain('Please contact your management company.');
+    expect(page).not.toContain('management office');
     expect(page).toContain("onlineOff.has(`${m.owner_id}:${m.unit_id}`)");
   });
 
@@ -208,25 +212,76 @@ describe('silent read errors are shown', () => {
       expect(page, file).toContain("compose={!loadError && (sp.compose === '1' || threads.length === 0)}");
       expect(page, file).toContain('loadError={loadError}');
     }
-    expect(read('components/messages/resident-messages.tsx')).toContain('{loadError ? <Alert tone="danger">');
+    // No doubled period when the error text already ends in one.
+    expect(read('components/messages/resident-messages.tsx')).toContain("{loadError.replace(/\\.\\s*$/, '')}. Please refresh.");
   });
 });
 
 describe('payment result page', () => {
   const page = read('app/portal/pay/success/page.tsx');
-  it('a failed or canceled payment never reads as submitted', () => {
-    expect(page).toContain("const notCompleted = intent?.status === 'failed' || intent?.status === 'canceled'");
-    expect(page).toContain("'Payment did not go through'");
+  it('a payment that did not end up paid never reads as submitted', () => {
+    expect(page).toContain('const notCompleted = paymentNotCompleted(intent?.status)');
+    expect(page).toContain('{notCompleted.title}');
     expect(page).toContain('<Link href="/portal/pay" className={buttonClass()}>Back to Pay</Link>');
+  });
+
+  it('the lookup warning sits under the heading text, above the buttons', () => {
+    const main = page.slice(page.lastIndexOf('  return ('));
+    const heading = main.indexOf("'Your payment was submitted. It will appear on your ledger once confirmed.'");
+    const warning = main.indexOf('{intentError && (');
+    const buttons = main.indexOf('<Link href="/portal/ledger"');
+    expect(heading).toBeGreaterThan(0);
+    expect(warning).toBeGreaterThan(heading);
+    expect(buttons).toBeGreaterThan(warning);
+  });
+
+  it.each([
+    ['failed', 'Payment did not go through'],
+    ['canceled', 'Payment canceled'],
+    ['returned', 'This payment was returned'],
+    ['refunded', 'This payment was refunded'],
+    ['chargeback', 'This payment was disputed'],
+  ])('%s gets its own wording', (status, title) => {
+    const outcome = paymentNotCompleted(status);
+    expect(outcome?.title).toBe(title);
+    expect(outcome?.body('$10.00')).toContain('$10.00');
+  });
+
+  it.each(['succeeded', 'pending', 'processing', null, undefined])('%s is not a not-completed payment', (status) => {
+    expect(paymentNotCompleted(status as string | null | undefined)).toBeNull();
   });
 });
 
-describe('communications uses the shared Textarea', () => {
-  it('has no hand-styled textarea', () => {
+describe('communications uses the shared form components', () => {
+  it('has no hand-styled fields or button', () => {
     const page = read('app/portal/communications/page.tsx');
-    expect(page).toContain("import { Textarea } from '@/components/ui/input'");
-    expect(page).toContain('<Textarea name="body"');
+    expect(page).toContain("import { Field, Input, Select, Textarea } from '@/components/ui/input'");
+    expect(page).toContain('<Field label="Subject" required><Input name="subject"');
+    expect(page).toContain('<Field label="Message" required><Textarea name="body"');
+    expect(page).toContain('<PendingSubmit pendingLabel="Sending…">Send Message</PendingSubmit>');
     expect(page).not.toContain('<textarea');
+    expect(page).not.toContain('<input name="subject"');
+    expect(page).not.toContain('<button type="submit"');
+  });
+});
+
+describe('shared cards and banners', () => {
+  it.each([
+    'app/portal/hearings/page.tsx',
+    'app/portal/violations/page.tsx',
+    'app/portal/autopay/page.tsx',
+    'app/portal/meetings/page.tsx',
+  ])('%s uses Surface, not hand-rolled cards', (file) => {
+    const page = read(file);
+    expect(page).toContain('<Surface');
+    expect(page).not.toContain('rounded-2xl border border-line bg-white');
+  });
+
+  it('violations: success banner is an Alert; totals error only when the list loaded', () => {
+    const page = read('app/portal/violations/page.tsx');
+    expect(page).not.toContain('border-emerald-200 bg-emerald-50');
+    expect(page).toContain('<Alert tone="success">');
+    expect(page).toContain('{!violsError && tilesError && <Alert');
   });
 });
 

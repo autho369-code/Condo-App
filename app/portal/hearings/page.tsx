@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { Badge, Alert } from '@/components/ui/shell'
+import { Badge, Alert, Surface } from '@/components/ui/shell'
 import { money, date } from '@/lib/utils'
 import Link from 'next/link'
 import { associationZone } from '../_lib/tenure'
@@ -31,10 +31,10 @@ export default async function OwnerHearingsPage({ searchParams }: { searchParams
       {violsError && <Alert tone="danger" title="Could not load your hearings:">{violsError.message}. Please refresh.</Alert>}
 
       {violsError ? null : all.length === 0 ? (
-        <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <Surface padded={false} className="px-6 py-12 text-center">
           <p className="text-sm font-semibold text-gray-900">No hearings scheduled.</p>
           <p className="mt-1 text-sm text-gray-500">If a hearing is scheduled for one of your violations, it will appear here. To request a hearing, contact your association management.</p>
-        </div>
+        </Surface>
       ) : (
         <div className="space-y-4">
           {all.map((v: any) => {
@@ -47,7 +47,7 @@ export default async function OwnerHearingsPage({ searchParams }: { searchParams
             const zone = associationZone(v.associations?.timezone)
             const fine = Number(v.fines_total) > 0 ? v.fines_total : v.fine_amount
             return (
-            <div key={v.id} className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <Surface key={v.id}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <Link href={`/portal/violations/${v.id}`} className="font-semibold text-gray-900 hover:text-gray-950 hover:underline">{v.title}</Link>
@@ -61,7 +61,7 @@ export default async function OwnerHearingsPage({ searchParams }: { searchParams
                 <div><span className="text-gray-500">Board Decision:</span> <span className="text-gray-900 font-medium capitalize">{v.board_decision ?? 'Pending'}</span></div>
                 <div><span className="text-gray-500">Hearing Required:</span> <span className="text-gray-900 font-medium">{v.hearing_required ? 'Yes' : 'No'}</span></div>
               </div>
-            </div>
+            </Surface>
             )
           })}
         </div>
