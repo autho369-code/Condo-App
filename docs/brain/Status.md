@@ -1,9 +1,28 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#373 merged; open PR: #374 claude/payables-followups; next: Payables follow-ups (Next gaps); waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#373 merged; open PR: claude/payables-followups (PR not opened yet); next: Stripe TEST-mode checkout and AutoPay run (Next gaps; needs Mirsad's Stripe test keys), else a new gap from the AppFolio gap analysis; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #374 claude/payables-followups: Payables follow-ups (Next gaps).
+- (PR not opened yet) claude/payables-followups: Payables follow-ups (Next gaps).
+  - 1099 totals (vendor_1099_totals, assemble_vendor_1099_data): the tax
+    year is a range on paid_at in the time zone of the association
+    of each bill, instead of association_local_date per bill; starts from
+    the bills (a bill with no association still counts, migration review),
+    narrowed by a partial index idx_payable_bills_paid_at to two days around
+    the year. 20261015030000 LIVE as 20261013224154 (grants unchanged).
+    Rolled back on production at 50,000 paid bills: 781 -> 56 ms and
+    814 -> 42 ms; output identical (both directions, jsonb equal) for
+    Chicago, Honolulu, Tokyo and a blank zone x tax years 2024-2027, bills
+    each hour around New Year and a bill with no association; 672 boundary
+    instants matched.
+  - Bill line items vs set_payable_bill_expense_account: verified, no
+    change. payable_bill_line_items has 0 rows; no function or app code
+    reads or writes it; ensure_payable_bill_accrual posts the header
+    gl_account_id, so the header account is the one that counts.
+  - System-generated bills (recurring, management fee): no vendor invoice
+    number and no payment, so the duplicate-invoice and payment-date rules
+    don't apply (by design, no change). Purchase-order bills go through
+    create_payable_bill (checked in #360); pay_owner_payable checks dates.
 
 ## Merged 2026-10-13
 - #373 reconciliation statement balance (Codex on #372, P1): a reconciliation
@@ -616,14 +635,11 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#373 merged; open PR: #374 claude/pay
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- Payables (migration review): recurring and management-fee bills are
-  system-generated (no vendor invoice number, no payment), so the duplicate
-  and date rules do not apply; purchase-order bills go through
-  create_payable_bill (checked); pay_owner_payable now checks dates. A bill's line items may override the header expense
-  account (check before relying on set_payable_bill_expense_account there).
-- Payables, measured not changed: both 1099 functions
-  call association_local_date per paid bill (~0.85 s at 50,000 paid bills a
-  year).
+- DONE 2026-10-13 (verified live, no change): payable_bill_line_items
+  policies already use the once-per-query helpers (my_finance_portfolio,
+  is_platform_operator, my_managed_association_ids) through an EXISTS on
+  the bill; the older migration files still show per-row helpers. Dropping
+  the unused table is Mirsad's call (TODO).
 - DONE 2026-10-13 (measured, no change): v_unit_account_summary at 2,000
   units / 36,000 charges / 8,000 payments: one unit 11-94 ms by role, all
   2,000 units 140 ms for a manager.

@@ -49,6 +49,8 @@
 
 - Text-patch migrations: run every multi-line anchor against the latest repo body with a node count script; a skipped comment line aborts the migration (20261015020000:56). See sql-pitfalls. (Fixed before apply: anchor, indexes, draft early-return, association_id, adjustment refused on any open reconciliation.)
 
+- Replacing a per-row definer helper (association_local_date(pb.association_id,..)) with an inner JOIN to the parent changes semantics: rows with a NULL/hidden FK drop (payable_bills.association_id is nullable; 20261015030000 vendor_1099_totals), and the join now evaluates parent-only expressions (free-text timezone) for parents with no rows. Check nullability + RLS parity + caller's null handling.
+
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns

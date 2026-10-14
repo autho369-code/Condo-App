@@ -4,6 +4,9 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- 1099 totals over 10x faster at scale (781 -> 56 ms at 50,000 paid bills),
+  same results; bill line items verified unused (bills post to the header
+  expense account) (20261015030000).
 - Reconciliation statement balance can be corrected while in progress
   (Codex on #372: a reopened one was stuck).
 - Banking follow-ups: finance staff can undo an account's latest bank

@@ -41,6 +41,8 @@
 - Codex P1 on #372 (missed here): a new "reopen/undo" state must keep every input needed to finish it editable, and every exit path open. Reopened reconciliations had a read-only statement balance and discard refused them, so they could never complete. Walk reopen -> edit -> complete/discard in the UI. (Fixed: updateStatementBalance in bank-accounts/reconcile/actions.ts.)
 - DEFINER RPCs that `select ... for update` the parent (bank account) BEFORE the access helper: the house rule (guard comment) is check access first, then lock. (Fixed in undo_bank_reconciliation.)
 
+- "Same rows" speed rewrites that drive from a parent (associations join instead of a definer lookup like association_local_date, which falls back on NULL): inner join drops child rows whose FK is nullable (payable_bills.association_id; company-level bills allowed, vendor_1099_totals 20261015030000). Check nullability; use left join. Also check the parent's RLS matches the child's for every role (vendors: associations_vendor_bill_read).
+
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import
 - [Missed checks](missed-checks.md) -- domain-proof replay/relay, token minting, html_escape, storage cleanup, finance RPC scope triggers, hidden columns copied by DEFINER triggers (soft_delete_log), owner_visible_history writers
