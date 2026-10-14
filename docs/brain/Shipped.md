@@ -8,6 +8,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   20261014181309): company admins use inventory; work order # matched within
   the company; no late fee on due-AutoPay units the day a company is
   reactivated, nor while a unit's payment is in flight.
+- PO decisions (20261016220000 live as 20261014181833): bills within a
+  board-approved PO skip the board; vendor emailed on approval; recurring POs
+  create only the current period; project Committed vs Spent; automatic
+  unique PO numbers; purchase orders finance-only.
 - Platform mail marked by the server (email_queue.platform_mail, live as
   20261014172807): a company named "Portier369 ..." is never treated as the
   platform for the suspension hold, unsubscribe links or the sending address.

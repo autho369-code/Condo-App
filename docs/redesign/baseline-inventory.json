@@ -10063,7 +10063,7 @@
      "New project"
     ],
     "data": [
-     "rpc:capital_project_spend_totals",
+     "rpc:capital_project_cost_totals",
      "table:associations",
      "table:capital_projects"
     ],
@@ -10132,7 +10132,7 @@
     ],
     "data": [
      "rpc:delete_project_budget_line",
-     "rpc:project_budget_vs_actual",
+     "rpc:project_cost_by_category",
      "rpc:save_project_budget_line",
      "table:capital_project_milestones",
      "table:capital_project_work_orders",

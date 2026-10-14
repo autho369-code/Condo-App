@@ -64,6 +64,7 @@
 - [RLS once-per-query rewrite](rls-hoist.md) -- my_* helpers replace can_* in policy text (2026-10-11)
 - [Messaging, email, SMS, flags](messaging-email-sms.md) -- email_queue/invite secrets, rate limits, SMS routing proofs, unsubscribe, set_config flags, race guards
 - [Finance guards](finance-guards.md) -- staff text on owner rows (cancel_reason), journal source pins, marker/row-freeze triggers, derived-status inputs (Codex #383), approval_requests guard
+- [Deep checks 2026-10](deep-checks-2026-10.md) -- ledger/payment marker guards, row freezes, INVOKER helper EXECUTE, side-row upserts, approval guards, portfolios columns, platform_mail, reports claim switch, purchase orders
 
 ## Policy roles (2026-10-12, 20261012010000)
 - Public pages/API routes all use the service client; only `tenant_branding` (DEFINER) is granted to anon; auth.users triggers + password hook are DEFINER. So moving {public}-role policies to authenticated breaks no signed-out path.

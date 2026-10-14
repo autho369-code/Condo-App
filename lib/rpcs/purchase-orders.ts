@@ -5,6 +5,7 @@ import { requireFinanceStaff, requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { savePrivateFields } from '@/lib/private-fields';
 import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
+import { notifyVendorOfPurchaseOrderApproval, purchaseOrderPageAfterApproval, type PurchaseOrderApprovalEmailResult } from '@/lib/notifications/purchase-order-approved';
 
 export type PurchaseOrderLineInput = {
   description: string;
@@ -56,25 +57,43 @@ export async function savePurchaseOrder(formData: FormData) {
     p_submit: formData.get('intent') === 'submit',
   });
   if (error) failTo(error.message);
+  // Submitted and approved within the manager's authority: the vendor gets the
+  // order. Queued before the notes are written: the approval is already
+  // committed, so a notes failure must not lose the vendor's email.
+  const emailed = formData.get('intent') === 'submit'
+    ? await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: String(data), portfolioId })
+    : null;
   // Internal notes are staff-only (purchase_order_private). Written here so
   // clearing them works: the RPC's NULL would leave the stored note.
   const notesError = await savePrivateFields(supabase, 'purchase_order_private', 'purchase_order_id', String(data), {
     notes: String(formData.get('notes') ?? '').slice(0, 2000),
   });
-  if (notesError) redirect(`/purchase-orders/${data}?error=${encodeURIComponent(`Saved, but the internal notes could not be saved: ${notesError.message}`)}`);
+  if (notesError) {
+    const vendorNote = emailed?.reason ? ` The vendor was not emailed: ${emailed.reason}.` : '';
+    redirect(`/purchase-orders/${data}?error=${encodeURIComponent(`Saved, but the internal notes could not be saved: ${notesError.message}.${vendorNote}`)}`);
+  }
 
   revalidatePath('/purchase-orders');
-  redirect(`/purchase-orders/${data}`);
+  redirect(purchaseOrderPageAfterApproval(String(data), emailed));
 }
 
 export async function submitPurchaseOrder(formData: FormData) {
-  await requireFinanceStaff();
+  const me = await requireFinanceStaff();
   const id = formData.get('id') as string;
   const supabase = await createClient();
-  const { error } = await (supabase as any).rpc('submit_purchase_order', { p_purchase_order_id: id });
+  const { data, error } = await (supabase as any).rpc('submit_purchase_order', { p_purchase_order_id: id });
   if (error) redirect(`/purchase-orders/${id}?error=${encodeURIComponent(error.message)}`);
+  // Approved within the manager's authority: the vendor gets the order.
+  let emailed: PurchaseOrderApprovalEmailResult | null = null;
+  if (data === 'approved') {
+    // The platform operator has no company of its own: use the company of the
+    // PO read through the caller's own session (RLS-limited); the email helper
+    // re-checks the PO belongs to it.
+    const { data: po } = await (supabase as any).from('purchase_orders').select('portfolio_id').eq('id', id).maybeSingle();
+    emailed = await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: id, portfolioId: me.portfolio?.id ?? po?.portfolio_id });
+  }
   revalidatePath('/purchase-orders');
-  redirect(`/purchase-orders/${id}`);
+  redirect(purchaseOrderPageAfterApproval(id, emailed));
 }
 
 /**
@@ -83,7 +102,7 @@ export async function submitPurchaseOrder(formData: FormData) {
  * by email), as on the bill page.
  */
 export async function recordPurchaseOrderBoardDecision(formData: FormData) {
-  await requireFinanceStaff();  // in-action guard: server actions are callable endpoints
+  const me = await requireFinanceStaff();  // in-action guard: server actions are callable endpoints
   const id = String(formData.get('id') ?? '');
   const requestId = String(formData.get('approval_request_id') ?? '');
   const decision = String(formData.get('decision') ?? '');
@@ -93,14 +112,20 @@ export async function recordPurchaseOrderBoardDecision(formData: FormData) {
   if (decision !== 'approved' && decision !== 'rejected') failTo('Choose whether the board approved or rejected the purchase order.');
   const supabase = await createClient();
   // The request must be the one this PO points at.
-  const { data: po } = await (supabase as any).from('purchase_orders').select('approval_request_id').eq('id', id).maybeSingle();
+  const { data: po } = await (supabase as any).from('purchase_orders').select('approval_request_id, portfolio_id').eq('id', id).maybeSingle();
   if (!po || !requestId || po.approval_request_id !== requestId) failTo('This purchase order has no open board approval request.');
   // The RPC re-checks finance access and the association, and records who recorded the decision.
   const { error } = await (supabase as any).rpc('record_approval_decision', { p_request_id: requestId, p_decision: decision, p_note: note || null });
   if (error) failTo(error.message);
+  // The board approved: the vendor gets the order.
+  // The platform operator has no company of its own: the PO's company (read
+  // above through the caller's session) stands in; the helper re-checks it.
+  const emailed = decision === 'approved'
+    ? await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: id, portfolioId: me.portfolio?.id ?? po.portfolio_id })
+    : null;
   revalidatePath('/purchase-orders');
   revalidatePath(`/purchase-orders/${id}`);
-  redirect(`/purchase-orders/${id}`);
+  redirect(purchaseOrderPageAfterApproval(id, emailed));
 }
 
 export async function cancelPurchaseOrder(formData: FormData) {
