@@ -128,6 +128,11 @@ Back to [[Home]].
   rate (20261014220000). Checks inside a trigger that reads other tables run
   in a definer helper: the caller's row-level security on every row made
   2,000 emails take ~4 s.
+- **A limit counts what the server sets, under a lock** (2026-10-13): a rate
+  limit or quota must count by values the database sets (created_at := now(),
+  sent_by := auth.uid() in the guard), never ones the caller supplies, and
+  take a per-scope lock (pg_advisory_xact_lock) before counting, or
+  parallel requests each see room (Codex on #367, 20261014230000).
 - **Residents read staff tables through a safe RPC** (2026-10-13): a policy
   can't hide columns, so when a table holds staff-only fields (internal
   notes, instructions, recipients), owners and tenants read it through a

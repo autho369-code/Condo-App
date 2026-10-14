@@ -39,3 +39,8 @@ Rule: when a PR fixes a hole a reviewer recorded, its memory line must say "fixe
   loop) all fixed by 20261014220000 sections 6-8 but written as open. Also
   Codex findings on merged #366 (legacy upsert/delete_budget_line bypass,
   duplicate-in-progress reported as success) fixed with no reviewer lesson.
+- Recurring 2nd time (email-rate-limit pre-PR, 2026-10-13): Codex P1s on
+  merged #367 (client-set created_at, no lock on the hourly count) fixed in
+  20261014230000; only migration-reviewer got a lesson (lock pattern), the
+  security-reviewer that reviewed #367's rate limit got none. Every
+  "Codex on #N" PR: each reviewer that ran on #N gets a "missed: ..." line.

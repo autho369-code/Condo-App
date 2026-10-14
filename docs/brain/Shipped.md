@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Email limit (Codex on #367): back-dated or parallel sends can no longer get
+  past the 5,000-per-hour company limit (20261014230000).
 - Email security: password-reset and invitation links can no longer be read
   or redirected by company staff; staff can't send mail under another name,
   to a foreign reply-to or with scripts; mass mail replies go to the company

@@ -1,30 +1,18 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#366 merged; open PR: #367 claude/email-queue-security; next: communications follow-ups; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#367 merged; open PR: #368 claude/email-rate-limit; next: communications follow-ups; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #367 claude/email-queue-security: communications deep check
-  (P1 account takeover) + Codex on #366. 20261014220000 (LIVE):
-  - any company staff login could read password-reset and invitation links
-    in email_queue and redirect a pending one (UPDATE to_email): rows with a
-    sign-in, e-signature or upload link are marked (holds_auth_link),
-    readable by no signed-in user and queued by the server only; signed-in
-    users can only retry a failed email; invitation tokens in
-    user_invitations are no longer readable by staff;
-  - staff could queue mail with any sender name, reply-to and raw HTML:
-    inserts by signed-in users must use the company/association name, a
-    company reply-to (support, own address, verified domain), no active
-    HTML, at most 5,000 per company per hour;
-  - Communication Center: replies go to the company's support address (not
-    the platform mailbox), up to 5,000 recipients, owner ids passed in (a
-    2,000-owner send timed out at the 8 s limit; now 3.7 s);
-  - sign-in mail is sent ahead of other queued mail;
-  - Codex on #366: old upsert/delete_budget_line RPCs revoked; a still-
-    running duplicate "Update assessments" isn't reported as success.
-  By design, sign-in emails no longer show in owner email history or the
-  operator monitors (Decisions).
+- #368 claude/email-rate-limit: Codex on #367 - the hourly email
+  limit counted client-supplied created_at (backdated rows never counted)
+  and parallel sends each saw room under it. The insert guard sets
+  created_at to the database time; the limit takes a per-company lock
+  before counting.
 
 ## Merged 2026-10-13
+- #367 email security: sign-in links unreadable by staff; staff mail checked
+  in the database; mass email fast and replies to the company
+  (20261014220000).
 - #366 budgets: budget vs actual in fiscal months with real actuals;
   assessments can't cancel next year's or post twice; budget lines only
   through the worksheet (20261014210000).
