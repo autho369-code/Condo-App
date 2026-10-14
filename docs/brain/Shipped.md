@@ -4,6 +4,14 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Owner portal fixes (claude/owner-portal-fixes, app code only): previous
+  owner's paid charges hidden on the ledger (open ones stay); Unit column
+  and per-association export; AutoPay respects "online payments off";
+  hearing time, fines and the association's time zone on hearings; work
+  order errors shown; work orders and violations paged with full totals;
+  failed reads shown as errors across the portal; failed/canceled payments
+  say so; shared text box on Communications; removed late fees read
+  "Late fee removed", not as payments.
 - Work orders and service requests (20261015170000 live as
   20261014034204): one work order per request and
   the request follows its work orders (complete, reopen); status emails to

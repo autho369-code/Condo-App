@@ -27,27 +27,38 @@ function scoped(query: any, party: ResidentParty) {
   return query.in('tenant_id', party.tenantIds.length ? party.tenantIds : ['00000000-0000-0000-0000-000000000000']);
 }
 
-/** Units the resident can write about, labelled "Association · Unit 101". */
-export async function residentUnitOptions(unitIds: string[]) {
-  if (!unitIds.length) return [];
+/**
+ * Units the resident can write about, labelled "Association · Unit 101", plus
+ * the read error (a failed read must not read as "not linked to a unit").
+ */
+export async function residentUnitOptions(unitIds: string[]): Promise<{ units: { id: string; label: string }[]; error: string | null }> {
+  if (!unitIds.length) return { units: [], error: null };
   const db = (await createClient()) as any;
-  const { data } = await db.from('units')
+  const { data, error } = await db.from('units')
     .select('id, unit_number, buildings(associations(name))')
     .in('id', unitIds);
-  return ((data ?? []) as any[]).map((u) => {
-    const assoc = one<any>(one<any>(u.buildings)?.associations);
-    return { id: u.id as string, label: `${assoc?.name ? `${assoc.name} · ` : ''}Unit ${u.unit_number ?? '—'}` };
-  });
+  if (error) return { units: [], error: `Could not load your units: ${error.message ?? 'unknown error'}` };
+  return {
+    units: ((data ?? []) as any[]).map((u) => {
+      const assoc = one<any>(one<any>(u.buildings)?.associations);
+      return { id: u.id as string, label: `${assoc?.name ? `${assoc.name} · ` : ''}Unit ${u.unit_number ?? '—'}` };
+    }),
+    error: null,
+  };
 }
 
-/** The resident's own threads. */
-export async function residentThreads(party: ResidentParty): Promise<ResidentThreadRow[]> {
+/**
+ * The resident's own threads, plus the read error. Pages render the error in
+ * an <Alert> and must not open "compose" as if there were no threads.
+ */
+export async function residentThreads(party: ResidentParty): Promise<{ threads: ResidentThreadRow[]; error: string | null }> {
   const db = (await createClient()) as any;
-  const { data } = await scoped(db.from('message_threads')
+  const { data, error } = await scoped(db.from('message_threads')
     .select('id, subject, status, last_message_at, last_message_preview, last_message_role, resident_unread'), party)
     .order('last_message_at', { ascending: false })
     .limit(200);
-  return (data ?? []) as ResidentThreadRow[];
+  if (error) return { threads: [], error: `Could not load your messages: ${error.message ?? 'unknown error'}` };
+  return { threads: (data ?? []) as ResidentThreadRow[], error: null };
 }
 
 /** One of the resident's threads + its non-internal messages, marked read. */

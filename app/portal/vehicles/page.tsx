@@ -3,6 +3,7 @@ import { requireOwner } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date, money } from '@/lib/utils'
 import { Car } from 'lucide-react'
+import { Alert } from '@/components/ui/shell'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ export default async function OwnerVehiclesPage() {
   const supabase = await createClient()
   const db = supabase as any
 
-  const { data: assignments } = await db
+  const { data: assignments, error: assignmentsError } = await db
     .from('parking_assignments')
     .select('id, status, start_date, end_date, monthly_fee, vehicle_make, vehicle_model, vehicle_color, license_plate, insurance_company, insurance_policy_number, parking_spaces(label, space_type), units(unit_number)')
     .in('owner_id', me.owner_ids)
@@ -30,6 +31,8 @@ export default async function OwnerVehiclesPage() {
           Your registered vehicles and parking assignments — contact your management company to add or change a vehicle
         </p>
       </div>
+
+      {assignmentsError && <Alert tone="danger" title="Could not load your vehicles and parking:">{assignmentsError.message.replace(/\.\s*$/, '')}. Please refresh.</Alert>}
 
       <div className="grid grid-cols-2 gap-3">
         {[
@@ -66,7 +69,9 @@ export default async function OwnerVehiclesPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 ? (
+              {assignmentsError ? (
+                <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-500">Vehicles and parking could not be loaded.</td></tr>
+              ) : rows.length === 0 ? (
                 <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-500">No vehicles or parking assignments on file.</td></tr>
               ) : (
                 rows.map((r: any) => (

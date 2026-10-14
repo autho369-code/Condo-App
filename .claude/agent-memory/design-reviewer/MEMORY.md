@@ -111,3 +111,7 @@
 ## Overnight ranges, partial migrations (portal/amenities, 2026-10-14)
 - When end can fall on the next day (late-night amenity hours), check every range display shows the end date (portal/amenities fixed via fmtRange, 2026-10-14).
 - Partial migrations leave heading-level drift: outer hand-rolled 13px `<h2>` wrapping a 17px SectionTitle `<h2>` (portal/amenities "My reservations" > "Upcoming"). Check heading sizes/levels nest.
+## Owner portal fixes (claude/owner-portal-fixes, 2026-10-14)
+- StatusChip is `whitespace-nowrap capitalize`: sentence-length chip text ("Paused – online payments are off for this account", autopay/page.tsx:341) overflows a p-5 card at 375px and comes out Title Case. Keep chips to 1-3 words; put the explanation in a line of text.
+- Status-specific result pages (pay/success): check every value of the CHECK constraint, not just the ones the change names (payment_intents also has returned/refunded/chargeback).
+- Half-swapped forms: when one field moves to a shared control (communications Textarea), the sibling raw input + hand-rolled submit stay; flag the rest of the form.

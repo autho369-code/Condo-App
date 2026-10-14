@@ -1,12 +1,14 @@
 import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { Badge, Alert } from '@/components/ui/shell'
+import { Badge, Alert, SectionTitle, Surface } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 import { htmlToPlainText } from '@/lib/security/rich-text'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { loadOwnerRecords } from '@/lib/portal/owner-records'
+import { Field, Input, Select, Textarea } from '@/components/ui/input'
+import { PendingSubmit } from '@/components/ui/pending-submit'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,30 +82,30 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
       {banner.error && <Alert tone="danger" title="Could not send:">{banner.error}</Alert>}
       {loadError && <Alert tone="danger" title="Could not load your messages:">{loadError.message}</Alert>}
       {banner.sent === '1' && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your message was sent to management.</div>
+        <Alert tone="success">Your message was sent to management.</Alert>
       )}
 
       {/* Send Message */}
-      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
-        <h2 className="mb-4 text-sm font-semibold text-gray-950">Send a Message</h2>
+      <Surface>
+        <SectionTitle title="Send a Message" />
         <form action={sendMessage} className="space-y-4">
           <input type="hidden" name="request_key" value={requestKey} />
           {records.length > 1 ? (
-            <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Association</span><select name="record_id" required defaultValue={records[0].id} className="mt-1 block min-h-10 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">{records.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}</select></label>
+            <Field label="Association" required><Select name="record_id" required defaultValue={records[0].id}>{records.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}</Select></Field>
           ) : (
             // Never a silent first-record fallback for a login with several records
             // (their list failed to load): the action then asks for the association.
             <input type="hidden" name="record_id" value={me.owner_ids.length === 1 ? me.owner_id ?? '' : ''} />
           )}
-          <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Subject</span><input name="subject" required minLength={2} maxLength={200} className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" /></label>
-          <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Message</span><textarea name="body" required minLength={2} maxLength={10000} rows={4} className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" /></label>
-          <button type="submit" className="rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">Send Message</button>
+          <Field label="Subject" required><Input name="subject" required minLength={2} maxLength={200} /></Field>
+          <Field label="Message" required><Textarea name="body" required minLength={2} maxLength={10000} rows={4} /></Field>
+          <PendingSubmit pendingLabel="Sending…">Send Message</PendingSubmit>
         </form>
-      </div>
+      </Surface>
 
       {/* Announcements */}
-      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
-        <h2 className="mb-3 text-sm font-semibold text-gray-950">Announcements</h2>
+      <Surface>
+        <SectionTitle title="Announcements" />
         {announcements.length === 0 ? (
           <p className="text-sm text-gray-400">No announcements yet.</p>
         ) : (
@@ -118,11 +120,11 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
             ))}
           </div>
         )}
-      </div>
+      </Surface>
 
       {/* Message History */}
-      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
-        <h2 className="mb-3 text-sm font-semibold text-gray-950">Message History</h2>
+      <Surface>
+        <SectionTitle title="Message History" />
         {(msgs ?? []).length === 0 ? (
           <p className="text-sm text-gray-400">No messages sent yet.</p>
         ) : (
@@ -139,7 +141,7 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
             ))}
           </div>
         )}
-      </div>
+      </Surface>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { money, date } from '@/lib/utils'
 import { CreditCard, Wrench, AlertTriangle, Shield, MessageSquare, Calendar, Undo2 } from 'lucide-react'
 import { Alert } from '@/components/ui/shell'
 import { ownerTenureCutoffs, tenureFilter } from '../_lib/tenure'
+import { isLateFeeRemoval } from '@/lib/portal/ledger-rows'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +19,7 @@ export default async function OwnerTimelinePage() {
   // Use occupancies (status='current') so this matches the work_orders RLS
   // predicate current_resident_unit_ids(); otherwise the work-order section is
   // silently empty when unit_owners and occupancies disagree.
-  const { data: myUnits } = await db.from('occupancies').select('unit_id').in('owner_id', ownerIds).eq('status', 'current')
+  const { data: myUnits, error: myUnitsError } = await db.from('occupancies').select('unit_id').in('owner_id', ownerIds).eq('status', 'current')
   const unitIds = (myUnits ?? []).map((u: any) => u.unit_id)
   // Payments only from the owner's own move-in on (a buyer must not see the seller's).
   const tenure = await ownerTenureCutoffs(db, ownerIds)
@@ -30,7 +31,7 @@ export default async function OwnerTimelinePage() {
     // By the owner's current units, like the ledger. Read payments directly so
     // returned (reversed) payments are labelled as they are on the ledger.
     paymentScope
-      ? db.from('payments').select('amount, payment_date, method').or(paymentScope).order('payment_date', { ascending: false }).limit(30)
+      ? db.from('payments').select('amount, payment_date, method, reference').or(paymentScope).order('payment_date', { ascending: false }).limit(30)
       : Promise.resolve({ data: [], error: null }),
     // A return is its own event, dated when the payment came back (which can
     // be long after the payment date). The effective return date staff chose
@@ -52,6 +53,11 @@ export default async function OwnerTimelinePage() {
   const entries: Entry[] = []
 
   for (const p of paymentsRes?.data ?? []) {
+    // A removed late fee is a credit on the account, not a payment received.
+    if (isLateFeeRemoval(p)) {
+      entries.push({ date: p.payment_date, icon: CreditCard, title: 'Late fee removed', detail: money(p.amount) + ' credited', color: 'text-emerald-600 bg-emerald-50' })
+      continue
+    }
     entries.push({ date: p.payment_date, icon: CreditCard, title: 'Payment', detail: money(p.amount) + ' via ' + (p.method ?? '—'), color: 'text-emerald-600 bg-emerald-50' })
   }
   for (const p of returnsRes?.data ?? []) {
@@ -68,7 +74,7 @@ export default async function OwnerTimelinePage() {
   }
 
   entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  const loadError = paymentsRes?.error ?? returnsRes?.error ?? wosRes?.error ?? violsRes?.error ?? msgsRes?.error
+  const loadError = myUnitsError ?? (tenure.error ? { message: tenure.error } : null) ?? paymentsRes?.error ?? returnsRes?.error ?? wosRes?.error ?? violsRes?.error ?? msgsRes?.error
 
   return (
     <div className="space-y-6 max-w-2xl">
