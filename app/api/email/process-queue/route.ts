@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCronSecret } from '@/lib/server/cron-auth';
 import { EMAIL_FROM_NAME } from '@/lib/email/queue';
-import { addressDomain, brandedFromAddress, isPlatformSenderName, isSenderDomainError, platformSenderAddress, usesPlatformSender } from '@/lib/email/sender-domains';
+import { addressDomain, brandedFromAddress, isPlatformMail, isSenderDomainError, platformSenderAddress, usesPlatformSender } from '@/lib/email/sender-domains';
 import { unsubscribeFooter, unsubscribeHeaders } from '@/lib/email/unsubscribe';
 import { COMPANY_ADDRESS_COLUMNS, companyUrl } from '@/lib/tenant/host';
 
@@ -39,8 +39,8 @@ export async function GET(request: NextRequest) {
   // company goes out under that company's name. Company mail (no name, or a
   // company/association name) goes out from the company's own domain once
   // that domain is verified (portfolio_email_domains). Platform-originated
-  // mail to a company (billing, onboarding) says Portier369 on purpose and
-  // stays on the platform domain. A failed lookup falls back to the platform
+  // mail to a company (billing, onboarding) is marked platform_mail by the
+  // server (never by its sender name) and stays on the platform domain. A failed lookup falls back to the platform
   // name and address.
   let claimedRows = (claimed ?? []) as any[];
 
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     .filter((e) => e.portfolio_id && (!String(e.from_name ?? '').trim() || unsubscribeFor.has(String(e.id))))
     .map((e) => String(e.portfolio_id)))];
   const companyIds = [...new Set(claimedRows
-    .filter((e) => e.portfolio_id && !e.sender_address && !isPlatformSenderName(e.from_name) && usesPlatformSender(e.from_address))
+    .filter((e) => e.portfolio_id && !e.sender_address && !isPlatformMail(e) && usesPlatformSender(e.from_address))
     .map((e) => String(e.portfolio_id)))];
   let brandsUnavailable = false;
   const brandNames = new Map<string, string>();
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     const stored = trustedStored(email, platformAddress);
     if (stored) return stored;
     if (earlierAttempt(email)) return platformAddress;
-    if (!email.portfolio_id || isPlatformSenderName(email.from_name) || !usesPlatformSender(email.from_address)) return platformAddress;
+    if (!email.portfolio_id || isPlatformMail(email) || !usesPlatformSender(email.from_address)) return platformAddress;
     return companySenders.get(String(email.portfolio_id)) ?? platformAddress;
   };
   const senderName = (email: any): string => {

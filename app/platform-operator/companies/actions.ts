@@ -195,6 +195,7 @@ export async function createCompanyWithAdmin(formData: FormData) {
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
+    platform_mail: true,
     portfolio_id: portfolioId,
   });
   if (mailError) fail(COMPANIES, `Company created but the welcome email failed to queue: ${mailError.message}`);
@@ -256,6 +257,7 @@ export async function inviteAdmin(formData: FormData) {
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
+    platform_mail: true,
     portfolio_id: portfolioId,
   });
   if (inviteEmailError) fail(returnTo, `Invitation created, but the email could not be queued: ${inviteEmailError.message}. Use Resend on the invitation.`);
@@ -294,6 +296,7 @@ export async function resendInvitation(formData: FormData) {
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
+    platform_mail: true,
     portfolio_id: inv.portfolio_id,
   });
   if (resendError) fail(returnTo, `Could not queue the reminder email: ${resendError.message}`);
@@ -382,6 +385,7 @@ export async function regenerateInvitation(formData: FormData) {
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
+    platform_mail: true,
     portfolio_id: old.portfolio_id,
   });
   if (regenEmailError) fail(returnTo, `New link created, but the email could not be queued: ${regenEmailError.message}. Use Resend.`);
@@ -437,6 +441,7 @@ export async function sendPasswordReset(formData: FormData) {
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
+    platform_mail: true,
     portfolio_id: profile.portfolio_id,
   });
   if (queueError) fail(returnTo, `Could not queue the reset email: ${queueError.message}`);
@@ -479,6 +484,7 @@ export async function forcePasswordReset(formData: FormData) {
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
+    platform_mail: true,
     portfolio_id: profile.portfolio_id,
   });
   if (queueError) fail(returnTo, `Password was reset, but the email could not be queued: ${queueError.message}. Use "Send reset email".`);
@@ -601,6 +607,7 @@ export async function sendInvoice(formData: FormData) {
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
+    platform_mail: true,
     portfolio_id: inv.portfolio_id,
   });
   if (error) fail(returnTo, `Could not queue the invoice email: ${error.message}`);

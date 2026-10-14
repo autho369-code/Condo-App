@@ -31,6 +31,14 @@ export interface QueuedEmail {
   idempotencyKey?: string | null;
   /** Owner the email is about (drives the owner's email history). */
   ownerId?: string | null;
+  /**
+   * The platform's own mail (billing, onboarding, operator announcements):
+   * sent from the platform address, still sent while the company is
+   * suspended, no company unsubscribe link. Server (service-role) callers
+   * only: the database forces it off for signed-in writes. The sender name
+   * never decides this.
+   */
+  platformMail?: boolean;
 }
 
 function escapeHtml(s: string): string {
@@ -87,6 +95,7 @@ export function emailQueueRow(e: QueuedEmail) {
     communication_message_id: e.communicationMessageId ?? null,
     idempotency_key: e.idempotencyKey ?? null,
     ...(e.ownerId ? { owner_id: e.ownerId } : {}),
+    ...(e.platformMail === true ? { platform_mail: true } : {}),
   };
 }
 
@@ -102,7 +111,9 @@ export async function queueEmails(db: any, emails: QueuedEmail[]): Promise<{ err
   // become safe to replay after a timeout or cron retry.
   const { data, error } = await db
     .from('email_queue')
-    .upsert(rows, { onConflict: 'idempotency_key', ignoreDuplicates: true })
+    // Rows of one batch may differ in optional columns (owner_id,
+    // platform_mail): a column a row leaves out takes its default, not null.
+    .upsert(rows, { onConflict: 'idempotency_key', ignoreDuplicates: true, defaultToNull: false })
     .select('id');
   return { error: error?.message ?? null, count: error ? 0 : (data?.length ?? 0) };
 }

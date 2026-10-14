@@ -81,6 +81,7 @@ async function sendAnnouncement(formData: FormData) {
     status: 'pending',
     from_address: 'hello@portier369.com',
     from_name: 'Portier369 Platform',
+    platform_mail: true,
     portfolio_id: r.portfolio_id,
     sent_by: me.auth_user_id,
   }))

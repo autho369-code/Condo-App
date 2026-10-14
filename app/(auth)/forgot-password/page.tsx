@@ -106,6 +106,8 @@ async function requestPasswordReset(formData: FormData) {
       status: 'pending',
       from_address: FROM_ADDRESS,
       from_name: portfolioId ? null : PLATFORM_NAME,
+      // Only the platform's own reset (no company) is platform mail.
+      ...(portfolioId ? {} : { platform_mail: true }),
       portfolio_id: portfolioId,
     });
   } catch {

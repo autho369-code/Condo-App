@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import {
   brandedFromAddress,
-  isPlatformSenderName,
+  isPlatformMail,
   platformSenderAddress,
   dnsRecords,
   isSenderDomainError,
@@ -100,11 +100,11 @@ describe('sender domain helpers', () => {
     expect(brandedFromAddress(null)).toBeNull();
   });
 
-  it('recognises platform-originated sender names', () => {
-    expect(isPlatformSenderName('Portier369')).toBe(true);
-    expect(isPlatformSenderName('Portier369 Platform')).toBe(true);
-    expect(isPlatformSenderName('Stellar Property Group')).toBe(false);
-    expect(isPlatformSenderName(null)).toBe(false);
+  it('recognises platform mail by the server-set flag, never by the sender name', () => {
+    expect(isPlatformMail({ platform_mail: true })).toBe(true);
+    expect(isPlatformMail({ platform_mail: false })).toBe(false);
+    expect(isPlatformMail({})).toBe(false);
+    expect(isPlatformMail(null)).toBe(false);
   });
 
   it('honours only platform-domain queued senders', () => {
@@ -213,12 +213,19 @@ describe('email worker sender selection', () => {
     expect(sent).toEqual([{ from: 'Stellar Property Group <hello@portier369.com>', key: 'email-queue-e1' }]);
   });
 
-  it('keeps platform mail with an explicit sender name on the platform domain', async () => {
-    queued = [email({ from_name: 'Portier369' })];
+  it('keeps platform mail (platform_mail) on the platform domain', async () => {
+    queued = [email({ from_name: 'Portier369', platform_mail: true })];
     domains = [verified];
     await runWorker();
     expect(sent).toEqual([{ from: 'Portier369 <hello@portier369.com>', key: 'email-queue-e1' }]);
     expect(snapshots).toEqual([{ id: 'e1', sender_address: 'hello@portier369.com' }]);
+  });
+
+  it('sends mail of a company named Portier369 ... from its own domain (the name is not the flag)', async () => {
+    queued = [email({ from_name: 'Portier369 Realty' })];
+    domains = [verified];
+    await runWorker();
+    expect(sent).toEqual([{ from: 'Portier369 Realty <notices@stellarpropertygroup.com>', key: brandedKey }]);
   });
 
   it('falls back to the platform address when the provider refuses the company domain', async () => {
@@ -309,7 +316,7 @@ describe('email worker sender selection', () => {
   });
 
   it('never sends from a queued address outside the platform domain', async () => {
-    queued = [email({ from_address: 'notices@othercompany.com', from_name: 'Portier369' })];
+    queued = [email({ from_address: 'notices@othercompany.com', from_name: 'Portier369', platform_mail: true })];
     domains = [];
     await runWorker();
     expect(sent).toEqual([{ from: 'Portier369 <hello@portier369.com>', key: 'email-queue-e1' }]);
