@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: purchase orders deep-check fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: #387 purchase orders deep-check fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/po-projects-deep-check: deep check of purchase orders, projects,
+- #387 claude/po-projects-deep-check: deep check of purchase orders, projects,
   inventory and fixed assets (rolled back at 5,000 rows, every role; all
   lists under 45 ms). 20261015230000 LIVE as 20261014092828 (dry-run rolled
   back on production first; read back; guard re-checked live, rolled back):
