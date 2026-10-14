@@ -97,3 +97,7 @@
 ## Public token pages, cont. (unsubscribe, 2026-10-13)
 - app/(public) token pages copy vendor-upload's hand-rolled `card` const (rounded-2xl + own shadow) instead of `Surface`; flag as nit on each new copy (unsubscribe/[token]/page.tsx:20). Also `?done=` echoed verbatim into a success Alert lets anyone craft a message on the company's domain: prefer a key -> message map. (Fixed on unsubscribe: Surface + fixed wording by ?done/?error code. vendor-upload still has both.)
 - New "kind/class" facts on detail pages: check the column default/backfill for old rows (email_queue.mail_class defaults 'required', backfill only pending/failed, so old optional sent mail reads "Required notice"). (Fixed: the 20261015010000 backfill covers every status.)
+
+## Server-paged lists (insurance, inspections, 2026-10-14)
+- `.range()` paging: check `?page=` past the end (stale link, or bulk action return_to keeping page after rows leave the filter). Insurance shows "No insurance policies yet / Add first policy" when total>0; pager text reads "201-150 of 150". Fix: redirect to the last page when page > pageCount and count > 0.
+- Radio "method" + optional detail field (amenity reserve_method=email defaultChecked, email optional): blank detail saves a method the portal can't use. Action must failTo when the chosen method's field is empty.

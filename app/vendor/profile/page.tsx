@@ -6,7 +6,7 @@ import { PageHeader, Surface, SectionTitle, Alert } from '@/components/ui/shell'
 import { Button } from '@/components/ui/button';
 import { Field, Input, Textarea } from '@/components/ui/input';
 import { tradeLabel } from '@/lib/vendors/options';
-import { firstVendorPhone, replaceFirstVendorPhone } from '@/lib/vendors/contact';
+import { firstVendorEmail, firstVendorPhone, replaceFirstVendorEmail, replaceFirstVendorPhone } from '@/lib/vendors/contact';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +26,8 @@ export default async function VendorProfile({
 
   // Phones are stored as plain strings or { number | value } objects.
   const phone = firstVendorPhone(v?.phone_numbers);
-  const email = Array.isArray(v?.emails) && v.emails[0] ? (typeof v.emails[0] === 'string' ? v.emails[0] : v.emails[0].address ?? '') : '';
+  // Emails are stored as plain strings or { email, type } objects.
+  const email = firstVendorEmail(v?.emails);
 
   async function save(formData: FormData) {
     'use server';
@@ -40,11 +41,10 @@ export default async function VendorProfile({
       .from('vendors').select('phone_numbers, emails').eq('id', me2.vendor_id).maybeSingle();
     if (loadError || !current) redirect(`/vendor/profile?error=${encodeURIComponent(loadError?.message ?? 'Your vendor record was not found.')}`);
     const phones = replaceFirstVendorPhone(current.phone_numbers, phoneVal);
-    const emails = Array.isArray(current.emails) ? [...current.emails] : [];
-    if (emailVal) emails[0] = typeof emails[0] === 'object' && emails[0] ? { ...emails[0], address: emailVal } : emailVal;
-    else if (emails.length > 1) emails.splice(0, 1);
-    // Keep at least one email: sign-in can fall back to matching it.
-    if (!emailVal && emails.length <= 1) redirect(`/vendor/profile?error=${encodeURIComponent('Keep an email address on file.')}`);
+    // Clearing the first email removes it; at least one must stay on file so
+    // management can reach the vendor (and send a new portal invitation).
+    const emails = replaceFirstVendorEmail(current.emails, emailVal);
+    if (!emails) redirect(`/vendor/profile?error=${encodeURIComponent('Keep an email address on file.')}`);
     const patch = {
       phone_numbers: phones,
       emails,

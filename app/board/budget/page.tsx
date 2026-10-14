@@ -6,6 +6,7 @@ import { money } from '@/lib/utils'
 import { BarChart3 } from 'lucide-react'
 import { Alert } from '@/components/ui/shell'
 import { fiscalMonthLabels, fiscalMonthsElapsed, fiscalYearFor } from '@/lib/budget/fiscal'
+import { DEFAULT_TIME_ZONE, todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,18 +26,19 @@ export default async function BoardBudgetPage() {
     )
   }
 
-  const currentYear = new Date().getFullYear()
-
   // Fetch budget vs actuals for each association
   const allReports = await Promise.all(
     ids.map(async (assocId: string) => {
       const { data: assoc } = await db
         .from('associations')
-        .select('name, fiscal_year_start')
+        .select('name, fiscal_year_start, timezone')
         .eq('id', assocId)
         .single()
-      // Budgets follow each association's own fiscal year.
-      const fy = fiscalYearFor(new Date(), assoc?.fiscal_year_start)
+      // Budgets follow each association's own fiscal year, and "today" is the
+      // association's local date (as on /board/financials).
+      const localToday = todayInZone(assoc?.timezone || DEFAULT_TIME_ZONE)
+      const localDate = new Date(`${localToday}T12:00:00`)
+      const fy = fiscalYearFor(localDate, assoc?.fiscal_year_start)
       const { data, error } = await db.rpc('get_budget_vs_actuals', {
         p_association_id: assocId,
         p_fiscal_year: fy,
@@ -48,16 +50,16 @@ export default async function BoardBudgetPage() {
         error: error ? (error.message as string) : null,
         fy,
         labels: fiscalMonthLabels(assoc?.fiscal_year_start),
-        elapsed: fiscalMonthsElapsed(fy, assoc?.fiscal_year_start),
+        elapsed: fiscalMonthsElapsed(fy, assoc?.fiscal_year_start, localDate),
+        localToday,
       }
     })
   )
 
-  const currentMonth = new Date().getMonth() + 1
-
   // ── Export setup: mirror the rendered tables with pre-rendered strings.
   const associationNames = allReports.map((r) => r.associationName).join(', ')
-  const exportDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
+  const exportDate = allReports[0]?.localToday ?? todayInZone(DEFAULT_TIME_ZONE)
+  const currentYear = Number(exportDate.slice(0, 4))
   const exportTables: ExportTable[] = allReports
     .filter((report) => report.rows.length > 0)
     .map((report) => ({

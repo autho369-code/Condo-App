@@ -146,6 +146,11 @@ Back to [[Home]]. Don't redo these.
   ledger keeps the history and the daily run can't charge it again. A paid
   fee is refused (give a credit or refund). Finance staff only. The owner's
   ledger shows the credit as "Late fee removed"; the reason is staff-only.
+- **Amenity requests in the portal stay** (Mirsad, 2026-10-14: "YES"):
+  owners can request an amenity in the portal and staff approve it, for
+  amenities set to in-app booking; email/link amenities show their address
+  or link.
+- **ARC "Send decision for e-signature" stays** (Mirsad, 2026-10-14: "YES").
 - **No interest on overdue balances** (Mirsad, 2026-10-14: "THERE IS NO
   INTEREST", "ITS ONE TIME LATE CHARGE"): a late payment gets one late
   fee, charged once. Interest settings and the daily interest job were
