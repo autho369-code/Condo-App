@@ -38,7 +38,8 @@ export async function sendSms(formData: FormData) {
   const phoneNumber = canonicalPhone(need('phone_number', 'a phone number'));
   const body = need('message', 'a message');
   // The sender is the configured number (never taken from the form); with a
-  // Twilio Messaging Service, which delivery requires, Twilio picks the number.
+  // Twilio Messaging Service, which delivery requires, Twilio picks the number
+  // and the delivery cron and status callback record the one it used.
   const fromNumber = process.env.TWILIO_FROM_NUMBER ?? me.portfolio?.phone_number ?? 'messaging-service';
   if (!smsDeliveryConfigured()) { failTo('Live SMS delivery is not configured for this environment.'); return; }
 

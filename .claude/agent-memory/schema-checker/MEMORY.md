@@ -85,3 +85,4 @@
 ## Enum values in insert payloads (check:columns cannot see them)
 - `sms_status` enum is queued/sent/delivered/failed/read/undelivered: there is NO 'received' (lib/sms/inbound-reply.ts insert, 2026-10-13). `sms_direction` inbound/outbound. Always grep `AS ENUM` in the baseline + `add value` in migrations for every literal status a payload writes.
 - `sms_messages` AFTER INSERT trigger `sync_sms_conversation_on_message` already bumps last_message_at/preview/unread_count; a manual conversation update after insert is redundant and races.
+- SMS refs: sms_messages.from_number/to_number text NOT NULL (no CHECK); `provider_message_id` partial UNIQUE (20261014233000) so update-by-sid `.maybeSingle()` is safe; sms_conversations.our_phone_number nullable, no unique; only BEFORE UPDATE touch_updated_at triggers (2026-10-13, sms-sender-routing clean).

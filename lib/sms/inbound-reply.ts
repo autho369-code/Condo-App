@@ -12,6 +12,32 @@ export type InboundReplyResult =
   | { status: 'ignored'; reason: string }
   | { status: 'ambiguous'; portfolioIds: string[] };
 
+/** Every company that knows this phone number (a conversation or texting
+ * consent). Read by a server-only function with no row cap, so one company's
+ * rows can't hide another's. */
+export async function senderCompanies(db: any, phone: string): Promise<string[]> {
+  const { data, error } = await db.rpc('sms_sender_companies', { p_phone: phone });
+  if (error) throw new Error(error.message);
+  // A set-returning function comes back as a list of ids.
+  return [...new Set((data ?? []) as string[])];
+}
+
+/**
+ * The conversations in which we texted this person from the number they
+ * replied to (`to`), by the number Twilio reports it used
+ * (sms_messages.provider_from_number). Only the server can set it, and a sent
+ * message's recipient and conversation are frozen, so another company can't
+ * claim the replies by editing its own rows.
+ */
+export async function textedConversations(db: any, from: string, to: string): Promise<
+  { id: string; portfolio_id: string; archived_at: string | null; last_message_at: string | null }[]
+> {
+  if (!to) return [];
+  const { data, error } = await db.rpc('sms_reply_conversations', { p_from: from, p_to: to });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as any[];
+}
+
 export async function recordInboundReply(
   db: any,
   input: { from: string; to: string; body: string; messageSid: string | null },
@@ -28,33 +54,38 @@ export async function recordInboundReply(
     if ((seen ?? []).length > 0) return { status: 'duplicate' };
   }
 
+  // Every company that knows this sender. With more than one, only a text we
+  // sent them from the number they replied to decides.
+  const companies = await senderCompanies(db, input.from);
+  if (companies.length === 0) return { status: 'ignored', reason: 'unknown sender' };
+  let company = companies.length === 1 ? companies[0] : null;
+  if (!company) {
+    const texted = (await textedConversations(db, input.from, input.to)).filter((c) => !c.archived_at);
+    const textedCompanies = [...new Set(texted.map((c) => c.portfolio_id))];
+    if (textedCompanies.length !== 1) return { status: 'ambiguous', portfolioIds: companies };
+    company = textedCompanies[0];
+  }
+
+  // Within the one company (a row cap here can't hide another company).
   const [{ data: conversations, error: convError }, { data: optIns, error: optError }] = await Promise.all([
     db.from('sms_conversations')
       .select('id, portfolio_id, our_phone_number, last_message_at')
+      .eq('portfolio_id', company)
       .eq('with_phone_number', input.from)
       .is('archived_at', null)
       .order('last_message_at', { ascending: false, nullsFirst: false })
       .limit(20),
     db.from('sms_opt_ins')
       .select('portfolio_id, entity_type, entity_id')
+      .eq('portfolio_id', company)
       .eq('phone_number', input.from)
       .in('entity_type', ['owner', 'vendor'])
       .limit(10),
   ]);
   if (convError) throw new Error(convError.message);
   if (optError) throw new Error(optError.message);
-  let candidates = (conversations ?? []) as any[];
+  const candidates = (conversations ?? []) as any[];
   const known = (optIns ?? []) as any[];
-
-  // Every company that knows this sender, by a conversation or their texting
-  // consent. With more than one, only the number they texted decides.
-  const companies = [...new Set([...candidates, ...known].map((x) => x.portfolio_id as string))];
-  if (companies.length > 1) {
-    candidates = input.to ? candidates.filter((c) => c.our_phone_number === input.to) : [];
-    if (candidates.length === 0 || new Set(candidates.map((c) => c.portfolio_id)).size > 1) {
-      return { status: 'ambiguous', portfolioIds: companies };
-    }
-  }
 
   // Within the company, the conversation from the number they texted, else
   // the most recent one.

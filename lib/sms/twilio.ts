@@ -85,5 +85,32 @@ export async function sendTwilioSms(message: { to: string; from: string; body: s
     code: result.code ? String(result.code) : 'twilio_error',
     deliveryOutcomeUnknown: response.status >= 500,
   });
-  return { id: String(result.sid), status: String(result.status ?? 'queued') };
+  // With a Messaging Service Twilio picks the number; it may not be chosen
+  // yet (the status callback carries it then).
+  const sentFrom = typeof result.from === 'string' && E164.test(result.from) ? result.from : null;
+  return { id: String(result.sid), status: String(result.status ?? 'queued'), from: sentFrom };
+}
+
+/**
+ * Records the number Twilio actually sent from on the message and its
+ * conversation: replies are matched to a company by the number they were
+ * sent to, so the conversation must hold the real one.
+ */
+export async function recordTwilioSender(db: any, providerMessageId: string, from: string | null | undefined) {
+  const sender = canonicalPhone(String(from ?? ''));
+  if (!E164.test(sender)) return;
+  // provider_from_number only the server can set (replies are routed by it);
+  // from_number is what staff see.
+  const { data: message, error } = await db.from('sms_messages')
+    .update({ from_number: sender, provider_from_number: sender })
+    .eq('provider_message_id', providerMessageId)
+    .eq('direction', 'outbound')
+    .select('conversation_id')
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!message?.conversation_id) return;
+  const { error: convError } = await db.from('sms_conversations')
+    .update({ our_phone_number: sender })
+    .eq('id', message.conversation_id);
+  if (convError) throw new Error(convError.message);
 }

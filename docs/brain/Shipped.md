@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- SMS routing (Codex on #369): replies and START reach the company that
+  actually texted from the number (as Twilio reports it, not a number staff
+  can type); STOP reaches every company; mass email stops if the
+  association's date can't be loaded (20261014234500).
 - Messaging: staff are emailed about owner messages again (a #367
   regression), message emails link to the conversation, former owners
   can't post on old threads, text replies reach the SMS inbox, the inbox

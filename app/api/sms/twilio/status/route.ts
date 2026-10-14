@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { mapTwilioStatus, validTwilioSignature } from '@/lib/sms/twilio';
+import { mapTwilioStatus, recordTwilioSender, validTwilioSignature } from '@/lib/sms/twilio';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,5 +23,12 @@ export async function POST(request: NextRequest) {
     p_error_message: form.get('ErrorMessage'),
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // The number Twilio sent from (chosen by the Messaging Service), so replies
+  // to it are matched to this conversation.
+  try {
+    await recordTwilioSender(createServiceClient() as any, sid, form.get('From'));
+  } catch (senderError: any) {
+    return NextResponse.json({ error: senderError?.message ?? 'Could not record the sender' }, { status: 500 });
+  }
   return new NextResponse(null, { status: 204 });
 }

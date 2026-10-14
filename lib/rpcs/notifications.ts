@@ -61,7 +61,8 @@ export async function sendEmail(formData: FormData) {
   if (recipientType === 'owners' || recipientType === 'both') {
     // Owners who moved out (sold) by today, the association's date, aren't
     // owners there any more.
-    const today = await associationToday(db, associationId);
+    const { today, error: todayError } = await associationToday(db, associationId);
+    if (todayError) return failTo(`Could not load the association: ${todayError}.`);
     const occs = await readAll('owners', () => db
       .from('occupancies')
       .select('id, owners!owner_id(id, email, full_name, archived_at)')

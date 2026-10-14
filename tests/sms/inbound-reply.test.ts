@@ -4,50 +4,7 @@ vi.mock('server-only', () => ({}));
 
 import { recordInboundReply } from '@/lib/sms/inbound-reply';
 
-type Row = Record<string, any>;
-
-/** Minimal chainable stand-in for the service client. */
-function fakeDb(tables: Record<string, Row[]>) {
-  function builder(table: string) {
-    const state: { op: string; payload?: any; filters: [string, string, any][] } = { op: 'select', filters: [] };
-    const rows = () => (tables[table] ?? []).filter((r) => state.filters.every(([k, c, v]) => {
-      if (k === 'eq') return r[c] === v;
-      if (k === 'is') return (r[c] ?? null) === v;
-      if (k === 'in') return (v as any[]).includes(r[c]);
-      if (k === 'not_null') return r[c] != null;
-      return true;
-    }));
-    const run = () => {
-      if (state.op === 'insert') {
-        const added = { id: `${table}-${(tables[table]?.length ?? 0) + 1}`, ...state.payload };
-        (tables[table] ??= []).push(added);
-        return { data: added, error: null };
-      }
-      if (state.op === 'update') {
-        const hit = rows();
-        hit.forEach((r) => Object.assign(r, state.payload));
-        return { data: hit, error: null };
-      }
-      return { data: rows(), error: null };
-    };
-    const b: any = {
-      select() { return b; },
-      insert(p: any) { state.op = 'insert'; state.payload = p; return b; },
-      update(p: any) { state.op = 'update'; state.payload = p; return b; },
-      eq(c: string, v: any) { state.filters.push(['eq', c, v]); return b; },
-      is(c: string, v: any) { state.filters.push(['is', c, v]); return b; },
-      in(c: string, v: any[]) { state.filters.push(['in', c, v]); return b; },
-      not(c: string) { state.filters.push(['not_null', c, null]); return b; },
-      order() { return b; },
-      limit() { return b; },
-      async single() { return run(); },
-      async maybeSingle() { const r = run(); return { data: Array.isArray(r.data) ? r.data[0] ?? null : r.data, error: null }; },
-      then(resolve: any) { resolve(run()); },
-    };
-    return b;
-  }
-  return { from: (t: string) => builder(t) };
-}
+import { fakeDb, type Row } from './fake-db';
 
 const FROM = '+15555550100';
 const TO = '+15555550199';
@@ -101,6 +58,34 @@ describe('inbound SMS replies', () => {
     const strangers: Record<string, Row[]> = { sms_conversations: [], sms_messages: [], sms_opt_ins: [] };
     await expect(recordInboundReply(fakeDb(strangers), { from: FROM, to: TO, body: 'Hello', messageSid: 'SM4' }))
       .resolves.toEqual({ status: 'ignored', reason: 'unknown sender' });
+  });
+
+  it('matches the company that texted from the number, when a Messaging Service picked it', async () => {
+    const tables: Record<string, Row[]> = {
+      // Both conversations hold the placeholder; company B actually texted them from TO.
+      sms_conversations: [
+        { id: 'c1', portfolio_id: 'pA', with_phone_number: FROM, our_phone_number: 'messaging-service', archived_at: null },
+        { id: 'c2', portfolio_id: 'pB', with_phone_number: FROM, our_phone_number: 'messaging-service', archived_at: null },
+      ],
+      sms_messages: [
+        { id: 'm1', conversation_id: 'c1', direction: 'outbound', provider_from_number: '+15555550111', to_number: FROM },
+        { id: 'm2', conversation_id: 'c2', direction: 'outbound', provider_from_number: TO, to_number: FROM },
+      ],
+    };
+    await expect(recordInboundReply(fakeDb(tables), { from: FROM, to: TO, body: 'Yes', messageSid: 'SM6' }))
+      .resolves.toEqual({ status: 'recorded', conversationId: 'c2' });
+  });
+
+  it('does not trust a sender number staff can edit', async () => {
+    const tables: Record<string, Row[]> = {
+      // Company A's staff typed the number into their conversation and message.
+      sms_conversations: [{ id: 'c1', portfolio_id: 'pA', with_phone_number: FROM, our_phone_number: TO, archived_at: null }],
+      sms_opt_ins: [{ portfolio_id: 'pB', entity_type: 'owner', entity_id: 'o9', phone_number: FROM }],
+      sms_messages: [{ id: 'm1', conversation_id: 'c1', direction: 'outbound', from_number: TO, to_number: FROM }],
+    };
+    await expect(recordInboundReply(fakeDb(tables), { from: FROM, to: TO, body: 'Hi', messageSid: 'SM7' }))
+      .resolves.toMatchObject({ status: 'ambiguous' });
+    expect(tables.sms_messages).toHaveLength(1);
   });
 
   it('does not file a text with one company when another company also knows the sender', async () => {

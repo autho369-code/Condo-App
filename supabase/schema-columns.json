@@ -253,7 +253,7 @@
 "signature_signers":["consented_at","decline_reason","declined_at","email","id","last_sent_at","name","request_id","role_label","sign_order","signature_name","signed_at","signed_ip","signed_user_agent","status","token_hash","viewed_at"],
 "sms_consent_events":["actor_user_id","created_at","entity_id","entity_type","id","notes","opted_in","phone_number","portfolio_id","sms_opt_in_id","source"],
 "sms_conversations":["archived_at","association_id","created_at","id","last_message_at","last_message_preview","our_phone_number","portfolio_id","unread_count","updated_at","with_entity_id","with_entity_type","with_name","with_phone_number"],
-"sms_messages":["attempt_count","body","conversation_id","created_at","delivered_at","direction","error_code","error_message","from_number","id","last_attempt_at","locked_at","media_urls","next_attempt_at","provider","provider_message_id","read_at","sent_at","sent_by","status","to_number","updated_at"],
+"sms_messages":["attempt_count","body","conversation_id","created_at","delivered_at","direction","error_code","error_message","from_number","id","last_attempt_at","locked_at","media_urls","next_attempt_at","provider","provider_from_number","provider_message_id","read_at","sent_at","sent_by","status","to_number","updated_at"],
 "sms_opt_ins":["created_at","entity_id","entity_type","id","notes","opted_in","opted_in_at","opted_out_at","phone_number","portfolio_id","source","updated_at"],
 "soft_delete_log":["archived_at","archived_by","entity_id","entity_type","id","portfolio_id","prior_state","reason"],
 "statement_batches":["association_id","batch_name","created_at","created_by","delivery_channel","failed_count","generated_count","id","period_end","period_start","sent_count","status","total_owners","updated_at"],
