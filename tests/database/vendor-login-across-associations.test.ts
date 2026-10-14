@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
 // (one record per association). Migration 20261009040000.
 
 const root = process.cwd();
-const read = (p: string) => readFileSync(resolve(root, p), 'utf8');
+// LF line endings, so a Windows checkout reads the same.
+const read = (p: string) => readFileSync(resolve(root, p), 'utf8').replace(/\r\n/g, '\n');
 const migration = read('supabase/migrations/20261009040000_vendor_login_across_associations.sql');
 
 describe('vendor login across associations: database', () => {

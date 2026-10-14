@@ -28,7 +28,9 @@ function repo() {
   return dir;
 }
 
-describe('second brain hooks', () => {
+// Each test starts several node and git processes: fast on Linux, but process
+// start-up on Windows (and a busy full-suite run) can pass vitest's 5 s default.
+describe('second brain hooks', { timeout: 60_000 }, () => {
   it('loads the memory file and the open TODO boxes at session start', () => {
     const dir = repo();
     const out = hook(dir, START, { session_id: 'A', source: 'startup' }).stdout;
