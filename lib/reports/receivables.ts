@@ -16,6 +16,7 @@ export type UnappliedCredit = {
 };
 
 const CHUNK = 200;
+const TRUNCATED = 'There are too many rows to total reliably; narrow the report to fewer associations.';
 
 function chunks<T>(list: T[], size = CHUNK): T[][] {
   const out: T[][] = [];
@@ -46,25 +47,29 @@ export async function loadUnappliedCredits(db: any, associationIds: string[] | n
   if (associationIds) {
     if (associationIds.length === 0) return [];
     for (const ids of chunks(associationIds)) {
-      const { rows, error } = await fetchAllRows<any>(() => unitQuery().in('buildings.association_id', ids).order('id'));
+      const { rows, truncated, error } = await fetchAllRows<any>(() => unitQuery().in('buildings.association_id', ids).order('id'));
       if (error) throw new Error(`Could not load units: ${error}`);
+      if (truncated) throw new Error(TRUNCATED);
       addUnits(rows);
     }
     for (const ids of chunks([...units.keys()])) {
-      const { rows, error } = await fetchAllRows<any>(() => db.from('v_unapplied_credits')
+      const { rows, truncated, error } = await fetchAllRows<any>(() => db.from('v_unapplied_credits')
         .select('payment_id, unit_id, payment_date, unapplied_amount').in('unit_id', ids).order('payment_id'));
       if (error) throw new Error(`Could not load unapplied credits: ${error}`);
+      if (truncated) throw new Error(TRUNCATED);
       credits.push(...rows);
     }
   } else {
-    const { rows, error } = await fetchAllRows<any>(() => db.from('v_unapplied_credits')
+    const { rows, truncated, error } = await fetchAllRows<any>(() => db.from('v_unapplied_credits')
       .select('payment_id, unit_id, payment_date, unapplied_amount').order('payment_id'));
     if (error) throw new Error(`Could not load unapplied credits: ${error}`);
+    if (truncated) throw new Error(TRUNCATED);
     credits = rows;
     const missing = [...new Set(credits.map((c) => c.unit_id))];
     for (const ids of chunks(missing)) {
-      const { rows: unitRows, error: unitError } = await fetchAllRows<any>(() => unitQuery().in('id', ids).order('id'));
+      const { rows: unitRows, truncated: unitTruncated, error: unitError } = await fetchAllRows<any>(() => unitQuery().in('id', ids).order('id'));
       if (unitError) throw new Error(`Could not load units: ${unitError}`);
+      if (unitTruncated) throw new Error(TRUNCATED);
       addUnits(unitRows);
     }
   }
