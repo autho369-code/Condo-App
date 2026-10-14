@@ -13,7 +13,8 @@ import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { triageServiceRequest } from '@/app/(app)/service-requests/actions';
-import { activeWorkOrder, requestKindLabel, responseState } from '@/lib/maintenance/intake';
+import { activeWorkOrder, existingWorkOrder, requestKindLabel, responseState } from '@/lib/maintenance/intake';
+import { sanitizeSearchTerm } from '@/lib/search/global';
 import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
@@ -50,6 +51,7 @@ export default async function ServiceRequestsPage({
   const db = supabase as any;
 
   const OPEN = ['open', 'waiting'];
+  const LIST_LIMIT = 500;
   const nowIso = new Date().toISOString();
   // Queue predicates run in the database so they see every request, not just
   // the first page (has_open_work_order is kept in sync by a work_orders trigger).
@@ -66,11 +68,35 @@ export default async function ServiceRequestsPage({
   if (priority) listQuery = listQuery.eq('priority', priority);
   if (association_id) listQuery = listQuery.eq('association_id', association_id);
 
+  // Search runs in the database (number, description, and association, unit
+  // or resident names), so it covers every request, not just the 500 loaded.
+  const term = sanitizeSearchTerm(q);
+  if (term) {
+    const quoted = (v: string) => `"${v.replace(/"/g, '')}"`;
+    const like = `%${term}%`;
+    const [{ rows: aMatch }, { rows: uMatch }, { rows: oMatch }, { rows: tMatch }] = await Promise.all([
+      fetchAllRows<any>(() => db.from('associations').select('id').ilike('name', like).order('id')),
+      fetchAllRows<any>(() => db.from('units').select('id').ilike('unit_number', like).order('id')),
+      fetchAllRows<any>(() => db.from('owners').select('id').ilike('full_name', like).order('id')),
+      fetchAllRows<any>(() => db.from('tenants').select('id').or(`first_name.ilike.${quoted(`*${term}*`)},last_name.ilike.${quoted(`*${term}*`)}`).order('id')),
+    ]);
+    const ids = (rows: any[]) => rows.map((r) => r.id).join(',');
+    const clauses = [
+      `description.ilike.${quoted(`*${term}*`)}`,
+      `number.ilike.${quoted(`*${term}*`)}`,
+    ];
+    if (aMatch.length) clauses.push(`association_id.in.(${ids(aMatch)})`);
+    if (uMatch.length) clauses.push(`unit_id.in.(${ids(uMatch)})`);
+    if (oMatch.length) clauses.push(`owner_id.in.(${ids(oMatch)})`, `homeowner_id.in.(${ids(oMatch)})`);
+    if (tMatch.length) clauses.push(`tenant_id.in.(${ids(tMatch)})`);
+    listQuery = listQuery.or(clauses.join(','));
+  }
+
   const openCount = (build: (query: any) => any) =>
     build(db.from('service_requests').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', OPEN));
 
   const [{ data: requestRows, error: listError }, { data: associations }, { data: openRows }, overdueRes, questionRes, duplicateRes, emergencyRes, newRes, triagedRes] = await Promise.all([
-    listQuery.order('priority', { ascending: false }).order('created_at', { ascending: false }).limit(500),
+    listQuery.order('priority', { ascending: false }).order('created_at', { ascending: false }).limit(LIST_LIMIT),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     // Every open request for the average age (one request stops at 1,000 rows).
     fetchAllRows<any>(() => db.from('service_requests').select('id, created_at').is('archived_at', null).in('status', OPEN).order('created_at').order('id')).then((r) => ({ data: r.rows })),
@@ -87,23 +113,8 @@ export default async function ServiceRequestsPage({
   const isOpen = (request: any) => OPEN.includes(request.status);
   const isDuplicate = (request: any) => Boolean(request.duplicate_of) && !request.duplicate_reviewed && isOpen(request);
   const now = Date.now();
-  let filtered = all;
-  if (q) {
-    const needle = q.toLowerCase();
-    filtered = filtered.filter((request) => {
-      const tenant = one<any>(request.tenants);
-      const owner = one<any>(request.owners) ?? one<any>(request.homeowners);
-      const searchable = [
-        request.number,
-        request.description,
-        request.associations?.name,
-        request.units?.unit_number,
-        tenant ? `${tenant.first_name ?? ''} ${tenant.last_name ?? ''}` : null,
-        owner?.full_name,
-      ].filter(Boolean).join(' ').toLowerCase();
-      return searchable.includes(needle);
-    });
-  }
+  const filtered = all;
+  const listCapped = all.length >= LIST_LIMIT;
 
   const newCount = newRes.count ?? 0;
   const triagedCount = triagedRes.count ?? 0;
@@ -188,6 +199,10 @@ export default async function ServiceRequestsPage({
           </FilterSelect>
         </FilterBar>
 
+        {listCapped && (
+          <Alert tone="warning" title={`Showing the first ${LIST_LIMIT} matches`}>Narrow the list with search, queue, priority or association to see the rest.</Alert>
+        )}
+
         {filtered.length === 0 ? (
           <div className="rounded-2xl border border-line bg-white">
             <EmptyState icon={ClipboardList} title="No matching service requests" description="New owner and resident requests will appear here for manager triage." />
@@ -200,6 +215,8 @@ export default async function ServiceRequestsPage({
                 const tenant = one<any>(request.tenants);
                 const owner = one<any>(request.owners) ?? one<any>(request.homeowners);
                 const workOrder = activeWorkOrder(request);
+                // A finished work order is not replaced by a new one.
+                const finishedWorkOrder = workOrder ? null : existingWorkOrder(request);
                 const requestor = tenant ? `${tenant.first_name ?? ''} ${tenant.last_name ?? ''}`.trim() : owner?.full_name ?? 'Resident';
                 return (
                   <TR key={request.id}>
@@ -224,6 +241,8 @@ export default async function ServiceRequestsPage({
                     <TD className="text-right">
                       {workOrder ? (
                         <Link href={`/work-orders/${workOrder.id}`} className={buttonClass('secondary', 'sm')}>Open <ArrowUpRight className="h-3.5 w-3.5" /></Link>
+                      ) : finishedWorkOrder ? (
+                        <Link href={`/work-orders/${finishedWorkOrder.id}`} className={buttonClass('secondary', 'sm')}>View work order <ArrowUpRight className="h-3.5 w-3.5" /></Link>
                       ) : isOpen(request) && (request.request_kind === 'admin' || isDuplicate(request)) ? (
                         <Link href={`/service-requests/${request.id}`} className={buttonClass('secondary', 'sm')}>{isDuplicate(request) ? 'Review' : 'Answer'}</Link>
                       ) : isOpen(request) ? (

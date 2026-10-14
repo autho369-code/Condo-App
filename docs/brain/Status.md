@@ -22,6 +22,21 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: #382 (Codex on 
     of other associations could read its signers); archived association
     refused (#381; live: 0 requests misfiled).
 
+- claude/work-orders-fixes (not pushed yet): work orders and service
+  requests. 20261015170000 dry-run rolled back on production (NOT applied).
+  - One work order per request: a request with a finished work order is not
+    triaged again; the request completes when its last work order finishes.
+  - Work order status emails go to the request's submitter; a unit work
+    order opened before the current owner moved in emails nobody.
+  - Permission to enter on the staff work order page and, through
+    vendor_work_order_permission_to_enter, to the assigned vendor.
+  - Assigned vendors get a white-labeled email (single and bulk, one email
+    per bulk run); bulk messages name every selected job; bulk status skips
+    rows already at that status.
+  - Service request search runs in the database, with the 500-row notice.
+  - Request date and resident tenure use the association's local date;
+    residents post messages only on work orders they can see.
+
 ## Merged 2026-10-14
 - #381 architectural reviews, documents, forms, e-sign (20261015090000 LIVE
   as 20261014011059). Codex: P1 board decision RPC (already not executable
