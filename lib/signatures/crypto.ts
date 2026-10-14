@@ -39,3 +39,14 @@ export function canReadSignedDocument(requestStatus: string, blocked: string | n
 export function isPdf(bytes: Uint8Array): boolean {
   return bytes.length > 4 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46; // %PDF
 }
+
+/** Why a signer can't sign right now, or null when they can. */
+export function signingClosedReason(requestStatus: string | null | undefined, blocked: string | null | undefined): string | null {
+  if (requestStatus === 'completed') return 'Everyone has already signed this document.';
+  if (requestStatus === 'voided') return 'The sender cancelled this request.';
+  if (requestStatus === 'declined') return 'This request was declined and is closed.';
+  if (requestStatus !== 'sent') return 'This request is no longer open.';
+  if (blocked === 'expired') return 'This request has expired. Ask the sender for a new one.';
+  if (blocked === 'waiting') return "Another signer must sign before you. You'll get an email when it's your turn.";
+  return null;
+}

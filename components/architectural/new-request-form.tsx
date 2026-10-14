@@ -15,6 +15,7 @@ import {
 } from '@/lib/rpcs/architectural';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
 
 const BUCKET = 'association-documents';
 const MAX_FILES = 10;
@@ -144,7 +145,7 @@ export function NewArchitecturalRequestForm({ unitOptions, guidance = {} }: { un
       </div>
 
       {help?.submission && (
-        <p className="whitespace-pre-wrap rounded-xl border border-line bg-gray-50 px-3.5 py-3 text-sm leading-6 text-gray-700">{help.submission}</p>
+        <Alert tone="info"><span className="whitespace-pre-wrap">{help.submission}</span></Alert>
       )}
 
       <div>

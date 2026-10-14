@@ -97,7 +97,11 @@ export default async function SignPage({
             {pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium text-gray-600 hover:text-gray-950">Open PDF</a>}
           </div>
           {!documentReadable ? (
-            <p className="px-5 py-6 text-sm text-gray-500">This document is no longer available from this link. Contact the sender for a copy.</p>
+            <p className="px-5 py-6 text-sm text-gray-500">
+              {r.status === 'sent' && blocked === 'waiting'
+                ? 'You can read the document when it is your turn.'
+                : 'This document is no longer available from this link. Contact the sender for a copy.'}
+            </p>
           ) : r.document_kind === 'text' ? (
             <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap px-5 py-4 text-[14px] leading-7 text-gray-800">{r.body_text}</div>
           ) : pdfUrl ? (

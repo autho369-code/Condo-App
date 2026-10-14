@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { queueEmails } from '@/lib/email/queue';
 import { clientAddress, consumePublicRateLimit } from '@/lib/server/rate-limit';
-import { SIGNATURE_BUCKET, hashSigningToken, isWellFormedToken, newSigningToken, sha256Hex } from '@/lib/signatures/crypto';
+import { SIGNATURE_BUCKET, hashSigningToken, signingClosedReason, isWellFormedToken, newSigningToken, sha256Hex } from '@/lib/signatures/crypto';
 import { signatureCompletedEmail, signatureRequestEmail } from '@/lib/signatures/email';
 import { createServiceClient } from '@/lib/supabase/server';
 import { COMPANY_ADDRESS_COLUMNS, companyUrl, type CompanyAddress } from '@/lib/tenant/host';
@@ -51,6 +51,9 @@ export async function signDocument(formData: FormData) {
   const { service, ip, ua, hash } = await context(token);
   const { data: session } = await service.rpc('signature_session', { p_token_hash: hash, p_ip: ip, p_user_agent: ua });
   if (!session) back(token, 'error', 'This signing link is not valid.');
+  // The real reason first: a closed or blocked request has no document to check.
+  const closed = signingClosedReason(session.request?.status, session.blocked);
+  if (closed) back(token, 'error', closed);
 
   const docHash = await currentDocumentHash(service, session.request);
   if (!docHash) back(token, 'error', 'The document could not be verified. Please contact the sender.');

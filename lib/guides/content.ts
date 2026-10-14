@@ -124,7 +124,7 @@ export const MANAGER_RUNBOOK: Guide = {
         p('Owners submit ARC requests from their portal. Your queue is Architectural Reviews in the sidebar: approve, deny, or request more information. Each request has a built-in message thread with the owner, so the whole conversation stays attached to the request. Board members see the same queue read-only in their portal.'),
         h('Supporting documents'),
         ul(
-          'After submitting, owners upload supporting documents (plans, drawings, contractor quotes, photos) one at a time on the request\'s detail page, up to 10 documents of max 10 MB each. Uploading one by one keeps large plan sets from failing.',
+          'After submitting, owners upload supporting documents (plans, drawings, contractor quotes, photos) one at a time on the request\'s detail page, up to 10 documents of max 25 MB each. Uploading one by one keeps large plan sets from failing.',
           'You can add or remove documents yourself on the request\'s review page, which is useful when the owner emails you a file instead.',
           'Board members see the documents read-only alongside the request.',
         ),

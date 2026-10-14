@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { MaxSizeFileInput } from '@/components/ui/max-size-file-input';
 import { notFound } from 'next/navigation';
 import { FileText, FolderOpen, ShieldCheck } from 'lucide-react';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
@@ -145,7 +146,10 @@ export default async function AssociationDocumentsTab({
                     {hidden(active)}
                     <input type="hidden" name="doc_type" value={o.type} />
                     <input type="hidden" name="share_scope" value="owners" />
-                    <input type="file" name="file" required accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" aria-label={`File for ${o.label}`} className={`${fileInput} max-w-64`} />
+                    <div>
+                      <MaxSizeFileInput maxBytes={4 * 1024 * 1024} name="file" required accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" aria-label={`File for ${o.label} (max 4 MB)`} className={`${fileInput} max-w-64`} />
+                      <p className="mt-1 text-xs text-gray-400">Max 4 MB</p>
+                    </div>
                     <Button type="submit" size="sm" variant="secondary">{doc ? 'Replace' : 'Upload'}</Button>
                   </form>
                 </li>
@@ -226,7 +230,7 @@ export default async function AssociationDocumentsTab({
             {hidden(active)}
             <input type="hidden" name="doc_type" value="association_document" />
             <Field label="File (max 4 MB)" htmlFor="upload-file" className="sm:col-span-2 lg:col-span-1">
-              <input id="upload-file" type="file" name="file" required accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg,.heic" className={fileInput} />
+              <MaxSizeFileInput maxBytes={4 * 1024 * 1024} id="upload-file" name="file" required accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg,.heic" className={fileInput} />
             </Field>
             <Field label="Folder" htmlFor="upload-folder">
               <Input id="upload-folder" name="folder" list="doc-folders" maxLength={60} defaultValue={active && active !== UNFILED ? active : ''} placeholder="e.g. Contracts" />

@@ -101,10 +101,11 @@ export default async function ArchitecturalReviewsTab({
       )}
       <form action={saveSettings as any} className="max-w-3xl space-y-5">
         <Section title="Owner portal" padded>
-          <label className="flex min-h-10 items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" name="online_requests_disabled" defaultChecked={settings?.online_requests_disabled ?? false} className="h-4 w-4 rounded border-gray-300" />
-            Homeowners can&apos;t submit requests from the owner portal (staff still can)
+          <label className="flex min-h-10 items-center gap-2 text-sm font-medium text-gray-900">
+            <input type="checkbox" name="online_requests_disabled" aria-describedby="online-requests-hint" defaultChecked={settings?.online_requests_disabled ?? false} className="h-4 w-4 rounded border-gray-300" />
+            Turn off online requests
           </label>
+          <p id="online-requests-hint" className="ml-6 text-[13px] text-gray-500">Homeowners can&apos;t submit requests from the owner portal; staff still can.</p>
         </Section>
 
         <Section title="Reviewing committee" padded>

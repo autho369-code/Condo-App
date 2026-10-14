@@ -187,7 +187,7 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
       <div className="max-w-4xl space-y-4">
         {sp.error && <Alert tone="danger" title="Could not stage the form:">{sp.error}</Alert>}
         {ownersError && <Alert tone="danger" title="Could not load owners.">{ownersError}</Alert>}
-        {ownersTruncated && <Alert tone="warning" title={`Showing the first ${owners.length.toLocaleString()} owners.`}>To reach someone not listed, open this form from the owner&apos;s link on the ACH or Packets page.</Alert>}
+        {ownersTruncated && <Alert tone="warning" title={`Showing the first ${owners.length.toLocaleString()} owners.`}>To reach someone not listed, open this form from their row on <Link href="/owners/ach" className="font-medium underline">Owner ACH Setup</Link> or <Link href="/owners/packets" className="font-medium underline">Send Owner Packets</Link>.</Alert>}
         {sp.sent === 'email' && <Alert tone="success" title="Form request emailed.">The owner has been emailed and the request is tracked on their record.</Alert>}
         {sp.sent === '1' && <Alert tone="success" title="Form request recorded.">Deliver it by the method you chose; it is tracked on the owner&apos;s record.</Alert>}
         <Surface>

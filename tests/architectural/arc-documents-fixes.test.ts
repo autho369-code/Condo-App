@@ -44,7 +44,7 @@ vi.mock('@/lib/portal/own-units', () => ({ loadOwnPortalUnitIds: vi.fn(), ownerR
 import { decideArchitecturalRequest, postArchitecturalMessage } from '@/lib/rpcs/architectural';
 import * as arcActions from '@/lib/rpcs/architectural';
 import { decisionInputError, decisionNotice, isCurrentOwnerOccupancy } from '@/lib/architectural/rules';
-import { MAX_SIGNATURE_PDF_BYTES, canReadSignedDocument } from '@/lib/signatures/crypto';
+import { MAX_SIGNATURE_PDF_BYTES, canReadSignedDocument, signingClosedReason } from '@/lib/signatures/crypto';
 
 const REQ = '11111111-1111-4111-8111-111111111111';
 const migration = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261015090000_arc_documents_fixes.sql'), 'utf8');
@@ -126,6 +126,16 @@ describe('e-signature document access and upload size', () => {
     expect(canReadSignedDocument('completed', null, 'pending')).toBe(false);
   });
 
+  it('names the real reason a signer cannot sign before checking the document', () => {
+    expect(signingClosedReason('sent', null)).toBeNull();
+    expect(signingClosedReason('sent', 'waiting')).toMatch(/your turn/);
+    expect(signingClosedReason('sent', 'expired')).toMatch(/expired/);
+    expect(signingClosedReason('voided', null)).toMatch(/cancelled/);
+    expect(signingClosedReason('completed', null)).toMatch(/already signed/);
+    const actions = readFileSync(resolve(process.cwd(), 'app/(public)/sign/[token]/actions.ts'), 'utf8');
+    expect(actions.indexOf('signingClosedReason(')).toBeLessThan(actions.indexOf('currentDocumentHash(service, session.request)'));
+  });
+
   it('keeps uploads through server actions under the request body limit', () => {
     expect(MAX_SIGNATURE_PDF_BYTES).toBe(4 * 1024 * 1024);
     const docs = readFileSync(resolve(process.cwd(), 'lib/rpcs/association-documents.ts'), 'utf8');
@@ -139,6 +149,25 @@ describe('migration 20261015090000', () => {
     expect(migration).toContain('revoke update, delete on public.architectural_request_messages from authenticated, anon;');
     expect(migration).toMatch(/new\.author_role := 'staff';/);
     expect(migration).toMatch(/new\.author_id := auth\.uid\(\);/);
+  });
+
+  it('runs the final guard as definer, stamps decisions, and blocks API deletes', () => {
+    const guard = migration.slice(migration.indexOf('create or replace function public.architectural_requests_final_guard()'));
+    expect(guard.slice(0, 200)).toContain('security definer');
+    expect(guard).toContain('new.decided_by := auth.uid();');
+    expect(guard).toContain('Only the homeowner can withdraw a request');
+    expect(guard).toContain("array['owner_id', 'unit_id', 'committee_id', 'updated_at']");
+    expect(migration).toContain('revoke delete on public.architectural_requests from authenticated, anon;');
+    expect(migration).toContain('new.created_at := now();');
+  });
+
+  it('treats a caller as staff only for their own associations, and scopes owner document requests', () => {
+    expect(migration).toContain('can_access_association(old.association_id)');
+    expect(migration).toContain('can_access_association(new.association_id)');
+    expect(migration).toContain('owner_id in (select rls_private.my_managed_owner_ids())');
+    expect(migration).toMatch(/create or replace trigger operator_write_guard\s+before insert or delete or update on public\.owner_form_submission_private/);
+    expect(migration).toContain("replace(pg_get_functiondef(p_sig::regprocedure), chr(13), '')");
+    expect(migration).toContain('after insert or update on public.owner_form_submissions');
   });
 
   it('guards decided requests and requires a denial reason in the database', () => {

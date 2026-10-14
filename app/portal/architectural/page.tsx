@@ -12,6 +12,8 @@ import { loadOwnArcContext } from '@/lib/portal/arc-context';
 
 export const dynamic = 'force-dynamic';
 
+const LIST_LIMIT = 500;
+
 const CATEGORY_LABEL: Record<string, string> = {
   exterior_paint: 'Exterior paint',
   fence: 'Fence',
@@ -34,13 +36,14 @@ export default async function OwnerArchitecturalList({
   const { error } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: rows, error: rowsError }, context] = await Promise.all([
+  const [{ data: rows, error: rowsError, count: total }, context] = await Promise.all([
     (supabase as any)
       .from('architectural_requests')
-      .select('id, title, category, status, created_at, units(unit_number)')
+      .select('id, title, category, status, created_at, units(unit_number)', { count: 'exact' })
       .in('owner_id', me.owner_ids) // board members can read every request; show only mine
       .order('created_at', { ascending: false })
-      .limit(500),
+      .order('id', { ascending: false })
+      .limit(LIST_LIMIT),
     loadOwnArcContext(supabase, me.owner_ids),
   ]);
   // Submitting online is offered when at least one of the owner's
@@ -76,6 +79,9 @@ export default async function OwnerArchitecturalList({
       <Card>
         <CardHeader><CardTitle>Your requests</CardTitle></CardHeader>
         <CardBody>
+          {(total ?? 0) > (rows?.length ?? 0) && (
+            <p className="mb-3 text-[13px] text-gray-500">Showing the newest {(rows?.length ?? 0).toLocaleString()} of {(total ?? 0).toLocaleString()} requests.</p>
+          )}
           {rows && rows.length > 0 ? (
             <Table>
               <THead>

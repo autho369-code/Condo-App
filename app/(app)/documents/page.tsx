@@ -212,14 +212,17 @@ export default async function DocumentsPage({
           searchPlaceholder="Search documents, templates, notices..."
         >
           <input type="hidden" name="tab" value={tab} />
-          <FilterSelect label="Type" name="type" defaultValue={type}>
-            <option value="">All</option>
-            <option value="violation_notice">Violation Notice</option>
-            <option value="welcome_letter">Welcome Letter</option>
-            <option value="assessment_letter">Assessment Letter</option>
-            <option value="board_packet">Board Packet</option>
-            <option value="general">General</option>
-          </FilterSelect>
+          {/* Uploaded documents have no letter type: the Type filter is for templates and notices. */}
+          {tab !== 'generated' && (
+            <FilterSelect label="Type" name="type" defaultValue={type}>
+              <option value="">All</option>
+              <option value="violation_notice">Violation Notice</option>
+              <option value="welcome_letter">Welcome Letter</option>
+              <option value="assessment_letter">Assessment Letter</option>
+              <option value="board_packet">Board Packet</option>
+              <option value="general">General</option>
+            </FilterSelect>
+          )}
         </FilterBar>
 
         {capNotice && <p className="text-[13px] text-gray-500">{capNotice}</p>}

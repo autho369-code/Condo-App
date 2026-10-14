@@ -316,7 +316,7 @@ export async function recordArchAttachment(
   return { ok: true };
 }
 
-/** Remove a previously uploaded document (owner while open, or staff). */
+/** Remove a previously uploaded document while the request is open (owner or staff). */
 export async function removeArchitecturalAttachment(
   requestId: string,
   basePath: string,
@@ -333,19 +333,19 @@ export async function removeArchitecturalAttachment(
 
   const access = await verifyArchAttachmentAccess(requestId, basePath);
   if (access.error || !access.req || !access.role) { failTo(access.error ?? 'Request not found'); return; }
-  const { req, svc, role } = access;
-  if ((role === 'owner' || role === 'board') && !OPEN_STATUSES.includes(req.status)) {
+  const { req, svc } = access;
+  // Documents are part of the record: nobody changes them once decided.
+  if (!OPEN_STATUSES.includes(req.status)) {
     failTo('Documents can no longer be changed on a decided request');
     return;
   }
   if (!isArchitecturalAttachmentPath(requestId, path)) { failTo('Invalid document reference'); return; }
 
-  // Removed in one locked statement (owners and the board only while open).
+  // Removed in one locked statement (the database refuses a decided request).
   const { data: removed, error } = await svc.rpc('arc_remove_attachment', {
     p_request_id: req.id,
     p_association_id: req.association_id,
     p_path: path,
-    p_require_open: role === 'owner' || role === 'board',
   });
   if (error) { failTo(error.message); return; }
   if (removed !== true) { failTo('Document not found on this request'); return; }

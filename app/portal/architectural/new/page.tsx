@@ -26,6 +26,7 @@ export default async function NewArchitecturalRequest() {
       associationId: u.association_id,
     }));
   const offline = context.units.length > 0 && unitOptions.length === 0;
+  const someOffline = !offline && unitOptions.length < context.units.length;
   const guidance = Object.fromEntries(context.associations.map((a) => [a.id, {
     submission: a.instructions.submission_form_html,
     documents: a.instructions.document_upload_html,
@@ -59,12 +60,17 @@ export default async function NewArchitecturalRequest() {
           </CardBody>
         </Card>
       ) : (
-        <Card>
-          <CardHeader><CardTitle>Request details</CardTitle></CardHeader>
-          <CardBody>
-            <NewArchitecturalRequestForm unitOptions={unitOptions} guidance={guidance} />
-          </CardBody>
-        </Card>
+        <>
+          {someOffline && (
+            <Alert tone="info">Some of your units are in an association that doesn&apos;t take architectural requests online, so they aren&apos;t listed. Contact your management office for those.</Alert>
+          )}
+          <Card>
+            <CardHeader><CardTitle>Request details</CardTitle></CardHeader>
+            <CardBody>
+              <NewArchitecturalRequestForm unitOptions={unitOptions} guidance={guidance} />
+            </CardBody>
+          </Card>
+        </>
       )}
     </div>
   );

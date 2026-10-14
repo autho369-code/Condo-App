@@ -67,7 +67,7 @@ export default async function SignaturesPage({ searchParams }: { searchParams: P
           ))}
         </nav>
         {total > rows.length && (
-          <p className="text-[13px] text-gray-500">Showing the newest {rows.length.toLocaleString()} of {total.toLocaleString()} requests. Filter by status to find older ones.</p>
+          <p className="text-[13px] text-gray-500">Showing the newest {rows.length.toLocaleString()} of {total.toLocaleString()} requests.{filter === 'all' ? ' Filter by status to find older ones.' : ''}</p>
         )}
         {rows.length ? (
           <Table>

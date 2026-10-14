@@ -49,7 +49,12 @@ export default async function ManagerArchitecturalDetail({
   if (reqError) {
     return (
       <Workspace header={<WorkspaceHeader title="Architectural request" />}>
-        <Alert tone="danger" title="Could not load this request.">{reqError.message ?? String(reqError)}</Alert>
+        <div className="max-w-3xl space-y-5">
+          <Link href="/architectural-reviews" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-950">
+            <ArrowLeft className="h-4 w-4" /> Back to queue
+          </Link>
+          <Alert tone="danger" title="Could not load this request.">{reqError.message ?? String(reqError)}</Alert>
+        </div>
       </Workspace>
     );
   }
@@ -100,7 +105,7 @@ export default async function ManagerArchitecturalDetail({
             basePath="/architectural-reviews"
             attachments={(req.attachments ?? []) as ArcAttachment[]}
             canUpload={!decided}
-            canRemove={true}
+            canRemove={!decided}
           />
         </Section>
 
