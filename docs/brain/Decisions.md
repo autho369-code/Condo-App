@@ -228,7 +228,7 @@ Back to [[Home]]. Don't redo these.
   reconciliation in progress can be discarded (items, then the
   reconciliation: two steps, so a failure can leave an empty one in progress,
   which can be discarded again); a reopened one can't (it was completed once;
-  complete it again).
+  complete it again, correcting its statement ending balance if needed).
 - 2026-10-13: a month inside a finalized year-end package can't be reopened
   until the package is superseded (finalizing already needs every month
   closed). Months are company-wide, so one association's finalized year keeps

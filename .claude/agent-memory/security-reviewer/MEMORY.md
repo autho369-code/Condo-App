@@ -38,6 +38,7 @@
 - Owner-facing "force fields for non-staff" triggers (service_request_intake, arch_msg_set_author) skip on global is_any_staff(): staff at A who own at B escape them at B. Skip only when the caller can_access_association(row's association) (fixed in both before the PR).
 
 - Cross-RPC invariants (undo_bank_reconciliation vs set_accounting_period_status close, 20261015020000): A locks bank_accounts and checks periods, but B reads bank_accounts with no lock, so both pass. Both sides must lock one shared row (e.g. undo takes `for share` on the company's accounting_periods, which close holds `for update`). Also year-end finalize vs month reopen. (Fixed in 20261015020000: undo and finalize take accounting_periods FOR SHARE.)
+- Codex P1 on #372 (missed here): a new "reopen/undo" state must keep every input needed to finish it editable, and every exit path open. Reopened reconciliations had a read-only statement balance and discard refused them, so they could never complete. Walk reopen -> edit -> complete/discard in the UI. (Fixed: updateStatementBalance in bank-accounts/reconcile/actions.ts.)
 - DEFINER RPCs that `select ... for update` the parent (bank account) BEFORE the access helper: the house rule (guard comment) is check access first, then lock. (Fixed in undo_bank_reconciliation.)
 
 ## Topic files

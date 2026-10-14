@@ -4,6 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Reconciliation statement balance can be corrected while in progress
+  (Codex on #372: a reopened one was stuck).
 - Banking follow-ups: finance staff can undo an account's latest bank
   reconciliation (reason, audited; not when a month it covers is closed);
   a month in a finalized year-end package can't be reopened until the

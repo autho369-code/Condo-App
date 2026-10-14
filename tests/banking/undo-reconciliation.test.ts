@@ -12,19 +12,21 @@ vi.mock('@/lib/auth/me', () => ({ requireFinanceStaff: async () => ({ auth_user_
 // Rows the fake client returns per table, and the deletes it was asked for.
 let recRow: any = null;
 const deletes: string[] = [];
+const updates: Array<{ table: string; values: any }> = [];
 function from(table: string) {
   const b: any = {
     select: () => b,
     eq: () => b,
     maybeSingle: async () => ({ data: recRow, error: null }),
     delete: () => { deletes.push(table); return b; },
+    update: (values: any) => { updates.push({ table, values }); return b; },
     then: (resolve: any) => resolve({ data: [{ id: 'x' }], error: null }),
   };
   return b;
 }
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({ rpc, from }) }));
 
-import { discardBankReconciliation, undoBankReconciliation } from '@/app/(app)/bank-accounts/reconcile/actions';
+import { discardBankReconciliation, undoBankReconciliation, updateStatementBalance } from '@/app/(app)/bank-accounts/reconcile/actions';
 
 const ACCOUNT = '11111111-1111-4111-8111-111111111111';
 const REC = '22222222-2222-4222-8222-222222222222';
@@ -44,6 +46,7 @@ beforeEach(() => {
   rpc.mockReset();
   recRow = null;
   deletes.length = 0;
+  updates.length = 0;
   redirects.length = 0;
 });
 
@@ -86,6 +89,20 @@ describe('discard a reconciliation in progress', () => {
     recRow = { id: REC, status: 'completed' };
     await expect(discardBankReconciliation(form({ bank_account_id: ACCOUNT, reconciliation_id: REC }))).rejects.toThrow(/REDIRECT/);
     expect(deletes).toEqual([]);
+    expect(redirects.at(-1)).toContain('error=');
+  });
+});
+
+describe('correct the statement balance of a reconciliation in progress', () => {
+  it('saves a corrected balance (e.g. after reopening one keyed wrong)', async () => {
+    await expect(updateStatementBalance(form({ bank_account_id: ACCOUNT, reconciliation_id: REC, statement_balance: '$12,450.10' }))).rejects.toThrow(/REDIRECT/);
+    expect(updates).toEqual([{ table: 'bank_reconciliations', values: { statement_balance: 12450.1 } }]);
+    expect(redirects.at(-1)).toBe(`/bank-accounts/reconcile?account_id=${ACCOUNT}&done=balance`);
+  });
+
+  it('refuses something that is not an amount', async () => {
+    await expect(updateStatementBalance(form({ bank_account_id: ACCOUNT, reconciliation_id: REC, statement_balance: '12.345' }))).rejects.toThrow(/REDIRECT/);
+    expect(updates).toEqual([]);
     expect(redirects.at(-1)).toContain('error=');
   });
 });
