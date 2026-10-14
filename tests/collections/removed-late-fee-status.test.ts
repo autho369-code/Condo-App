@@ -50,6 +50,12 @@ describe('20261015130000_removed_late_fee_status migration', () => {
     expect(rev).toContain('before insert or update of reference, method, charge_id, reversed_at on public.payments');
   });
 
+  it('a removal credit cannot be deleted by signed-in users (Codex on #383)', () => {
+    const del = read('supabase/migrations/20261015180000_removed_late_fee_delete_guard.sql');
+    expect(del).toContain('before delete on public.payments');
+    expect(del).toContain("old.reference = 'Late fee removed'");
+  });
+
   it('drops or deletes nothing', () => {
     expect(migration).not.toMatch(/\bdrop\s+(table|column|view|function|policy)\b/i);
     expect(migration).not.toMatch(/\bdelete\s+from\b/i);
