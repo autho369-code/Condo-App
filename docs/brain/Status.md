@@ -1,10 +1,41 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: #371 claude/email-unsubscribe; next: Banking follow-ups (Next gaps); waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#371 merged; open PR: #372 claude/banking-followups; next: Payables follow-ups (Next gaps); waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #371 claude/email-unsubscribe: email unsubscribe and suppression (Mirsad's
-  recommended defaults from TODO). 20261015010000 LIVE as four versions:
+- #372 claude/banking-followups: banking follow-ups (Next gaps). 20261015020000
+  LIVE as 20261013215404 banking_followups, 20261013215740
+  banking_followups_wording, 20261013215843 banking_followups_locks (the file
+  is the final, re-runnable state); rolled-back production tests passed
+  (undo, discard, guards, closed month, finalized year-end, posting still
+  works):
+  - Undo a reconciliation (AppFolio): undo_bank_reconciliation reopens the
+    account's LATEST completed one (finance staff who can reconcile the
+    account, reason of 10+ characters, audited, undone_at/by/reason kept),
+    refused when a month it covers is closed or one is in progress; the
+    account's reconciled-through date steps back. The guard allows it only
+    through the function (a transaction-local flag naming the row). Undo
+    control on the reconcile page, plus Discard for a reconciliation in
+    progress that was never completed (items first, then the
+    reconciliation: deleting it directly never worked, the item guard can't
+    find a parent being deleted). lib/types/database.ts has the new columns.
+  - Locks (security review): the undo locks the company's months (shared)
+    so a month close can't pass at the same moment; finalizing a year-end
+    package locks them too, so a reopen can't slip in; the undo checks
+    access before locking the account.
+  - A month inside a finalized year-end package can't be reopened until the
+    package is superseded (set_accounting_period_status).
+  - Ledger lines, journal entries and bank adjustments cleared on a completed
+    reconciliation can't change amount, account, association, date or
+    posting, or be deleted; a bank adjustment can't change while any
+    reconciliation lists it (the item keeps its amount). All roles except
+    repair sessions. Indexes on items by line and by adjustment.
+
+## Merged 2026-10-13
+- #371 email unsubscribe and suppression (Mirsad's
+  recommended defaults from TODO). Codex: one P2 on an older commit (dues
+  reminders skipped mail-preferring owners), already fixed by the
+  all-owners commit before merge. 20261015010000 LIVE as four versions:
   20261013203100 email_unsubscribe, 20261013203437
   email_prepare_batch_platform_name, 20261013203802
   email_unsubscribe_security_fixes, 20261013203849
@@ -43,8 +74,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: #371 claude/ema
     claim_email_queue_snapshot skips suppressed mail; the unused
     claim_email_queue(integer) is revoked from everyone (drop on TODO);
     complete_email_delivery counts suppressed recipients as done.
-
-## Merged 2026-10-13
 - #370 SMS routing (Codex on #369). Codex clean. 20261014234500 (LIVE, applied as
   three live versions: 20261013195620 sms_provider_sender, 20261013200049
   sms_reply_routing_rpcs, 20261013200334 sms_messages_freeze_routing_columns;
@@ -582,10 +611,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: #371 claude/ema
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- Banking, not changed (from the deep check): a completed reconciliation
-  has no undo (only the service role); year-end close is a snapshot
-  package and does not lock months; a bank adjustment already cleared can
-  still be edited (the reconciliation keeps its own copy of the amount).
 - Payables (migration review): recurring and management-fee bills are
   system-generated (no vendor invoice number, no payment), so the duplicate
   and date rules do not apply; purchase-order bills go through

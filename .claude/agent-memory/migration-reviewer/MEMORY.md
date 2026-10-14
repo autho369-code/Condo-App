@@ -47,6 +47,8 @@
 
 - INVOKER triggers run their callees as the caller: every helper an invoker trigger calls needs EXECUTE for authenticated (first draft of 20261015010000 revoked them -> all staff sends broken; FIXED: key helpers granted :77-78, suppression moved to definer email_prepare_batch). Details in sql-pitfalls "Email suppression".
 
+- Text-patch migrations: run every multi-line anchor against the latest repo body with a node count script; a skipped comment line aborts the migration (20261015020000:56). See sql-pitfalls. (Fixed before apply: anchor, indexes, draft early-return, association_id, adjustment refused on any open reconciliation.)
+
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns

@@ -89,3 +89,6 @@
 
 ## Email suppression (20261015010000)
 - email_queue.mail_class ('required'/'optional', NOT NULL) + suppressed_at; tables email_suppressions (UNIQUE portfolio_id,email,reason; reason unsubscribed/bounced/complained), email_suppression_events, email_unsubscribe_links (PK queue_id, no user grants: service client only). Service-role RPCs: email_prepare_batch(p_ids) returns id/suppressed/unsubscribe_token/unsubscribe_url, email_unsubscribe_session(p_token) jsonb, email_set_unsubscribed(p_token,p_unsubscribed,p_source), email_suppress_from_event(p_provider_message_id,p_reason,p_detail); authenticated clear_email_bounce(p_suppression_id). Reads of email_suppressions by email alone should also filter portfolio_id (operators see every company). (2026-10-13, clean.) (The email page now filters the bounce lookup by the email's company.)
+
+## Bank reconciliation undo (20261015020000)
+- bank_reconciliations gained undone_at/undone_by/undo_reason (snapshot updated); status CHECK in_progress/completed/void. RPC `undo_bank_reconciliation(p_reconciliation_id uuid, p_reason text)` returns void, reason >= 10 chars. Patched `set_accounting_period_status` locals: period_row, start_date, end_date. lib/types/database.ts lacks the new cols (page uses `any`). (2026-10-13, clean.)
