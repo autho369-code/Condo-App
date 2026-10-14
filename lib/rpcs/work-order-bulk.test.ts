@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn(),
   revalidatePath: vi.fn(),
   notify: vi.fn(),
+  notifyVendor: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }));
@@ -13,6 +14,7 @@ vi.mock('@/lib/auth/me', () => ({ requireStaff: mocks.requireStaff }));
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock('@/lib/notifications/status-change', () => ({ notifyOwnerOfStatusChange: mocks.notify }));
+vi.mock('@/lib/notifications/vendor-assignment', () => ({ notifyVendorOfAssignment: mocks.notifyVendor }));
 
 import { bulkWorkOrderAction } from '@/lib/rpcs/work-order-bulk';
 
@@ -23,7 +25,7 @@ const V = '33333333-3333-4333-8333-333333333333';
 /** A chainable query builder whose terminal maybeSingle returns queued results. */
 function builder(results: unknown[], inRows: unknown[] = []) {
   const q: any = {};
-  for (const m of ['select', 'update', 'eq', 'is']) q[m] = vi.fn(() => q);
+  for (const m of ['select', 'update', 'eq', 'neq', 'is']) q[m] = vi.fn(() => q);
   q.maybeSingle = vi.fn(async () => ({ data: results.shift() ?? null, error: null }));
   q.in = vi.fn(async () => ({ data: inRows, error: null }));
   return q;
@@ -52,6 +54,34 @@ describe('bulkWorkOrderAction', () => {
     expect(workOrders.update).toHaveBeenCalledTimes(2);
     expect(insert).toHaveBeenCalledTimes(2);
     expect(mocks.notify).toHaveBeenCalledTimes(2);
+    expect(workOrders.neq).toHaveBeenCalledWith('status', 'completed');
+  });
+
+  it('skips orders already at the target status: no second log entry or owner email', async () => {
+    // The update matches nothing (status already completed); the follow-up read finds it.
+    const workOrders = builder([null, { id: A }]);
+    const insert = vi.fn(async () => ({ error: null }));
+    mocks.createClient.mockResolvedValue({ from: (t: string) => (t === 'work_orders' ? workOrders : { insert }) });
+
+    await expect(bulkWorkOrderAction(form({ op: 'status', status: 'completed', work_order_id: A })))
+      .rejects.toThrow('REDIRECT:/work-orders?bulk=status&done=0&unchanged=1');
+    expect(insert).not.toHaveBeenCalled();
+    expect(mocks.notify).not.toHaveBeenCalled();
+  });
+
+  it('emails the vendor once, listing only the work orders newly given to it', async () => {
+    const vendors = builder([{ id: V, name: 'Vendor', portfolio_id: 'p-a', association_id: null, is_management_company: true }]);
+    const workOrders = builder([
+      { id: A, status: 'new', portfolio_id: 'p-a', vendor_id: null }, { id: A, status: 'assigned' },
+      { id: B, status: 'scheduled', portfolio_id: 'p-a', vendor_id: V }, { id: B, status: 'scheduled' },
+    ]);
+    const insert = vi.fn(async () => ({ error: null }));
+    mocks.createClient.mockResolvedValue({ from: (t: string) => (t === 'vendors' ? vendors : t === 'work_orders' ? workOrders : { insert }) });
+
+    await expect(bulkWorkOrderAction(form({ op: 'assign', vendor_id: V, work_order_id: [A, B] })))
+      .rejects.toThrow('REDIRECT:/work-orders?bulk=assign&done=2');
+    expect(mocks.notifyVendor).toHaveBeenCalledTimes(1);
+    expect(mocks.notifyVendor).toHaveBeenCalledWith({ vendorId: V, workOrderIds: [A] });
   });
 
   it('never assigns a vendor from another company', async () => {

@@ -20,7 +20,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { queueEmails } from '@/lib/email/queue';
 import { companyUrl, type CompanyAddress } from '@/lib/tenant/host';
-import { todayInZone } from '@/lib/time/zoned';
+import { DEFAULT_TIME_ZONE, todayInZone } from '@/lib/time/zoned';
 
 
 export interface StatusChangeParams {
@@ -77,6 +77,28 @@ export async function resolveUnitOwnerId(svc: any, unitId: string): Promise<stri
 }
 
 /**
+ * The current owner's move-in date for a unit, or null when any of their
+ * current occupancies has none (no cutoff), as current_resident_unit_since.
+ */
+async function ownerMoveInDate(svc: any, unitId: string, ownerId: string): Promise<string | null> {
+  const { data } = await svc
+    .from('occupancies')
+    .select('move_in_date')
+    .eq('unit_id', unitId)
+    .eq('owner_id', ownerId)
+    .eq('status', 'current');
+  const rows = (data ?? []) as Array<{ move_in_date: string | null }>;
+  if (!rows.length || rows.some((r) => !r.move_in_date)) return null;
+  return rows.map((r) => r.move_in_date as string).sort()[0];
+}
+
+/** True when a work order was opened (association's local date) before the owner moved in. */
+export function workOrderPredatesOwner(createdAt: string, moveInDate: string, timeZone?: string | null): boolean {
+  const opened = todayInZone(timeZone?.trim() || DEFAULT_TIME_ZONE, new Date(createdAt));
+  return opened < moveInDate;
+}
+
+/**
  * Email the owner that their work order / service request has a new status.
  * White-labeled as the management company. Never throws; skips silently when
  * there is no owner or the owner has no email on file. Resolves true only
@@ -100,12 +122,25 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }
     if (kind === 'work_order') {
       const { data: wo, error } = await svc
         .from('work_orders')
-        .select('id, number, title, unit_id, association_id, associations(name, portfolio_id)')
+        .select('id, number, title, unit_id, association_id, service_request_id, created_at, associations(name, portfolio_id, timezone)')
         .eq('id', id)
         .maybeSingle();
       if (error || !wo) return false;
+      // A work order from a service request answers whoever submitted that
+      // request (owner or tenant), not whoever owns the unit today.
+      // Intentional: the requester keeps getting updates on their own
+      // request even after they sell or move out (reviewed 2026-10-14).
+      if (wo.service_request_id) {
+        return notifyOwnerOfStatusChange({ kind: 'service_request', id: wo.service_request_id, newStatus, message });
+      }
       if (!wo.unit_id) return false; // common-area work order — no single owner to inform
       ownerId = await resolveUnitOwnerId(svc, wo.unit_id);
+      // A buyer never hears about the seller's work orders: skip one opened
+      // before the current owner moved in (the association's local date).
+      if (ownerId) {
+        const since = await ownerMoveInDate(svc, wo.unit_id, ownerId);
+        if (since && wo.created_at && workOrderPredatesOwner(wo.created_at, since, wo.associations?.timezone)) return false;
+      }
       associationId = wo.association_id ?? null;
       portfolioId = wo.associations?.portfolio_id ?? null;
       associationName = wo.associations?.name ?? null;

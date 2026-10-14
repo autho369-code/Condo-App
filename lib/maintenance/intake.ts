@@ -78,6 +78,16 @@ export function activeWorkOrder(request: { work_orders?: unknown }): any | null 
   return workOrderList(request).find((w) => !TERMINAL_WORK_ORDER.has(w.status)) ?? null;
 }
 
+/**
+ * The work order a request already has: the open one, else a finished one
+ * (cancelled ones don't count). A request with one gets no new work order.
+ */
+export function existingWorkOrder(request: { work_orders?: unknown }): any | null {
+  return activeWorkOrder(request)
+    ?? workOrderList(request).find((w) => w.status !== 'cancelled')
+    ?? null;
+}
+
 /** What a resident should see: the open work order, else the most recent one. */
 export function currentWorkOrder(request: { work_orders?: unknown }): any | null {
   const list = workOrderList(request);

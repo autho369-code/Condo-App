@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PRs: #383 removed late fee status, #384 owner portal fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#382 and #385 merged; open PRs: #383 removed late fee status, #384 owner portal fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
 - #384 claude/owner-portal-fixes: owner portal fixes, app
@@ -23,7 +23,12 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PRs: #383 removed l
   - Communications uses the shared text box.
   - A removed late fee reads "Late fee removed", never as a payment
     received (ledger, dashboard, timeline, owner assistant).
+
 ## Merged 2026-10-14
+- #385 work orders and service requests (20261015170000 LIVE as
+  20261014034204). Codex: one P2 (complete a request when its only work
+  order is deleted) answered as intended: unfinished work never marks a
+  request resolved.
 - #382 Codex follow-ups on #379-#381 (20261015110000 LIVE as
   20261014022209, 20261015120000 LIVE as 20261014022727). Codex clean.
 - #381 architectural reviews, documents, forms, e-sign (20261015090000 LIVE
@@ -725,6 +730,14 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PRs: #383 removed l
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- Recurring work orders created by the database generators
+  (20261005050000, 20261005051000) set the vendor but send no assignment
+  email (manual, bulk and new-work-order assignment do since
+  claude/work-orders-fixes). Needs a queued email from the generator.
+- A completed service request stays completed when an open work order is
+  moved or unarchived into it, or a cancelled one reopened (only "reopened
+  in place" sets it back to waiting); reopen clears resolved_at but keeps
+  resolved_by and resolution_note (migration review, 20261015170000).
 - DONE in the journal-source-guard PR (20261015060000): direct journal writes
   revoked from signed-in users.
 - Owner ledger: a removed late fee still shows status "paid" (v_charge_balances

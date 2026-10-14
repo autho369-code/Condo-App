@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto';
 import { emailQueueRow } from '@/lib/email/queue';
 import { primaryVendorEmail } from '@/lib/vendors/contact';
 import { claimSubmission, releaseSubmission } from '@/lib/forms/submission';
+import { mergeSourceRef, workOrderRef } from '@/lib/maintenance/comms-refs';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -80,14 +81,19 @@ export async function sendBulkComms(formData: FormData) {
       const phone = extractPhone(vendor);
       if (!email && !phone) continue;
       const key = wo.vendor_id;
-      if (!recipients.has(key)) {
+      const ref = workOrderRef(wo);
+      const existing = recipients.get(key);
+      if (existing) {
+        // One message per vendor, naming every selected work order.
+        existing.sourceRef = mergeSourceRef(existing.sourceRef, ref);
+      } else {
         recipients.set(key, {
           vendorId: wo.vendor_id,
           vendorName: vendor.name ?? 'Unknown Vendor',
           email,
           phone,
           source: 'work_order',
-          sourceRef: `WO #${wo.number ?? wo.id} — ${wo.title}`,
+          sourceRef: ref,
         });
       }
     }
@@ -108,7 +114,10 @@ export async function sendBulkComms(formData: FormData) {
       const phone = extractPhone(vendor);
       if (!email && !phone) continue;
       const key = task.vendor_id;
-      if (!recipients.has(key)) {
+      const existing = recipients.get(key);
+      if (existing) {
+        existing.sourceRef = mergeSourceRef(existing.sourceRef, task.task_name ?? 'Maintenance Task');
+      } else {
         recipients.set(key, {
           vendorId: task.vendor_id,
           vendorName: vendor.name ?? 'Unknown Vendor',

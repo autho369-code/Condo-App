@@ -92,7 +92,7 @@ function formatLabel(s: string): string {
 export default async function WorkOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; status?: string; priority?: string; association_id?: string; vendor_id?: string; assignee?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string; origin?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; status?: string; priority?: string; association_id?: string; vendor_id?: string; assignee?: string; bulk?: string; done?: string; unchanged?: string; failed?: string; reason?: string; error?: string; origin?: string }>;
 }) {
   const me = await requireStaff();
   const sp = await searchParams;
@@ -367,8 +367,10 @@ export default async function WorkOrdersPage({
           </FilterSelect>
         </FilterBar>
 
-        {sp.bulk && (
-          <Alert tone={sp.failed ? 'danger' : 'success'} title={`${sp.done ?? 0} work order${sp.done === '1' ? '' : 's'} ${BULK_LABEL[sp.bulk] ?? 'updated'}${sp.failed ? ` · ${sp.failed} could not be` : ''}`}>
+        {sp.bulk && sp.done === '0' && sp.unchanged && !sp.failed ? (
+          <Alert tone="info" title={`No changes: ${sp.unchanged} already had that status`} />
+        ) : sp.bulk && (
+          <Alert tone={sp.failed ? 'danger' : 'success'} title={`${sp.done ?? 0} work order${sp.done === '1' ? '' : 's'} ${BULK_LABEL[sp.bulk] ?? 'updated'}${sp.unchanged ? ` · ${sp.unchanged} already had that status` : ''}${sp.failed ? ` · ${sp.failed} could not be` : ''}`}>
             {sp.reason}
           </Alert>
         )}
