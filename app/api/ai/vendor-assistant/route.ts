@@ -28,12 +28,13 @@ const SYSTEM_PROMPT =
   'A compliance item with expires null has no date on file for that association. ' +
   'Be brief and practical; format money with a dollar sign. Do not output JSON or code unless asked.';
 
-async function getVendorAIConfig(vendorId: string): Promise<AIConfig | null> {
+async function getVendorAIConfig(vendorId: string): Promise<{ config: AIConfig; portfolioId: string } | null> {
   const svc = createServiceClient() as any;
   const { data: vendor } = await svc.from('vendors').select('portfolio_id').eq('id', vendorId).maybeSingle();
   if (!vendor?.portfolio_id) return null;
 
-  return getAIConfig(vendor.portfolio_id, svc);
+  const config = await getAIConfig(vendor.portfolio_id, svc);
+  return config ? { config, portfolioId: vendor.portfolio_id } : null;
 }
 
 export async function POST(request: NextRequest) {
@@ -62,8 +63,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Question must be ${MAX_ASSISTANT_MESSAGE_CHARS} characters or fewer.` }, { status: 400 });
   }
 
-  const config = await getVendorAIConfig(me.vendor_id);
-  if (!config) {
+  const resolved = await getVendorAIConfig(me.vendor_id);
+  if (!resolved) {
     return NextResponse.json(
       { error: 'AI not configured', hint: 'AI is not enabled by the management company yet.' },
       { status: 400 },
@@ -73,7 +74,8 @@ export async function POST(request: NextRequest) {
   const history: AssistantTurn[] = boundedAssistantHistory(body.history);
 
   try {
-    const snapshot = await buildVendorSnapshot();
+    // Only this company's vendor records go to this company's AI settings.
+    const snapshot = await buildVendorSnapshot(resolved.portfolioId);
 
     const messages = [
       { role: 'system' as const, content: `${SYSTEM_PROMPT}\n\nDATA:\n${JSON.stringify(snapshot)}` },
@@ -81,13 +83,14 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content: question },
     ];
 
-    const answer = await chatCompletion(config, messages, { temperature: 0.2 });
+    const answer = await chatCompletion(resolved.config, messages, { temperature: 0.2 });
 
     return NextResponse.json({ answer: (answer ?? '').trim() });
   } catch (error: any) {
     console.error('Vendor assistant error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Assistant failed', hint: 'Please try again or contact the property manager.' },
+      // Provider and data-load details stay in the server log.
+      { error: 'The assistant could not answer right now.', hint: 'Please try again or contact your management company.' },
       { status: 500 },
     );
   }

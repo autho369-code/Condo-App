@@ -1,9 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#388 merged; open PR: GL / close deep check; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#390 merged; open PRs: #391 setup records, #392 admin/operator, reports; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/gl-close-deep-check: deep check of the general ledger, period and
+- #392 claude/admin-operator-deep-check: deep check of company admin, platform operator, settings and AI assistants. 20261016130000 LIVE as 20261014123525 (author dry-run on production, rolled back; read back). Fixed: company settings writable only by the company admin (managers had direct write to MFA/AI/fees; admins couldn't save settings); staff roles editable only by the company admin/operator; a suspended company's email, texts, mail, webhooks, AutoPay, scheduled reports, scheduled management fees, late fees and automation flows are held (not dropped) until reactivation; platform mail still goes out; webhook SSRF via IPv6 forms closed; fee-run markers, fee defaults and custom_domain_verified_at frozen for direct writes; vendor AI assistant scoped to its company; AI routes no longer return raw errors; operator audit failures reported; more reserved company addresses. Open for Mirsad: late fee vs AutoPay order on reactivation day. Reviewers: security, migration (twice), schema, white-label.
+
+## Merged 2026-10-14
+- #390 (merged 2026-10-14) claude/gl-close-deep-check: deep check of the general ledger, period and
   year-end close, management fees, loans, credit cards and bank lockbox.
   20261016200000 LIVE as 20261014121412 (agent dry-run on production,
   rolled back, before/after; read back: table writes revoked, delete guard,
@@ -16,8 +19,6 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#388 merged; open PR: GL / close deep
   agreements; scoped managers can't make an agreement company-wide or sign
   one outside their associations; local dates; lockbox page reads >1,000.
   Reviewers: migration, security, schema, design (agent + main session).
-
-## Merged 2026-10-14
 - #388 (merged 2026-10-14) claude/ownership-fixes (sale and move-out, from a deep check of the
   change-homeowner flow). Migration 20261016010000_ownership_fixes.sql
   LIVE as 20261014102121 (final file dry-run rolled back on production by the
