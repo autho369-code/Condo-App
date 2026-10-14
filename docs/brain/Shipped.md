@@ -4,6 +4,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Company admin / operator deep check (claude/admin-operator-deep-check, 20261016130000 LIVE as 20261014123525): company settings and staff roles only by the company admin; a suspended company's email, texts, mail, webhooks, AutoPay, scheduled reports, management fees, late fees and automation flows are held until reactivation; webhook SSRF via IPv6 forms closed; fee and domain-verification columns frozen for direct writes; AI assistants scoped and errors kept server-side.
 - Ownership fixes (claude/ownership-fixes, 20261016010000): a sale can't be
   dated in the future; statements go to the owner(s) of record in the
   period; a sale or move-out ends the outgoing owner's parking, stops its

@@ -3,7 +3,7 @@
 Back to [[Home]]. Updated 2026-10-14 (#279-#388 merged; open PR: none; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- none
+- claude/admin-operator-deep-check: deep check of company admin, platform operator, settings and AI assistants. 20261016130000 LIVE as 20261014123525 (author dry-run on production, rolled back; read back). Fixed: company settings writable only by the company admin (managers had direct write to MFA/AI/fees; admins couldn't save settings); staff roles editable only by the company admin/operator; a suspended company's email, texts, mail, webhooks, AutoPay, scheduled reports, scheduled management fees, late fees and automation flows are held (not dropped) until reactivation; platform mail still goes out; webhook SSRF via IPv6 forms closed; fee-run markers, fee defaults and custom_domain_verified_at frozen for direct writes; vendor AI assistant scoped to its company; AI routes no longer return raw errors; operator audit failures reported; more reserved company addresses. Open for Mirsad: late fee vs AutoPay order on reactivation day. Reviewers: security, migration (twice), schema, white-label.
 
 ## Merged 2026-10-14
 - #388 (merged 2026-10-14) claude/ownership-fixes (sale and move-out, from a deep check of the
