@@ -10,7 +10,9 @@ import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
-const OPEN_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress', 'open'];
+// work_order_status values; counts come from the database, not from a capped list.
+const OPEN_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress'];
+const COMPLETED_STATUSES = ['done', 'completed', 'billed', 'closed'];
 
 export default async function VendorDashboard() {
   const me = await requireVendor();
@@ -19,14 +21,30 @@ export default async function VendorDashboard() {
 
   const todayDate = todayInZone();
 
-  const [vendorResult, workOrderResult, complianceResult, billResult] = await Promise.all([
+  // Head counts of this login's work orders (every vendor record).
+  const countWos = () => db.from('work_orders')
+    .select('id', { count: 'exact', head: true })
+    .in('vendor_id', me.vendor_ids)
+    .is('archived_at', null);
+
+  const [vendorResult, workOrderResult, emergencyResult, complianceResult, billResult, ...countResults] = await Promise.all([
     db.from('vendors').select('id, name, trade').eq('id', me.vendor_id).maybeSingle(),
+    // The newest open work orders for the list below.
     db.from('work_orders')
       .select('id, number, title, status, priority, scheduled_date, completed_date, created_at, associations(name)')
       .in('vendor_id', me.vendor_ids)
       .is('archived_at', null)
+      .in('status', OPEN_STATUSES)
       .order('created_at', { ascending: false })
-      .limit(100),
+      .limit(8),
+    db.from('work_orders')
+      .select('id, title')
+      .in('vendor_id', me.vendor_ids)
+      .is('archived_at', null)
+      .in('status', OPEN_STATUSES)
+      .eq('priority', 'emergency')
+      .order('created_at', { ascending: false })
+      .limit(3),
     // Every record of this login (one per association): same dates management sees.
     db.from('vendors').select('id, is_management_company, associations(name), workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration').in('id', me.vendor_ids).order('id'),
     db.from('payable_bills')
@@ -35,7 +53,17 @@ export default async function VendorDashboard() {
       .is('archived_at', null)
       // Submitted and approved bills only: a draft is not yet owed.
       .in('status', ['pending_approval', 'approved']),
+    countWos().in('status', OPEN_STATUSES).eq('scheduled_date', todayDate),
+    countWos().in('status', ['new', 'assigned']),
+    countWos().eq('status', 'in_progress'),
+    countWos().in('status', OPEN_STATUSES).eq('priority', 'emergency'),
+    countWos().in('status', OPEN_STATUSES).not('scheduled_date', 'is', null),
+    countWos().in('status', COMPLETED_STATUSES),
+    countWos(),
   ]);
+  const [todayCount, newCount, inProgressCount, emergencyCount, scheduledCount, completedCount, allCount] =
+    countResults.map((r: any) => (r.error ? null : (r.count ?? 0)) as number | null);
+  const countError = countResults.find((r: any) => r.error)?.error;
 
   const vendor = vendorResult.data;
   const complianceRecords: any[] = complianceResult.data ?? [];
@@ -43,18 +71,16 @@ export default async function VendorDashboard() {
   const loadErrors = [
     vendorResult.error && `profile (${vendorResult.error.message})`,
     workOrderResult.error && `work orders (${workOrderResult.error.message})`,
+    emergencyResult.error && `emergency work orders (${emergencyResult.error.message})`,
+    countError && `work order counts (${countError.message})`,
     complianceResult.error && `compliance dates (${complianceResult.error.message})`,
     billResult.error && `bills (${billResult.error.message})`,
   ].filter(Boolean) as string[];
-  const wos = workOrderResult.data ?? [];
   const openBills = billResult.data;
-  const open = wos.filter((w: any) => OPEN_STATUSES.includes((w.status ?? '').toLowerCase()));
-  const scheduled = open.filter((w: any) => w.scheduled_date);
-  const emergencies = open.filter((w: any) => (w.priority ?? '').toLowerCase() === 'emergency');
-  const today = open.filter((w: any) => w.scheduled_date === todayDate);
-  const inProgress = open.filter((w: any) => (w.status ?? '').toLowerCase() === 'in_progress');
-  const newAssignments = open.filter((w: any) => ['new', 'assigned'].includes((w.status ?? '').toLowerCase()));
-  const completed = wos.filter((w: any) => ['done', 'completed', 'billed', 'closed'].includes((w.status ?? '').toLowerCase()));
+  const open: any[] = workOrderResult.data ?? [];
+  const emergencies: any[] = emergencyResult.data ?? [];
+  const emergencyTotal = emergencyCount ?? emergencies.length;
+  const shown = (n: number | null) => (n === null ? '—' : n);
   const pendingPay = (openBills ?? []).reduce((s: number, b: any) => s + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), 0);
 
   // Compliance expirations within 30 days or past (local calendar days).
@@ -101,23 +127,23 @@ export default async function VendorDashboard() {
         </Alert>
       )}
 
-      {emergencies.length > 0 && (
+      {emergencyTotal > 0 && (
         <Alert tone="danger" className="mb-5">
-          {emergencies.length} emergency job{emergencies.length === 1 ? '' : 's'} assigned to you:{' '}
+          {emergencyTotal} emergency job{emergencyTotal === 1 ? '' : 's'} assigned to you:{' '}
           {emergencies.slice(0, 3).map((e: any) => e.title).join(' · ')} —{' '}
           <Link href="/vendor/work-orders" className="font-semibold underline underline-offset-2">open work orders</Link>
         </Alert>
       )}
 
       <MetricStrip className="mb-6 lg:grid-cols-4">
-        <Metric label="Jobs today" value={today.length} accent="blue" />
-        <Metric label="New assignments" value={newAssignments.length} accent="violet" />
-        <Metric label="In progress" value={inProgress.length} />
-        <Metric label="Emergency" value={emergencies.length} accent={emergencies.length > 0 ? 'red' : undefined} />
-        <Metric label="Scheduled" value={scheduled.length} />
-        <Metric label="Completed" value={completed.length} sub="recent history" accent="emerald" />
+        <Metric label="Jobs today" value={shown(todayCount)} accent="blue" />
+        <Metric label="New assignments" value={shown(newCount)} accent="violet" />
+        <Metric label="In progress" value={shown(inProgressCount)} />
+        <Metric label="Emergency" value={shown(emergencyCount)} accent={emergencyTotal > 0 ? 'red' : undefined} />
+        <Metric label="Scheduled" value={shown(scheduledCount)} />
+        <Metric label="Completed" value={shown(completedCount)} accent="emerald" />
         <Metric label="Pending payment" value={money(pendingPay)} sub={<Link href="/vendor/payments" className="-my-3 inline-block py-3 underline underline-offset-2">payment status</Link>} />
-        <Metric label="All assigned" value={wos.length} sub="last 100 shown" />
+        <Metric label="All assigned" value={shown(allCount)} />
       </MetricStrip>
 
       <Surface padded={false}>
@@ -130,7 +156,7 @@ export default async function VendorDashboard() {
           <EmptyState icon={Wrench} title="No open work orders" description="New assignments from your management companies will appear here." />
         ) : (
           <ul className="divide-y divide-gray-50">
-            {open.slice(0, 8).map((w: any) => (
+            {open.map((w: any) => (
               <li key={w.id}>
                 <Link href={`/vendor/work-orders/${w.id}`} className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-gray-50/60 sm:px-6">
                   <div className="min-w-0 flex-1">

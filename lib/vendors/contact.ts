@@ -23,6 +23,31 @@ export function primaryVendorEmail(emails: unknown): string | null {
   return labelled ?? vendorEmails(emails)[0] ?? null;
 }
 
+/** The email held by the first stored entry, or '' when there is none. */
+export function firstVendorEmail(emails: unknown): string {
+  if (!Array.isArray(emails) || !emails.length) return '';
+  const e = emails[0] as EmailEntry;
+  const raw = typeof e === 'string' ? e : e && typeof e === 'object' && typeof e.email === 'string' ? e.email : '';
+  return raw.trim();
+}
+
+/**
+ * Replace (or, with an empty value, remove) the first email entry, keeping
+ * every other entry and the stored shape of the first one. Returns null when
+ * removing it would leave no email on file.
+ */
+export function replaceFirstVendorEmail(list: unknown, value: string): unknown[] | null {
+  const emails = Array.isArray(list) ? [...list] : [];
+  const v = value.trim();
+  if (!v) {
+    emails.splice(0, 1);
+    return emails.length === 0 ? null : emails;
+  }
+  const first = emails[0] as EmailEntry;
+  emails[0] = first && typeof first === 'object' ? { ...first, email: v } : v;
+  return emails;
+}
+
 // Vendor phone lists are mostly plain strings (["773-555-0100"]); some rows
 // carry objects ({ number | value, type }). Read both shapes, and when the
 // first number is edited keep whatever shape is already stored.

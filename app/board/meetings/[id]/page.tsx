@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { date, money } from '@/lib/utils'
 import { Alert } from '@/components/ui/shell'
 import { Calendar, MapPin, Clock, FileText, Paperclip, Download, Loader2 } from 'lucide-react'
+import { meetingTypeLabel } from '@/lib/meetings/labels'
 
 interface Meeting {
   id: string
@@ -63,15 +64,6 @@ interface FinancialSnapshot {
   generated_at: string
 }
 
-const typeLabel: Record<string, string> = {
-  board_meeting: 'Board Meeting',
-  annual_meeting: 'Annual Meeting',
-  special_meeting: 'Special Meeting',
-  committee_meeting: 'Committee Meeting',
-  vendor_meeting: 'Vendor Meeting',
-  internal: 'Internal',
-}
-
 const categoryLabel: Record<string, string> = {
   general: 'General',
   financial: 'Financial',
@@ -119,9 +111,17 @@ export default function MeetingDetailClient() {
       .from('meetings')
       .select('*, associations(name)')
       .eq('id', meetingId)
+      // Archived meetings are gone for the board, as on the list.
+      .is('archived_at', null)
       .maybeSingle()
     if (meetingError) errors.push(`Meeting could not be loaded: ${meetingError.message}`)
-    if (m) setMeeting(m as Meeting)
+    if (!m) {
+      setMeeting(null)
+      setLoadErrors(errors)
+      setLoading(false)
+      return
+    }
+    setMeeting(m as Meeting)
 
     // Start all meeting-child reads together once the authorized meeting has
     // established the association needed by the financial snapshot RPC.
@@ -172,7 +172,7 @@ export default function MeetingDetailClient() {
       doc.setFontSize(11)
       doc.setTextColor(107, 114, 128)
       doc.setFont('helvetica', 'normal')
-      doc.text(`Meeting Type: ${typeLabel[meeting.meeting_type] ?? meeting.meeting_type}`, 50, y)
+      doc.text(`Meeting Type: ${meetingTypeLabel(meeting.meeting_type)}`, 50, y)
       y += 18
       doc.text(`Date: ${date(meeting.start_time, 'long')}`, 50, y)
       y += 18
@@ -350,7 +350,7 @@ export default function MeetingDetailClient() {
           <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">{meeting.title}</h1>
           <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
             {meeting.associations?.name && `${meeting.associations.name} — `}
-            {typeLabel[meeting.meeting_type] ?? meeting.meeting_type}
+            {meetingTypeLabel(meeting.meeting_type)}
           </p>
         </div>
         <div className="flex items-center gap-3">

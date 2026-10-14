@@ -4,6 +4,7 @@ import { Alert, Badge, SectionTitle } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 import Link from 'next/link'
 import { Calendar, MapPin } from 'lucide-react'
+import { meetingTypeLabel, splitBoardMeetings } from '@/lib/meetings/labels'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,22 +25,8 @@ export default async function BoardMeetingsPage() {
 
   const all = meetings ?? []
 
-  const typeLabel: Record<string, string> = {
-    board_meeting: 'Board Meeting',
-    annual_meeting: 'Annual Meeting',
-    special_meeting: 'Special Meeting',
-    committee_meeting: 'Committee Meeting',
-    vendor_meeting: 'Vendor Meeting',
-    internal: 'Internal',
-  }
-
-  const isUpcoming = (d: string | null) => {
-    if (!d) return false
-    return new Date(d) >= new Date()
-  }
-
-  const upcoming = all.filter((m: any) => isUpcoming(m.start_time) && m.status !== 'cancelled')
-  const past = all.filter((m: any) => !isUpcoming(m.start_time) || m.status === 'completed')
+  // Cancelled meetings (future ones included) get their own list.
+  const { upcoming, past, cancelled } = splitBoardMeetings(all as any[])
 
   const card = 'overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
   const thead = 'border-b border-gray-100 bg-gray-50/60 text-[12.5px] uppercase tracking-wide text-gray-500'
@@ -59,7 +46,7 @@ export default async function BoardMeetingsPage() {
           { label: 'Total', value: all.length },
           { label: 'Upcoming', value: upcoming.length },
           { label: 'Completed', value: all.filter((m: any) => m.status === 'completed').length },
-          { label: 'Cancelled', value: all.filter((m: any) => m.status === 'cancelled').length },
+          { label: 'Cancelled', value: cancelled.length },
         ].map((s: any) => (
           <div key={s.label} className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="text-[13px] font-medium text-gray-500">{s.label}</div>
@@ -92,7 +79,7 @@ export default async function BoardMeetingsPage() {
                       </Link>
                       <div className="mt-0.5 text-[13px] text-gray-500">{m.associations?.name ?? ''}</div>
                     </td>
-                    <td className="px-4 py-3.5 text-sm text-gray-700">{typeLabel[m.meeting_type] ?? m.meeting_type}</td>
+                    <td className="px-4 py-3.5 text-sm text-gray-700">{meetingTypeLabel(m.meeting_type)}</td>
                     <td className="px-4 py-3.5 text-sm text-gray-700">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="h-3.5 w-3.5 text-gray-400" />
@@ -139,7 +126,42 @@ export default async function BoardMeetingsPage() {
                         {m.title}
                       </Link>
                     </td>
-                    <td className="px-4 py-3.5 text-sm text-gray-700">{typeLabel[m.meeting_type] ?? m.meeting_type}</td>
+                    <td className="px-4 py-3.5 text-sm text-gray-700">{meetingTypeLabel(m.meeting_type)}</td>
+                    <td className="px-4 py-3.5 text-sm text-gray-700">{date(m.start_time, 'long')}</td>
+                    <td className="px-4 py-3.5 text-sm text-gray-700">{m.location || '—'}</td>
+                    <td className="px-4 py-3 text-center"><Badge status={m.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Cancelled Meetings */}
+      {cancelled.length > 0 && (
+        <div>
+          <SectionTitle title="Cancelled" />
+          <div className={card}>
+            <table className="w-full text-sm">
+              <thead className={thead}>
+                <tr>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Meeting</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Type</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Date</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Location</th>
+                  <th className="px-4 py-2.5 text-center font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cancelled.map((m: any) => (
+                  <tr key={m.id} className={row}>
+                    <td className="px-4 py-3.5">
+                      <Link href={`/board/meetings/${m.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">
+                        {m.title}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3.5 text-sm text-gray-700">{meetingTypeLabel(m.meeting_type)}</td>
                     <td className="px-4 py-3.5 text-sm text-gray-700">{date(m.start_time, 'long')}</td>
                     <td className="px-4 py-3.5 text-sm text-gray-700">{m.location || '—'}</td>
                     <td className="px-4 py-3 text-center"><Badge status={m.status} /></td>
