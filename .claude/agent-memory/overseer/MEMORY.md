@@ -74,7 +74,8 @@
   merged was moved out of Open PR, and "pushed after #N merges" wording.
 - "No user text changed" is often wrong: new redirect `?error=` strings in
   actions are user-facing (white-label-checker scope). Check the diff for
-  new string literals in redirects.
+  new string literals in redirects. Again 2026-10-13 (reconcile statement
+  balance: 3 error redirects + success Alert + hint, only security+design ran).
 - Status said "Claude applies once Codex is clean" — PR Rules say apply the
   additive migration as soon as the SQL is settled and put "do not merge
   until the migration is live" in the PR body. Check the wording.

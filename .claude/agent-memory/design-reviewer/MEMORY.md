@@ -12,6 +12,8 @@
 - Confirm sweeps: grep the touched files for leftover one-click `End`/`Cancel` submits (owners/[id] End seat :504, End :749, End tenancy :891; platform-operator companies Cancel invitation :522 were missed in 36d850ba).
 - `flex-1` on an Input inside `flex flex-col sm:flex-row` collapses it to ~19px at 375px (basis 0 in a column); fix `sm:flex-1` (Input is already w-full). Grep for it (reports/page.tsx:151, company-admin/managers:145 fixed 2026-10-10). In the same pass check sibling "Clear filters" text links (CalendarGrid.tsx:131 left ~16px).
 - `Select className="w-auto"` in a flex-wrap toolbar sizes to its longest option; a long name can overflow 375px. Suggest `w-auto max-w-full` (CalendarGrid.tsx:122, 2026-10-11).
+- Reopen/undo flows (missed on #372, Codex caught it): a reopened record left its key input (bank reconciliation statement balance) read-only, so the user couldn't fix what they reopened it for. On any undo/reopen/"back to draft" change, ask: can the user now edit and finish it on the page?
+- Field `hint` renders below the Input, so `sm:items-end` beside a button bottom-aligns the button with the hint, not the input (reconcile/page.tsx:381). Use `sm:items-start` + `sm:mt-[label offset]` or put the hint elsewhere. (Fixed on the reconcile balance form: hint moved under the row.)
 - Checkbox labels: `min-h-10` on the wrapping `<label>` satisfies the 40px target (whole label clicks the box).
 
 ## Useful checks

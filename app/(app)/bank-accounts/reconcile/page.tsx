@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Button, buttonClass } from '@/components/ui/button';
-import { Field, Select, Textarea } from '@/components/ui/input';
+import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -12,7 +12,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
-import { discardBankReconciliation, undoBankReconciliation } from './actions';
+import { discardBankReconciliation, undoBankReconciliation, updateStatementBalance } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -210,6 +210,7 @@ export default async function BankReconciliationPage({
         {pageError && <Alert tone="danger" title="Reconciliation not updated.">{pageError}</Alert>}
         {done === 'undone' && <Alert tone="success">The reconciliation was undone and is in progress again. Change what you need, then complete it.</Alert>}
         {done === 'discarded' && <Alert tone="success">The reconciliation in progress was discarded.</Alert>}
+        {done === 'balance' && <Alert tone="success">The statement ending balance was saved.</Alert>}
         {loadErrors.length > 0 && <Alert tone="danger" title="Could not load reconciliation data.">{loadErrors.join(' · ')}</Alert>}
         {selectedAccount && !selectedAccount.gl_account_id && (
           <Alert tone="warning" title="This bank account isn't linked to a GL account.">
@@ -373,6 +374,24 @@ export default async function BankReconciliationPage({
                     <span className="font-medium text-ink">Reopened {date(recentReconciliation.undone_at)}</span>
                     {recentReconciliation.undo_reason ? `: ${recentReconciliation.undo_reason}` : ''}
                   </p>
+                )}
+                {/* The statement balance can be corrected until it is completed
+                    (e.g. a reconciliation reopened because it was keyed wrong). */}
+                {recentReconciliation.status === 'in_progress' && (
+                  <form action={updateStatementBalance} className="mt-4 space-y-2 border-t border-line pt-4">
+                    <input type="hidden" name="reconciliation_id" value={recentReconciliation.id} />
+                    <input type="hidden" name="bank_account_id" value={selectedAccount.id} />
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                      <div className="sm:w-64">
+                        <Field label="Statement ending balance" htmlFor="statement_balance" required>
+                          <Input id="statement_balance" name="statement_balance" type="text" inputMode="decimal" required
+                            defaultValue={Number(recentReconciliation.statement_balance ?? 0).toFixed(2)} />
+                        </Field>
+                      </div>
+                      <PendingSubmit variant="secondary" pendingLabel="Saving…">Save balance</PendingSubmit>
+                    </div>
+                    <p className="text-[13px] text-gray-500">From the bank statement. Save any change before you complete the reconciliation.</p>
+                  </form>
                 )}
                 {recentReconciliation.status === 'completed' && latestCompleted?.id === recentReconciliation.id && (
                   <form action={undoBankReconciliation} className="mt-4 space-y-3 border-t border-line pt-4">

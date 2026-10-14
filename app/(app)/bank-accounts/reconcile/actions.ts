@@ -29,6 +29,35 @@ export async function undoBankReconciliation(formData: FormData) {
 }
 
 /**
+ * Correct the statement's ending balance of a reconciliation in progress
+ * (e.g. one reopened because the balance was keyed wrong). The database
+ * refuses it on a completed one and recomputes the difference.
+ */
+export async function updateStatementBalance(formData: FormData) {
+  await requireFinanceStaff();
+  const accountId = String(formData.get('bank_account_id') ?? '');
+  const reconciliationId = String(formData.get('reconciliation_id') ?? '');
+  const raw = String(formData.get('statement_balance') ?? '').replace(/[$,\s]/g, '');
+  const back = UUID.test(accountId) ? `/bank-accounts/reconcile?account_id=${accountId}` : '/bank-accounts/reconcile';
+  const fail = (msg: string): never => redirect(`${back}${back.includes('?') ? '&' : '?'}error=${encodeURIComponent(msg)}`);
+  if (!UUID.test(reconciliationId)) fail('This reconciliation could not be found.');
+  if (!/^-?\d+(\.\d{1,2})?$/.test(raw)) fail('Enter the statement ending balance as an amount, e.g. 12450.00.');
+  const balance = Number(raw);
+  if (!Number.isFinite(balance) || Math.abs(balance) >= 1e12) fail('Enter a valid statement ending balance.');
+
+  const db = (await createClient()) as any;
+  const { data, error } = await db.from('bank_reconciliations')
+    .update({ statement_balance: balance })
+    .eq('id', reconciliationId)
+    .eq('status', 'in_progress')
+    .select('id');
+  if (error) fail(error.message);
+  if (!data?.length) fail('Only a reconciliation in progress can be changed.');
+  revalidatePath('/bank-accounts/reconcile');
+  redirect(`${back}${back.includes('?') ? '&' : '?'}done=balance`);
+}
+
+/**
  * Discard an in-progress reconciliation (its items go with it). The database
  * refuses a completed one (undo it instead) and checks the caller can
  * reconcile the account.

@@ -1,9 +1,17 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#371 merged; open PR: #372 claude/banking-followups; next: Payables follow-ups (Next gaps); waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#372 merged; open PR: #373 claude/reconciliation-statement-balance (Codex on #372); next: Payables follow-ups (Next gaps); waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #372 claude/banking-followups: banking follow-ups (Next gaps). 20261015020000
+- #373 claude/reconciliation-statement-balance: Codex on #372 (P1). A reconciliation
+  in progress can have its statement ending balance corrected on the
+  reconcile page (a reopened one could not: the balance was read-only and
+  discard is refused for it, so it could never be completed). App only; the
+  database already allowed it and recomputes the difference.
+
+## Merged 2026-10-13
+- #372 banking follow-ups (Next gaps). Codex: P1, a reopened reconciliation
+  could not correct its statement balance (fixed in the next PR). 20261015020000
   LIVE as 20261013215404 banking_followups, 20261013215740
   banking_followups_wording, 20261013215843 banking_followups_locks (the file
   is the final, re-runnable state); rolled-back production tests passed
@@ -30,8 +38,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#371 merged; open PR: #372 claude/ban
     posting, or be deleted; a bank adjustment can't change while any
     reconciliation lists it (the item keeps its amount). All roles except
     repair sessions. Indexes on items by line and by adjustment.
-
-## Merged 2026-10-13
 - #371 email unsubscribe and suppression (Mirsad's
   recommended defaults from TODO). Codex: one P2 on an older commit (dues
   reminders skipped mail-preferring owners), already fixed by the
