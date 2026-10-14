@@ -215,9 +215,9 @@ export default async function CommunicationCenterPage({
           <span>{total.toLocaleString()} {tab === 'emails' ? 'email' : tab === 'texts' ? 'text message' : tab === 'letters' ? 'letter' : 'message'}{total === 1 ? '' : 's'}{filtering ? ' match' : ''}</span>
           {totalPages > 1 && (
             <span className="flex items-center gap-3">
-              {page > 1 ? <Link href={params({ page: String(page - 1) })} className="text-gray-900 underline underline-offset-4">Newer</Link> : <span className="text-gray-300">Newer</span>}
+              {page > 1 ? <Link href={params({ page: String(page - 1) })} className="inline-flex min-h-10 items-center text-gray-900 underline underline-offset-4">Newer</Link> : <span className="inline-flex min-h-10 items-center text-gray-300">Newer</span>}
               <span className="text-gray-500">Page {page} of {totalPages}</span>
-              {page < totalPages ? <Link href={params({ page: String(page + 1) })} className="text-gray-900 underline underline-offset-4">Older</Link> : <span className="text-gray-300">Older</span>}
+              {page < totalPages ? <Link href={params({ page: String(page + 1) })} className="inline-flex min-h-10 items-center text-gray-900 underline underline-offset-4">Older</Link> : <span className="inline-flex min-h-10 items-center text-gray-300">Older</span>}
             </span>
           )}
         </div>

@@ -128,6 +128,12 @@ Back to [[Home]].
   rate (20261014220000). Checks inside a trigger that reads other tables run
   in a definer helper: the caller's row-level security on every row made
   2,000 emails take ~4 s.
+- **Guards check current_user, not auth.role()** (2026-10-13): inside a
+  SECURITY DEFINER function an owner's action runs, auth.role() is still
+  'authenticated' while current_user is the function owner. A trigger that
+  limits direct writes by signed-in users checks current_user, so trusted
+  functions pass (an auth.role() guard refused staff notifications for owner
+  messages after #367; 20261014233000).
 - **A limit counts what the server sets, under a lock** (2026-10-13): a rate
   limit or quota must count by values the database sets (created_at := now(),
   sent_by := auth.uid() in the guard), never ones the caller supplies, and

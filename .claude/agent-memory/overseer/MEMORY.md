@@ -131,3 +131,13 @@
   an owner with no current unit (sold: no access), a resident/tenant login
   (app/resident uses requireTenant; tenant portal scope is Mirsad's open
   decision - audit holes, don't add features), and app/portal/lease (rental?).
+- Email opt-out/suppression (comms follow-ups, 2026-10-13): ~15 SQL
+  functions/crons insert straight into email_queue, so a suppression check
+  only in the TS mass-email action misses them. Pre-PR: check it is enforced
+  at the queue (guard trigger or process-queue dispatcher) with a required-mail
+  exemption, and that the unsubscribe route is in public-paths + tenant-filtered.
+  owner_notification_prefs is a legacy camelCase table (integer ownerId), unused.
+- Renamed migration (comms-followups, 2026-10-13: 20261014240000 ->
+  233000 after applying live): grep the old version in docs/brain and every
+  agent memory (Product Rules, Shipped, white-label still said 240000), and
+  ask for the live schema_migrations read-back of both versions.

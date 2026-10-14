@@ -9,6 +9,7 @@ import { safeInternalNext } from '@/lib/security/redirects';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { claimSubmission, releaseSubmission } from '@/lib/forms/submission';
 import { managesAssociation } from '@/lib/security/association-scope';
+import { associationToday } from '@/lib/time/association-today';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -58,12 +59,16 @@ export async function sendEmail(formData: FormData) {
   };
 
   if (recipientType === 'owners' || recipientType === 'both') {
+    // Owners who moved out (sold) by today, the association's date, aren't
+    // owners there any more.
+    const today = await associationToday(db, associationId);
     const occs = await readAll('owners', () => db
       .from('occupancies')
       .select('id, owners!owner_id(id, email, full_name, archived_at)')
       .eq('association_id', associationId)
       .eq('occupancy_type', 'owner')
       .eq('status', 'current')
+      .or(`move_out_date.is.null,move_out_date.gt.${today}`)
       .order('id'));
     occs.forEach((o: any) => {
       if (o.owners?.email && !o.owners.archived_at) recipients.push({ email: o.owners.email, name: o.owners.full_name ?? '', source: 'owner', ownerId: o.owners.id });

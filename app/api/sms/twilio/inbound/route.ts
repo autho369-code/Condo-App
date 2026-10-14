@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { canonicalPhone, validTwilioSignature } from '@/lib/sms/twilio';
+import { logUnmatchedReply, recordInboundReply } from '@/lib/sms/inbound-reply';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,12 +17,29 @@ export async function POST(request: NextRequest) {
   }
 
   const optOutType = String(form.get('OptOutType') ?? '').toUpperCase();
-  if (!['STOP', 'START'].includes(optOutType)) return new NextResponse(null, { status: 204 });
   const from = canonicalPhone(form.get('From') ?? '');
   const to = canonicalPhone(form.get('To') ?? '');
   if (!/^\+[1-9]\d{7,14}$/.test(from)) return NextResponse.json({ error: 'Invalid sender number' }, { status: 400 });
 
   const db = createServiceClient() as any;
+
+  // A reply (not STOP/START) goes into the sender's conversation for staff.
+  if (!['STOP', 'START'].includes(optOutType)) {
+    try {
+      const result = await recordInboundReply(db, {
+        from,
+        to,
+        body: String(form.get('Body') ?? ''),
+        messageSid: String(form.get('MessageSid') ?? '') || null,
+      });
+      // Not filed with any one company; each is told a text arrived.
+      if (result.status === 'ambiguous') await logUnmatchedReply(db, result.portfolioIds, from);
+      return new NextResponse(null, { status: 204 });
+    } catch (error: any) {
+      // A 500 makes Twilio retry; the message id keeps the retry from doubling.
+      return NextResponse.json({ error: error?.message ?? 'Could not record the reply' }, { status: 500 });
+    }
+  }
   const { data: candidates, error: readError } = await db.from('sms_opt_ins')
     .select('id, portfolio_id')
     .eq('phone_number', from)

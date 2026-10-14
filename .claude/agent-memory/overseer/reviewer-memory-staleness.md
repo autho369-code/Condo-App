@@ -44,3 +44,9 @@ Rule: when a PR fixes a hole a reviewer recorded, its memory line must say "fixe
   20261014230000; only migration-reviewer got a lesson (lock pattern), the
   security-reviewer that reviewed #367's rate limit got none. Every
   "Codex on #N" PR: each reviewer that ran on #N gets a "missed: ..." line.
+- Recurring 8th time (comms-followups pre-PR, 2026-10-13): security
+  (add_record_note "accepts any https host"), design (inbox:115 pager inside
+  the non-empty branch, ~20px pager links) and white-label (message_notify
+  "slug-only, needs custom domain") all written as open; 20261014233000 +
+  inbox/page.tsx fixed each. Also the #367 auth.role() guard regression (found
+  by Claude, not Codex) got no "missed:" line for security-reviewer.

@@ -42,3 +42,9 @@ metadata:
 
 ## Stripe Checkout cancel races (2026-10-13, autopay-cancel-race)
 - A cancel_url hit is not proof the session can't complete: expire the session on the stored connected account first and only release locally on Stripe `expired`. Webhook-side "undo what I created" fixes keyed on an in-memory id (createdMandateId) are lost on redelivery (the retry finds the row as existing): key undo on a durable link (e.g. attempt id on the mandate) instead.
+
+## Webhook-created rows (2026-10-13, comms-followups)
+- Service-client inserts from webhooks (Twilio inbound `lib/sms/inbound-reply.ts`) must set `association_id` like the staff path does (sendSms derives it from the owner's occupancy / vendor): a NULL association passes `can_view_association_row(null)` and shows to every scoped manager. Also check enum literals (sms_status has no 'received'); hand-rolled fake-db unit tests never catch 22P02.
+- Email link hosts in DEFINER functions: `add_record_note(p_app_url)` accepted any https host from the caller (insider phishing to colleagues; fixed in 20261014233000 §5: company address only); message_notify builds `<slug>.portier369.com` from the CHECK-constrained slug (safe).
+
+- Missed on #367 (found on the next branch): a guard that checks `auth.role()` still sees 'authenticated' inside SECURITY DEFINER functions an owner's action runs. When #367 gated email_queue_association_company to company staff, the worker-columns guard refused trusted owner-triggered emails (staff stopped being notified of owner messages). Guards limiting direct user writes must check current_user (fixed in 20261014233000 §4). When gating a helper, list every trigger and definer that calls it.

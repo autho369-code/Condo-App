@@ -81,3 +81,7 @@
 
 ## Resident calendar / balances RPCs (20261014190000)
 - Residents read events via `resident_calendar_events(p_association_ids,p_from,p_to,p_limit)` (direct calendar_events resident/tenant policies set USING false); it keeps association and company-wide (`association_id is null`) events as the old policies did, and shows unit events only from the resident's start date. `resident_unit_balances()` returns unit_id/balance for all current_resident_unit_ids (filter to the page's unitIds). `calendar_events.title/location` are text, event_type enum `event_type`. Board ARC/WO message inserts were already disabled (20261005111000), so ARC author triggers forcing 'owner' don't regress the board. (2026-10-13, clean.)
+
+## Enum values in insert payloads (check:columns cannot see them)
+- `sms_status` enum is queued/sent/delivered/failed/read/undelivered: there is NO 'received' (lib/sms/inbound-reply.ts insert, 2026-10-13). `sms_direction` inbound/outbound. Always grep `AS ENUM` in the baseline + `add value` in migrations for every literal status a payload writes.
+- `sms_messages` AFTER INSERT trigger `sync_sms_conversation_on_message` already bumps last_message_at/preview/unread_count; a manual conversation update after insert is redundant and races.

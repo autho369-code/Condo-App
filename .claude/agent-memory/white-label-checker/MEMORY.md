@@ -64,6 +64,9 @@
 - GL tie-out prior-years subtitle (Oct 2026, previous-system/gl-section.tsx ~:453-459): clean of platform/competitor names; account names come from the company's own chart. Dates there (incomeFrom) render raw ISO across the section (:392, :409, :456): consistent, flag only if a change formats some but not all.
 - Opening balances from trial balance (Oct 2026, previous-system/gl-actions.ts postOpeningBalancesFromTrialBalance + gl-section "Opening balances" panel): clean of platform/competitor names. Stored values neutral: batch "Opening balances <association name> <date>", entry "OPENING-<date>", memo "Opening balance from previous system trial balance". Wording to watch: "open balances" (receivables import) vs "opening balances" sit side by side; check that the UI's line count matches what the server posts (the prior-years line).
 
+## message_notify (20261014233000, Oct 2026)
+- Conversation links in staff/owner mail (/inbox/<id>, /portal|resident/messages/<id>) built slug-only ('https://'||slug||'.portier369.com'), commented as "sign-in address". These are ordinary links: need the verified-custom-domain case first (fixed in 20261014233000). Watch for "sign-in address" comments used to justify slug links that aren't auth redirects.
+
 ## Email-queue guard messages (20261014220000, Oct 2026)
 - Trigger/RPC raise text reaches staff raw via `?error=` (notifications.ts failTo wraps `${queueError.message}.`; a message ending in "." gives ".."). Watch for "the platform" in guard text (from-address message) and trailing periods in raise text.
 

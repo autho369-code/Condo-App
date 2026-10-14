@@ -1,15 +1,36 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#367 merged; open PR: #368 claude/email-rate-limit; next: communications follow-ups; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#368 merged; open PR: #369 claude/comms-followups; next: email unsubscribe and suppression; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #368 claude/email-rate-limit: Codex on #367 - the hourly email
-  limit counted client-supplied created_at (backdated rows never counted)
-  and parallel sends each saw room under it. The insert guard sets
-  created_at to the database time; the limit takes a per-company lock
-  before counting.
+- #369 claude/comms-followups: communications follow-ups.
+  20261014233000 (LIVE):
+  - REGRESSION FIX from #367: the email worker-columns guard checked
+    auth.role(), still 'authenticated' inside definer functions an owner's
+    action runs, so staff weren't emailed about owner messages (its company
+    lookup answers only for staff since #367). It checks current_user now;
+    applied live as a hotfix. No owner messages were sent in that window.
+  - message notifications link to the conversation (Inbox for staff,
+    portal for owners/tenants, on the company's verified domain or
+    <slug>.portier369.com); an email that can't be queued is logged as
+    failed in the communications log with a link to the conversation;
+  - former owners (sold, by the association's date) read their old
+    conversations but can't reply;
+  - note-mention emails link to the company's own address, not a host the
+    caller passes (security review);
+  - inbound texts: one row per Twilio message id.
+  App: inbound SMS replies are recorded in the sender's conversation (they
+  were dropped), in the owner's or vendor's association; a sender known to
+  more than one company is matched only by the number they texted, else
+  each company gets a log entry without the message; the SMS sender number comes
+  from the configuration, not the form; inbox and its texts tab page 100
+  at a time (were cut at 300/100); mass email leaves out owners who moved
+  out by the association's today. Letters vs email owners checked: the
+  same 17 owners (unit_owners is synced from occupancies), no change.
 
 ## Merged 2026-10-13
+- #368 email limit counted by the database time under a per-company lock
+  (Codex on #367; 20261014230000). Codex clean.
 - #367 email security: sign-in links unreadable by staff; staff mail checked
   in the database; mass email fast and replies to the company
   (20261014220000).
@@ -495,16 +516,15 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#367 merged; open PR: #368 claude/ema
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- NEXT PR: communications follow-ups (deep check 2026-10-13): no email
-  unsubscribe/opt-out and bounced/complained addresses are never
-  suppressed (owners.preferred_comm / electronic_consent ignored by mass
-  mail); inbound SMS that isn't STOP/START is acknowledged and dropped;
-  message_notify swallows errors; notification emails say "sign in" with
-  no link; inbox list capped at 300 with no paging; sendSms falls back to
-  +10000000000 and takes from_number from the form; sold owners can post
-  on old threads (post_message checks owner ids, not occupancy); mass
-  email doesn't filter move_out_date (daily cron limits it to ~1 day);
-  letters read unit_owners while email reads occupancies.
+- NEXT PR: email unsubscribe and suppression (communications deep check
+  2026-10-13): no unsubscribe link or List-Unsubscribe header; bounced and
+  complained addresses (email_queue.bounced_at/complained_at) are never
+  suppressed; mass email ignores preferred_comm / electronic_consent.
+  Enforce at email_queue (many SQL functions insert directly), shape like
+  sms_opt_ins + sms_consent_events (not the legacy owner_notification_prefs).
+  Needs Mirsad: which mail ignores opt-out (recommended: sign-in, receipts,
+  statements, violation/hearing, meeting and collection notices), legal
+  notices by letter for preferred_comm='mail', staff can't clear an opt-out.
 - Banking, not changed (from the deep check): a completed reconciliation
   has no undo (only the service role); year-end close is a snapshot
   package and does not lock months; a bank adjustment already cleared can

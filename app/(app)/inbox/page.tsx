@@ -1,5 +1,6 @@
 import { formatInZone } from '@/lib/time/zoned';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Inbox, MessageSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
@@ -38,8 +39,10 @@ function residentName(t: any) {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PAGE_SIZE = 100;
+const SEARCH_CAP = 300;
 
-export default async function InboxPage({ searchParams }: { searchParams: Promise<{ q?: string; association?: string; search?: string }> }) {
+export default async function InboxPage({ searchParams }: { searchParams: Promise<{ q?: string; association?: string; search?: string; page?: string }> }) {
   const me = await requireWorkspaceStaff();
   const sp = await searchParams;
   const queue: Queue = (QUEUES.find((x) => x.key === sp.q)?.key ?? 'open') as Queue;
@@ -52,13 +55,21 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   if (associationId) keep.set('association', associationId);
   if (sp.search) keep.set('search', sp.search);
   const tabHref = (key: string) => `/inbox?q=${key}${keep.size ? `&${keep}` : ''}`;
+  // Older conversations page in (the list used to stop at 300).
+  const page = Math.max(1, Number.parseInt(sp.page ?? '1', 10) || 1);
+  const pageHref = (n: number) => {
+    const next = new URLSearchParams(keep);
+    next.set('q', queue);
+    if (n > 1) next.set('page', String(n));
+    return `/inbox?${next}`;
+  };
 
   const count = (build: (q: any) => any) =>
     build(db.from('message_threads').select('id', { count: 'exact', head: true }).eq('status', 'open'));
 
   const THREAD_COLUMNS = 'id, subject, status, last_message_at, last_message_preview, last_message_role, staff_unread, first_response_due_at, acknowledged_at, owners(full_name), tenants(first_name, last_name), associations(name), units(unit_number), assignee:assigned_to(full_name, email)';
-  const listQuery = (extraColumns = '') => {
-    let q = db.from('message_threads').select(THREAD_COLUMNS + extraColumns);
+  const listQuery = (extraColumns = '', counted = false) => {
+    let q = db.from('message_threads').select(THREAD_COLUMNS + extraColumns, counted ? { count: 'exact' } : undefined);
     if (associationId) q = q.eq('association_id', associationId);
     if (queue === 'closed') q = q.eq('status', 'closed');
     else {
@@ -68,24 +79,27 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
       if (queue === 'overdue') q = q.is('acknowledged_at', null).lt('first_response_due_at', nowIso);
       if (queue === 'mine') q = q.eq('assigned_to', me.auth_user_id);
     }
-    return q.order('last_message_at', { ascending: false }).limit(300);
+    return q.order('last_message_at', { ascending: false }).order('id', { ascending: false });
   };
   // Search: subject, homeowner, tenant or unit, one query per match type
   // merged by id (see unionSearch).
-  const threadsQuery: PromiseLike<{ data: any[] | null; error: any }> = term
+  // (Search results stop at the first 300 matches; the page says so.)
+  const threadsQuery: PromiseLike<{ data: any[] | null; error: any; count?: number | null }> = term
     ? unionSearch<any>([
-        listQuery().ilike('subject', `%${term}%`),
-        listQuery(', s_o:owners!message_threads_owner_id_fkey!inner(full_name)').ilike('s_o.full_name', `%${term}%`),
-        listQuery(', s_t:tenants!message_threads_tenant_id_fkey!inner(first_name)').ilike('s_t.first_name', `%${term}%`),
-        listQuery(', s_l:tenants!message_threads_tenant_id_fkey!inner(last_name)').ilike('s_l.last_name', `%${term}%`),
-        listQuery(', s_u:units!message_threads_unit_id_fkey!inner(unit_number)').ilike('s_u.unit_number', term),
-      ], (x, y) => descNullsLast(x.last_message_at, y.last_message_at), 300).then(({ rows, error }) => ({ data: rows, error }))
-    : listQuery();
+        listQuery().ilike('subject', `%${term}%`).limit(SEARCH_CAP),
+        listQuery(', s_o:owners!message_threads_owner_id_fkey!inner(full_name)').ilike('s_o.full_name', `%${term}%`).limit(SEARCH_CAP),
+        listQuery(', s_t:tenants!message_threads_tenant_id_fkey!inner(first_name)').ilike('s_t.first_name', `%${term}%`).limit(SEARCH_CAP),
+        listQuery(', s_l:tenants!message_threads_tenant_id_fkey!inner(last_name)').ilike('s_l.last_name', `%${term}%`).limit(SEARCH_CAP),
+        listQuery(', s_u:units!message_threads_unit_id_fkey!inner(unit_number)').ilike('s_u.unit_number', term).limit(SEARCH_CAP),
+      ], (x, y) => descNullsLast(x.last_message_at, y.last_message_at), SEARCH_CAP).then(({ rows, error }) => ({ data: rows, error }))
+    : listQuery('', true).range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
   const [threadsRes, smsRes, openRes, unreadRes, overdueRes, mineRes, { data: associations }] = await Promise.all([
     queue === 'sms' ? Promise.resolve({ data: [], error: null }) : threadsQuery,
     queue === 'sms'
-      ? db.from('sms_messages').select('id, direction, body, from_number, to_number, status, sent_at').order('sent_at', { ascending: false }).limit(100)
+      ? db.from('sms_messages').select('id, direction, body, from_number, to_number, status, sent_at', { count: 'exact' })
+          .order('created_at', { ascending: false }).order('id', { ascending: false })
+          .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
       : Promise.resolve({ data: [] }),
     count((q) => q),
     count((q) => q.eq('last_message_role', 'resident')),
@@ -94,7 +108,30 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
   ]);
   const threads = (threadsRes.data ?? []) as any[];
+  const totalThreads = term ? threads.length : Number((threadsRes as any).count ?? threads.length);
+  const totalSms = Number((smsRes as any).count ?? ((smsRes as any).data ?? []).length);
+  const totalPages = queue === 'sms'
+    ? Math.max(1, Math.ceil(totalSms / PAGE_SIZE))
+    : term ? 1 : Math.max(1, Math.ceil(totalThreads / PAGE_SIZE));
   const sms = (smsRes.data ?? []) as any[];
+  const smsError = (smsRes as any).error as { message?: string; code?: string } | null | undefined;
+  // A page past the end (threads closed since, an old link): go to the last
+  // page that has rows. PostgREST answers an offset past the total with
+  // PGRST103 and no count, so that goes to the first page.
+  const listError = queue === 'sms' ? smsError : threadsRes.error;
+  if (page > 1 && !term) {
+    if (listError?.code === 'PGRST103') redirect(pageHref(1));
+    if (!listError && page > totalPages) redirect(pageHref(totalPages));
+  }
+  const pageLink = 'inline-flex min-h-10 items-center';
+  const pager = totalPages > 1 ? (
+    <span className="flex items-center gap-3">
+      {page > 1 ? <Link href={pageHref(page - 1)} className={`${pageLink} text-gray-900 underline underline-offset-4`}>Newer</Link> : <span className={`${pageLink} text-gray-300`}>Newer</span>}
+      <span className="text-gray-500">Page {page} of {totalPages}</span>
+      {page < totalPages ? <Link href={pageHref(page + 1)} className={`${pageLink} text-gray-900 underline underline-offset-4`}>Older</Link> : <span className={`${pageLink} text-gray-300`}>Older</span>}
+    </span>
+  ) : null;
+  const filtering = Boolean(term || associationId);
 
   return (
     <DataWorkspace title="Inbox" description="Conversations with owners and tenants, plus text messages. Residents write from their portal; your replies are emailed to them.">
@@ -124,10 +161,24 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
             </FilterSelect>
           </FilterBar>
         )}
-        {threadsRes.error && <Alert tone="danger" title="Could not load conversations:">{threadsRes.error.message ?? String(threadsRes.error)}</Alert>}
+        {queue !== 'sms' && threadsRes.error && <Alert tone="danger" title="Could not load conversations:">{threadsRes.error.message ?? String(threadsRes.error)}</Alert>}
+        {queue === 'sms' && smsError && <Alert tone="danger" title="Could not load text messages:">{smsError.message ?? String(smsError)}</Alert>}
+
+        {!listError && (
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600">
+            <span>
+              {queue === 'sms'
+                ? `${totalSms.toLocaleString()} text message${totalSms === 1 ? '' : 's'}`
+                : term && threads.length >= SEARCH_CAP
+                  ? `Showing the newest ${SEARCH_CAP.toLocaleString()} matches. Narrow the search to see older ones.`
+                  : `${totalThreads.toLocaleString()} conversation${totalThreads === 1 ? '' : 's'}${filtering ? ' match' : ''}`}
+            </span>
+            {pager}
+          </div>
+        )}
 
         {queue === 'sms' ? (
-          sms.length > 0 ? (
+          smsError ? null : sms.length > 0 ? (
             <Table>
               <THead><tr><TH>When</TH><TH>Direction</TH><TH>From</TH><TH>To</TH><TH>Message</TH><TH>Status</TH></tr></THead>
               <tbody>
@@ -145,7 +196,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
             </Table>
           ) : (
             <div className="rounded-2xl border border-line bg-white">
-              <EmptyState icon={Inbox} title="No text messages" description="Two-way SMS appears here once the texting number is live." />
+              <EmptyState icon={Inbox} title="No text messages" description="Text messages with owners and vendors appear here once texting is set up." />
             </div>
           )
         ) : threadsRes.error ? null : threads.length === 0 ? (
