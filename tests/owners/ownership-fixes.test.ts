@@ -156,7 +156,7 @@ describe('ownership window helpers', () => {
       { units: { id: UNIT }, move_in_date: '2026-03-01', move_out_date: null },
       { units: { id: OCC }, move_in_date: '2025-01-01', move_out_date: '2026-06-01' },
     ]);
-    expect(w.get(UNIT)).toEqual({ since: '2026-03-01', until: null });
+    expect(w.get(UNIT)).toEqual([{ since: '2026-03-01', until: null }]);
     expect(ownershipWindowFilter(w, 'due_date')).toBe(
       `and(unit_id.eq.${UNIT},due_date.gte.2026-03-01),and(unit_id.eq.${OCC},due_date.gte.2025-01-01,due_date.lt.2026-06-01)`,
     );
@@ -164,6 +164,24 @@ describe('ownership window helpers', () => {
     expect(withinOwnershipWindow(w, UNIT, '2026-03-01')).toBe(true);
     expect(withinOwnershipWindow(w, OCC, '2026-06-01')).toBe(false);
     expect(withinOwnershipWindow(w, 'other', '2026-03-01')).toBe(false);
+  });
+
+  it('keeps the gap when an owner sold the unit and bought it back', () => {
+    const w = ownershipWindows([
+      { unit_id: UNIT, move_in_date: '2025-01-01', move_out_date: '2025-06-01' },
+      { unit_id: UNIT, move_in_date: '2026-02-01', move_out_date: null },
+      // Touching periods merge into one.
+      { unit_id: OCC, move_in_date: '2024-01-01', move_out_date: '2024-05-01' },
+      { unit_id: OCC, move_in_date: '2024-05-01', move_out_date: '2024-09-01' },
+    ]);
+    expect(w.get(UNIT)).toEqual([{ since: '2025-01-01', until: '2025-06-01' }, { since: '2026-02-01', until: null }]);
+    expect(w.get(OCC)).toEqual([{ since: '2024-01-01', until: '2024-09-01' }]);
+    expect(ownershipWindowFilter(new Map([[UNIT, w.get(UNIT)!]]), 'payment_date')).toBe(
+      `and(unit_id.eq.${UNIT},payment_date.gte.2025-01-01,payment_date.lt.2025-06-01),and(unit_id.eq.${UNIT},payment_date.gte.2026-02-01)`,
+    );
+    expect(withinOwnershipWindow(w, UNIT, '2025-10-01')).toBe(false); // the other owner's time
+    expect(withinOwnershipWindow(w, UNIT, '2025-03-01')).toBe(true);
+    expect(withinOwnershipWindow(w, UNIT, '2026-03-01')).toBe(true);
   });
 
   it('no move-in date means no lower bound; no units means no filter', () => {
