@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#373 merged; open PR: claude/payables-followups (PR not opened yet); next: Stripe TEST-mode checkout and AutoPay run (Next gaps; needs Mirsad's Stripe test keys), else a new gap from the AppFolio gap analysis; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#373 merged; open PR: #374 claude/payables-followups; next: Stripe TEST-mode checkout and AutoPay run (Next gaps; needs Mirsad's Stripe test keys), else a new gap from the AppFolio gap analysis; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (PR not opened yet) claude/payables-followups: Payables follow-ups (Next gaps).
+- #374 claude/payables-followups: Payables follow-ups (Next gaps).
   - 1099 totals (vendor_1099_totals, assemble_vendor_1099_data): the tax
     year is a range on paid_at in the time zone of the association
     of each bill, instead of association_local_date per bill; starts from
