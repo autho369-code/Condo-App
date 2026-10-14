@@ -60,3 +60,8 @@ Rule: when a PR fixes a hole a reviewer recorded, its memory line must say "fixe
   owners see reference 'Credit' for a credit-based fee removal, but the same
   migration (20261015040000 remove_late_fee) sets reference 'Late fee
   removed'. Grep the final migration for the claim a reviewer memory makes.
+- 9th (po-projects-deep-check pre-PR, 2026-10-14): security memory says
+  approval_requests guards are UPDATE-only, staff can DELETE and re-point
+  request_type/association_id; the same PR's 20261015230000 adds a BEFORE
+  UPDATE OR DELETE guard freezing exactly those. Pattern: a reviewer writes
+  its finding as a memory line, the fix lands, the line is never revised.

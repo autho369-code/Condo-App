@@ -799,6 +799,12 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: purchase orders
 - DONE (claude/po-projects-deep-check): deep check of purchase orders,
   projects, inventory and fixed assets; 7 bugs fixed, 9 rule questions in
   TODO for Mirsad.
+- NEXT: DEEP CHECK of ownership changes and unit records: owner move-in /
+  move-out and unit sales (balances, AutoPay, portal access and board seats
+  follow the right owner), unit account statements and owner statements;
+  rolled back at scale, every role, then fix.
+- After Mirsad answers the 9 PO/project/inventory questions in TODO: build
+  the ones he says yes to.
 - BLOCKED on Mirsad: Stripe TEST-mode checkout and AutoPay run (Vercel has
   no STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET).
 - Watching: CSP (0 blocked in 48 h on 2026-10-14; runtime errors only from
