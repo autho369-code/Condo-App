@@ -74,10 +74,15 @@ declare
   n integer;
 begin
   if position('board_vendor_fixes' in d) > 0 then return; end if;
+  -- Exactly the seats the removed branch grants: active, unlinked, in a
+  -- live association, matching a board login of the same company.
   select count(*) into n
     from public.board_members bm
-   where bm.auth_user_id is null
-     and exists (select 1 from auth.users u where lower(u.email) = lower(bm.email));
+    join public.associations a on a.id = bm.association_id and a.archived_at is null
+    join auth.users u on lower(u.email) = lower(bm.email)
+    join public.profiles p on p.id = u.id and p.disabled_at is null and p.hoa_role = 'board' and p.portfolio_id = a.portfolio_id
+   where bm.active
+     and bm.auth_user_id is null;
   if n > 0 then
     raise notice 'current_board_association_ids: % board seat(s) still rely on email match; branch kept', n;
     return;
