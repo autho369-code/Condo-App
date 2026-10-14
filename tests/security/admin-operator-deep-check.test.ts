@@ -48,8 +48,29 @@ describe('20261016130000_admin_operator_fixes: a suspended company stops', () =>
   it('holds its email, but not the platform\'s own mail to it', () => {
     const claim = fn('claim_email_queue_snapshot');
     expect(claim).toContain('where pf.id = email_queue.portfolio_id');
-    expect(claim).toContain("not like 'portier369%'");
+    // Platform mail = sent as Portier369 AND queued by the server or an active
+    // operator; the sender name alone doesn't exempt it.
+    expect(claim).toContain("like 'portier369%'");
+    expect(claim).toMatch(/email_queue\.sent_by is null\s+or exists \(select 1 from public\.platform_operators po\s+where po\.auth_user_id = email_queue\.sent_by and po\.active\)/);
+    // ...and not when the company's own names (server mail uses them, sent_by null) start with it.
+    expect(claim).toContain("lower(btrim(coalesce(pf.company_name, ''))) not like 'portier369%'");
+    expect(claim).toContain("lower(btrim(coalesce(pf.email_settings->>'from_name', ''))) not like 'portier369%'");
+    expect(claim).toContain("lower(btrim(coalesce(a.name, ''))) like 'portier369%'");
     expect(claim).toContain('for update skip locked');
+  });
+
+  it('holds automation flows without writing a run row', () => {
+    const claim = fn('claim_automation_flow_run');
+    expect(claim).toContain('pf.suspended_at is not null');
+    expect(claim.indexOf('pf.suspended_at is not null')).toBeLessThan(claim.indexOf('insert into public.automation_flow_runs'));
+  });
+
+  it('signed-in users cannot set the fee schedule or domain verification directly', () => {
+    const guard = fn('portfolios_guard_platform_columns');
+    for (const column of ['management_fee_auto_enabled', 'management_fee_auto_day', 'management_fee_vendor_id',
+      'management_fee_gl_account_id', 'custom_domain_verified_at']) {
+      expect(guard).toContain(`new.${column} is distinct from old.${column}`);
+    }
   });
 
   it('holds texts, letters, webhooks and AutoPay charges', () => {
@@ -98,10 +119,16 @@ describe('admin and operator app fixes', () => {
 
   it('operator company changes fail loudly when their audit record is not written', () => {
     const actions = read('app/platform-operator/companies/actions.ts');
-    const audit = actions.slice(actions.indexOf('async function audit('), actions.indexOf('function inviteEmailBody'));
+    const audit = actions.slice(actions.indexOf('async function writeAudit('), actions.indexOf('function inviteEmailBody'));
     expect(audit).toContain("const { error } = await svc.from('audit_logs').insert(");
-    expect(audit).toContain('if (error) {');
-    expect(audit).toContain('fail(');
+    expect(audit).toContain('if (error) fail(');
+    // createCompanyWithAdmin finishes the submission before reporting; archive
+    // reports ban failures and the audit failure together.
+    const create = actions.slice(actions.indexOf('export async function createCompanyWithAdmin'), actions.indexOf('export async function inviteAdmin'));
+    expect(create.indexOf('completeSubmission(')).toBeLessThan(create.indexOf('if (auditErrors.length) fail('));
+    const archive = actions.slice(actions.indexOf('export async function archiveCompany'), actions.indexOf('export async function changePlan'));
+    expect(archive).toContain('if (banFailures.length) problems.push(');
+    expect(archive).toContain('if (auditError) problems.push(');
   });
 
   it('company admin text does not name the platform', () => {

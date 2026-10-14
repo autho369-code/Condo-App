@@ -123,7 +123,8 @@ export async function POST(request: NextRequest) {
     console.error('Violation letter draft error:', error);
     return NextResponse.json(
       {
-        error: error?.message || 'Draft failed',
+        // Provider details stay in the server log.
+        error: 'The letter could not be drafted right now.',
         hint: 'Check your AI provider settings and API key.',
       },
       { status: 500 }

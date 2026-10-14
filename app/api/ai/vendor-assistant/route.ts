@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     console.error('Vendor assistant error:', error);
     return NextResponse.json(
       // Provider and data-load details stay in the server log.
-      { error: 'The assistant could not answer right now.', hint: 'Please try again or contact the property manager.' },
+      { error: 'The assistant could not answer right now.', hint: 'Please try again or contact your management company.' },
       { status: 500 },
     );
   }

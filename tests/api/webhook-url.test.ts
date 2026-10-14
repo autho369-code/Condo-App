@@ -24,6 +24,15 @@ describe('webhook URL boundary', () => {
     expect(isPublicWebhookIp('2a00:1450:4001:80b::200e')).toBe(true);
   });
 
+  it('rejects IPv4-translated addresses and the 6to4 relay range', () => {
+    for (const address of ['::ffff:0:a9fe:a9fe', '::ffff:0:127.0.0.1', '::ffff:0:10.0.0.1', '0:0:0:0:ffff:0:7f00:1',
+      '192.88.99.1', '::ffff:192.88.99.1', '2002:c058:6301::1']) {
+      expect(isPublicWebhookIp(address), address).toBe(false);
+    }
+    expect(isPublicWebhookIp('::ffff:0:8.8.8.8')).toBe(true);
+    expect(isPublicWebhookIp('192.88.98.1')).toBe(true);
+  });
+
   it('rejects a literal IPv6 URL that maps to the cloud metadata address', async () => {
     const noDns = async () => [];
     await expect(validatedWebhookUrl('https://[::ffff:169.254.169.254]/latest', noDns)).rejects.toThrow('public internet addresses');

@@ -40,13 +40,15 @@ function ok(returnTo: string, flag: string): never {
   redirect(`${returnTo}${sep}${flag}=1`);
 }
 
-async function audit(
+// Writes the audit row; returns the error text instead of redirecting, so a
+// caller with more to finish or report can do that first.
+async function writeAudit(
   svc: any,
   me: MeResult,
   action: string,
   portfolioId: string | null,
   changes: Record<string, unknown> = {},
-) {
+): Promise<string | null> {
   const { error } = await svc.from('audit_logs').insert({
     entity_type: 'company',
     entity_id: portfolioId,
@@ -55,11 +57,25 @@ async function audit(
     actor_email: me.email,
     changes,
   });
+  if (!error) return null;
+  console.error('Operator audit record failed', { action, portfolioId, error: error.message });
+  return error.message as string;
+}
+
+function auditFailureMessage(detail: string): string {
+  return `The change was saved, but its audit record could not be written (${detail}). Tell engineering before making more changes.`;
+}
+
+async function audit(
+  svc: any,
+  me: MeResult,
+  action: string,
+  portfolioId: string | null,
+  changes: Record<string, unknown> = {},
+) {
+  const error = await writeAudit(svc, me, action, portfolioId, changes);
   // Every operator change must leave a record: say so instead of reporting success.
-  if (error) {
-    console.error('Operator audit record failed', { action, portfolioId, error: error.message });
-    fail(portfolioId ? `${COMPANIES}/${portfolioId}` : COMPANIES, `The change was saved, but its audit record could not be written (${error.message}). Tell engineering before making more changes.`);
-  }
+  if (error) fail(portfolioId ? `${COMPANIES}/${portfolioId}` : COMPANIES, auditFailureMessage(error));
 }
 
 function inviteEmailBody(companyName: string, token: string, expiresAt: string | null, company?: CompanyAddress | null) {
@@ -184,11 +200,16 @@ export async function createCompanyWithAdmin(formData: FormData) {
   if (mailError) fail(COMPANIES, `Company created but the welcome email failed to queue: ${mailError.message}`);
 
   // 5: log
-  await audit(svc, me, 'company_created', portfolioId, { company_name: companyName, tier, max_units: maxUnits });
-  await audit(svc, me, 'admin_invited', portfolioId, { email, full_name: fullName, invitation_id: invitationId });
+  // Both records are attempted and the submission completed (the company is
+  // fully set up) before an audit failure is reported.
+  const auditErrors = [
+    await writeAudit(svc, me, 'company_created', portfolioId, { company_name: companyName, tier, max_units: maxUnits }),
+    await writeAudit(svc, me, 'admin_invited', portfolioId, { email, full_name: fullName, invitation_id: invitationId }),
+  ].filter((e): e is string => !!e);
   await completeSubmission(svc, submissionToken, portfolioId);
 
   revalidatePath(COMPANIES);
+  if (auditErrors.length) fail(COMPANIES, auditFailureMessage(auditErrors.join('; ')));
   ok(COMPANIES, 'created');
 }
 
@@ -984,13 +1005,17 @@ export async function archiveCompany(formData: FormData) {
   // Revoke any open invitations
   await svc.from('user_invitations').update({ status: 'revoked' }).eq('portfolio_id', portfolioId).eq('status', 'pending');
 
-  await audit(svc, me, 'company_archived', portfolioId, {
+  const auditError = await writeAudit(svc, me, 'company_archived', portfolioId, {
     company_name: portfolio.company_name,
     logins_disabled: (members ?? []).length - banFailures.length,
     ban_failures: banFailures,
   });
   revalidatePath(COMPANIES);
-  if (banFailures.length) fail(COMPANIES, `Company archived and suspended, but ${banFailures.length} login(s) could not be banned: ${banFailures.slice(0, 5).join(', ')}. Their access is still blocked by the suspension.`);
+  // Ban failures are reported first; an audit failure is added, never in their place.
+  const problems: string[] = [];
+  if (banFailures.length) problems.push(`Company archived and suspended, but ${banFailures.length} login(s) could not be banned: ${banFailures.slice(0, 5).join(', ')}. Their access is still blocked by the suspension.`);
+  if (auditError) problems.push(auditFailureMessage(auditError));
+  if (problems.length) fail(COMPANIES, problems.join(' '));
   ok(COMPANIES, 'archived');
 }
 

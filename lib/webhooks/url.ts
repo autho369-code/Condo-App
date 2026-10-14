@@ -16,6 +16,7 @@ function publicIpv4(address: string) {
   if (a === 172 && b >= 16 && b <= 31) return false;
   if (a === 192 && b === 168) return false;
   if (a === 192 && b === 0 && (c === 0 || c === 2)) return false;
+  if (a === 192 && b === 88 && c === 99) return false; // 6to4 relay anycast
   if (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) return false;
   if (a === 203 && b === 0 && c === 113) return false;
   return true;
@@ -60,6 +61,8 @@ export function isPublicWebhookIp(address: string) {
   const zeros = (count: number) => g.slice(0, count).every((group) => group === 0);
   // IPv4-mapped (::ffff:a.b.c.d): judge the IPv4 address it carries.
   if (zeros(5) && g[5] === 0xffff) return publicIpv4(ipv4FromGroups(g[6], g[7]));
+  // IPv4-translated (::ffff:0:a.b.c.d): same.
+  if (zeros(4) && g[4] === 0xffff && g[5] === 0) return publicIpv4(ipv4FromGroups(g[6], g[7]));
   // Unspecified, loopback and the old IPv4-compatible form (::a.b.c.d).
   if (zeros(6)) return false;
   // 6to4 (2002::/16) carries an IPv4 address in its next 32 bits.

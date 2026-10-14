@@ -9,15 +9,27 @@
 --    company". The policy now names the company admin's own company. Managers
 --    keep update_company_profile / update_company_logo (definer RPCs).
 -- 2. The management-fee run markers are written by the scheduler only, so a
---    direct write can't make a month bill again.
+--    direct write can't make a month bill again; the fee schedule settings
+--    (on/off, day, vendor, GL account) only through set_management_fee_schedule
+--    / run_management_fees, and custom_domain_verified_at only by the domain
+--    check job, so a company admin's new row-update right can't set them.
 -- 3. Staff roles (user_roles) are the company admin's: full-access managers
 --    could rename or add the company's roles, which decides who else gets
 --    full or finance access.
 -- 4. A suspended company stops: queued email (except the platform's own mail
 --    to the company, e.g. its invoice), texts, physical mail, webhooks,
---    AutoPay charges, scheduled reports, scheduled management fees and
---    automatic late fees wait until it is reactivated. Nothing is dropped:
---    rows stay queued and run after reactivation.
+--    AutoPay charges, scheduled reports, automation flows, scheduled
+--    management fees and automatic late fees wait until it is reactivated.
+--    Queued rows are not dropped: they run after reactivation. Exceptions:
+--    run_scheduled_management_fees bills only the previous month, so months
+--    skipped during a long suspension must be billed by hand
+--    (run_management_fees). Recurring charges, bills, journal entries,
+--    purchase orders and work orders still post while suspended (only their
+--    mail is held). Automatic late fees are held, and the first run after
+--    reactivation assesses every charge still past due without one. That run
+--    (11:10 UTC) comes before the held AutoPay charges (14:00 UTC), so an
+--    AutoPay owner whose grace period ended during the suspension can get a
+--    late fee that day (open question for Mirsad; reverse it by hand).
 -- 5. More platform host names are reserved as company addresses (mail
 --    autodiscovery, sign-in and service names).
 --
@@ -36,12 +48,30 @@ create or replace function public.portfolios_guard_platform_columns()
  set search_path to 'pg_catalog', 'public'
 as $function$
 begin
-  -- Written only by the management-fee scheduler and set_management_fee_schedule
-  -- (definer functions run as their owner); never directly by a signed-in user.
+  -- Changed: written only by the management-fee scheduler and the definer
+  -- RPCs set_management_fee_schedule / run_management_fees (they run as their
+  -- owner, not as the signed-in user), never directly by a signed-in user.
   if current_user in ('authenticated', 'anon')
      and (new.management_fee_auto_last_month is distinct from old.management_fee_auto_last_month
           or new.management_fee_auto_last_run is distinct from old.management_fee_auto_last_run) then
-    raise exception 'The management fee schedule records its own runs.' using errcode = '42501';
+    raise exception 'The management fee schedule records its own runs' using errcode = '42501';
+  end if;
+  if current_user in ('authenticated', 'anon')
+     and (new.management_fee_auto_enabled is distinct from old.management_fee_auto_enabled
+          or new.management_fee_auto_day is distinct from old.management_fee_auto_day
+          or new.management_fee_vendor_id is distinct from old.management_fee_vendor_id
+          or new.management_fee_gl_account_id is distinct from old.management_fee_gl_account_id) then
+    raise exception 'The management fee schedule can only be changed on the management fees page'
+      using errcode = '42501';
+  end if;
+  -- Changed: the custom domain check (service client) records verification.
+  -- A domain change clears it (portfolios_guard_domain_verification, which
+  -- fires first); only platform support can change the domain itself (below).
+  if current_user in ('authenticated', 'anon')
+     and new.custom_domain_verified_at is distinct from old.custom_domain_verified_at
+     and not (new.custom_domain is distinct from old.custom_domain
+              and new.custom_domain_verified_at is null) then
+    raise exception 'The custom domain check sets this automatically' using errcode = '42501';
   end if;
   if auth.uid() is null or (public.is_platform_operator() and public.is_platform_admin()) then
     return new;
@@ -87,12 +117,25 @@ begin
       and next_attempt_at <= now()
       and (processing_at is null or processing_at < now() - interval '10 minutes')
       -- Changed: a suspended company's mail waits until it is reactivated; the
-      -- platform's own mail to the company (sender name Portier369...) still goes.
+      -- platform's own mail to the company still goes: sent as Portier369 AND
+      -- queued by the server or an active platform operator (the same test as
+      -- the unsubscribe-link rule), so staff can't name mail Portier369 to
+      -- slip it through. Server mail sent under the company's own sender
+      -- name, company name or an association name has sent_by null too, so
+      -- a company whose own names start with Portier369 gets no exemption.
       and not exists (
         select 1 from public.portfolios pf
          where pf.id = email_queue.portfolio_id
            and pf.suspended_at is not null
-           and lower(btrim(coalesce(email_queue.from_name, ''))) not like 'portier369%')
+           and not (lower(btrim(coalesce(email_queue.from_name, ''))) like 'portier369%'
+                    and (email_queue.sent_by is null
+                         or exists (select 1 from public.platform_operators po
+                                     where po.auth_user_id = email_queue.sent_by and po.active))
+                    and lower(btrim(coalesce(pf.company_name, ''))) not like 'portier369%'
+                    and lower(btrim(coalesce(pf.email_settings->>'from_name', ''))) not like 'portier369%'
+                    and not exists (select 1 from public.associations a
+                                     where a.portfolio_id = pf.id
+                                       and lower(btrim(coalesce(a.name, ''))) like 'portier369%')))
     order by holds_auth_link desc, next_attempt_at, created_at
     for update skip locked
     limit p_limit
@@ -103,6 +146,35 @@ begin
   from due
   where q.id = due.id
   returning q.*;
+end;
+$function$;
+
+create or replace function public.claim_automation_flow_run(p_flow_id uuid, p_subject_type text, p_subject_id uuid)
+ returns setof automation_flow_runs
+ language plpgsql
+ security definer
+ set search_path to ''
+as $function$
+begin
+  if auth.role() <> 'service_role' then raise exception 'Service role required'; end if;
+  if nullif(trim(p_subject_type), '') is null then raise exception 'Subject type is required'; end if;
+  -- Changed: a suspended company's flows wait until it is reactivated (no run
+  -- row is written, so the subject is claimed on a later run).
+  if exists (select 1 from public.automation_flows f
+               join public.portfolios pf on pf.id = f.portfolio_id
+              where f.id = p_flow_id and pf.suspended_at is not null) then
+    return;
+  end if;
+  return query
+  insert into public.automation_flow_runs
+    (flow_id, subject_type, subject_id, status, attempt_count, last_attempt_at)
+  values (p_flow_id, left(trim(p_subject_type), 100), p_subject_id, 'failed', 1, now())
+  on conflict (flow_id, subject_type, subject_id) do update
+    set status = 'failed', attempt_count = public.automation_flow_runs.attempt_count + 1, last_attempt_at = now()
+    where public.automation_flow_runs.status in ('failed', 'partial')
+      and public.automation_flow_runs.attempt_count < 5
+      and public.automation_flow_runs.last_attempt_at < now() - interval '10 minutes'
+  returning *;
 end;
 $function$;
 
@@ -319,6 +391,7 @@ declare
   n integer := 0;
 begin
   for row in
+    -- Changed: table alias sr (equivalent), for the suspension check below.
     select sr.* from public.scheduled_reports sr
      where sr.active and sr.archived_at is null
        and (sr.next_run_at is null or sr.next_run_at <= now())
@@ -413,6 +486,7 @@ declare
   v_details text[] := '{}';
 begin
   for a in
+    -- Changed: table alias x (equivalent), for the suspension check below.
     select x.id, x.name, coalesce(x.late_fee_grace_days, 0) as grace, public.association_local_date(x.id) as today
       from public.associations x
      where x.late_fee_enabled and coalesce(x.late_fee_amount, 0) > 0 and x.archived_at is null

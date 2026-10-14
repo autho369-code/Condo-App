@@ -74,6 +74,9 @@
 
 - Widening "who gets a statement/notice" to past owners (period overlap, 20261016010000 generate_owner_statements): check the AMOUNTS are bounded to that owner's tenure too; unit-wide sums email the seller the buyer's total due (lib/rpcs/bulk-operations.ts sends total_due). Dropping a unit_id branch from a resident policy also drops co-owners when the generator writes one row per unit. Fix v2 capped at move_out_date-1 but only when status='past'; key tenure cutoffs on the DATE, not status (current rows can carry a future move_out_date).
 
+- "Pause while company suspended" claim filters (20261016130000): list every cron in vercel.json + pg_cron and check which still run; a platform-mail exemption by from_name 'portier369%' must copy the sent_by pairing of 20261015010000:394; ask counts of queue rows with NULL portfolio_id; late fees/fees "resume" on reactivation bill the suspended period (product question).
+- Widening a slug/name reserved list: existing rows aren't revalidated (no CHECK), but re-saving one hits the reserved raise before the `v_old = v_slug` early return; ask a count.
+
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns
