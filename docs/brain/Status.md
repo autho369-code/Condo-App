@@ -7,7 +7,7 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#393 merged; open PR: platform mail f
   20261014181833 (dry-runs rolled back first; read back). Reviewers:
   security, migration, design, white-label; all findings fixed. After
   deploy Mirsad may drop capital_project_spend_totals /
-  project_budget_vs_actual (replaced). Codex round: 20261016235000 LIVE as
+  project_budget_vs_actual (replaced). Codex round: 20261016235000 LIVE as 20261014182846:
   the po_cost_by_billed_gl migration (category open PO amounts follow the
   bill GL account); vendor email queued before the notes write.
 
