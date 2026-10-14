@@ -70,6 +70,19 @@ describe('20261015130000_removed_late_fee_status migration', () => {
     expect(page).toContain('{!reversed && !isLateFeeRemoval && (');
   });
 
+  it('locks the credit, the fee and spending in one pass (reviewers on #383)', () => {
+    const m = read('supabase/migrations/20261015210000_removed_late_fee_lock_complete.sql');
+    expect(m).toContain("(to_jsonb(new) - 'notes') is distinct from (to_jsonb(old) - 'notes')");
+    expect(m).toContain("(to_jsonb(new) - 'description') is distinct from (to_jsonb(old) - 'description')");
+    expect(m).toContain('before insert or update on public.payments');
+    expect(m).toContain('before update or delete on public.charges');
+    expect(m).toContain("A removed late fee''s credit applies only to that fee.");
+    expect(m).toContain("AND NOT (p.method = 'credit' AND p.reference IS NOT DISTINCT FROM 'Late fee removed')");
+    expect(m).toContain('grant execute on function public.is_removed_late_fee(uuid) to authenticated');
+    expect(m).not.toMatch(/\bdrop\s+(table|column|view|function|policy)\b/i);
+    expect(m).not.toMatch(/\bdelete\s+from\b/i);
+  });
+
   it('drops or deletes nothing', () => {
     expect(migration).not.toMatch(/\bdrop\s+(table|column|view|function|policy)\b/i);
     expect(migration).not.toMatch(/\bdelete\s+from\b/i);

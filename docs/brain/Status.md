@@ -7,7 +7,7 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PR: #383 (removed l
   "Paid", on the owner's ledger and the unit page (v_charge_balances;
   balances unchanged); only remove_late_fee can mark its credit; past due
   by the association's local date. 20261015130000 LIVE as 20261014024847,
-  20261015140000 (clearer reserved-reference message) LIVE as 20261014025022
+  20261015140000 (clearer reserved-reference message) LIVE as 20261014025022,
   20261015150000 (Codex P1: a removal credit counts only for its own fee;
   signed-in users can't add or move its applications) LIVE as 20261014025658,
   20261015160000 (Codex P2: reversed_at locked on a removal credit) LIVE as
@@ -17,7 +17,13 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PR: #383 (removed l
   20261015190000 (Codex P1: a removal credit's applications can't be
   deleted by hand either) LIVE as 20261014031317,
   20261015200000 (Codex P1: reallocate_payment refuses a removal credit;
-  the payment page hides its allocation form) LIVE as 20261014031827.
+  the payment page hides its allocation form) LIVE as 20261014031827,
+  20261015210000 (reviewers re-ran on rounds 2-5 and found the rest: the
+  credit is frozen except notes, the fee can't be deleted or changed except
+  its description, a removal credit applies only to its own fee for every
+  caller, v_unapplied_credits leaves it out so apply_credits/auto-apply
+  never spend it; manager wording) LIVE as 20261014074814 (dry-run rolled
+  back on production first, read back).
   Checked: the only other signed-in-callable function that rewrites
   applications, reverse_homeowner_payment, already refuses credits
   (dry-run rolled back on production first: manager and owner see removed,

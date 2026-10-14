@@ -254,7 +254,7 @@ export function Alert({
     info: 'border-blue-200 bg-blue-50 text-blue-800',
   };
   return (
-    <div role="alert" className={cn('rounded-xl border px-4 py-3 text-sm leading-6', styles[tone], className)}>
+    <div role={tone === 'danger' || tone === 'warning' ? 'alert' : 'status'} className={cn('rounded-xl border px-4 py-3 text-sm leading-6', styles[tone], className)}>
       {title && <span className="font-semibold">{title} </span>}
       {children}
     </div>
