@@ -1,9 +1,29 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#374 merged; open PR: #375 claude/collections-deep-check; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#375 merged; open PR: #376 claude/collections-codex-fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #375 claude/collections-deep-check: DEEP CHECK of delinquencies
+- #376 claude/collections-codex-fixes: Codex on #375 (two P1s).
+  20261015050000 LIVE as 20261013234941 (read back; reviewers clean).
+  - remove_late_fee debits the income account the fee's own posting
+    credited (from its posted charge journal entry), not today's mapping;
+    the mapping is a fallback; an inactive account gives a clear error;
+    only this company's entries and this association's accounts count
+    (security review: source fields are client-settable).
+    Rolled back: fee posted to A, category remapped to B -> credit to A.
+  - Payment plan window: charges count against a plan when recorded after
+    it was made (was: due on or after its UTC start date, which missed that
+    local day's charges on a US evening (Codex) and counted twice a charge
+    already in the plan total that fell due on or after the start
+    (migration review)); cancelled/completed ends are local dates. New
+    plans' start_date is the local date; the plans report's "Behind" uses
+    the local date (once per plan). Plans rechecked. Rolled back
+    (Etc/GMT+12): a plan for a balance due today, then paid in full,
+    completes (300/300); a charge recorded after the plan, due that day,
+    counts (500 - 300 = 200); start_date local.
+
+## Merged 2026-10-13
+- #375 claude/collections-deep-check: Codex P1 x2 (fixed in the next PR). DEEP CHECK of delinquencies
   and collections (rolled back on production at 2,000 units) + Mirsad's
   "THE MANAGER SHOULD BE ABLE TO REMOVE LATE FEES". 20261015040000 LIVE as
   20261013232520 (dry runs passed; all 13 patched functions read back).
@@ -36,7 +56,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#374 merged; open PR: #375 claude/col
     (sync on the Delinquencies page, Advance per case; no cron), by design:
     steps can need human approval.
 
-## Merged 2026-10-13
 - #374 payables follow-ups (Next gaps). Codex clean.
   - 1099 totals (vendor_1099_totals, assemble_vendor_1099_data): the tax
     year is a range on paid_at in the time zone of the association
@@ -667,6 +686,14 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#374 merged; open PR: #375 claude/col
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- NEXT PR (security review on the #375 fix): finance staff can insert or
+  update journal_entries directly (grants + journal_entries_finance_all),
+  including source_type/source_id, so a posted entry can claim to be a
+  charge's or payment's posting. The app never writes journal_entries
+  directly (RPCs only); record_check_run_legacy is the one invoker writer.
+  Guard: signed-in users can't set system source types (charge, payment,
+  ...) or change source_id; lookups by source also match portfolio_id
+  (remove_late_fee does since 20261015050000).
 - Owner ledger: a removed late fee still shows status "paid" (v_charge_balances
   has no removed/waived state; its credit row reads "Late fee removed").
   Needs a view change (a credit-covered late fee -> "Removed"); not done in
