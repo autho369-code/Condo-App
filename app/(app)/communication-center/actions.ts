@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { textToHtml } from '@/lib/email/queue';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { associationToday } from '@/lib/time/association-today';
 
 const CENTER = '/communication-center';
 
@@ -76,12 +77,15 @@ async function resolveRecipients(db: any, msg: any): Promise<Recipient[]> {
 
   const ownerGroups = ['affected_residents', 'all_owners', 'owners', 'both', 'residents'];
   if (assocId && (ownerGroups.includes(group))) {
+    // Owners who moved out (sold) by the association's today aren't owners.
+    const today = await associationToday(db, assocId);
     const occs = await readAll('owners', () => db
       .from('occupancies')
       .select('id, owners!owner_id(id, email, full_name, archived_at)')
       .eq('association_id', assocId)
       .eq('occupancy_type', 'owner')
       .eq('status', 'current')
+      .or(`move_out_date.is.null,move_out_date.gt.${today}`)
       .order('id'));
     occs.filter((o: any) => !o.owners?.archived_at).forEach((o: any) => {
       // The owner id lets the queue skip a slow per-row lookup by address.

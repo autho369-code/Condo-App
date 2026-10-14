@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Messaging: staff are emailed about owner messages again (a #367
+  regression), message emails link to the conversation, former owners
+  can't post on old threads, text replies reach the SMS inbox, the inbox
+  pages through every conversation, mass email skips owners who moved out
+  (20261014240000).
 - Email limit (Codex on #367): back-dated or parallel sends can no longer get
   past the 5,000-per-hour company limit (20261014230000).
 - Email security: password-reset and invitation links can no longer be read

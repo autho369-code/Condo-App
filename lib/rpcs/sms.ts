@@ -37,7 +37,9 @@ export async function sendSms(formData: FormData) {
   const recipientId = need('recipient_id', 'a recipient');
   const phoneNumber = canonicalPhone(need('phone_number', 'a phone number'));
   const body = need('message', 'a message');
-  const fromNumber = str(formData, 'from_number') ?? me.portfolio?.phone_number ?? '+10000000000';
+  // The sender is the configured number (never taken from the form); with a
+  // Twilio Messaging Service, which delivery requires, Twilio picks the number.
+  const fromNumber = process.env.TWILIO_FROM_NUMBER ?? me.portfolio?.phone_number ?? 'messaging-service';
   if (!smsDeliveryConfigured()) { failTo('Live SMS delivery is not configured for this environment.'); return; }
 
   // Consent is a delivery prerequisite, not a warning. The provider worker
