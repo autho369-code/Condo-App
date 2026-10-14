@@ -1,9 +1,14 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#393 merged; open PR: none; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#393 merged; open PR: platform mail flag; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- none
+- claude/platform-mail-flag: platform mail is marked by the server
+  (email_queue.platform_mail), not recognised by a "Portier369" sender name:
+  suspended-company hold, unsubscribe link and the worker's sending address
+  use the flag; signed-in writes can't set it. 20261016210000 LIVE as
+  20261014172807 (dry-run rolled back first; read back). Reviewers: security,
+  migration (clean).
 
 ## Merged 2026-10-14
 - #393 (merged 2026-10-14) claude/reports-deep-check: deep check of reports, scheduled reports and dashboards. 20261016100000 LIVE as 20261014123933 (author dry-run on production, rolled back; read back). Fixed: people-data reports (users, permissions, login audit) limited to full-access staff/company admins; scheduled report emails only to active staff who can see the report, link requires sign-in (no 30-day public links; 15 stored links rewritten); downloads re-check access; schedules whose user lost access pause once; A/R aging matches the Receivables page (credits); fund reports tie out per fund (interfund line); association-local as-of dates; fiscal-year net income. Reviewers: security, schema, migration (twice), design (twice), white-label.
@@ -913,8 +918,8 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#393 merged; open PR: none; next: Str
   had a deep check. Do NOT re-check done areas (Mirsad 2026-10-14).
 - Open for Mirsad (TODO): 9 PO/project/inventory decisions; late fee vs
   AutoPay order on the day a suspended company is reactivated.
-- Follow-up (small): a server-set platform_mail flag on email_queue instead of
-  matching the "Portier369" sender name (unsubscribe rule + worker).
+- DONE (claude/platform-mail-flag): platform mail flag replaces the sender
+  name test.
 - DONE (claude/po-projects-deep-check): deep check of purchase orders,
   projects, inventory and fixed assets; 7 bugs fixed, 9 rule questions in
   TODO for Mirsad.

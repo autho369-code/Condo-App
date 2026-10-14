@@ -3,7 +3,7 @@
 // platform address. Rows live in portfolio_email_domains; the domain is
 // registered and verified with Resend, the same account that sends the mail.
 import { Resend } from 'resend';
-import { EMAIL_FROM, EMAIL_FROM_NAME } from '@/lib/email/queue';
+import { EMAIL_FROM } from '@/lib/email/queue';
 import { parseCustomDomain } from '@/lib/tenant/custom-domain';
 
 export const DEFAULT_FROM_LOCAL_PART = 'notices';
@@ -50,13 +50,13 @@ export function usesPlatformSender(fromAddress: string | null | undefined): bool
 }
 
 /**
- * Platform-originated mail names the platform as its sender (Portier369,
- * Portier369 Platform) and stays on the platform domain. Anything else that
- * belongs to a company (no name, or the company's or association's name) is
- * company mail.
+ * Platform-originated mail (billing, onboarding, operator announcements) stays
+ * on the platform domain. Only server code marks it (email_queue.platform_mail;
+ * the database forces it off for signed-in writes). The sender name never
+ * decides: a company or association called "Portier369 ..." is company mail.
  */
-export function isPlatformSenderName(name: string | null | undefined): boolean {
-  return String(name ?? '').trim().toLowerCase().startsWith(EMAIL_FROM_NAME.toLowerCase());
+export function isPlatformMail(row: { platform_mail?: boolean | null } | null | undefined): boolean {
+  return row?.platform_mail === true;
 }
 
 const PLATFORM_DOMAIN = EMAIL_FROM.split('@')[1];

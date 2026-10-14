@@ -8,7 +8,7 @@ const insurance = readFileSync(resolve('app/api/insurance/send-reminders/route.t
 
 describe('scheduled notification producers', () => {
   it('uses queue-level idempotency for replay-safe producers', () => {
-    expect(queue).toContain(".upsert(rows, { onConflict: 'idempotency_key', ignoreDuplicates: true })");
+    expect(queue).toContain(".upsert(rows, { onConflict: 'idempotency_key', ignoreDuplicates: true, defaultToNull: false })");
     expect(maintenance).toContain('idempotencyKey: `maintenance-reminder:');
     expect(insurance).toContain('idempotencyKey: `insurance-reminder:');
   });
