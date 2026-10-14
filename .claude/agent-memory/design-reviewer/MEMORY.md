@@ -14,6 +14,8 @@
 - `Select className="w-auto"` in a flex-wrap toolbar sizes to its longest option; a long name can overflow 375px. Suggest `w-auto max-w-full` (CalendarGrid.tsx:122, 2026-10-11).
 - Reopen/undo flows (missed on #372, Codex caught it): a reopened record left its key input (bank reconciliation statement balance) read-only, so the user couldn't fix what they reopened it for. On any undo/reopen/"back to draft" change, ask: can the user now edit and finish it on the page?
 - Field `hint` renders below the Input, so `sm:items-end` beside a button bottom-aligns the button with the hint, not the input (reconcile/page.tsx:381). Use `sm:items-start` + `sm:mt-[label offset]` or put the hint elsewhere. (Fixed on the reconcile balance form: hint moved under the row.)
+- `?error=...#section` redirects: the hash scrolls past the page-top error Alert (units/[id] removeLateFee, credits.ts:57, 2026-10-13). Render the Alert inside the target section, or drop the hash on errors.
+- `Table` has its own border+shadow wrapper: inside `CardBody className="p-0"` it draws a box flush against the card edge; siblings keep the padded CardBody (units/[id] Late fees card).
 - Checkbox labels: `min-h-10` on the wrapping `<label>` satisfies the 40px target (whole label clicks the box).
 
 ## Useful checks

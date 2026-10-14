@@ -77,7 +77,7 @@ export function JurisdictionPanel({
             <form action={saveDelinquencyCompliance} className="space-y-3 border-t border-gray-100 pt-4">
               <input type="hidden" name="association_id" value={policy.association_id} />
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Notice days"><Input name="pre_referral_notice_days" type="number" min="0" max="180" defaultValue={policy.pre_referral_notice_days} /></Field>
+                <Field label="Notice days" required><Input name="pre_referral_notice_days" type="number" min="0" max="180" required defaultValue={policy.pre_referral_notice_days} /></Field>
                 <Field label="Notice method">
                   <Select name="notice_method" defaultValue={policy.notice_method}>
                     <option value="certified_mail">Certified mail</option>

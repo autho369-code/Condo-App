@@ -12,7 +12,8 @@ import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { RECEIPT_METHODS, receiptMethodLabel } from '@/lib/payments/methods';
-import { postHomeownerCredit } from '@/lib/rpcs/credits';
+import { postHomeownerCredit, removeLateFee } from '@/lib/rpcs/credits';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Alert } from '@/components/ui/shell';
 import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-meta';
 import { loadRecordMeta } from '@/lib/records/load';
@@ -46,6 +47,12 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
     ? await (supabase as any).from('gl_accounts').select('id, number, name, account_type, association_id')
         .eq('active', true).in('account_type', ['income', 'other_income', 'expense', 'other_expense']).order('number')
     : { data: [] };
+  // Open late fees (all of them, not only the 50 newest charges) for finance staff to remove.
+  // Same rule as removeLateFee's requireFinanceStaff.
+  const { data: openLateFees, error: lateFeesError } = me.is_finance_staff || me.is_platform_operator
+    ? await (supabase as any).from('v_charge_balances').select('charge_id, description, due_date, balance_due')
+        .eq('unit_id', unitId).eq('charge_type', 'late_fee').gt('balance_due', 0).order('due_date', { ascending: false })
+    : { data: [], error: null };
   // Payment notes are staff-only (payment_private).
   await mergePrivateFields(supabase as any, 'payment_private', 'payment_id', ['notes'], (payments ?? []) as any[]);
   const openCharges = ((balances ?? []) as any[]).filter((c) => Number(c.balance_due) > 0);
@@ -99,6 +106,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
 
       {sp.saved === 'tags' && <Alert tone="success" title="Tags saved" />}
       {sp.saved === 'note' && <Alert tone="success" title="Note added" />}
+      {sp.saved === 'late_fee_removed' && <Alert tone="success" title="Late fee removed">The fee was credited back and no longer counts toward the balance.</Alert>}
 
       <RecordMetaPanels type="unit" id={unitId} meta={meta} currentUserId={me.auth_user_id} tagHref={(t) => `/units?tag=${t}`} />
 
@@ -209,6 +217,47 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
           </Table>
         </CardBody>
       </Card>
+
+      {/* ======== REMOVE LATE FEES ======== */}
+      {(lateFeesError || (openLateFees ?? []).length > 0) && (
+      <Card>
+        <CardHeader><CardTitle>Late fees</CardTitle></CardHeader>
+        <CardBody>
+          <div id="late-fees" className="scroll-mt-24" />
+          {lateFeesError ? (
+            <Alert tone="danger" title="Could not load late fees">{lateFeesError.message}</Alert>
+          ) : (
+          <>
+          <p className="mb-3 text-sm text-gray-500">Removing a late fee credits its open amount back against late-fee income. The fee stays on record, so it is not charged again.</p>
+          <Table>
+            <THead><TR>
+              <TH>Date</TH><TH>Description</TH><TH className="text-right">Open</TH><TH>Remove</TH>
+            </TR></THead>
+            <tbody>
+              {((openLateFees ?? []) as any[]).map((f) => (
+                <TR key={f.charge_id}>
+                  <TD>{date(f.due_date)}</TD>
+                  <TD>{f.description}</TD>
+                  <TD className="text-right">{money(f.balance_due)}</TD>
+                  <TD>
+                    <form action={removeLateFee} className="flex min-w-[18rem] items-center gap-2">
+                      <input type="hidden" name="unit_id" value={unitId} />
+                      <input type="hidden" name="charge_id" value={f.charge_id} />
+                      <Label htmlFor={`remove_reason_${f.charge_id}`} className="sr-only">Reason for removing this late fee</Label>
+                      <Input id={`remove_reason_${f.charge_id}`} name="reason" required minLength={3} maxLength={400} placeholder="Reason" />
+                      <PendingSubmit variant="secondary" className="text-red-600 hover:bg-red-50" pendingLabel="Removing…"
+                        confirm={`Remove this ${money(f.balance_due)} late fee? It is credited back and can't be undone.`}>Remove</PendingSubmit>
+                    </form>
+                  </TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+          </>
+          )}
+        </CardBody>
+      </Card>
+      )}
 
       {/* ======== POST AD-HOC CHARGE ======== */}
       <Card>

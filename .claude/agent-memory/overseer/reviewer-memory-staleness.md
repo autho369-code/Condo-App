@@ -56,3 +56,7 @@ Rule: when a PR fixes a hole a reviewer recorded, its memory line must say "fixe
   invoker-callee BLOCKER, claim filter, old claim_email_queue, parent message
   stuck 'queued'; security: complaint lockout, parent failure, per-IP limit;
   white-label: exact not-in platform check; schema: unscoped bounce lookup).
+- 8th (collections deep check pre-PR, 2026-10-13): white-label memory says
+  owners see reference 'Credit' for a credit-based fee removal, but the same
+  migration (20261015040000 remove_late_fee) sets reference 'Late fee
+  removed'. Grep the final migration for the claim a reviewer memory makes.

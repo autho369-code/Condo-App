@@ -22,7 +22,7 @@ function tone(status: string): Tone {
   return status === 'Paid off' ? 'success' : status === 'Behind' || status === 'Unavailable' ? 'danger' : status === 'Cancelled' ? 'neutral' : 'info';
 }
 
-export default async function PaymentPlansPage({ searchParams }: { searchParams: Promise<{ show?: string }> }) {
+export default async function PaymentPlansPage({ searchParams }: { searchParams: Promise<{ show?: string; error?: string }> }) {
   await requireStaff();
   const sp = await searchParams;
   const showAll = sp.show === 'all';
@@ -69,6 +69,7 @@ export default async function PaymentPlansPage({ searchParams }: { searchParams:
       }
     >
       <div className="space-y-4">
+        {sp.error && <Alert tone="danger" title="Could not cancel the plan">{sp.error}</Alert>}
         {plansError && <Alert tone="danger" title="Payment plans could not be loaded">{plansError.message}</Alert>}
         {failedSchedules > 0 && (
           <Alert tone="danger" title="Some plan schedules could not be loaded">

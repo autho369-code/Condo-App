@@ -140,6 +140,17 @@ Back to [[Home]]. Don't redo these.
   Management fees only accept the management-company vendor. Asked: "one
   company-level exception" vs a copy per association — he chose the
   exception. 1099s stay per association (each association is the payer).
+- **Late fees can be removed by managers** (Mirsad, 2026-10-13: "THE
+  MANAGER SHOULD BE ABLE TO REMOVE LATE FEES"). Built as a credit to the
+  fee's own income account (Dr late-fee income / Cr A/R), not a delete: the
+  ledger keeps the history and the daily run can't charge it again. A paid
+  fee is refused (give a credit or refund). Finance staff only. The owner's
+  ledger shows the credit as "Late fee removed"; the reason is staff-only.
+- **Interest is on principal only** (Claude, 2026-10-13, from the deep
+  check; Mirsad can change it): late fees and NSF fees don't earn interest
+  (the function's own description: "simple interest, never compounding"),
+  and a previous owner's charges don't earn interest billed to the new
+  owner, the same rule late fees follow.
 - **A bill posts to its header expense account** (verified 2026-10-13):
   payable_bill_line_items is unused (no writer, no reader), so
   set_payable_bill_expense_account decides what is posted. Line-item
