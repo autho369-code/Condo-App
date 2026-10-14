@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { claimSubmission, completeSubmission, newSubmissionToken, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { UnitSelect } from '@/components/forms/unit-select';
+import { notifyVendorOfAssignment } from '@/lib/notifications/vendor-assignment';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,6 +102,8 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
       redirect('/work-orders/new?error=' + encodeURIComponent(error?.message ?? 'Could not create work order.'));
     }
     await completeSubmission(supabase, token, wo.id);
+    // The vendor chosen here is told about the job, as on assignment later.
+    if (vendorId) await notifyVendorOfAssignment({ vendorId, workOrderIds: [wo.id] });
     redirect(`/work-orders/${wo.id}`);
   }
 

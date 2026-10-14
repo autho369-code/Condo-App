@@ -1,27 +1,8 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: #382 (Codex on #379-#381); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PRs: #383 removed late fee status, #384 owner portal fixes, claude/work-orders-fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #382 claude/codex-379-380-followups: Codex on #379, #380 and #381.
-  20261015110000 LIVE as 20261014022209, 20261015120000 LIVE as
-  20261014022727 (both dry-run rolled back on production first, read back;
-  migration, security, design, schema and white-label reviewers ran; their
-  findings fixed).
-  - Portal amenities: request form and list on the shared components;
-    overnight reservations show the end date; next-day hint.
-  - Board seats that still matched a board login by email are linked to it,
-    then the email-match branch goes (#379; production: already gone).
-  - Amenity hours past midnight (e.g. 18:00-02:00) checked by the database
-    and the portal (#380).
-  - Inspections search covers every match: inspection_search in the
-    database over type, association, unit, inspector and staff notes, no
-    200-id cap; built once as sets (5,000 inspections: ~320 -> ~220 ms).
-  - E-signature request linked to an association's record is filed under
-    that association even when none is sent (was company-wide, so managers
-    of other associations could read its signers); archived association
-    refused (#381; live: 0 requests misfiled).
-
 - claude/work-orders-fixes: work orders and service requests.
   20261015170000 LIVE as 20261014034204 (dry-run rolled back on production
   first as the manager, vendor and owner logins; read back: 11 patched
@@ -39,8 +20,8 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: #382 (Codex on 
     nobody.
   - Permission to enter on the staff work order page and, through
     vendor_work_order_permission_to_enter, to the assigned vendor.
-  - Assigned vendors get a white-labeled email (single and bulk, one email
-    per bulk run); bulk messages name every selected job; bulk status skips
+  - Assigned vendors get a white-labeled email (new work order, single and
+    bulk, one email per bulk run); bulk messages name every selected job; bulk status skips
     rows already at that status ("No changes" notice).
   - Service request search runs in the database (full names, 200-id caps)
     with the 500-row notice on an exact count.
@@ -51,6 +32,8 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: #382 (Codex on 
     through once-per-query id sets (same rows as before in the dry run).
 
 ## Merged 2026-10-14
+- #382 Codex follow-ups on #379-#381 (20261015110000 LIVE as
+  20261014022209, 20261015120000 LIVE as 20261014022727). Codex clean.
 - #381 architectural reviews, documents, forms, e-sign (20261015090000 LIVE
   as 20261014011059). Codex: P1 board decision RPC (already not executable
   by signed-in users), P2 association date for on-behalf filing (fixed
@@ -750,6 +733,14 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: #382 (Codex on 
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- Recurring work orders created by the database generators
+  (20261005050000, 20261005051000) set the vendor but send no assignment
+  email (manual, bulk and new-work-order assignment do since
+  claude/work-orders-fixes). Needs a queued email from the generator.
+- A completed service request stays completed when an open work order is
+  moved or unarchived into it, or a cancelled one reopened (only "reopened
+  in place" sets it back to waiting); reopen clears resolved_at but keeps
+  resolved_by and resolution_note (migration review, 20261015170000).
 - DONE in the journal-source-guard PR (20261015060000): direct journal writes
   revoked from signed-in users.
 - Owner ledger: a removed late fee still shows status "paid" (v_charge_balances

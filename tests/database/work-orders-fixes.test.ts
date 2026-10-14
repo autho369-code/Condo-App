@@ -146,3 +146,11 @@ describe('workOrderPredatesOwner', () => {
     expect(workOrderPredatesOwner('2026-10-16T15:00:00Z', '2026-10-15', null)).toBe(false);
   });
 });
+
+describe('new work order emails the chosen vendor', () => {
+  it('notifies the vendor after the work order is created', () => {
+    const page = read('app/(app)/work-orders/new/page.tsx');
+    expect(page).toContain('if (vendorId) await notifyVendorOfAssignment({ vendorId, workOrderIds: [wo.id] });');
+    expect(page.indexOf('notifyVendorOfAssignment({')).toBeGreaterThan(page.indexOf('await completeSubmission(supabase, token, wo.id);'));
+  });
+});

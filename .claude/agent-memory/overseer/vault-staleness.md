@@ -136,3 +136,8 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   (select my_managed_association_ids())) - later migrations rewrote policies
   in bulk. For policies, read pg_policy live (or grep every later migration
   touching the table), never the baseline file alone.
+- Recurring 13th time (work-orders-fixes pre-PR, 2026-10-14): Status line 3
+  + "## Open PR" still "#382 open" after it merged (32593a97); the new
+  branch entry was appended under it. Also a reviewer-memory-only leftover
+  (migration-reviewer: moving/unarchiving an open WO into a completed
+  request leaves it completed) was not in Next gaps.

@@ -107,6 +107,10 @@
   just-merged PR, not only Open PR.
 - Importer credits / tie-out / opening-balance pre-PR checks: see [finance-import-checks](finance-import-checks.md).
 
+- "Notify X when assigned" features: grep EVERY writer of the column (app inserts, RPCs, SQL
+  generators), not just the assign action. work-orders-fixes 2026-10-14: vendor email only on
+  assignVendor + bulk; New Work Order page (vendor at insert) and recurring generators sent none.
+
 ## Topic files
 - Vault staleness (recurring 8x: Status header/Open PR after merge, Next gaps "In PR", stale gap premise, missing DROP TODO for USING-false policies, guessed PR number; policies: check pg_policy live not migration files): see [vault-staleness](vault-staleness.md) - check first.
 - Reviewer memory still naming holes the same PR fixed (7x; 2026-10-13 twice): see [reviewer-memory-staleness](reviewer-memory-staleness.md).
