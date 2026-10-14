@@ -28,9 +28,9 @@ describe('20261015100000_board_vendor_fixes migration', () => {
   });
 
   it('uses each association local date for receivables and the meeting snapshot', () => {
-    expect(migration).toContain('public.association_local_date(a.id) AS local_today');
+    expect(migration).toContain("(pg_catalog.now() AT TIME ZONE COALESCE(NULLIF(a.timezone, ''), 'America/Chicago'))::date AS local_today");
     expect(migration).not.toMatch(/CURRENT_DATE/);
-    expect(migration).toContain('coalesce(p_as_of, public.association_local_date(ar.association_id))');
+    expect(migration).toContain('coalesce(p_as_of, public.association_local_date(x.association_id))');
     expect(migration).toContain('count(distinct ar.unit_id) filter (where ar.due_date < ar.as_of)');
     expect(migration).toContain("date_trunc(''month'', public.association_local_date(p_association_id))");
     expect(migration).toContain('and c.due_date >= v_month_start');
