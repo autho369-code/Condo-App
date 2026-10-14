@@ -14,13 +14,13 @@ export default async function OwnerVehiclesPage() {
   const supabase = await createClient()
   const db = supabase as any
 
-  const { data: assignments, error: assignmentsError } = await db
-    .from('parking_assignments')
-    .select('id, status, start_date, end_date, monthly_fee, vehicle_make, vehicle_model, vehicle_color, license_plate, insurance_company, insurance_policy_number, parking_spaces(label, space_type), units(unit_number)')
-    .in('owner_id', me.owner_ids)
-    .order('start_date', { ascending: false })
-
-  const rows = assignments ?? []
+  // Residents read parking through portal_parking_assignments (resident
+  // fields only, never staff notes); keep this owner's own records.
+  const { data: assignments, error: assignmentsError } = await db.rpc('portal_parking_assignments')
+  const ownerIds = new Set<string>(me.owner_ids)
+  const rows = ((assignments ?? []) as any[])
+    .filter((r) => r.owner_id && ownerIds.has(r.owner_id))
+    .map((r) => ({ ...r, parking_spaces: { label: r.space_label, space_type: r.space_type }, units: { unit_number: r.unit_number } }))
   const active = rows.filter((r: any) => r.status === 'active')
 
   return (

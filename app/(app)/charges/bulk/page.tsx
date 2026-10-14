@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
+import { newSubmissionToken } from '@/lib/forms/submission';
 import { BulkChargesForm } from './_bulk-charges-form';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +13,7 @@ export default async function BulkChargesPage() {
 
   const [associationsRes, categoriesRes] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('charge_categories').select('id, name, code, charge_type, is_assessment, default_amount').eq('active', true).order('sort_order'),
+    db.from('charge_categories').select('id, name, code, charge_type, is_assessment, default_amount, association_id').eq('active', true).is('archived_at', null).order('sort_order'),
   ]);
 
   return (
@@ -23,6 +24,7 @@ export default async function BulkChargesPage() {
       <BulkChargesForm
         associations={associationsRes.data ?? []}
         categories={categoriesRes.data ?? []}
+        submissionToken={newSubmissionToken()}
         portfolioId={me.portfolio?.id}
       />
     </DataWorkspace>

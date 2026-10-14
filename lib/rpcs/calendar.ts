@@ -14,6 +14,7 @@ import {
 import { createClient } from '@/lib/supabase/server';
 import { emailQueueRow, textToHtml } from '@/lib/email/queue';
 import { wallDateTimeToIso } from '@/lib/time/zoned';
+import { todayForAssociationZone } from '@/lib/time/association-today';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { checkLinkedRecords, managesAssociation } from '@/lib/security/association-scope';
 
@@ -442,10 +443,14 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
   // Paged past PostgREST's 1,000-row cap; a failed read sends nothing.
   const { rows: occs, error: occError } = await fetchAllRows<any>(() => db
     .from('occupancies')
-    .select('id, owners!owner_id(email, full_name)')
+    .select('id, owners!owner_id!inner(email, full_name, archived_at)')
     .eq('association_id', associationId)
     .eq('occupancy_type', 'owner')
     .eq('status', 'current')
+    // Never a former owner: archived, or past the move-out date by the
+    // association's own day (the nightly job ends the occupancy later).
+    .is('owners.archived_at', null)
+    .or(`move_out_date.is.null,move_out_date.gt.${todayForAssociationZone(timeZone)}`)
     .order('id'));
   if (occError) return { error: `Could not load owners: ${occError}` };
 

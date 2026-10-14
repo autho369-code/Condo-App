@@ -2,6 +2,7 @@ import 'server-only';
 import { queueEmails, type QueuedEmail } from '@/lib/email/queue';
 import { firstVendorEmail } from '@/lib/vendors/document-requests';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayForAssociationZone } from '@/lib/time/association-today';
 
 // Delivers calendar_event_reminders that are due. Reminders were created with
 // every calendar event but nothing ever sent them, so they piled up as
@@ -69,7 +70,13 @@ async function recipientsFor(svc: Svc, group: string, event: any): Promise<Array
     if (!event.association_id) return [];
     // Every page of residents: one request stops at 1,000 rows.
     const { rows, error } = await fetchAllRows<any>(() => {
-      let q = svc.from('occupancies').select('id, owners!occupancies_owner_id_fkey(full_name, email)').eq('association_id', event.association_id).eq('status', 'current');
+      // Current owners only: not archived, and not past their move-out date
+      // by the association's own day (the nightly job ends them later).
+      const today = todayForAssociationZone(event.associations?.timezone);
+      let q = svc.from('occupancies').select('id, owners!occupancies_owner_id_fkey!inner(full_name, email, archived_at)')
+        .eq('association_id', event.association_id).eq('status', 'current')
+        .is('owners.archived_at', null)
+        .or(`move_out_date.is.null,move_out_date.gt.${today}`);
       if (event.unit_id) q = q.eq('unit_id', event.unit_id);
       return q.order('id');
     });
@@ -99,7 +106,7 @@ export async function deliverDueCalendarReminders(svc: Svc, now = new Date()) {
   const nowIso = now.toISOString();
   const { data: due, error } = await svc
     .from('calendar_event_reminders')
-    .select('id, recipient_group, action, offset_minutes, calendar_event_id, calendar_events(id, title, event_type, start_datetime, all_day, location, description, maintenance_instructions, public_notice_text, association_id, unit_id, vendor_id, portfolio_id, created_by, archived_at, operations_status, associations(name, timezone), portfolios(company_name, support_email))')
+    .select('id, recipient_group, action, offset_minutes, calendar_event_id, association_id, portfolio_id, calendar_events(id, title, event_type, start_datetime, all_day, location, description, maintenance_instructions, public_notice_text, association_id, unit_id, vendor_id, portfolio_id, created_by, archived_at, operations_status, associations(name, timezone), portfolios(company_name, support_email))')
     .eq('status', 'scheduled')
     .lte('remind_at', nowIso)
     .order('remind_at')
@@ -113,6 +120,11 @@ export async function deliverDueCalendarReminders(svc: Svc, now = new Date()) {
       await svc.from('calendar_event_reminders').update({ status, updated_at: new Date().toISOString() }).eq('id', r.id).eq('status', 'scheduled');
     };
     if (!event || event.archived_at || ['canceled', 'cancelled'].includes(event.operations_status ?? '')) {
+      await setStatus('skipped'); summary.skipped++; continue;
+    }
+    // A reminder only goes out for an event of its own company and
+    // association (the database also refuses a mismatched row).
+    if (r.portfolio_id !== event.portfolio_id || (r.association_id ?? null) !== (event.association_id ?? null)) {
       await setStatus('skipped'); summary.skipped++; continue;
     }
     // After the start, only a reminder set FOR the start (0-minute offset)

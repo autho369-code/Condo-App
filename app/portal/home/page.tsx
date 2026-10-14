@@ -42,10 +42,13 @@ export default async function MyHomePage() {
 
   const [{ data: parking, error: parkingError }, { data: pets, error: petsError }] = await Promise.all([
     unitIds.length > 0
-      ? db.from('parking_assignments')
-          .select('id, vehicle_make, vehicle_model, vehicle_color, license_plate, status, parking_spaces(label, space_type)')
-          .in('unit_id', unitIds)
-          .eq('status', 'active')
+      // Resident fields only, never staff notes (portal_parking_assignments).
+      ? db.rpc('portal_parking_assignments').then((res: any) => ({
+          error: res.error,
+          data: ((res.data ?? []) as any[])
+            .filter((r) => r.status === 'active' && unitIds.includes(r.unit_id))
+            .map((r) => ({ ...r, parking_spaces: { label: r.space_label, space_type: r.space_type } })),
+        }))
       : Promise.resolve({ data: [] as any[], error: null }),
     unitIds.length > 0
       ? db.from('unit_pets').select('id, pet_type, name, breed').in('unit_id', unitIds).is('archived_at', null)

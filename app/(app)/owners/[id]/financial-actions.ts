@@ -25,13 +25,18 @@ function str(fd: FormData, key: string): string | null {
   return v ? v : null;
 }
 
-export async function saveOwnerFinancialDetails(ownerId: string, portfolioId: string, formData: FormData) {
+export async function saveOwnerFinancialDetails(ownerId: string, _portfolioId: string, formData: FormData) {
   const me = await requireStaff();
   const supabase = await createClient();
+  // The owner must be one the caller can see; the company comes from the
+  // owner record, never from the bound (client-sent) argument.
+  const { data: owner } = await (supabase as any)
+    .from('owners').select('id, portfolio_id').eq('id', ownerId).maybeSingle();
+  if (!owner?.portfolio_id) fail(ownerId, 'Owner not found.');
 
   const patch: Record<string, unknown> = {
     owner_id: ownerId,
-    portfolio_id: portfolioId,
+    portfolio_id: owner.portfolio_id,
     taxpayer_name: str(formData, 'taxpayer_name'),
     tax_form_account_number: str(formData, 'tax_form_account_number'),
     send_1099: formData.get('send_1099') === 'on',

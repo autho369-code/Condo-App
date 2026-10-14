@@ -16,7 +16,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCronSecret } from '@/lib/server/cron-auth';
 import { queueEmails } from '@/lib/email/queue';
-import { resolveUnitOwnerId } from '@/lib/notifications/status-change';
+import { ownerMoveInDate, resolveUnitOwnerId, workOrderPredatesOwner } from '@/lib/notifications/status-change';
+import { todayForAssociationZone } from '@/lib/time/association-today';
+import { addDaysToDate } from '@/lib/time/zoned';
 import {
   actionAllowedForTrigger,
   isTriggerType,
@@ -61,8 +63,9 @@ type Accept = (subjectType: string, subjectId: string) => boolean;
 
 const DAY_MS = 86400000;
 
-function isoDateDaysAgo(n: number): string {
-  return new Date(Date.now() - n * DAY_MS).toISOString().slice(0, 10);
+/** Whole days from one calendar date (YYYY-MM-DD) to another. */
+function daysBetweenDates(from: string, to: string): number {
+  return Math.max(0, Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS));
 }
 function isoDaysAgoTs(n: number): string {
   return new Date(Date.now() - n * DAY_MS).toISOString();
@@ -85,6 +88,8 @@ interface Subject {
   days: number;
   /** Only meaningful for overdue charges. */
   amount: string;
+  /** Work orders: when it was opened (a buyer never hears about the seller's). */
+  createdAt?: string | null;
 }
 
 interface ActionOutcome {
@@ -149,7 +154,7 @@ async function runFlow(svc: any, flow: any) {
   // ── Scope: the flow's association, or every association in its portfolio ──
   let assocQuery = svc
     .from('associations')
-    .select('id, name')
+    .select('id, name, timezone')
     .eq('portfolio_id', flow.portfolio_id)
     .is('archived_at', null);
   if (flow.association_id) assocQuery = assocQuery.eq('id', flow.association_id);
@@ -157,6 +162,8 @@ async function runFlow(svc: any, flow: any) {
   if (assocErr) throw new Error(`associations query failed — ${assocErr.message}`);
   const assocIds: string[] = (assocs ?? []).map((a: any) => a.id);
   const assocNameById = new Map<string, string>((assocs ?? []).map((a: any) => [a.id, a.name]));
+  // Each association's own calendar day ("overdue", "current owner").
+  const todayByAssoc = new Map<string, string>((assocs ?? []).map((a: any) => [a.id, todayForAssociationZone(a.timezone)]));
   if (assocIds.length === 0) return result; // association outside portfolio or empty portfolio
 
   // ── Evaluate the trigger ──────────────────────────────────────────────────
@@ -175,7 +182,7 @@ async function runFlow(svc: any, flow: any) {
       || (r.last_attempt_at && now - new Date(r.last_attempt_at).getTime() < RETRY_COOLDOWN_MS))
     .map((r: any) => `${r.subject_type}:${r.subject_id}`));
   const accept: Accept = (type, id) => !unclaimable.has(`${type}:${id}`);
-  const claimable = await evaluateTrigger(svc, trigger, days, assocIds, accept);
+  const claimable = await evaluateTrigger(svc, trigger, days, assocIds, accept, todayByAssoc);
   const subjects = claimable.slice(0, SUBJECT_CAP);
   result.candidates = subjects.length;
   if (claimable.length > SUBJECT_CAP) {
@@ -243,7 +250,7 @@ async function runFlow(svc: any, flow: any) {
         continue;
       }
       try {
-        outcomes.push(await executeAction(svc, flow, trigger, action, subject, assocName, brand, managersByAssoc, `${runRow.id}:${index}`));
+        outcomes.push(await executeAction(svc, flow, trigger, action, subject, assocName, brand, managersByAssoc, `${runRow.id}:${index}`, todayByAssoc));
       } catch (e: any) {
         outcomes.push({ index, type: action.type, ok: false, info: e.message ?? 'action threw' });
       }
@@ -273,7 +280,14 @@ async function runFlow(svc: any, flow: any) {
 }
 
 /** Trigger evaluation — every query scopes to the flow's association ids. */
-async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, assocIds: string[], accept: Accept): Promise<Subject[]> {
+async function evaluateTrigger(
+  svc: any,
+  trigger: TriggerType,
+  days: number,
+  assocIds: string[],
+  accept: Accept,
+  todayByAssoc: Map<string, string>,
+): Promise<Subject[]> {
   if (trigger === 'charge_overdue') {
     // Resolve the portfolio/association's units first (v_charge_balances has
     // no association column), exactly like /api/billing/assess-late-fees.
@@ -283,22 +297,29 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
       .in('buildings.association_id', assocIds)
       .order('id'), 'units');
     const assocByUnit = new Map<string, string>(units.map((u: any) => [u.id, u.buildings.association_id]));
-    const unitIds = Array.from(assocByUnit.keys());
-    if (unitIds.length === 0) return [];
+    if (assocByUnit.size === 0) return [];
+    const unitsByAssoc = new Map<string, string[]>();
+    for (const [unitId, assocId] of assocByUnit) unitsByAssoc.set(assocId, [...(unitsByAssoc.get(assocId) ?? []), unitId]);
 
-    // Chunk unit ids so the request URL stays short.
+    // Overdue by each association's own date (UTC is already tomorrow in a
+    // US evening). Chunk unit ids so the request URL stays short.
     const rows: any[] = [];
-    for (let i = 0; i < unitIds.length; i += 150) {
-      const chunk = unitIds.slice(i, i + 150);
-      rows.push(...await candidates(() => svc
-        .from('v_charge_balances')
-        .select('charge_id, unit_id, balance_due, due_date, description')
-        .in('unit_id', chunk)
-        .eq('charge_type', 'assessment')
-        .gt('balance_due', 0)
-        .lt('due_date', isoDateDaysAgo(days))
-        .order('due_date')
-        .order('charge_id'), 'v_charge_balances', (c) => accept('charge', c.charge_id), WANT - rows.length));
+    for (const [assocId, assocUnitIds] of unitsByAssoc) {
+      const today = todayByAssoc.get(assocId) ?? todayForAssociationZone(null);
+      const cutoff = addDaysToDate(today, -days);
+      for (let i = 0; i < assocUnitIds.length && rows.length < WANT; i += 150) {
+        const chunk = assocUnitIds.slice(i, i + 150);
+        const page = await candidates(() => svc
+          .from('v_charge_balances')
+          .select('charge_id, unit_id, balance_due, due_date, description')
+          .in('unit_id', chunk)
+          .eq('charge_type', 'assessment')
+          .gt('balance_due', 0)
+          .lt('due_date', cutoff)
+          .order('due_date')
+          .order('charge_id'), 'v_charge_balances', (c) => accept('charge', c.charge_id), WANT - rows.length);
+        rows.push(...page.map((c: any) => ({ ...c, today })));
+      }
       if (rows.length >= WANT) break;
     }
     return rows.map((c: any) => ({
@@ -308,7 +329,7 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
       unitId: c.unit_id ?? null,
       ownerId: null,
       title: c.description ?? 'Assessment charge',
-      days: daysBetween(`${c.due_date}T00:00:00Z`),
+      days: daysBetweenDates(String(c.due_date).slice(0, 10), c.today),
       amount: `$${Number(c.balance_due).toFixed(2)}`,
     }));
   }
@@ -318,7 +339,7 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
     // done/completed/billed/closed/cancelled.
     const rows = await candidates(() => svc
       .from('work_orders')
-      .select('id, title, unit_id, association_id, updated_at')
+      .select('id, title, unit_id, association_id, updated_at, created_at')
       .in('association_id', assocIds)
       .in('status', ['new', 'assigned', 'scheduled', 'in_progress'])
       .is('archived_at', null)
@@ -333,6 +354,7 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
       title: w.title ?? 'Work order',
       days: daysBetween(w.updated_at),
       amount: '',
+      createdAt: w.created_at ?? null,
     }));
   }
 
@@ -407,6 +429,7 @@ async function executeAction(
   brand: { companyName: string | null; supportEmail: string | null; supportPhone: string | null },
   managersByAssoc: Map<string, { email: string; name: string | null }[]>,
   deliveryKey: string,
+  todayByAssoc: Map<string, string>,
 ): Promise<ActionOutcome> {
   const type = action.type;
   const index = Number(deliveryKey.split(':').at(-1));
@@ -421,8 +444,25 @@ async function executeAction(
     // Resolve the subject's owner: charge/work-order via unit → unit_owners /
     // occupancies (same helper as status-change notifications); violation,
     // insurance, and ARC rows carry owner_id directly.
+    const today = (subject.associationId && todayByAssoc.get(subject.associationId)) || todayForAssociationZone(null);
     let ownerId = subject.ownerId;
-    if (!ownerId && subject.unitId) ownerId = await resolveUnitOwnerId(svc, subject.unitId);
+    if (ownerId) {
+      // A violation or ARC request keeps the owner it was filed against; after
+      // a sale that person is a former owner and is never emailed.
+      if (!(await isCurrentOwnerIn(svc, ownerId, subject.associationId, today))) {
+        return { index, type, ok: false, info: 'owner no longer owns in this association' };
+      }
+    } else if (subject.unitId) {
+      ownerId = await resolveUnitOwnerId(svc, subject.unitId, today);
+      // A buyer never hears about the seller's work orders.
+      if (ownerId && subject.subjectType === 'work_order' && subject.createdAt) {
+        const tz = subject.associationId ? await associationZone(svc, subject.associationId) : null;
+        const since = await ownerMoveInDate(svc, subject.unitId, ownerId);
+        if (since && workOrderPredatesOwner(subject.createdAt, since, tz)) {
+          return { index, type, ok: false, info: 'work order predates the current owner' };
+        }
+      }
+    }
     if (!ownerId) return { index, type, ok: false, info: 'no owner resolved for subject' };
 
     const { data: owner } = await svc.from('owners').select('email, full_name').eq('id', ownerId).maybeSingle();
@@ -511,4 +551,31 @@ async function executeAction(
     .select('id');
   if (error) return { index, type, ok: false, info: `priority update failed — ${error.message}` };
   return { index, type, ok: true, info: updated?.length ? 'priority raised to high' : 'already high or emergency' };
+}
+
+/**
+ * True while the owner record is not archived and holds a current owner
+ * occupancy in the association that has not reached its move-out date (the
+ * association's own date).
+ */
+async function isCurrentOwnerIn(svc: any, ownerId: string, associationId: string | null, today: string): Promise<boolean> {
+  if (!associationId) return false;
+  const { data: owner } = await svc.from('owners').select('id').eq('id', ownerId).is('archived_at', null).maybeSingle();
+  if (!owner) return false;
+  const { data: occs, error } = await svc
+    .from('occupancies')
+    .select('id')
+    .eq('owner_id', ownerId)
+    .eq('association_id', associationId)
+    .eq('occupancy_type', 'owner')
+    .eq('status', 'current')
+    .or(`move_out_date.is.null,move_out_date.gt.${today}`)
+    .limit(1);
+  if (error) throw new Error(`owner check failed: ${error.message}`);
+  return (occs ?? []).length > 0;
+}
+
+async function associationZone(svc: any, associationId: string): Promise<string | null> {
+  const { data } = await svc.from('associations').select('timezone').eq('id', associationId).maybeSingle();
+  return data?.timezone ?? null;
 }
