@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#393 merged; no open PR; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#398 merged; no open PR; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
 - none
@@ -908,25 +908,22 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#393 merged; no open PR; next: Stripe
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- NOTHING LEFT FOR CLAUDE (2026-10-14): every area deep-checked, all 10
+  PO/project/inventory/reactivation decisions built (#396, #397), ownership
+  done (#388). Do not start new deep checks. Next work starts when Mirsad
+  sets Stripe test keys (then: Stripe TEST checkout + AutoPay run) or
+  reports a bug.
 - DONE 2026-10-14 (#390-#393): the last four never-checked areas were deep
   checked and fixed in one pass each: GL / period and year-end close /
   management fees / loans / credit cards / lockbox (#390); setup records
   (#391); company admin, platform operator, settings, AI assistants (#392);
   reports, scheduled reports, dashboards (#393). Every area of the app has now
   had a deep check. Do NOT re-check done areas (Mirsad 2026-10-14).
-- Open for Mirsad (TODO): 9 PO/project/inventory decisions; late fee vs
-  AutoPay order on the day a suspended company is reactivated.
 - DONE (claude/platform-mail-flag): platform mail flag replaces the sender
   name test.
 - DONE (claude/po-projects-deep-check): deep check of purchase orders,
   projects, inventory and fixed assets; 7 bugs fixed, 9 rule questions in
   TODO for Mirsad.
-- NEXT: DEEP CHECK of ownership changes and unit records: owner move-in /
-  move-out and unit sales (balances, AutoPay, portal access and board seats
-  follow the right owner), unit account statements and owner statements;
-  rolled back at scale, every role, then fix.
-- After Mirsad answers the 9 PO/project/inventory questions in TODO: build
-  the ones he says yes to.
 - BLOCKED on Mirsad: Stripe TEST-mode checkout and AutoPay run (Vercel has
   no STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET).
 - Watching: CSP (0 blocked in 48 h on 2026-10-14; runtime errors only from
