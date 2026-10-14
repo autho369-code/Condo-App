@@ -82,6 +82,9 @@
 
 ## PO board decision + reserve/asset guards (claude/po-projects-deep-check, Oct 2026, 20261015230000)
 - Staff record board decisions on PO/bill pages (board portal read-only); copy clean. fixed_assets/reserve trigger raises reach staff raw via lib/rpcs/fixed-assets.ts fail(error.message): watch DB jargon ("scope") in raise text.
+
+## Admin/operator deep check (9c2800bb, Oct 2026, 20261016130000)
+- portfolios_guard_platform_columns raise now says "platform support" (was "Portier369 support" in 20261002224531/20261005010002/20261006070000); company admins now update portfolios directly, so this text can reach them. Clean. Operator audit failure text ("Tell engineering") is operator-only: allowed.
 ## Cross-cutting checks (detail in [audited-branches](audited-branches.md))
 - DB raise text reaches staff raw via fail(error.message)/`?error=`: watch "the platform", "Portier369 support" (use "platform support"), DB jargon, double periods.
 - SQL "is this platform mail?" must match isPlatformSenderName: `lower(btrim(from_name)) like 'portier369%'`, not an exact list.

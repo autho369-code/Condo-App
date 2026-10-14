@@ -1,11 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#392 merged; open PR: #393 reports; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#393 merged; open PR: none; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #393 claude/reports-deep-check: deep check of reports, scheduled reports and dashboards. 20261016100000 LIVE as 20261014123933 (author dry-run on production, rolled back; read back). Fixed: people-data reports (users, permissions, login audit) limited to full-access staff/company admins; scheduled report emails only to active staff who can see the report, link requires sign-in (no 30-day public links; 15 stored links rewritten); downloads re-check access; schedules whose user lost access pause once; A/R aging matches the Receivables page (credits); fund reports tie out per fund (interfund line); association-local as-of dates; fiscal-year net income. Reviewers: security, schema, migration (twice), design (twice), white-label.
+- none
 
 ## Merged 2026-10-14
+- #393 (merged 2026-10-14) claude/reports-deep-check: deep check of reports, scheduled reports and dashboards. 20261016100000 LIVE as 20261014123933 (author dry-run on production, rolled back; read back). Fixed: people-data reports (users, permissions, login audit) limited to full-access staff/company admins; scheduled report emails only to active staff who can see the report, link requires sign-in (no 30-day public links; 15 stored links rewritten); downloads re-check access; schedules whose user lost access pause once; A/R aging matches the Receivables page (credits); fund reports tie out per fund (interfund line); association-local as-of dates; fiscal-year net income. Reviewers: security, schema, migration (twice), design (twice), white-label.
 - #391 (merged 2026-10-14) claude/setup-records-deep-check: deep check of setup records (associations, units, owners,
   charges, parking, keys, letters, reminders, calendar, reserves). 20261016164000 LIVE as
   20261014122819, 20261016164100 LIVE as 20261014122901 (author dry-run on production,
@@ -904,6 +905,16 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#392 merged; open PR: #393 reports; n
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- DONE 2026-10-14 (#390-#393): the last four never-checked areas were deep
+  checked and fixed in one pass each: GL / period and year-end close /
+  management fees / loans / credit cards / lockbox (#390); setup records
+  (#391); company admin, platform operator, settings, AI assistants (#392);
+  reports, scheduled reports, dashboards (#393). Every area of the app has now
+  had a deep check. Do NOT re-check done areas (Mirsad 2026-10-14).
+- Open for Mirsad (TODO): 9 PO/project/inventory decisions; late fee vs
+  AutoPay order on the day a suspended company is reactivated.
+- Follow-up (small): a server-set platform_mail flag on email_queue instead of
+  matching the "Portier369" sender name (unsubscribe rule + worker).
 - DONE (claude/po-projects-deep-check): deep check of purchase orders,
   projects, inventory and fixed assets; 7 bugs fixed, 9 rule questions in
   TODO for Mirsad.

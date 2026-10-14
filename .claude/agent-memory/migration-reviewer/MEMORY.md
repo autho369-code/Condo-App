@@ -85,6 +85,9 @@
 - Freeze guards on "final" records: confirm columns written AFTER finalize stay writable (year_end_packages.signature_request_id via link_year_end_signature; 20261016200000 correctly left it out). Delete guards using app_is_repair_session are safe for purge_rows (SQL editor: session_user postgres).
 - A BEFORE DELETE guard on a child with parent ON DELETE CASCADE (gl_accounts <- associations/portfolios) also fires on parent deletes; a "has sub-accounts" check then blocks the whole cascade. OK only while no app/API path deletes the parent (grep `.from('<parent>')...delete`); 20261016200000 clean.
 
+- "Pause while suspended" holds on schedulers (20261016130000): for each job ask whether catch-up actually happens. Jobs keyed on "previous month" (run_scheduled_management_fees) lose every month but the last; "all overdue" jobs (cron_assess_late_fees) back-fine everything the pause was protecting. Queue holds are fine if no sweeper ages rows out (none on email/sms/mail/webhook queues as of 2026-10-14).
+- Latest-body check: a node regex over all migrations for `create function` bodies misses text patches (pg_get_functiondef + replace, `pg_temp.patch_fn`); also grep the function name for `pg_get_functiondef('public.<fn>`.
+
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns
