@@ -4,6 +4,13 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Ownership fixes (claude/ownership-fixes, 20261016010000): a sale can't be
+  dated in the future; statements go to the owner(s) of record in the
+  period; a sale or move-out ends the outgoing owner's parking, stops its
+  parking charge and archives their pets; a buyer can't read the seller's
+  paid charges or statements; the homeowner page's payment history and YTD
+  figures cover only that owner's ownership; move-out and sale dates use the
+  association's calendar.
 - Work orders follow-ups (20261015220000 live as 20261014083421): vendors
   are emailed about recurring jobs (nightly and "Generate now"), once each;
   a completed request goes back to waiting when an open work order is

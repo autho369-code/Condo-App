@@ -10,6 +10,7 @@ import { savePrivateFields } from '@/lib/private-fields';
 import { queueOwnerPortalInvitation } from '@/lib/auth/owner-invitation';
 import { todayInZone } from '@/lib/time/zoned';
 import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
+import { todayForAssociationZone } from '@/lib/time/association-today';
 
 // ---------- Helpers ----------
 const str  = (f: FormData, k: string) => {
@@ -796,11 +797,21 @@ export async function endOccupancy(occupancyId: string, ownerId: string) {
   const failTo = (msg: string) => {
     redirect(`/owners/${ownerId}?error=${encodeURIComponent(msg)}`);
   };
+  // The move-out day is today in the association's time zone (the database
+  // compares move-out dates with the association's calendar too).
+  const { data: occ, error: occError } = await (supabase as any).from('occupancies')
+    .select('id, associations(timezone)')
+    .eq('id', occupancyId).eq('owner_id', ownerId).neq('status', 'past')
+    .maybeSingle();
+  if (occError) { failTo(`Could not load the occupancy: ${occError.message}`); return; }
+  if (!occ) { failTo('That occupancy was not found, has already ended, or you do not have access to it.'); return; }
   // Scoped to this owner's still-current occupancy; zero rows means nothing
   // was ended (wrong owner, already ended, or outside the caller's access).
+  // Ending it also ends the owner's parking, parking charge and pets on the
+  // unit (database trigger end_owner_unit_items_when_occupancy_ends).
   const { data: ended, error } = await (supabase as any).from('occupancies').update({
     status:        'past',
-    move_out_date: todayInZone(),
+    move_out_date: todayForAssociationZone(occ.associations?.timezone),
   }).eq('id', occupancyId).eq('owner_id', ownerId).neq('status', 'past').select('id');
   if (error) { failTo(error.message); return; }
   if (!ended || ended.length === 0) { failTo('That occupancy was not found, has already ended, or you do not have access to it.'); return; }
