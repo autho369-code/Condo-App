@@ -12,7 +12,10 @@ describe('scheduled report delivery recovery', () => {
   });
 
   it('deduplicates recipients and queue delivery by run', () => {
-    expect(route).toContain('Array.from(new Set(');
+    // Recipients come from the database check (one row per address), keyed
+    // again by normalized address before queueing.
+    expect(route).toContain("svc.rpc('scheduled_report_delivery_recipients'");
+    expect(route).toContain('const recipients = new Map<string, string | null>()');
     expect(route).toContain('idempotencyKey: `scheduled-report:${run.id}:${to}`');
     expect(route).toContain('queueEmails(svc');
     expect(route).not.toContain(".from('email_queue').insert");

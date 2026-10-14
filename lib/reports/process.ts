@@ -3,13 +3,15 @@ import { isSupportedReportOutputFormat, serializeReportOutput } from '@/lib/repo
 import { generateLiveExportRows, supportsLiveExport } from '@/lib/reports/live-export';
 import { computePeriod, PERIOD_PRESETS } from '@/lib/reports/period';
 import { isValidTimeZone } from '@/lib/time/display-zone';
+import { reportRunDownloadPath, reportRunStoragePath } from '@/lib/reports/run-files';
 
 // The missing half of the reporting pipeline: executes a queued report_run.
 //
 // Data comes from the report_data_dispatch() SQL function (SECURITY DEFINER,
-// one case per implemented slug). Output is CSV or JSON uploaded to the
-// private `reports` bucket; output_url is a 30-day signed link the run page
-// renders as the download button.
+// one case per implemented slug). Output is uploaded to the private `reports`
+// bucket at <portfolio>/<run>.<format>; output_url is the run's download
+// route, which streams the file to signed-in users who can see the run. No
+// shareable signed link is stored or emailed.
 //
 // Slugs report_data_dispatch doesn't implement fail LOUDLY with an honest
 // error_message — a failed run in the history beats a forever-"queued" one.
@@ -116,7 +118,7 @@ export async function processReportRun(runId: string): Promise<void> {
       dateFrom: typeof parameters.date_from === 'string' ? parameters.date_from : null,
       dateTo: typeof parameters.date_to === 'string' ? parameters.date_to : null,
     });
-    const path = `${run.portfolio_id}/${runId}.${output.extension}`;
+    const path = reportRunStoragePath({ id: runId, portfolio_id: run.portfolio_id, output_format: output.extension })!;
 
     const { error: upErr } = await svc.storage.from('reports').upload(path, output.body, {
       contentType: output.contentType,
@@ -127,14 +129,9 @@ export async function processReportRun(runId: string): Promise<void> {
       return;
     }
 
-    const { data: signed, error: signErr } = await svc.storage.from('reports').createSignedUrl(path, 60 * 60 * 24 * 30);
-    if (signErr || !signed?.signedUrl) {
-      await finish({ status: 'failed', error_message: `Output signing failed: ${signErr?.message ?? 'No signed URL was returned'}` });
-      return;
-    }
     await finish({
       status: 'succeeded',
-      output_url: signed.signedUrl,
+      output_url: reportRunDownloadPath(runId),
       output_size_bytes: output.body.byteLength,
       row_count: rows.length,
     });

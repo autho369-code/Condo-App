@@ -114,3 +114,6 @@
 - StatusChip is `whitespace-nowrap capitalize`: sentence-length chip text ("Paused – online payments are off for this account", autopay/page.tsx:341) overflows a p-5 card at 375px and comes out Title Case. Keep chips to 1-3 words; put the explanation in a line of text.
 - Status-specific result pages (pay/success): check every value of the CHECK constraint, not just the ones the change names (payment_intents also has returned/refunded/chargeback).
 - Half-swapped forms: when one field moves to a shared control (communications Textarea), the sibling raw input + hand-rolled submit stay; flag the rest of the form.
+## Reports (claude/reports-deep-check, 2026-10-14)
+- reports/[slug] tile rows: most are still `grid-cols-3/4` with no mobile breakpoint (precedent :986 `grid-cols-2 sm:grid-cols-4`); flag when a row is touched. Tile (components/reports/workspace.tsx) is 24px text in a ~165px column at 375px: 5-digit money can overflow; suggest `min-w-0` + `break-words` or smaller mobile text.
+- Download routes that `back(?error=)` to a detail page: if the page does `if (!run) notFound()`, a "not found / no access" error becomes a bare 404 (reports/runs/[id]/download). Send not-visible cases to the list/index page, which renders sp.error.

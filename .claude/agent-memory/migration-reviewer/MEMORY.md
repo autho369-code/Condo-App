@@ -74,6 +74,11 @@
 
 - Widening "who gets a statement/notice" to past owners (period overlap, 20261016010000 generate_owner_statements): check the AMOUNTS are bounded to that owner's tenure too; unit-wide sums email the seller the buyer's total due (lib/rpcs/bulk-operations.ts sends total_due). Dropping a unit_id branch from a resident policy also drops co-owners when the generator writes one row per unit. Fix v2 capped at move_out_date-1 but only when status='past'; key tenure cutoffs on the DATE, not status (current rows can carry a future move_out_date).
 
+- "Auto-pause until someone with access saves it" (20261016100000 enqueue_scheduled_reports): check the save path really changes the run-as column. guard_scheduled_report_change swaps run_as only when one of 6 columns differs, so a no-op Save then Resume pauses the schedule again. Also check whether the definer CTE `assoc(.., association_local_date(a.id))` is pulled up: if so it runs once per row, not once per association.
+
+- "Take over owner/run_as when column tuple changes" guards: grep app writers of EACH tuple column. 20261016100000:297 had next_run_at in the tuple, so "Run now" (lib/rpcs/reports.ts runScheduleNow writes only next_run_at) silently became a takeover + recipient re-check.
+- Claim-switch helpers (report_access_error_as: set request.jwt.claims to another user, restore after) are safe only if no helper caches identity in a GUC; grep set_config('app.*') before accepting.
+
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns

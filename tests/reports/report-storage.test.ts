@@ -18,11 +18,11 @@ describe('report output storage', () => {
     expect(migration).toContain('on conflict (id) do update');
   });
 
-  it('fails the run honestly when signing does not return a usable URL', () => {
+  it('stores the download route, never a shareable signed link', () => {
     const processor = readFileSync(resolve(process.cwd(), 'lib/reports/process.ts'), 'utf8');
 
-    expect(processor).toContain('error: signErr');
-    expect(processor).toContain("status: 'failed'");
-    expect(processor).toContain('Output signing failed:');
+    expect(processor).toContain('Output upload failed:');
+    expect(processor).toContain('output_url: reportRunDownloadPath(runId)');
+    expect(processor).not.toContain('createSignedUrl');
   });
 });

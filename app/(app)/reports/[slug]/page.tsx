@@ -15,6 +15,9 @@ import { money, date } from '@/lib/utils';
 import { reportFormatLabel, supportedReportOutputFormats } from '@/lib/reports/formats';
 import { computePeriod, type Period } from '@/lib/reports/period';
 import { addLedgerLine, financialSection, netIncome as calculateNetIncome, normalBalance } from '@/lib/reports/financial';
+import { fiscalYearStartFor } from '@/lib/reports/fiscal-year';
+import { reportRunDownloadPath } from '@/lib/reports/run-files';
+import { loadUnappliedCredits } from '@/lib/reports/receivables';
 import { complianceMetrics, findingsBySeverity, typeLabel, type ComplianceMetrics } from '@/lib/reports/inspection-compliance';
 import { PRIORITIES, daysLabel, groupBy, hoursLabel, openWorkOrderAging, rateLabel, responseMetrics, type ResponseMetrics } from '@/lib/reports/maintenance-response';
 
@@ -388,7 +391,8 @@ async function BalanceSheetView({
 
   // Roll current-year net income (revenue − expenses, cumulative through the as-of
   // date) into equity as retained earnings — otherwise the sheet doesn't balance.
-  const currentYearStart = `${period.to.slice(0, 4)}-01-01`;
+  // The year is the association's fiscal year (the company's when none is chosen).
+  const currentYearStart = await fiscalYearStartFor(db, period.to, selectedAssociation || null);
   const currentYearTotals = await ledgerTotalsByAccount(db, {
     associationIds: selectedAssociation ? [selectedAssociation] : null,
     from: currentYearStart,
@@ -1085,7 +1089,16 @@ async function ARAgingView(ctx: ReportContext) {
     totals[b].count += 1;
     totals[b].amount += Number(r.balance_due ?? 0);
   }
-  const grand = Object.values(totals).reduce((s, v) => s + v.amount, 0);
+  // Unapplied payments and credits reduce what is owed, as on the Receivables
+  // page: "Total outstanding" here is the same figure.
+  let credits: Awaited<ReturnType<typeof loadUnappliedCredits>> = [];
+  try {
+    credits = await loadUnappliedCredits(supabase, selectedAssociation ? [selectedAssociation] : null);
+  } catch (e: any) {
+    return <ReportLoadFailed ctx={ctx} subtitle={def.description} message={e?.message ?? 'Could not load unapplied credits.'} />;
+  }
+  const creditTotal = credits.reduce((s, c) => s + c.unapplied, 0);
+  const grand = Object.values(totals).reduce((s, v) => s + v.amount, 0) - creditTotal;
   const pastDue = totals['31_60'].amount + totals['61_90'].amount + totals['90_plus'].amount;
   const distinctUnits = new Set((rows ?? []).map((r: any) => r.unit_id)).size;
 
@@ -1109,7 +1122,7 @@ async function ARAgingView(ctx: ReportContext) {
       rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive isAsOfToday />}
     >
       {agingTruncated && <TruncatedNotice what="open charges" />}
-      <div className={`grid grid-cols-5 gap-3${agingTruncated ? ' mt-4' : ''}`}>
+      <div className={`grid grid-cols-2 gap-3 sm:grid-cols-5${agingTruncated ? ' mt-4' : ''}`}>
         {BUCKETS.map((b) => (
           <Tile
             key={b}
@@ -1121,16 +1134,16 @@ async function ARAgingView(ctx: ReportContext) {
         ))}
       </div>
 
-      <div className="mt-6 grid grid-cols-4 gap-3">
-        <Tile label="Total outstanding" value={money(grand)}     tone={grand > 0 ? 'danger' : 'positive'} />
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Tile label={grand < 0 ? 'Net credit' : 'Total outstanding'} value={money(grand)} tone={grand > 0 ? 'danger' : 'positive'} sub="Open charges less unapplied credit" />
         <Tile label="Past due (30d+)"    value={money(pastDue)}   tone={pastDue > 0 ? 'danger' : 'positive'} />
+        <Tile label="Unapplied credit"   value={money(-creditTotal)} sub={`${credits.length} ${credits.length === 1 ? 'payment or credit' : 'payments or credits'}`} />
         <Tile label="Units with balance" value={distinctUnits} />
-        <Tile label="Open charges"       value={(rows ?? []).length} />
       </div>
 
       <Section
         title="Open charges"
-        subtitle="Every receivable with a positive balance"
+        subtitle={`${(rows ?? []).length.toLocaleString()} ${(rows ?? []).length === 1 ? 'receivable' : 'receivables'} with a positive balance`}
       >
         {(rows ?? []).length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-gray-500">No open receivables. All units paid up.</p>
@@ -1168,6 +1181,34 @@ async function ARAgingView(ctx: ReportContext) {
           </div>
         )}
       </Section>
+
+      {credits.length > 0 && (
+        <Section title="Unapplied payments and credits" subtitle="Credit on file that has not been applied to a charge yet">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
+                <tr>
+                  <th className="px-5 py-2 text-left font-semibold">Unit</th>
+                  <th className="px-4 py-2 text-left font-semibold">Received</th>
+                  <th className="px-5 py-2 text-right font-semibold">Unapplied</th>
+                </tr>
+              </thead>
+              <tbody>
+                {credits.map((c) => (
+                  <tr key={c.paymentId} className="border-t border-gray-100 hover:bg-gray-50">
+                    <td className="px-5 py-2">
+                      <div className="font-medium text-gray-900">Unit {c.unitNumber}</div>
+                      <div className="text-[13px] text-gray-500">{c.associationName}</div>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 text-gray-600">{date(c.paymentDate)}</td>
+                    <td className="px-5 py-2 text-right font-semibold tabular-nums text-gray-900">{money(-c.unapplied)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
     </Workspace>
   );
 }
@@ -2536,7 +2577,7 @@ async function ReportRightRail({
             <div className="mt-1 text-gray-700">{date(lastSuccess.created_at)}</div>
             <div className="mt-1 tabular-nums text-gray-700">{lastSuccess.row_count?.toLocaleString()} rows</div>
             {lastSuccess.output_url && (
-              <a href={lastSuccess.output_url} target="_blank" rel="noopener"
+              <a href={reportRunDownloadPath(lastSuccess.id)}
                 className="mt-2 inline-block font-medium text-gray-600 transition-colors hover:text-gray-950">
                 Download &rarr;
               </a>

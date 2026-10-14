@@ -46,6 +46,19 @@ export function netIncome(accounts: FinancialAccount[], totals: LedgerTotals): n
   }, 0);
 }
 
+/**
+ * First day (YYYY-MM-DD) of the fiscal year containing `asOf`, for a fiscal
+ * year starting in month `startMonth` (1-12; anything else means January).
+ * The balance sheet's "Current Year Net Income" runs from this day.
+ */
+export function fiscalYearStartDate(asOf: string, startMonth?: number | null): string {
+  const start = Number.isInteger(Number(startMonth)) && Number(startMonth) >= 1 && Number(startMonth) <= 12 ? Number(startMonth) : 1;
+  const year = Number(asOf.slice(0, 4));
+  const month = Number(asOf.slice(5, 7));
+  const startYear = month >= start ? year : year - 1;
+  return `${startYear}-${String(start).padStart(2, '0')}-01`;
+}
+
 export function trialBalanceIsBalanced(totals: LedgerTotals, precision = 0.005): boolean {
   const sums = Object.values(totals).reduce((acc, line) => ({
     debit: acc.debit + line.debit,
