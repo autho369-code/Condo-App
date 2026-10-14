@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PRs: #383 removed late fee status, #384 owner portal fixes, claude/work-orders-fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PRs: #383 removed late fee status, #384 owner portal fixes, #385 work orders; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/work-orders-fixes: work orders and service requests.
+- #385 claude/work-orders-fixes: work orders and service requests.
   20261015170000 LIVE as 20261014034204 (dry-run rolled back on production
   first as the manager, vendor and owner logins; read back: 11 patched
   functions, created_on default null, message policy). Migration and
