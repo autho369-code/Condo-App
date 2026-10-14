@@ -9,6 +9,7 @@ import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Input } from '@/components/ui/input';
 import { complianceState } from '@/lib/vendors/portal';
 import { todayInZone } from '@/lib/time/zoned';
+import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';
 import { ComplianceDocumentForm } from '@/components/vendor/compliance-document-form';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { date } from '@/lib/utils';
@@ -42,11 +43,10 @@ export default async function VendorCompliance({
   const me = await requireVendor();
   const sp = await searchParams;
   const supabase = await createClient();
-  const today = todayInZone();
   // One login can hold a vendor record per association; each keeps its own
   // compliance dates, documents and requests. Work on one record at a time.
   const { data: recordRows, error: recordError } = await (supabase as any)
-    .from('vendors').select('id, is_management_company, associations(name)').in('id', me.vendor_ids).order('id');
+    .from('vendors').select('id, is_management_company, associations(name, timezone)').in('id', me.vendor_ids).order('id');
   if (recordError) throw new Error(`Could not load your associations: ${recordError.message}`);
   // The login's first record first, then by association name.
   const records: any[] = [...(recordRows ?? [])].sort((a: any, b: any) =>
@@ -54,6 +54,9 @@ export default async function VendorCompliance({
     || vendorAssociationLabel(a).localeCompare(vendorAssociationLabel(b)));
   const recordId: string = sp.record && me.vendor_ids.includes(sp.record) ? sp.record : (me.vendor_id as string);
   const recordQuery = records.length > 1 ? `record=${encodeURIComponent(recordId)}&` : '';
+  // Documents are valid through their date on the record's association calendar.
+  const recordZone = records.find((r: any) => r.id === recordId)?.associations?.timezone;
+  const today = todayInZone(typeof recordZone === 'string' && isValidTimeZone(recordZone) ? recordZone : displayTimeZone());
   const [complianceResult, claimResult, documentResult, requestResult] = await Promise.all([
     // Official dates live on the vendor record (what management sees). The
     // vendor's own entries in vendor_compliance are only claims: they are no

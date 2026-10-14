@@ -107,6 +107,30 @@ export async function saveInsurancePolicy(input: {
   if (occError) return { error: `Could not check your unit: ${occError.message}` };
   if (!occ?.association_id) return { error: 'This association has no current unit of yours to insure.' };
 
+  // File the certificate into the association records (documents table)
+  // before saving the policy: saving a newer policy archives the earlier one
+  // (insurance_policies_supersede_earlier), so the policy row must never be
+  // removed again after it is saved.
+  let documentId: string | null = null;
+  if (input.cert) {
+    const svc = createServiceClient() as any;
+    const { data: document, error: documentError } = await svc.from('documents').insert({
+      entity_type: 'owner',
+      entity_id: record,
+      doc_type: 'ho6',
+      file_name: input.cert.name,
+      file_url: input.cert.path,
+      uploaded_at: new Date().toISOString(),
+      uploaded_by: me.auth_user_id,
+      expires_at: new Date(expiration + 'T00:00:00Z').toISOString(),
+    }).select('id').single();
+    if (documentError || !document) {
+      await svc.storage.from(BUCKET).remove([input.cert.path]);
+      return { error: `Could not file the policy document: ${documentError?.message ?? 'unknown error'}` };
+    }
+    documentId = document.id;
+  }
+
   const { data: policy, error } = await db.from('insurance_policies').insert({
     owner_id: record,
     association_id: occ.association_id,
@@ -124,29 +148,10 @@ export async function saveInsurancePolicy(input: {
   if (error || !policy) {
     if (input.cert) {
       const svc = createServiceClient() as any;
+      if (documentId) await svc.from('documents').delete().eq('id', documentId).eq('entity_id', record);
       await svc.storage.from(BUCKET).remove([input.cert.path]);
     }
     return { error: error?.message ?? 'Could not save the insurance policy.' };
-  }
-
-  // File the certificate into the association records (documents table)
-  if (input.cert) {
-    const svc = createServiceClient() as any;
-    const { error: documentError } = await svc.from('documents').insert({
-      entity_type: 'owner',
-      entity_id: record,
-      doc_type: 'ho6',
-      file_name: input.cert.name,
-      file_url: input.cert.path,
-      uploaded_at: new Date().toISOString(),
-      uploaded_by: me.auth_user_id,
-      expires_at: new Date(expiration + 'T00:00:00Z').toISOString(),
-    });
-    if (documentError) {
-      await svc.from('insurance_policies').delete().eq('id', policy.id).eq('owner_id', record);
-      await svc.storage.from(BUCKET).remove([input.cert.path]);
-      return { error: `Could not file the policy document: ${documentError.message}` };
-    }
   }
 
   revalidatePath('/portal/insurance');

@@ -64,9 +64,6 @@ const DAY_MS = 86400000;
 function isoDateDaysAgo(n: number): string {
   return new Date(Date.now() - n * DAY_MS).toISOString().slice(0, 10);
 }
-function isoDateDaysFromNow(n: number): string {
-  return new Date(Date.now() + n * DAY_MS).toISOString().slice(0, 10);
-}
 function isoDaysAgoTs(n: number): string {
   return new Date(Date.now() - n * DAY_MS).toISOString();
 }
@@ -361,15 +358,11 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
   }
 
   if (trigger === 'insurance_expiring') {
-    const today = isoDateDaysAgo(0);
+    // Within `days` of expiry by each association's own calendar day; archived
+    // (renewed) policies and owners who no longer own there are skipped
+    // (insurance_policies_due_for_reminder).
     const rows = await candidates(() => svc
-      .from('insurance_policies')
-      .select('id, policy_number, insurance_company, expiration_date, owner_id, association_id')
-      .in('association_id', assocIds)
-      .is('archived_at', null)
-      .in('status', ['active', 'expiring_soon'])
-      .gte('expiration_date', today)
-      .lte('expiration_date', isoDateDaysFromNow(days))
+      .rpc('insurance_policies_due_for_reminder', { p_within_days: days, p_association_ids: assocIds })
       .order('id'), 'insurance_policies', (r) => accept('insurance_policy', r.id), WANT);
     return rows.map((p: any) => ({
       subjectType: 'insurance_policy',
@@ -379,7 +372,7 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
       ownerId: p.owner_id ?? null,
       title: `${p.insurance_company ?? 'Insurance'} policy ${p.policy_number ?? ''}`.trim(),
       // days here = days UNTIL expiration (never negative; expiration >= today)
-      days: Math.max(0, Math.round((new Date(`${p.expiration_date}T00:00:00Z`).getTime() - Date.now()) / DAY_MS)),
+      days: Math.max(0, Number(p.days_left) || 0),
       amount: '',
     }));
   }

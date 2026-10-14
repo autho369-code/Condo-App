@@ -8,6 +8,8 @@ import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { UnitSelect } from '@/components/forms/unit-select';
+import { todayInZone } from '@/lib/time/zoned';
+import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +35,7 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
     if (!associationId) redirect('/inspections/new?error=' + encodeURIComponent('Select an association.'));
     // The inspection belongs to the association's company (RLS limits the
     // lookup to associations this staffer can see).
-    const { data: association } = await (supabase as any).from('associations').select('id, portfolio_id').eq('id', associationId).maybeSingle();
+    const { data: association } = await (supabase as any).from('associations').select('id, portfolio_id, timezone').eq('id', associationId).maybeSingle();
     if (!association?.portfolio_id) redirect('/inspections/new?error=' + encodeURIComponent('That association was not found or is outside your access.'));
     const unitId = (formData.get('unit_id') as string) || null;
     if (unitId) {
@@ -44,13 +46,18 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
         redirect('/inspections/new?error=' + encodeURIComponent('That unit is not in the selected association.'));
       }
     }
+    const statusRaw = (formData.get('status') as string) || 'scheduled';
+    if (!STATUS.includes(statusRaw)) redirect('/inspections/new?error=' + encodeURIComponent('Choose a valid status.'));
+    // Created as completed: it was completed today, on the association's calendar.
+    const zone = typeof association.timezone === 'string' && isValidTimeZone(association.timezone) ? association.timezone : displayTimeZone();
     const { error } = await (supabase as any).from('inspections').insert({
       portfolio_id: association.portfolio_id,
       association_id: associationId,
       unit_id: unitId,
       inspection_type: (formData.get('inspection_type') as string)?.trim() || null,
       scheduled_date: (formData.get('scheduled_date') as string) || null,
-      status: (formData.get('status') as string) || 'scheduled',
+      status: statusRaw,
+      completed_date: statusRaw === 'completed' ? todayInZone(zone) : null,
       notes: (formData.get('notes') as string)?.trim() || null,
       created_by: me.auth_user_id,
     });

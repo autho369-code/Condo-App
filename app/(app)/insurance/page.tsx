@@ -39,21 +39,42 @@ function ReminderToggle({ policyId, field, on, label }: { policyId: string; fiel
   );
 }
 
-export default async function InsurancePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+// Policies per page; the counts above the table cover every policy.
+const PAGE_SIZE = 200;
+
+export default async function InsurancePage({ searchParams }: { searchParams: Promise<{ error?: string; page?: string }> }) {
   const sp = await searchParams;
   await requireStaff();
   const supabase = await createClient();
+  const db = supabase as any;
+  const page = Math.max(1, Number.parseInt(sp.page ?? '1', 10) || 1);
+  const from = (page - 1) * PAGE_SIZE;
 
-  const { data: policies, error: policiesError } = await (supabase as any)
-    .from('v_upcoming_expirations')
-    .select('*')
-    .order('expiration_date', { ascending: true });
+  // One page of policies, plus counts computed in the database (a single
+  // request stops at 1,000 rows). days_remaining counts from each
+  // association's own calendar day (v_upcoming_expirations).
+  const view = () => db.from('v_upcoming_expirations');
+  const [
+    { data: policies, error: policiesError, count: totalCount },
+    { count: activeCount, error: activeError },
+    { count: expiringCount, error: expiringError },
+    { count: expiredCount, error: expiredError },
+  ] = await Promise.all([
+    view().select('*', { count: 'exact' })
+      .order('expiration_date', { ascending: true })
+      .order('id')
+      .range(from, from + PAGE_SIZE - 1),
+    view().select('id', { count: 'exact', head: true }).gt('days_remaining', 30),
+    // A policy ending today (0 days left) is still in force: count it as expiring.
+    view().select('id', { count: 'exact', head: true }).gte('days_remaining', 0).lte('days_remaining', 30),
+    view().select('id', { count: 'exact', head: true }).lt('days_remaining', 0),
+  ]);
+  const countError = activeError ?? expiringError ?? expiredError;
 
   const rows = policies ?? [];
-  // A policy ending today (0 days left) is still in force: count it as expiring.
-  const expiring30 = rows.filter((r: any) => r.days_remaining <= 30 && r.days_remaining >= 0).length;
-  const expired = rows.filter((r: any) => r.days_remaining < 0).length;
-  const active = rows.filter((r: any) => r.days_remaining > 30).length;
+  const total: number = totalCount ?? rows.length;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageHref = (n: number) => (n > 1 ? `/insurance?page=${n}` : '/insurance');
 
   // Signed links for uploaded certificates (private bucket)
   const certLinkById = new Map<string, string>();
@@ -87,12 +108,13 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
       <div className="space-y-6">
         {sp.error && <Alert tone="danger">{sp.error}</Alert>}
         {policiesError && <Alert tone="danger" title="Could not load insurance policies">{policiesError.message}</Alert>}
+        {countError && <Alert tone="danger" title="Could not count insurance policies">{countError.message}</Alert>}
         <MetricStrip
           metrics={[
-            { label: 'Active policies', value: active },
-            { label: 'Expiring soon (30d)', value: expiring30 },
-            { label: 'Expired', value: expired },
-            { label: 'Total tracked', value: rows.length },
+            { label: 'Active policies', value: activeCount ?? 0 },
+            { label: 'Expiring soon (30d)', value: expiringCount ?? 0 },
+            { label: 'Expired', value: expiredCount ?? 0 },
+            { label: 'Total tracked', value: total },
           ]}
         />
 
@@ -171,6 +193,18 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
               ))}
             </tbody>
           </Table>
+        )}
+
+        {pageCount > 1 && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-gray-500">
+              Policies {(from + 1).toLocaleString()}-{Math.min(from + PAGE_SIZE, total).toLocaleString()} of {total.toLocaleString()}. The counts above include every policy.
+            </p>
+            <div className="flex gap-2">
+              {page > 1 && <Link href={pageHref(page - 1)} className={buttonClass('secondary')}>Previous</Link>}
+              {page < pageCount && <Link href={pageHref(page + 1)} className={buttonClass('secondary')}>Next</Link>}
+            </div>
+          </div>
         )}
       </div>
     </DataWorkspace>

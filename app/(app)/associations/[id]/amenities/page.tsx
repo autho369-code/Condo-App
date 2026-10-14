@@ -206,6 +206,13 @@ export default async function AmenitiesTab({
                   </>
                 )}
 
+                {a.allow_reservations && !a.reserve_method && (
+                  <>
+                    <dt className="text-gray-500">Reserve via</dt>
+                    <dd className="text-gray-900">Resident portal request</dd>
+                  </>
+                )}
+
                 {a.allow_reservations && a.reserve_method === 'platform_link' && a.reservation_url && (
                   <>
                     <dt className="text-gray-500">Reserve via</dt>
@@ -286,6 +293,10 @@ export default async function AmenitiesTab({
                   <input type="radio" name="reserve_method" value="platform_link" />
                   Reservation Platform Link
                 </label>
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="reserve_method" value="in_app" />
+                  Request in the resident portal (you approve each request)
+                </label>
               </div>
 
               <FormRow label="Email Address">
@@ -339,6 +350,7 @@ function parsePricingMode(value: FormDataEntryValue | null): 'flat' | 'hourly' |
   return value === 'flat' || value === 'hourly' ? value : null;
 }
 
+// 'in_app' (and anything else) = no method: residents request in the portal.
 function parseReserveMethod(value: FormDataEntryValue | null): 'email' | 'platform_link' | null {
   return value === 'email' || value === 'platform_link' ? value : null;
 }

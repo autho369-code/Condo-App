@@ -16,8 +16,14 @@ import { SelectAllCheckbox } from '@/components/ui/select-all';
 import { markInspectionsDone } from '@/lib/rpcs/inspections-bulk';
 import { todayInZone } from '@/lib/time/zoned';
 import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';
+import { inspectionSearchTerm, inspectionSearchOr } from '@/lib/inspections/list-query';
 
 export const dynamic = 'force-dynamic';
+
+// Inspections per page; the counts above the table cover every inspection.
+const PAGE_SIZE = 100;
+// Matches per related record kind (association, unit, inspector, notes) a search looks for.
+const SEARCH_MATCH_LIMIT = 200;
 
 // ── Types ──
 type Tab = 'all' | 'scheduled' | 'in_progress' | 'completed';
@@ -29,19 +35,11 @@ const TABS: Array<{ key: Tab; label: string }> = [
   { key: 'in_progress', label: 'In Progress' },
   { key: 'completed',   label: 'Completed' },
 ];
+const STATUSES = ['scheduled', 'in_progress', 'completed', 'cancelled'];
 
 // ── Helpers ──
 function parseTab(value: string | undefined): Tab {
   return (TABS.find((t) => t.key === value)?.key as Tab) ?? 'all';
-}
-
-function tabFilter(tab: Tab): (r: any) => boolean {
-  switch (tab) {
-    case 'scheduled':   return (r) => r.status === 'scheduled';
-    case 'in_progress': return (r) => r.status === 'in_progress';
-    case 'completed':   return (r) => r.status === 'completed';
-    case 'all':         return () => true;
-  }
 }
 
 function statusChip(s: InspectionStatus | string | null): { label: string; tone: Tone } {
@@ -67,102 +65,168 @@ function scoreBadge(score: number | null): { label: string; tone: Tone } {
 export default async function InspectionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; status?: string; type?: string; association_id?: string; scheduled?: string; marked?: string; skipped?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; status?: string; type?: string; association_id?: string; page?: string; scheduled?: string; marked?: string; skipped?: string; error?: string }>;
 }) {
   const me = await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
   const sp = await searchParams;
-  const { tab: tabParam, q = '', status = '', type = '', association_id = '', scheduled: scheduledRaw } = sp;
+  const { tab: tabParam, q = '', type = '', association_id = '', scheduled: scheduledRaw } = sp;
+  const status = STATUSES.includes(sp.status ?? '') ? (sp.status as string) : '';
   const scheduled = scheduledRaw && /^\d+$/.test(scheduledRaw) && scheduledRaw !== '0' ? scheduledRaw : null;
   const tab = parseTab(tabParam);
+  const page = Math.max(1, Number.parseInt(sp.page ?? '1', 10) || 1);
+  const from = (page - 1) * PAGE_SIZE;
 
-  // ── Fetch inspections + reference lists ──
+  // ── Search: the inspection type, or the ids of matching associations,
+  // units, inspectors and (staff-only) notes — resolved in the database. ──
+  const term = inspectionSearchTerm(q);
+  let searchOr: string | null = null;
+  let searchError: string | null = null;
+  if (term) {
+    const like = `%${term}%`;
+    const [assocMatch, unitMatch, vendorMatch, notesMatch] = await Promise.all([
+      db.from('associations').select('id').ilike('name', like).order('id').limit(SEARCH_MATCH_LIMIT),
+      db.from('units').select('id').ilike('unit_number', like).order('id').limit(SEARCH_MATCH_LIMIT),
+      db.from('vendors').select('id').ilike('name', like).order('id').limit(SEARCH_MATCH_LIMIT),
+      db.from('inspection_private').select('inspection_id').ilike('notes', like).order('inspection_id').limit(SEARCH_MATCH_LIMIT),
+    ]);
+    searchError = assocMatch.error?.message ?? unitMatch.error?.message ?? vendorMatch.error?.message ?? notesMatch.error?.message ?? null;
+    searchOr = inspectionSearchOr(term, {
+      associationIds: (assocMatch.data ?? []).map((r: any) => r.id),
+      unitIds: (unitMatch.data ?? []).map((r: any) => r.id),
+      vendorIds: (vendorMatch.data ?? []).map((r: any) => r.id),
+      inspectionIds: (notesMatch.data ?? []).map((r: any) => r.inspection_id),
+    });
+  }
+
+  // Every list filter runs in the query.
+  const listFilters = (query: any) => {
+    let x = query.is('archived_at', null);
+    if (tab !== 'all') x = x.eq('status', tab);
+    if (status) x = x.eq('status', status);
+    if (type) x = x.eq('inspection_type', type);
+    if (association_id) x = x.eq('association_id', association_id);
+    if (searchOr) x = x.or(searchOr);
+    return x;
+  };
+  const headCount = (build: (query: any) => any) =>
+    build(db.from('inspections').select('id', { count: 'exact', head: true }).is('archived_at', null));
+
+  // ── Fetch one page + counts + reference lists ──
   const [
-    rowsRes,
+    listRes,
+    totalRes,
+    scheduledRes,
+    inProgressRes,
+    completedRes,
     { data: associations },
     itemsRes,
+    archivedRes,
+    typesRes,
   ] = await Promise.all([
-    // Every inspection, paged past the old 500-row limit.
-    fetchAllRows<any>(() => db.from('inspections')
-      .select('id, inspection_type, association_id, unit_id, scheduled_date, inspector_vendor_id, inspector_user_id, status, completed_date, created_at, associations(name), units(unit_number), vendors:inspector_vendor_id(name)')
-      .is('archived_at', null)
+    listFilters(db.from('inspections')
+      .select('id, inspection_type, association_id, unit_id, scheduled_date, inspector_vendor_id, inspector_user_id, status, completed_date, created_at, associations(name), units(unit_number), vendors:inspector_vendor_id(name)', { count: 'exact' }))
       .order('scheduled_date', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false })
-      .order('id')),
+      .order('id')
+      .range(from, from + PAGE_SIZE - 1),
+    headCount((x) => x),
+    headCount((x) => x.eq('status', 'scheduled')),
+    headCount((x) => x.eq('status', 'in_progress')),
+    headCount((x) => x.eq('status', 'completed')),
     db.from('associations').select('id, name, timezone').is('archived_at', null).order('name'),
     // Each inspection's score and open flags, computed in the database
     // (inspection_item_scores) instead of loading every finding.
     fetchAllRows<any>(() => db.rpc('inspection_item_scores').order('inspection_id')),
+    // Archived inspections leave the average score.
+    fetchAllRows<any>(() => db.from('inspections').select('id').not('archived_at', 'is', null).order('id')),
+    // Type choices for the filter (one short column).
+    fetchAllRows<any>(() => db.from('inspections').select('inspection_type').is('archived_at', null).not('inspection_type', 'is', null).order('id')),
   ]);
 
-  const all = rowsRes.rows;
-  // Notes are staff-only (inspection_private); search still covers them.
-  await mergePrivateFields(db, 'inspection_private', 'inspection_id', ['notes'], all);
+  const pageRows: any[] = listRes.data ?? [];
+  const listError: string | null = listRes.error?.message ?? searchError;
+  const matching: number = listRes.count ?? pageRows.length;
+  const pageCount = Math.max(1, Math.ceil(matching / PAGE_SIZE));
+  const totalCount: number = totalRes.count ?? 0;
+  const scheduledCount: number = scheduledRes.count ?? 0;
+  const inProgressCount: number = inProgressRes.count ?? 0;
+  const completedCount: number = completedRes.count ?? 0;
+  const countError = totalRes.error ?? scheduledRes.error ?? inProgressRes.error ?? completedRes.error;
+
+  // Notes are staff-only (inspection_private); merged for the rows shown.
+  await mergePrivateFields(db, 'inspection_private', 'inspection_id', ['notes'], pageRows);
   // Flags and scores are only shown when every inspection's summary loaded; a
   // partial set would show undercounts that look exact.
-  const itemsComplete = !itemsRes.error && !itemsRes.truncated;
+  const itemsComplete = !itemsRes.error && !itemsRes.truncated && !archivedRes.error && !archivedRes.truncated;
   const scoreByInspection = new Map<string, { score: number | null; flags: number }>(
     (itemsComplete ? itemsRes.rows : []).map((r: any) => [r.inspection_id, { score: r.score ?? null, flags: Number(r.flags ?? 0) }]),
   );
+  const archivedIds = new Set<string>((archivedRes.rows ?? []).map((r: any) => r.id));
 
-  // Attach score to each inspection row
   // Flags: findings on the inspection that are not resolved yet.
-  const scored = all.map((row: any) => ({
+  const shown = pageRows.map((row: any) => ({
     ...row,
     score: itemsComplete ? scoreByInspection.get(row.id)?.score ?? null : null,
     flags: itemsComplete ? scoreByInspection.get(row.id)?.flags ?? 0 : null,
   }));
 
-  // ── Tab counts ──
-  const tabCounts = Object.fromEntries(TABS.map((t) => [t.key, scored.filter(tabFilter(t.key)).length]));
+  // ── Tab counts (every inspection, before the other filters) ──
+  const tabCounts: Record<Tab, number> = {
+    all: totalCount,
+    scheduled: scheduledCount,
+    in_progress: inProgressCount,
+    completed: completedCount,
+  };
 
-  // ── Filter ──
-  let filtered = scored.filter(tabFilter(tab));
-  if (q) {
-    const ql = q.toLowerCase();
-    filtered = filtered.filter(
-      (insp: any) =>
-        (insp.inspection_type ?? '').toLowerCase().includes(ql) ||
-        (insp.notes ?? '').toLowerCase().includes(ql) ||
-        (insp.associations?.name ?? '').toLowerCase().includes(ql) ||
-        (insp.units?.unit_number ?? '').toLowerCase().includes(ql) ||
-        (insp.vendors?.name ?? '').toLowerCase().includes(ql),
-    );
-  }
-  if (status) filtered = filtered.filter((insp: any) => insp.status === status);
-  if (type) filtered = filtered.filter((insp: any) => insp.inspection_type === type);
-  if (association_id) filtered = filtered.filter((insp: any) => insp.association_id === association_id);
-
-  // ── Metrics ──
-  const scheduledCount = scored.filter((insp: any) => insp.status === 'scheduled').length;
-  const inProgressCount = scored.filter((insp: any) => insp.status === 'in_progress').length;
-  const completedCount = scored.filter((insp: any) => insp.status === 'completed').length;
-  // Each inspection is judged against today in its own association's time zone.
+  // ── Overdue: scheduled before today in each association's own time zone ──
   const zoneByAssociation = new Map<string, string>(
     ((associations ?? []) as any[]).filter((a) => a.timezone && isValidTimeZone(a.timezone)).map((a) => [a.id, a.timezone]),
   );
   const todayFor = (associationId: string | null) => todayInZone(zoneByAssociation.get(associationId ?? '') ?? displayTimeZone());
-  const overdueCount = scored.filter(
-    // Date-only compare: an inspection scheduled today is not overdue.
-    (insp: any) => insp.scheduled_date && insp.status === 'scheduled' && String(insp.scheduled_date).slice(0, 10) < todayFor(insp.association_id),
-  ).length;
+  const associationsByToday = new Map<string, string[]>();
+  for (const a of (associations ?? []) as any[]) {
+    const today = todayFor(a.id);
+    associationsByToday.set(today, [...(associationsByToday.get(today) ?? []), a.id]);
+  }
+  const overdueParts: Array<Promise<{ count: number | null; error: any }>> = [];
+  for (const [today, ids] of associationsByToday) {
+    for (let i = 0; i < ids.length; i += 150) {
+      const chunk = ids.slice(i, i + 150);
+      // Date-only compare: an inspection scheduled today is not overdue.
+      overdueParts.push(headCount((x) => x.eq('status', 'scheduled').lt('scheduled_date', today).in('association_id', chunk)));
+    }
+  }
+  const overdueResults = await Promise.all(overdueParts);
+  const overdueError = overdueResults.find((r) => r.error)?.error ?? null;
+  const overdueCount = overdueResults.reduce((sum, r) => sum + (r.count ?? 0), 0);
 
   const avgScore = (() => {
-    const completed = scored.filter((insp: any) => insp.score !== null);
-    if (completed.length === 0) return null;
-    return Math.round(completed.reduce((sum: number, insp: any) => sum + (insp.score ?? 0), 0) / completed.length);
+    if (!itemsComplete) return null;
+    const scores = itemsRes.rows.filter((r: any) => r.score !== null && r.score !== undefined && !archivedIds.has(r.inspection_id));
+    if (scores.length === 0) return null;
+    return Math.round(scores.reduce((sum: number, r: any) => sum + Number(r.score), 0) / scores.length);
   })();
 
   const metrics = [
-    { label: 'Scheduled', value: scheduledCount, sublabel: `${overdueCount} overdue` },
+    { label: 'Scheduled', value: scheduledCount, sublabel: overdueError ? 'Overdue count unavailable' : `${overdueCount} overdue` },
     { label: 'In Progress', value: inProgressCount, sublabel: 'Active inspections' },
     { label: 'Completed', value: completedCount, sublabel: `${avgScore !== null ? `Avg score: ${avgScore}%` : 'No scores yet'}` },
-    { label: 'Total', value: scored.length, sublabel: 'All inspections' },
+    { label: 'Total', value: totalCount, sublabel: 'All inspections' },
   ];
 
   // ── Unique inspection types for filter ──
-  const types = [...new Set(scored.map((insp: any) => insp.inspection_type).filter(Boolean))] as string[];
+  const types = [...new Set((typesRes.rows ?? []).map((r: any) => r.inspection_type).filter(Boolean))].sort() as string[];
+
+  const filterParams = Object.entries({ tab, q, status, type, association_id }).filter(([, v]) => v) as Array<[string, string]>;
+  const pageHref = (n: number) => {
+    const params = new URLSearchParams(filterParams);
+    if (n > 1) params.set('page', String(n));
+    return `/inspections?${params.toString()}`;
+  };
+  const returnParams = new URLSearchParams(filterParams);
+  if (page > 1) returnParams.set('page', String(page));
 
   // ── Render ──
   return (
@@ -185,9 +249,9 @@ export default async function InspectionsPage({
           </Alert>
         )}
         {sp.error && <Alert tone="danger" title="Could not mark inspections done">{sp.error}</Alert>}
-        {rowsRes.error && <Alert tone="danger" title="Could not load every inspection">{rowsRes.error}</Alert>}
-        {!itemsComplete && <Alert tone="warning" title="Flags and scores unavailable">{itemsRes.error ?? 'Could not load the flags and scores, so they are hidden rather than shown from a partial set.'}</Alert>}
-        {rowsRes.truncated && <Alert tone="warning" title="List is incomplete">There are more inspections than this page can load. Filter by association or type.</Alert>}
+        {listError && <Alert tone="danger" title="Could not load inspections">{listError}</Alert>}
+        {countError && <Alert tone="danger" title="Could not count inspections">{countError.message}</Alert>}
+        {!itemsComplete && <Alert tone="warning" title="Flags and scores unavailable">{itemsRes.error ?? archivedRes.error ?? 'Could not load the flags and scores, so they are hidden rather than shown from a partial set.'}</Alert>}
         <MetricStrip metrics={metrics} />
 
         {/* ── TABS ── */}
@@ -252,9 +316,9 @@ export default async function InspectionsPage({
         </FilterBar>
 
         {/* ── TABLE ── */}
-        {filtered.length > 0 ? (
+        {shown.length > 0 ? (
           <form action={markInspectionsDone} className="space-y-3">
-          <input type="hidden" name="return_to" value={`/inspections?${new URLSearchParams(Object.entries({ tab, q, status, type, association_id }).filter(([, v]) => v)).toString()}`} />
+          <input type="hidden" name="return_to" value={`/inspections?${returnParams.toString()}`} />
           <div className="flex items-center justify-end">
             <Button type="submit" variant="secondary" size="sm">Mark selected done</Button>
           </div>
@@ -273,7 +337,7 @@ export default async function InspectionsPage({
               </TR>
             </THead>
             <tbody>
-              {filtered.map((insp: any) => {
+              {shown.map((insp: any) => {
                 const sc = statusChip(insp.status);
                 const sb = scoreBadge(insp.score);
                 return (
@@ -314,6 +378,18 @@ export default async function InspectionsPage({
               title="No inspections match this view"
               description="Scheduled and completed property inspections will appear here."
             />
+          </div>
+        )}
+
+        {pageCount > 1 && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-gray-500">
+              Inspections {(from + 1).toLocaleString()}-{Math.min(from + PAGE_SIZE, matching).toLocaleString()} of {matching.toLocaleString()} matching. The counts above include every inspection.
+            </p>
+            <div className="flex gap-2">
+              {page > 1 && <Link href={pageHref(page - 1)} className={buttonClass('secondary')}>Previous</Link>}
+              {page < pageCount && <Link href={pageHref(page + 1)} className={buttonClass('secondary')}>Next</Link>}
+            </div>
           </div>
         )}
       </div>

@@ -8,6 +8,7 @@ import {
   archiveAssociationInsurance, archiveAssociationKey, archiveAssociationNote, deleteAdditionalFee,
 } from '@/lib/rpcs/association-record';
 import { date, money } from '@/lib/utils';
+import { addDaysToDate } from '@/lib/time/zoned';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 
 type Common = { associationId: string; back: string };
@@ -37,14 +38,15 @@ export function UpcomingActivities({ events, associationId }: { events: any[]; a
   );
 }
 
-export function InsuranceList({ policies, associationId, back }: Common & { policies: any[] }) {
-  const soon = Date.now() + 60 * 86400000;
+/** `today` is the association's calendar day (YYYY-MM-DD): a policy is valid through its expiration date. */
+export function InsuranceList({ policies, associationId, back, today }: Common & { policies: any[]; today: string }) {
+  const soon = addDaysToDate(today, 60);
   return (
     <Section title="Association insurance" subtitle="Master, D&O, fidelity, umbrella and other association policies. Owner HO-6 policies live on each owner.">
       {policies.length ? (
         <ul className="divide-y divide-line">
           {policies.map((p) => {
-            const exp = p.expiration_date ? new Date(`${p.expiration_date}T00:00:00`).getTime() : null;
+            const exp = p.expiration_date ? String(p.expiration_date).slice(0, 10) : null;
             return (
               <li key={p.id} className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 text-sm">
@@ -54,7 +56,7 @@ export function InsuranceList({ policies, associationId, back }: Common & { poli
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  {exp && (exp < Date.now() ? <StatusChip tone="danger">Expired</StatusChip> : exp < soon ? <StatusChip tone="warning">Expires {date(p.expiration_date)}</StatusChip> : <StatusChip tone="success">Through {date(p.expiration_date)}</StatusChip>)}
+                  {exp && (exp < today ?<StatusChip tone="danger">Expired</StatusChip> : exp < soon ? <StatusChip tone="warning">Expires {date(p.expiration_date)}</StatusChip> : <StatusChip tone="success">Through {date(p.expiration_date)}</StatusChip>)}
                   <form action={archiveAssociationInsurance}><Hidden associationId={associationId} back={back} /><input type="hidden" name="id" value={p.id} /><PendingSubmit variant="ghost" size="sm" pendingLabel="Archiving…" confirm="Archive this insurance policy?">Archive</PendingSubmit></form>
                 </div>
               </li>

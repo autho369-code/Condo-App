@@ -120,6 +120,7 @@
 "inspection_templates":["archived_at","created_at","created_by","id","inspection_type","items","name","portfolio_id","updated_at"],
 "inspections":["archived_at","association_id","completed_date","created_at","created_by","id","inspection_type","inspector_user_id","inspector_vendor_id","notes","portfolio_id","scheduled_date","status","template_id","unit_id","updated_at"],
 "insurance_policies":["archived_at","association_id","certificate_file_url","coverage_amount","created_at","deductible_amount","effective_date","expiration_date","extracted_fields","extraction_status","id","insurance_company","liability_amount","notes","owner_id","policy_number","remind_manager","remind_owner","reminder_15_sent_at","reminder_30_sent_at","status","updated_at"],
+"insurance_policy_private":["insurance_policy_id","notes","updated_at"],
 "interest_assessments":["amount","annual_rate","association_id","charge_id","created_at","id","period_month","principal","unit_id"],
 "inventory_items":["archived_at","category","created_at","id","location","name","portfolio_id","quantity_on_hand","reorder_point","sku","unit_cost","unit_of_measure","updated_at"],
 "inventory_movements":["association_id","created_at","created_by","id","item_id","kind","note","portfolio_id","quantity_after","quantity_change","unit_cost","work_order_id"],
