@@ -4,6 +4,12 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Codex follow-ups on #379-#381 (20261015110000 live as 20261014022209,
+  20261015120000 live as 20261014022727): board seats linked to their login
+  before email matching is removed; amenity hours past midnight enforced;
+  inspections search finds every match (staff notes included, staff only);
+  e-signature requests linked to an association's record are filed under
+  that association, archived ones refused.
 - The full test suite passes on Windows too (it had 10 failures from CRLF
   line endings, backslash paths and slow process start; Linux CI was
   already green). check:columns prints forward-slash paths.

@@ -78,6 +78,9 @@
   balance: 3 error redirects + success Alert + hint, only security+design ran).
   Also SQL `raise exception '...'` text in RPCs reaches users via ?error=
   (collections-codex-fixes 2026-10-13: new "income account ... inactive").
+  4th: codex-379-380-followups 2026-10-14 (3 new raise texts + portal
+  amenities empty/confirm text; also db.rpc(..).select() needs schema-checker,
+  npm test's static check does not cover rpc selects).
 - Hardening added after a reviewer's pass (security pin added to a definer RPC
   after migration-reviewer's "clean"): ask whether migration-reviewer saw the
   FINAL file; its memory note should mention the change.

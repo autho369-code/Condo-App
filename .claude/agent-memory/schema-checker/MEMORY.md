@@ -92,3 +92,6 @@
 
 ## Bank reconciliation undo (20261015020000)
 - bank_reconciliations gained undone_at/undone_by/undo_reason (snapshot updated); status CHECK in_progress/completed/void. RPC `undo_bank_reconciliation(p_reconciliation_id uuid, p_reason text)` returns void, reason >= 10 chars. Patched `set_accounting_period_status` locals: period_row, start_date, end_date. lib/types/database.ts lacks the new cols (page uses `any`). (2026-10-13, clean.)
+
+## RPC returning `setof <table>` + embeds
+- `db.rpc('fn', args, { count: 'exact' }).select('..., assoc(name), vendors:fk_col(name)')` works when the function `returns setof public.<table>`: PostgREST uses that table's FKs for embeds, and filters/order/range apply. Verify the embeds against the base table's FKs. Example: inspection_search (20261015110000) on app/(app)/inspections/page.tsx:86. `inspections.inspection_type` is text (ilike ok). `amenity_reservations.status` CHECK: pending/approved/denied/cancelled. (2026-10-14, clean.)

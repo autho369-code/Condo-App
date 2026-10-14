@@ -3,6 +3,8 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { Alert, Badge, SectionTitle, Surface } from '@/components/ui/shell'
+import { Field, Input, Select, Textarea } from '@/components/ui/input'
+import { PendingSubmit } from '@/components/ui/pending-submit'
 import { zonedWallTimeToUtc } from '@/lib/time/zoned'
 import { buttonClass } from '@/components/ui/button'
 import { amenityEndsNextDay, amenityPriceLabel, amenityReserveAction, nextCalendarDate, withinAmenityHours } from '@/lib/amenities/portal'
@@ -47,6 +49,16 @@ function fmtDateTime(iso: string, timeZone: string): string {
 
 function fmtTime(iso: string, timeZone: string): string {
   return new Date(iso).toLocaleTimeString('en-US', { timeZone, hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })
+}
+
+// A reservation that ends on a later local day (late-night hours) shows the
+// end date too.
+function fmtRange(startIso: string, endIso: string, timeZone: string): string {
+  const day = (iso: string) => new Date(iso).toLocaleDateString('en-US', { timeZone })
+  const end = day(startIso) === day(endIso)
+    ? fmtTime(endIso, timeZone)
+    : new Date(endIso).toLocaleString('en-US', { timeZone, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })
+  return `${fmtDateTime(startIso, timeZone)} – ${end}`
 }
 
 function fmtHours(opens: string | null, closes: string | null): string | null {
@@ -279,23 +291,20 @@ export default async function OwnerAmenitiesPage({
 
       {/* Request form */}
       <section className="space-y-3">
-        <h2 className="text-[13px] font-semibold text-gray-700">Request a reservation</h2>
+        <SectionTitle title="Request a reservation" />
         {requestable.length === 0 ? (
-          <div className="rounded-2xl border border-line bg-white p-6 text-sm text-gray-600 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            {amenities.length === 0
-              ? 'No bookable amenities are available for your community yet. Check back later or contact your management team.'
-              : 'Your community’s amenities are reserved by email or online. Use the links above.'}
-          </div>
+          <Surface>
+            <p className="text-sm text-gray-600">
+              {amenities.length === 0
+                ? 'No bookable amenities are available for your community yet. Check back later or contact your management team.'
+                : 'Your community’s amenities are reserved by email or online. Use the links above.'}
+            </p>
+          </Surface>
         ) : (
-          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
+          <Surface>
             <form action={requestReservation} className="space-y-5">
-              <label className="block">
-                <span className="text-[13.5px] font-medium text-gray-700">Amenity</span>
-                <select
-                  name="amenity_id"
-                  required
-                  className="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
-                >
+              <Field label="Amenity" required>
+                <Select name="amenity_id" required defaultValue="">
                   <option value="">Choose an amenity…</option>
                   {requestable.map((a) => {
                     const hrs = fmtHours(a.opens_at, a.closes_at)
@@ -305,77 +314,53 @@ export default async function OwnerAmenitiesPage({
                       </option>
                     )
                   })}
-                </select>
-              </label>
+                </Select>
+              </Field>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <label className="block">
-                  <span className="text-[13.5px] font-medium text-gray-700">Date</span>
-                  <input
-                    type="date"
-                    name="date"
-                    required
-                    className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[13.5px] font-medium text-gray-700">Start</span>
-                  <input
-                    type="time"
-                    name="start_time"
-                    required
-                    className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[13.5px] font-medium text-gray-700">End</span>
-                  <input
-                    type="time"
-                    name="end_time"
-                    required
-                    className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </label>
+              <div className="space-y-1.5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Field label="Date" required>
+                    <Input type="date" name="date" required />
+                  </Field>
+                  <Field label="Start" required>
+                    <Input type="time" name="start_time" required />
+                  </Field>
+                  <Field label="End" required>
+                    <Input type="time" name="end_time" required />
+                  </Field>
+                </div>
+                <p className="text-[13px] leading-5 text-gray-500">
+                  For an amenity open past midnight, an end time earlier than the start ends the next day.
+                </p>
               </div>
 
-              <label className="block max-w-[200px]">
-                <span className="text-[13.5px] font-medium text-gray-700">Party size</span>
-                <input
-                  type="number"
-                  name="party_size"
-                  min={1}
-                  placeholder="Optional"
-                  className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                />
-              </label>
+              <Field label="Party size" className="max-w-[200px]">
+                <Input type="number" name="party_size" min={1} placeholder="Optional" />
+              </Field>
 
-              <label className="block">
-                <span className="text-[13.5px] font-medium text-gray-700">Notes</span>
-                <textarea
+              <Field label="Notes">
+                <Textarea
                   name="notes"
                   rows={3}
                   placeholder="Anything management should know (event type, guests, setup needs)…"
-                  className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
-              </label>
+              </Field>
 
               <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
-                <button type="submit" className="rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">
-                  Request reservation
-                </button>
+                <PendingSubmit pendingLabel="Sending…">Request reservation</PendingSubmit>
               </div>
             </form>
-          </div>
+          </Surface>
         )}
       </section>
 
       {/* My reservations */}
       <section className="space-y-3">
-        <h2 className="text-[13px] font-semibold text-gray-700">My reservations</h2>
+        <SectionTitle title="My reservations" />
         {reservations.length === 0 ? (
-          <div className="rounded-2xl border border-line bg-white p-6 text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            You have no reservations yet.
-          </div>
+          <Surface>
+            <p className="text-sm text-gray-500">You have no reservations yet.</p>
+          </Surface>
         ) : (
           <div className="space-y-4">
             <ReservationList title="Upcoming" rows={upcoming} zones={zones} cancelAction={cancelReservation} allowCancel />
@@ -398,9 +383,9 @@ function ReservationList({
 }) {
   if (rows.length === 0) return null
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-      <div className="border-b border-gray-100 bg-gray-50/60 px-5 py-2.5 text-[12.5px] font-medium uppercase tracking-wide text-gray-500">
-        {title}
+    <Surface padded={false}>
+      <div className="px-5 pt-5">
+        <SectionTitle title={title} />
       </div>
       <ul className="divide-y divide-gray-50">
         {rows.map((r) => {
@@ -411,7 +396,7 @@ function ReservationList({
               <div className="min-w-0">
                 <div className="font-medium text-gray-900">{r.association_amenities?.name ?? 'Amenity'}</div>
                 <div className="text-[13px] text-gray-500">
-                  {fmtDateTime(r.start_time, tz)} – {fmtTime(r.end_time, tz)}
+                  {fmtRange(r.start_time, r.end_time, tz)}
                   {r.party_size ? ` · party of ${r.party_size}` : ''}
                 </div>
               </div>
@@ -420,9 +405,9 @@ function ReservationList({
                 {cancellable && (
                   <form action={cancelAction}>
                     <input type="hidden" name="reservation_id" value={r.id} />
-                    <button type="submit" className="rounded-lg border border-gray-200 px-3 py-1.5 text-[13px] font-medium text-gray-700 transition hover:bg-gray-50">
-                      Cancel
-                    </button>
+                    <PendingSubmit variant="secondary" size="sm" pendingLabel="Cancelling…" confirm="Cancel this reservation?">
+                      Cancel reservation
+                    </PendingSubmit>
                   </form>
                 )}
               </div>
@@ -430,6 +415,6 @@ function ReservationList({
           )
         })}
       </ul>
-    </div>
+    </Surface>
   )
 }

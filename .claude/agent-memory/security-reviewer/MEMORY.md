@@ -44,6 +44,8 @@
 - "Same rows" speed rewrites that drive from a parent (associations join instead of a definer lookup like association_local_date, which falls back on NULL): inner join drops child rows whose FK is nullable (payable_bills.association_id; company-level bills allowed, vendor_1099_totals 20261015030000). Check nullability; use left join. Also check the parent's RLS matches the child's for every role (vendors: associations_vendor_bill_read).
 
 - Email-match -> linked-login backfills (board seats, 20261015110000): safe when the linked branch re-checks the same runtime conditions (role, company, disabled) so linking grants nothing new; INVOKER search RPCs (inspection_search) inherit RLS on every subquery, so staff-only side tables stay hidden.
+- Security patches that "skip with a notice while data depends on it" (board email-seat branch, 20261015100000): check the skip count uses the exact predicate of the branch being removed (active, board profile, same portfolio); a broader count silently leaves the hole open in prod. Prefer relinking first, then removing.
+- Vendor nested writers (depth>1 under a vendor caller) as of 20261015100000: only invitation accept (auth_user_id=used_by, portal_activated) and vfd flag sync (finance-staff-only table). RPC writes run at depth 1 and get the contact-only guard. A login with any staff role is never self-service (global is_any_staff).
 
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import

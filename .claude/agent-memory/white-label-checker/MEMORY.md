@@ -84,3 +84,6 @@
 - post_homeowner_credit(p_memo) writes payments.notes, which trigger payments_move_private_fields moves to staff-only payment_private (20261004200000). Owners see method 'credit' + payments.reference (default 'Credit'; remove_late_fee overwrites it to 'Late fee removed'), never the memo. Callers that set reference: check it is neutral, owner-safe text. So 'Late fee removed: <reason>' is staff-only; earlier note claiming memos reach owners was wrong.
 - Owner-facing side effect to check for credit-based fee removals: portal/ledger shows the fee as Paid (applied_amount, payment_status) plus a credit row referenced 'Late fee removed'; v_charge_balances has no "waived" state (recorded as a Next gap, Oct 2026).
 - remove_late_fee raise text (20261015050000, Oct 2026): clean, staff-only. lib/rpcs/credits.ts removeLateFee passes error.message raw (no period added), while its own fail() strings end in "."; DB raise text there has no period: punctuation nit only.
+
+## Codex #379/#380/#381 follow-ups (Oct 2026, 20261015110000/120000)
+- Amenity guard raises ("outside the amenity's hours", "must end by the next day"), signature "archived association" raise, portal/amenities hints and inspections inspection_search RPC: clean. Anchor-patch `raise exception '<fn>: anchor not found'` text runs at migration time only, never user-facing: skip.
