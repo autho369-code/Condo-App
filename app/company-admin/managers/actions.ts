@@ -163,7 +163,7 @@ export async function resetManagerMfa(formData: FormData) {
   const returnTo = `/company-admin/managers/${managerId}`
   const fail = (msg: string): never => redirect(`${returnTo}?error=${encodeURIComponent(msg)}`)
   if (!managerId || !me.portfolio?.id) fail('Invalid manager MFA reset request.')
-  if (managerId === me.auth_user_id) fail('You cannot reset your own MFA. Contact Portier369 support for recovery.')
+  if (managerId === me.auth_user_id) fail('You cannot reset your own MFA. Contact platform support for recovery.')
 
   const svc = createServiceClient() as any
   const { data: manager, error } = await svc.from('profiles')

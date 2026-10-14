@@ -29,12 +29,26 @@ export interface VendorSnapshot {
   upcomingAppointments: Array<{ title: string | null; when: string | null; property: string | null }>;
 }
 
-export async function buildVendorSnapshot(): Promise<VendorSnapshot> {
+/**
+ * `portfolioId` is the company whose AI settings answer the question: only
+ * the vendor records of that company go into the snapshot, so one company's
+ * data is never sent with another company's AI key.
+ */
+export async function buildVendorSnapshot(portfolioId: string): Promise<VendorSnapshot> {
   const me = await requireVendor();
   const supabase = await createClient();
   const db = supabase as any;
   // Local calendar day (the UTC date flipped to tomorrow every evening in US zones).
   const todayDate = todayInZone();
+
+  const { data: ownRecords, error: ownError } = await db
+    .from('vendors')
+    .select('id')
+    .in('id', me.vendor_ids)
+    .eq('portfolio_id', portfolioId);
+  if (ownError) throw new Error(`Vendor snapshot could not be loaded (vendor records: ${ownError.message})`);
+  const vendorIds: string[] = ((ownRecords ?? []) as { id: string }[]).map((r) => r.id);
+  if (!vendorIds.length) throw new Error('Vendor snapshot could not be loaded (no vendor record in this company)');
 
   const [
     { data: vendorRecords, error: vendorError },
@@ -44,22 +58,22 @@ export async function buildVendorSnapshot(): Promise<VendorSnapshot> {
   ] = await Promise.all([
     // Every vendor record of the login (one per association), each with its own
     // compliance dates.
-    db.from('vendors').select('id, name, trade, is_management_company, associations(name), workers_comp_expiration, general_liability_expiration, auto_insurance_expiration, epa_certification_expiration, state_license_expiration, contract_expiration').in('id', me.vendor_ids),
+    db.from('vendors').select('id, name, trade, is_management_company, associations(name), workers_comp_expiration, general_liability_expiration, auto_insurance_expiration, epa_certification_expiration, state_license_expiration, contract_expiration').in('id', vendorIds),
     db.from('work_orders')
       .select('number, title, status, priority, scheduled_date, completed_date, associations(name), units(unit_number)')
-      .in('vendor_id', me.vendor_ids)
+      .in('vendor_id', vendorIds)
       .is('archived_at', null)
       .order('created_at', { ascending: false })
       .limit(50),
     db.from('payable_bills')
       .select('bill_number, amount, credit_applied, status, due_date, paid_at, associations(name)')
-      .in('vendor_id', me.vendor_ids)
+      .in('vendor_id', vendorIds)
       .is('archived_at', null)
       .order('bill_date', { ascending: false })
       .limit(20),
     db.from('calendar_events')
       .select('title, start_datetime, associations(name)')
-      .in('vendor_id', me.vendor_ids)
+      .in('vendor_id', vendorIds)
       .is('archived_at', null)
       .gte('start_datetime', new Date().toISOString())
       .order('start_datetime')

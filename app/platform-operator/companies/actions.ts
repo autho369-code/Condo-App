@@ -47,7 +47,7 @@ async function audit(
   portfolioId: string | null,
   changes: Record<string, unknown> = {},
 ) {
-  await svc.from('audit_logs').insert({
+  const { error } = await svc.from('audit_logs').insert({
     entity_type: 'company',
     entity_id: portfolioId,
     action,
@@ -55,6 +55,11 @@ async function audit(
     actor_email: me.email,
     changes,
   });
+  // Every operator change must leave a record: say so instead of reporting success.
+  if (error) {
+    console.error('Operator audit record failed', { action, portfolioId, error: error.message });
+    fail(portfolioId ? `${COMPANIES}/${portfolioId}` : COMPANIES, `The change was saved, but its audit record could not be written (${error.message}). Tell engineering before making more changes.`);
+  }
 }
 
 function inviteEmailBody(companyName: string, token: string, expiresAt: string | null, company?: CompanyAddress | null) {
