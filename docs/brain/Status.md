@@ -4,7 +4,11 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#378 merged; open PR: claude/board-ve
 
 ## Open PR
 - (PR not opened yet) claude/board-vendor-fixes: DEEP CHECK of the board and
-  vendor portals (agent, rolled back on production) + fixes, 20261015100000.
+  vendor portals (agent, rolled back on production) + fixes, 20261015100000
+  LIVE as 20261014004501 (read back; migration, security and design
+  reviewers ran; their findings fixed: aging date inline, summary date once
+  per association, new seats link to an existing board login by trigger,
+  exact count before removing email match, CRLF-safe patches).
   - Vendor-entered compliance dates no longer become official: the sync
     trigger (meant to be off since 20261002131203) was ON in production;
     disabled, plus a self-service early return; vendors_self_service_guard

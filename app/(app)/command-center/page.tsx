@@ -325,7 +325,7 @@ export default async function FinancialCommandCenterPage({
       {/* ── Metric grid ───────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
         <Tile label="Outstanding Receivables" value={money(arTotal)} icon={TrendingUp} tone={arTotal > 0 ? 'warning' : undefined} />
-        <Tile label="Delinquency" value={`${delinquencyPct}%`} sub={`${delinquentUnitCount} of ${totalUnits ?? 0} units carry a balance`} icon={AlertTriangle} tone={delinquencyPct > 10 ? 'danger' : delinquencyPct > 0 ? 'warning' : undefined} />
+        <Tile label="Delinquency" value={`${delinquencyPct}%`} sub={`${delinquentUnitCount} of ${totalUnits ?? 0} units are past due`} icon={AlertTriangle} tone={delinquencyPct > 10 ? 'danger' : delinquencyPct > 0 ? 'warning' : undefined} />
         <Tile label="ACH Success Rate" value={achRate === null ? '—' : `${achRate}%`} icon={CreditCard} />
         <Tile label="Card Success Rate" value={cardRate === null ? '—' : `${cardRate}%`} icon={CreditCard} />
         <Tile label="Returned / Failed (30d)" value={returned.length} icon={Undo2} tone={returned.length > 0 ? 'danger' : undefined} />
