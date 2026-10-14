@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#375 merged; open PR: claude/collections-codex-fixes (PR not opened yet); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#375 merged; open PR: #376 claude/collections-codex-fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (PR not opened yet) claude/collections-codex-fixes: Codex on #375 (two P1s).
+- #376 claude/collections-codex-fixes: Codex on #375 (two P1s).
   20261015050000 LIVE as 20261013234941 (read back; reviewers clean).
   - remove_late_fee debits the income account the fee's own posting
     credited (from its posted charge journal entry), not today's mapping;
