@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: work orders follow-ups; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: #386 work orders follow-ups; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/work-orders-followups (the two Next gaps left by #385):
+- #386 claude/work-orders-followups (the two Next gaps left by #385):
   - Recurring work orders the nightly database generator assigns to a
     vendor now email that vendor: /api/work-orders/notify-recurring (Vercel
     cron 12:00 UTC, after pg_cron's 11:30 generator) sends the same
