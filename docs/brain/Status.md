@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PR: claude/removed-late-fee-status; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PR: #383 (removed late fee status); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/removed-late-fee-status: a removed late fee reads "Removed", not
+- #383 claude/removed-late-fee-status: a removed late fee reads "Removed", not
   "Paid", on the owner's ledger and the unit page (v_charge_balances;
   balances unchanged); only remove_late_fee can mark its credit; past due
   by the association's local date. 20261015130000 LIVE as 20261014024847,
