@@ -4,8 +4,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
-- Work orders and service requests (branch claude/work-orders-fixes, not
-  merged yet; 20261015170000 not applied): one work order per request and
+- Work orders and service requests (20261015170000 live as
+  20261014034204): one work order per request and
   the request follows its work orders (complete, reopen); status emails to
   the requester; permission to enter for staff and the assigned vendor;
   vendor assignment emails; bulk status skips unchanged rows; service

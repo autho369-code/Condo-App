@@ -22,11 +22,12 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: #382 (Codex on 
     of other associations could read its signers); archived association
     refused (#381; live: 0 requests misfiled).
 
-- claude/work-orders-fixes (no PR yet, not pushed): work orders and
-  service requests. 20261015170000 NOT applied; dry-run rolled back on
-  production as the manager, vendor and owner logins (all checks passed).
-  Migration, security, design, schema and white-label reviewers ran; their
-  findings fixed in the second commit.
+- claude/work-orders-fixes: work orders and service requests.
+  20261015170000 LIVE as 20261014034204 (dry-run rolled back on production
+  first as the manager, vendor and owner logins; read back: 11 patched
+  functions, created_on default null, message policy). Migration and
+  security reviewers ran twice, design, schema and white-label once; their
+  findings fixed.
   - One work order per request: a request with a finished work order is not
     triaged again. The request follows its work orders: completed when the
     last open one finishes, is cancelled, archived or deleted while another

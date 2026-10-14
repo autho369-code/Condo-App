@@ -65,7 +65,9 @@
 
 - A definer trigger that UPDATEs a guarded table still runs that table's BEFORE UPDATE guard with the CALLER's auth.uid(): a vendor/owner-fired cascade hits the non-staff branch (`new := old`, keep status only). 20261015170000 work_order_sync_request_triage sets service_requests.resolved_at, which service_request_guard_update reverts for vendors. Check the guard's pg_trigger_depth() carve-outs.
 - Status backfills fire AFTER UPDATE triggers: service_requests -> completed fires dispatch_sr_webhook 'service_request.resolved' per row (customer webhooks). Ask for a pre-run count + whether historical rows should notify.
-- sql -> plpgsql on SECURITY DEFINER helpers is NOT a speed change (never inlined either way; sql-pitfalls). What matters is that policies call them as `x in (select f())`; still flag bare per-row calls (service_requests_resident_read, payment_plans_owner_read call current_resident_unit_since(unit_id) per row as of 20261015170000).
+- sql -> plpgsql on SECURITY DEFINER helpers is NOT a speed change (never inlined either way; sql-pitfalls). What matters is that policies call them as `x in (select f())`; still flag bare per-row calls (20261015170000 final moved service_requests_resident_read/payment_plans_owner_read to rls_private id-set helpers).
+- Child->parent status sync triggers (work_orders -> service_requests): walk EVERY transition: finish, cancel, archive, delete, move between parents, unarchive, cancelled->open. 20261015170000 final covers the first five + reopen-in-place; moving/unarchiving an open WO into a completed request leaves it completed (low).
+- Dropping a NOT NULL column default for a BEFORE INSERT trigger to fill: grep SQL-function inserts too (recurring WO generators omit created_on); safe unless a path runs with session_replication_role=replica.
 
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
