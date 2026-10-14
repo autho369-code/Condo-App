@@ -8,7 +8,6 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   line endings, backslash paths and slow process start; Linux CI was
   already green). check:columns prints forward-slash paths.
 
-## 2026-10-14
 - Insurance, inspections, amenities (deep check + fixes; 20261015080000 live
   as 20261014005902): staff insurance notes private (owners could read them
   via the API); a renewal archives the earlier policy and reminders skip
@@ -20,6 +19,17 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   hours, and the database checks requests; vendors only add inspection
   findings; inspections list filtered and paged in the database. Guards treat
   a caller as staff only for associations they can access.
+- Architectural reviews, documents, forms, e-signatures (deep check + fixes;
+  20261015090000 live as 20261014011059): decided requests and homeowner
+  messages are final in the database (no edits, deletes or posting as the
+  homeowner; decider and time set by the database; deny needs a reason);
+  voided/expired/out-of-turn signing links no longer show the document;
+  uploads capped at 4 MB with a clear message; ARC settings: board voting
+  controls removed (board is read-only), homeowner instructions shown,
+  Submit hidden when online requests are off; document library ~12x faster
+  at 5,000 documents; owner forms and document requests scoped to the
+  manager's associations; lists count in the database ("Showing the newest
+  N of M").
 
 ## 2026-10-13
 - Managers can remove a late fee (unit page, with a reason; credited back,

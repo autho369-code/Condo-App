@@ -120,7 +120,7 @@ export default async function NewArchitecturalRequestForOwner({
               label="Describe the work"
               htmlFor="description"
               required
-              hint="After you submit, attach the owner's plans, drawings, quotes, or photos from the request page (up to 10 documents, 10 MB each)."
+              hint="After you submit, attach the owner's plans, drawings, quotes, or photos from the request page (up to 10 documents, 25 MB each)."
             >
               <Textarea
                 id="description"

@@ -6,6 +6,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,19 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
   await requireStaff();
   const sp = await searchParams;
   const supabase = await createClient();
-  const { data: owners } = await (supabase as any).from('owners').select('id, full_name, email, associations(name)').is('archived_at', null).order('full_name').limit(1000);
+  // Every owner the caller can see (the API returns at most 1,000 rows a page).
+  const { rows: owners, truncated: ownersTruncated, error: ownersError } = await fetchAllRows<any>(() => (supabase as any)
+    .from('owners')
+    .select('id, full_name, email, associations(name)')
+    .is('archived_at', null)
+    .order('full_name')
+    .order('id'));
+  // An owner named in the link is offered even past the list's limit.
+  if (sp.owner && /^[0-9a-f-]{36}$/i.test(sp.owner) && !owners.some((o: any) => o.id === sp.owner)) {
+    const { data: linked } = await (supabase as any)
+      .from('owners').select('id, full_name, email, associations(name)').eq('id', sp.owner).is('archived_at', null).maybeSingle();
+    if (linked) owners.unshift(linked);
+  }
 
   async function handleSubmit(formData: FormData) {
     'use server';
@@ -95,10 +108,21 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
       redirect('/owners/forms?sent=1');
     }
 
-    // All other owner "forms" are document/form requests sent to a specific owner.
+    // All other owner "forms" are document/form requests sent to a specific
+    // owner. The owner must be one the caller can see (RLS); the request is
+    // filed in that owner's company (the database checks they match).
+    const { data: target, error: targetErr } = await (supabase as any)
+      .from('owners')
+      .select('id, full_name, email, portfolio_id, archived_at')
+      .eq('id', ownerId)
+      .maybeSingle();
+    if (targetErr) redirect(`/owners/forms?error=${encodeURIComponent(targetErr.message)}`);
+    if (!target || target.archived_at || !target.portfolio_id) {
+      redirect(`/owners/forms?error=${encodeURIComponent('Owner not found.')}`);
+    }
     const { error } = await (supabase as any).from('document_requests').insert({
-      portfolio_id: me.portfolio?.id,
-      owner_id: ownerId,
+      portfolio_id: target.portfolio_id,
+      owner_id: target.id,
       doc_type: template,
       name: subject,
       description: message,
@@ -114,9 +138,8 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
     // The request row alone reached nobody (owners have no portal view of
     // document_requests), so actually email the owner when email is chosen.
     if (delivery === 'email') {
-      const { data: recipient } = await (supabase as any)
-        .from('owners').select('full_name, email').eq('id', ownerId).maybeSingle();
-      if (!recipient?.email) {
+      const recipient = target;
+      if (!recipient.email) {
         redirect(`/owners/forms?error=${encodeURIComponent('The request was recorded, but this owner has no email on file, so nothing was sent. Add an email or choose another delivery method.')}`);
       }
       const { queueEmails } = await import('@/lib/email/queue');
@@ -134,7 +157,7 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
           '',
           company,
         ].join('\n'),
-        portfolioId: me.portfolio?.id,
+        portfolioId: target.portfolio_id,
         // Sent under the company's own name; without one, delivery picks it
         // (the queue only accepts the company's or association's name).
         fromName: me.portfolio?.company_name ?? null,
@@ -163,6 +186,8 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
     >
       <div className="max-w-4xl space-y-4">
         {sp.error && <Alert tone="danger" title="Could not stage the form:">{sp.error}</Alert>}
+        {ownersError && <Alert tone="danger" title="Could not load owners.">{ownersError}</Alert>}
+        {ownersTruncated && <Alert tone="warning" title={`Showing the first ${owners.length.toLocaleString()} owners.`}>To reach someone not listed, open this form from their row on <Link href="/owners/ach" className="font-medium underline">Owner ACH Setup</Link> or <Link href="/owners/packets" className="font-medium underline">Send Owner Packets</Link>.</Alert>}
         {sp.sent === 'email' && <Alert tone="success" title="Form request emailed.">The owner has been emailed and the request is tracked on their record.</Alert>}
         {sp.sent === '1' && <Alert tone="success" title="Form request recorded.">Deliver it by the method you chose; it is tracked on the owner&apos;s record.</Alert>}
         <Surface>

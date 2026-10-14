@@ -15,6 +15,7 @@ import {
 } from '@/lib/rpcs/architectural';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
 
 const BUCKET = 'association-documents';
 const MAX_FILES = 10;
@@ -23,7 +24,9 @@ const MAX_BYTES = 25 * 1024 * 1024;
 const selectCls =
   'h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15';
 
-export type UnitOption = { value: string; label: string };
+export type UnitOption = { value: string; label: string; associationId?: string | null };
+/** The association's own guidance for owners, by association id (plain text). */
+export type ArcGuidance = Record<string, { submission: string | null; documents: string | null }>;
 
 const CATEGORY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'exterior_paint', label: 'Exterior paint / color' },
@@ -43,13 +46,17 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function NewArchitecturalRequestForm({ unitOptions }: { unitOptions: UnitOption[] }) {
+export function NewArchitecturalRequestForm({ unitOptions, guidance = {} }: { unitOptions: UnitOption[]; guidance?: ArcGuidance }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [phase, setPhase] = useState<string | null>(null);
+  const [unitId, setUnitId] = useState<string>(unitOptions.length === 1 ? unitOptions[0].value : '');
+  const selectedAssociation = unitOptions.find((u) => u.value === unitId)?.associationId
+    ?? (new Set(unitOptions.map((u) => u.associationId)).size === 1 ? unitOptions[0]?.associationId : null);
+  const help = selectedAssociation ? guidance[selectedAssociation] : undefined;
 
   function addFiles(list: FileList | null) {
     if (!list) return;
@@ -128,7 +135,7 @@ export function NewArchitecturalRequestForm({ unitOptions }: { unitOptions: Unit
             <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">{unitOptions[0].label}</div>
           </>
         ) : (
-          <select id="unit_id" name="unit_id" required className={selectCls} defaultValue="">
+          <select id="unit_id" name="unit_id" required className={selectCls} value={unitId} onChange={(e) => setUnitId(e.target.value)}>
             <option value="">Choose a unit…</option>
             {unitOptions.map((u) => (
               <option key={u.value} value={u.value}>{u.label}</option>
@@ -136,6 +143,10 @@ export function NewArchitecturalRequestForm({ unitOptions }: { unitOptions: Unit
           </select>
         )}
       </div>
+
+      {help?.submission && (
+        <Alert tone="info"><span className="whitespace-pre-wrap">{help.submission}</span></Alert>
+      )}
 
       <div>
         <Label htmlFor="title">Title</Label>
@@ -167,6 +178,9 @@ export function NewArchitecturalRequestForm({ unitOptions }: { unitOptions: Unit
       {/* Documents — attached right here, uploaded on submit */}
       <div>
         <Label htmlFor="documents">Supporting documents</Label>
+        {help?.documents && (
+          <p className="mb-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{help.documents}</p>
+        )}
         <p className="mb-2 text-xs text-gray-500">
           Plans, drawings, contractor quotes, photos — up to {MAX_FILES} files, 25 MB each. They upload one at a time when you submit, so large files are fine.
         </p>

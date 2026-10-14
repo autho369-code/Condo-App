@@ -1,6 +1,6 @@
 // Documents card shared by the owner / manager / board architectural detail
-// pages. Files upload ONE AT A TIME (each submit is its own request, 10 MB
-// cap) so large plan sets don't overload a single POST. Server component —
+// pages. Files go browser -> storage one at a time through signed upload URLs
+// (25 MB each), so large plan sets never pass through a server action. Server component —
 // signs private-bucket URLs at render time.
 import { FileText, X } from 'lucide-react';
 import { createServiceClient } from '@/lib/supabase/server';

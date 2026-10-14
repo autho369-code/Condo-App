@@ -68,7 +68,7 @@ export const MANAGER_RUNBOOK: Guide = {
         h('Operating documents (required for every association)'),
         p('The association\'s Documents tab holds its governing documents, with a required checklist: Declaration / CC&Rs, Bylaws, Articles of Incorporation, and Rules & Regulations (plus the optional Current Operating Budget and Master Insurance Policy).'),
         ul(
-          'Upload or replace one file at a time (max 10 MB); a chip shows "N of 4 required on file", and a general documents list sits below.',
+          'Upload or replace one file at a time (max 4 MB); a chip shows "N of 4 required on file", and a general documents list sits below.',
           'Everything you upload here appears automatically under Governing Documents in the owner and board portals, with no extra sharing step.',
           'Onboarding step 4 requires all four for every association; the Onboarding page links straight to any association still missing documents.',
         ),
@@ -124,7 +124,7 @@ export const MANAGER_RUNBOOK: Guide = {
         p('Owners submit ARC requests from their portal. Your queue is Architectural Reviews in the sidebar: approve, deny, or request more information. Each request has a built-in message thread with the owner, so the whole conversation stays attached to the request. Board members see the same queue read-only in their portal.'),
         h('Supporting documents'),
         ul(
-          'After submitting, owners upload supporting documents (plans, drawings, contractor quotes, photos) one at a time on the request\'s detail page, up to 10 documents of max 10 MB each. Uploading one by one keeps large plan sets from failing.',
+          'After submitting, owners upload supporting documents (plans, drawings, contractor quotes, photos) one at a time on the request\'s detail page, up to 10 documents of max 25 MB each. Uploading one by one keeps large plan sets from failing.',
           'You can add or remove documents yourself on the request\'s review page, which is useful when the owner emails you a file instead.',
           'Board members see the documents read-only alongside the request.',
         ),
@@ -312,7 +312,7 @@ export const COMPANY_ADMIN_GUIDE: Guide = {
         ul(
           'Required: Declaration / CC&Rs, Bylaws, Articles of Incorporation, Rules & Regulations.',
           'Optional: Current Operating Budget, Master Insurance Policy.',
-          'Upload or replace one file at a time (max 10 MB); a status chip shows "N of 4 required on file" at a glance, and a general documents list with upload sits below the checklist.',
+          'Upload or replace one file at a time (max 4 MB); a status chip shows "N of 4 required on file" at a glance, and a general documents list with upload sits below the checklist.',
           'Uploads appear automatically under Governing Documents in the owner and board portals, with no extra sharing step.',
           'Onboarding step 4 (Upload operating documents) lists each association still missing required documents, with direct links, and only completes when every client has all four.',
         ),

@@ -14,10 +14,16 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { isEntityDocumentStoragePath } from '@/lib/security/storage-paths';
 import { noticeTypeForLetterType } from '@/lib/documents/notice-type';
+import { descNullsLast, unionSearch } from '@/lib/supabase/search-union';
+import { displayTimeZone } from '@/lib/time/display-zone';
+import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
 type DocTab = 'templates' | 'generated' | 'notices';
+
+const LIST_LIMIT = 500;
+const NOTICE_TYPES = ['general', 'violation', 'meeting', 'payment_reminder', 'maintenance_update', 'annual_meeting', 'board_packet', 'emergency', 'other'];
 
 const DOC_TABS: Array<{ key: DocTab; label: string }> = [
   { key: 'templates', label: 'Templates' },
@@ -60,46 +66,76 @@ export default async function DocumentsPage({
   const supabase = await createClient();
   const db = supabase as any;
 
-  // Fetch all data in parallel
-  const [
-    { data: templates, error: templatesError },
-    { data: documents, error: documentsError },
-    { data: notices, error: noticesError },
-    { data: associations, error: associationsError },
-  ] = await Promise.all([
-    db.from('document_templates')
-      .select('id, name, letter_type, template_category, subject, active, created_at, updated_at')
-      .is('archived_at', null)
-      .order('updated_at', { ascending: false })
-      .limit(500),
-    db.from('documents')
-      .select('id, doc_type, entity_type, entity_id, file_name, file_url, uploaded_at, expires_at')
-      .order('uploaded_at', { ascending: false })
-      .limit(500),
-    db.from('notices')
-      .select('id, association_id, notice_type, status, subject, channel, sent_at, created_at, template_id, associations(name)')
-      .is('archived_at', null)
-      .order('created_at', { ascending: false })
-      .limit(500),
-    db.from('associations')
-      .select('id, name')
-      .is('archived_at', null)
-      .order('name'),
+  // Filters run in the query, counts in the database: the lists show the
+  // newest LIST_LIMIT matches and say so when there are more.
+  const term = q.replace(/[%_,()*"\\]/g, ' ').trim();
+  const noticeType = type ? noticeTypeForLetterType(type) : '';
+  const zone = displayTimeZone();
+  const today = todayInZone(zone);
+  const monthStart = zonedWallTimeToUtc(`${today.slice(0, 8)}01`, '00:00', zone)?.toISOString() ?? `${today.slice(0, 8)}01T00:00:00Z`;
+
+  const templatesQuery = () => {
+    let query = db.from('document_templates')
+      .select('id, name, letter_type, template_category, subject, active, created_at, updated_at', { count: 'exact' })
+      .is('archived_at', null);
+    if (type) query = query.eq('letter_type', type);
+    if (term) query = query.or(`name.ilike.%${term}%,letter_type.ilike.%${term}%,subject.ilike.%${term}%`);
+    return query.order('updated_at', { ascending: false }).order('id', { ascending: false }).limit(LIST_LIMIT);
+  };
+  const documentsQuery = () => {
+    let query = db.from('documents')
+      .select('id, doc_type, entity_type, entity_id, file_name, file_url, uploaded_at, expires_at', { count: 'exact' });
+    if (term) query = query.or(`file_name.ilike.%${term}%,doc_type.ilike.%${term}%`);
+    return query.order('uploaded_at', { ascending: false }).order('id', { ascending: false }).limit(LIST_LIMIT);
+  };
+  const noticeColumns = 'id, association_id, notice_type, status, subject, channel, sent_at, created_at, template_id, associations(name)';
+  const noticesBase = (extra = '', count = false) => {
+    let query = db.from('notices').select(noticeColumns + extra, count ? { count: 'exact' } : undefined).is('archived_at', null);
+    if (noticeType) query = query.eq('notice_type', noticeType);
+    return query.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(LIST_LIMIT);
+  };
+  // Search: subject, association name or type, each its own query (see unionSearch).
+  const noticesQuery = (): PromiseLike<{ data: any[] | null; error: any; count: number | null }> => {
+    if (!term) return noticesBase('', true);
+    const typeMatches = NOTICE_TYPES.filter((t) => t.replace(/_/g, ' ').includes(term.toLowerCase()));
+    return unionSearch<any>([
+      noticesBase().ilike('subject', `%${term}%`),
+      noticesBase(', s_a:associations!inner(name)').ilike('s_a.name', `%${term}%`),
+      ...(typeMatches.length ? [noticesBase().in('notice_type', typeMatches)] : []),
+    ], (a, b) => descNullsLast(a.created_at, b.created_at), LIST_LIMIT)
+      .then(({ rows, error }) => ({ data: rows, error: error ? { message: error } : null, count: null }));
+  };
+  const empty = Promise.resolve({ data: [] as any[], error: null, count: 0 });
+  const head = (table: string) => db.from(table).select('id', { count: 'exact', head: true });
+
+  const [templatesRes, documentsRes, noticesRes, activeTemplates, templateTotal, documentTotal, noticesThisMonth] = await Promise.all([
+    tab === 'templates' ? templatesQuery() : empty,
+    tab === 'generated' ? documentsQuery() : empty,
+    tab === 'notices' ? noticesQuery() : empty,
+    head('document_templates').is('archived_at', null).eq('active', true),
+    head('document_templates').is('archived_at', null),
+    head('documents'),
+    head('notices').is('archived_at', null).gte('sent_at', monthStart),
   ]);
 
   // A failed read must not look like an empty library.
   const loadErrors = [
-    templatesError && `templates (${templatesError.message})`,
-    documentsError && `documents (${documentsError.message})`,
-    noticesError && `notices (${noticesError.message})`,
-    associationsError && `associations (${associationsError.message})`,
+    templatesRes.error && `templates (${templatesRes.error.message})`,
+    documentsRes.error && `documents (${documentsRes.error.message})`,
+    noticesRes.error && `notices (${noticesRes.error.message})`,
+    (activeTemplates.error || templateTotal.error || documentTotal.error || noticesThisMonth.error) && 'counts',
   ].filter(Boolean) as string[];
-  const allTemplates = (templates ?? []) as any[];
-  const allDocuments = (documents ?? []) as any[];
-  const allNotices = (notices ?? []) as any[];
+  const filteredTemplates = (templatesRes.data ?? []) as any[];
+  const filteredDocuments = (documentsRes.data ?? []) as any[];
+  const filteredNotices = (noticesRes.data ?? []) as any[];
+  const shown = tab === 'templates' ? filteredTemplates.length : tab === 'generated' ? filteredDocuments.length : filteredNotices.length;
+  const matching = tab === 'templates' ? templatesRes.count : tab === 'generated' ? documentsRes.count : noticesRes.count;
+  const capNotice = matching != null
+    ? (matching > shown ? `Showing the newest ${shown.toLocaleString()} of ${matching.toLocaleString()}. Search or filter to find older ones.` : null)
+    : (shown >= LIST_LIMIT ? `Showing the newest ${LIST_LIMIT.toLocaleString()} matches. Narrow the search to see older ones.` : null);
 
   const documentLinks = new Map<string, string>();
-  const storedDocuments = allDocuments.filter((document: any) =>
+  const storedDocuments = filteredDocuments.filter((document: any) =>
     isEntityDocumentStoragePath(document.file_url, document.entity_type, document.entity_id));
   if (storedDocuments.length) {
     const service = createServiceClient() as any;
@@ -113,50 +149,10 @@ export default async function DocumentsPage({
     });
   }
 
-  // Filter by search query
-  let filteredTemplates = allTemplates;
-  let filteredDocuments = allDocuments;
-  let filteredNotices = allNotices;
-
-  if (q) {
-    const ql = q.toLowerCase();
-    filteredTemplates = filteredTemplates.filter((t: any) =>
-      (t.name ?? '').toLowerCase().includes(ql) ||
-      (t.letter_type ?? '').toLowerCase().includes(ql) ||
-      (t.subject ?? '').toLowerCase().includes(ql)
-    );
-    filteredDocuments = filteredDocuments.filter((d: any) =>
-      (d.file_name ?? '').toLowerCase().includes(ql) ||
-      (d.doc_type ?? '').toLowerCase().includes(ql)
-    );
-    filteredNotices = filteredNotices.filter((n: any) =>
-      (n.subject ?? '').toLowerCase().includes(ql) ||
-      (n.notice_type ?? '').toLowerCase().includes(ql) ||
-      (n.associations?.name ?? '').toLowerCase().includes(ql)
-    );
-  }
-
-  if (type) {
-    filteredTemplates = filteredTemplates.filter((t: any) => t.letter_type === type);
-    // The Type filter offers letter types; notices store the notice_type enum.
-    const noticeType = noticeTypeForLetterType(type);
-    filteredNotices = filteredNotices.filter((n: any) => n.notice_type === noticeType);
-  }
-
-  // Metrics
-  const activeTemplates = allTemplates.filter((t: any) => t.active).length;
-  const totalDocs = allDocuments.length;
-  const noticesThisMonth = allNotices.filter((n: any) => {
-    if (!n.sent_at) return false;
-    const d = new Date(n.sent_at);
-    const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
-
   const metrics: Metric[] = [
-    { label: 'Active Templates', value: activeTemplates, sublabel: `${allTemplates.length} total` },
-    { label: 'Documents', value: totalDocs, sublabel: 'Generated & uploaded' },
-    { label: 'Notices This Month', value: noticesThisMonth, sublabel: 'Sent & delivered' },
+    { label: 'Active Templates', value: activeTemplates.count ?? 0, sublabel: `${(templateTotal.count ?? 0).toLocaleString()} total` },
+    { label: 'Documents', value: documentTotal.count ?? 0, sublabel: 'Generated & uploaded' },
+    { label: 'Notices This Month', value: noticesThisMonth.count ?? 0, sublabel: 'Sent & delivered' },
   ];
 
   return (
@@ -193,6 +189,7 @@ export default async function DocumentsPage({
             const params = new URLSearchParams();
             params.set('tab', t.key);
             if (q) params.set('q', q);
+            if (type) params.set('type', type);
             return (
               <Link
                 key={t.key}
@@ -214,15 +211,21 @@ export default async function DocumentsPage({
           searchDefault={q}
           searchPlaceholder="Search documents, templates, notices..."
         >
-          <FilterSelect label="Type" name="type" defaultValue={type}>
-            <option value="">All</option>
-            <option value="violation_notice">Violation Notice</option>
-            <option value="welcome_letter">Welcome Letter</option>
-            <option value="assessment_letter">Assessment Letter</option>
-            <option value="board_packet">Board Packet</option>
-            <option value="general">General</option>
-          </FilterSelect>
+          <input type="hidden" name="tab" value={tab} />
+          {/* Uploaded documents have no letter type: the Type filter is for templates and notices. */}
+          {tab !== 'generated' && (
+            <FilterSelect label="Type" name="type" defaultValue={type}>
+              <option value="">All</option>
+              <option value="violation_notice">Violation Notice</option>
+              <option value="welcome_letter">Welcome Letter</option>
+              <option value="assessment_letter">Assessment Letter</option>
+              <option value="board_packet">Board Packet</option>
+              <option value="general">General</option>
+            </FilterSelect>
+          )}
         </FilterBar>
+
+        {capNotice && <p className="text-[13px] text-gray-500">{capNotice}</p>}
 
         {/* ── TAB: TEMPLATES ── */}
         {tab === 'templates' && (

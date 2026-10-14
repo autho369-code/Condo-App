@@ -12,7 +12,9 @@ import { isScopedStoragePath } from '@/lib/security/storage-paths';
 // session. Metadata edits and deletes go through audited RPCs.
 
 const BUCKET = 'association-documents';
-const MAX_BYTES = 10 * 1024 * 1024;
+// The file travels in the server action's request body, which Vercel caps at
+// about 4.5 MB, so each upload stays under 4 MB.
+const MAX_BYTES = 4 * 1024 * 1024;
 const REF_RE = /^[a-z0-9-]{1,80}$/i;
 const s = (fd: FormData, k: string) => ((fd.get(k) as string) ?? '').trim();
 
@@ -48,7 +50,7 @@ export async function uploadAssociationDocument(formData: FormData) {
 
   const file = formData.get('file') as File | null;
   if (!file || file.size === 0) go(to, 'error', 'Choose a file to upload.');
-  if (file.size > MAX_BYTES) go(to, 'error', 'Each document must be under 10 MB — upload files one at a time.');
+  if (file.size > MAX_BYTES) go(to, 'error', 'Each document must be 4 MB or smaller. Upload files one at a time.');
 
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120);
   const sub = OPERATING_TYPES.includes(docType) ? 'operating' : 'files';

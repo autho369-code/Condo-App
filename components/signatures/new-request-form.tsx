@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Plus, Trash2, Users } from 'lucide-react';
+import { MaxSizeFileInput } from '@/components/ui/max-size-file-input';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PendingSubmit } from '@/components/ui/pending-submit';
@@ -90,8 +91,8 @@ export function NewSignatureRequestForm({
           ))}
         </div>
         {kind === 'pdf' ? (
-          <Field hint="Up to 10 MB. The exact file is fingerprinted; signing is blocked if it ever changes.">
-            <input type="file" name="document" accept="application/pdf" required className="block w-full text-sm text-gray-700 file:mr-3 file:h-10 file:rounded-lg file:border-0 file:bg-gray-100 file:px-4 file:text-sm file:font-medium file:text-gray-900 hover:file:bg-gray-200" />
+          <Field hint="Up to 4 MB. The exact file is fingerprinted; signing is blocked if it ever changes.">
+            <MaxSizeFileInput maxBytes={4 * 1024 * 1024} name="document" accept="application/pdf" required className="block w-full text-sm text-gray-700 file:mr-3 file:h-10 file:rounded-lg file:border-0 file:bg-gray-100 file:px-4 file:text-sm file:font-medium file:text-gray-900 hover:file:bg-gray-200" />
           </Field>
         ) : (
           <Textarea name="body_text" required minLength={20} maxLength={50000} rows={10} defaultValue={initial.body_text ?? ''} placeholder="RESOLVED, that the Board of Directors…" />

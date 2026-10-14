@@ -79,9 +79,10 @@ export async function resolveUnitOwnerId(svc: any, unitId: string): Promise<stri
 /**
  * Email the owner that their work order / service request has a new status.
  * White-labeled as the management company. Never throws; skips silently when
- * there is no owner or the owner has no email on file.
+ * there is no owner or the owner has no email on file. Resolves true only
+ * when the email was queued.
  */
-export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }: StatusChangeParams): Promise<void> {
+export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }: StatusChangeParams): Promise<boolean> {
   try {
     const svc = createServiceClient() as any;
 
@@ -102,8 +103,8 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }
         .select('id, number, title, unit_id, association_id, associations(name, portfolio_id)')
         .eq('id', id)
         .maybeSingle();
-      if (error || !wo) return;
-      if (!wo.unit_id) return; // common-area work order — no single owner to inform
+      if (error || !wo) return false;
+      if (!wo.unit_id) return false; // common-area work order — no single owner to inform
       ownerId = await resolveUnitOwnerId(svc, wo.unit_id);
       associationId = wo.association_id ?? null;
       portfolioId = wo.associations?.portfolio_id ?? null;
@@ -118,7 +119,7 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }
         .select('id, title, owner_id, association_id, associations(name, portfolio_id)')
         .eq('id', id)
         .maybeSingle();
-      if (error || !ar) return;
+      if (error || !ar) return false;
       ownerId = ar.owner_id ?? null;
       associationId = ar.association_id ?? null;
       portfolioId = ar.associations?.portfolio_id ?? null;
@@ -132,7 +133,7 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }
         .select('id, number, description, homeowner_id, owner_id, tenant_id, association_id, portfolio_id, associations(name, portfolio_id), tenants:tenant_id(email, first_name, last_name)')
         .eq('id', id)
         .maybeSingle();
-      if (error || !sr) return;
+      if (error || !sr) return false;
       ownerId = sr.homeowner_id ?? sr.owner_id ?? null;
       if (!ownerId && sr.tenant_id) tenant = Array.isArray(sr.tenants) ? sr.tenants[0] ?? null : sr.tenants ?? null;
       associationId = sr.association_id ?? null;
@@ -153,7 +154,7 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }
     } else if (tenant) {
       owner = { email: tenant.email, full_name: [tenant.first_name, tenant.last_name].filter(Boolean).join(' ') || 'Resident' };
     }
-    if (!owner?.email) return; // no recipient / no email on file — skip silently
+    if (!owner?.email) return false; // no recipient / no email on file — skip silently
 
     // White-label branding: present as the management company (same pattern as
     // insurance reminders). Only the sending address stays on portier369.com.
@@ -190,9 +191,15 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }
         associationId,
       },
     ]);
-    if (queueErr) console.error(`[status-change] failed to queue ${noun} ${id} email:`, queueErr);
+    if (queueErr) {
+      // Constant format string; the record kind and id are plain arguments.
+      console.error('[status-change] failed to queue status email:', noun, id, queueErr);
+      return false;
+    }
+    return true;
   } catch (e) {
     // Fire-and-forget: a notification failure must never fail the status update.
-    console.error(`[status-change] notifyOwnerOfStatusChange(${kind}, ${id}) failed:`, e);
+    console.error('[status-change] notifyOwnerOfStatusChange failed:', kind, id, e);
+    return false;
   }
 }

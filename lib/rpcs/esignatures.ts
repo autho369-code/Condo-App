@@ -53,7 +53,7 @@ export async function createSignatureRequest(formData: FormData) {
   if (kind === 'pdf') {
     const file = formData.get('document');
     if (!(file instanceof File) || file.size === 0) fail(back, 'Attach the PDF to be signed.');
-    if (file.size > MAX_SIGNATURE_PDF_BYTES) fail(back, 'PDFs are limited to 10 MB.');
+    if (file.size > MAX_SIGNATURE_PDF_BYTES) fail(back, 'PDFs are limited to 4 MB.');
     pdfBytes = new Uint8Array(await file.arrayBuffer());
     if (!isPdf(pdfBytes)) fail(back, 'The attached file is not a PDF.');
     sha = sha256Hex(pdfBytes);

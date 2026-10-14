@@ -348,6 +348,7 @@
 "owner_attachments.portfolio_id":"portfolios",
 "owner_financial_details.owner_id":"owners",
 "owner_financial_details.portfolio_id":"portfolios",
+"owner_form_submission_private.submission_id":"owner_form_submissions",
 "owner_form_submissions.owner_id":"owners",
 "owner_packet_settings.owner_id":"owners",
 "owner_packet_settings.portfolio_id":"portfolios",

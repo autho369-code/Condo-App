@@ -8,11 +8,8 @@ import { resolveAssociation } from '@/lib/associations/resolve';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { Field, Select, Textarea } from '@/components/ui/input';
-import type { Database } from '@/lib/types/database';
 
 export const dynamic = 'force-dynamic';
-
-type VotingScheme = Database['public']['Enums']['voting_scheme'];
 
 export default async function ArchitecturalReviewsTab({
   params,
@@ -33,13 +30,13 @@ export default async function ArchitecturalReviewsTab({
     .from('associations').select('id, name').eq('id', id).maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: settings } = await (supabase as any)
+  const { data: settings, error: settingsError } = await (supabase as any)
     .from('architectural_review_settings')
-    .select('*')
+    .select('association_id, online_requests_disabled, default_committee_id, portal_homepage_html, submission_form_html, document_upload_html')
     .eq('association_id', id)
     .maybeSingle();
 
-  const { data: committees } = await (supabase as any)
+  const { data: committees, error: committeesError } = await (supabase as any)
     .from('committees')
     .select('id, name')
     .eq('association_id', id)
@@ -50,20 +47,35 @@ export default async function ArchitecturalReviewsTab({
     'use server';
     await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
     const supabase = await createClient();
+    const base = `/associations/${id}/architectural-reviews`;
+    const fail = (msg: string) => redirect(`${base}?error=${encodeURIComponent(msg)}`);
+
+    // The caller must manage this association (RLS also scopes the write).
+    const { data: manages, error: manageError } = await (supabase as any)
+      .rpc('can_manage_association', { p_association_id: id });
+    if (manageError || manages !== true) fail('You do not manage this association.');
+
+    // The default committee must be one of this association's own (the
+    // database checks it too).
+    const committeeId = ((formData.get('default_committee_id') as string) || '').trim() || null;
+    if (committeeId) {
+      const { data: committee, error: committeeError } = await (supabase as any)
+        .from('committees').select('id').eq('id', committeeId).eq('association_id', id).is('archived_at', null).maybeSingle();
+      if (committeeError) fail(committeeError.message);
+      if (!committee) fail('Choose a committee of this association.');
+    }
+    const text = (name: string) => (((formData.get(name) as string) ?? '').trim().slice(0, 500)) || null;
 
     const { error } = await (supabase as any).from('architectural_review_settings').upsert({
       association_id: id,
       online_requests_disabled: formData.get('online_requests_disabled') === 'on',
-      default_committee_id: (formData.get('default_committee_id') as string) || null,
-      default_approver_scope: (formData.get('default_approver_scope') as string) || 'all',
-      default_voting_scheme: parseVotingScheme(formData.get('default_voting_scheme')),
-      portal_homepage_html: (formData.get('portal_homepage_html') as string) || null,
-      submission_form_html: (formData.get('submission_form_html') as string) || null,
-      document_upload_html: (formData.get('document_upload_html') as string) || null,
+      default_committee_id: committeeId,
+      portal_homepage_html: text('portal_homepage_html'),
+      submission_form_html: text('submission_form_html'),
+      document_upload_html: text('document_upload_html'),
       updated_at: new Date().toISOString(),
     }, { onConflict: 'association_id' });
-    const base = `/associations/${id}/architectural-reviews`;
-    if (error) redirect(`${base}?error=${encodeURIComponent(error.message)}`);
+    if (error) fail(error.message);
     revalidatePath(base);
     redirect(`${base}?saved=1`);
   }
@@ -82,75 +94,61 @@ export default async function ArchitecturalReviewsTab({
     >
       {sp.error && <Alert tone="danger" title="Settings not saved." className="mb-4 max-w-3xl">{sp.error}</Alert>}
       {sp.saved && <Alert tone="success" title="Settings saved." className="mb-4 max-w-3xl" />}
+      {(settingsError || committeesError) && (
+        <Alert tone="danger" title="Could not load the settings." className="mb-4 max-w-3xl">
+          {(settingsError ?? committeesError)?.message ?? 'Reload the page to try again.'}
+        </Alert>
+      )}
       <form action={saveSettings as any} className="max-w-3xl space-y-5">
-        <Section padded>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="online_requests_disabled" defaultChecked={settings?.online_requests_disabled ?? false} />
-            Disable online architectural requests
+        <Section title="Owner portal" padded>
+          <label className="flex min-h-10 items-center gap-2 text-sm font-medium text-gray-900">
+            <input type="checkbox" name="online_requests_disabled" aria-describedby="online-requests-hint" defaultChecked={settings?.online_requests_disabled ?? false} className="h-4 w-4 rounded border-gray-300" />
+            Turn off online requests
           </label>
+          <p id="online-requests-hint" className="ml-6 text-[13px] text-gray-500">Homeowners can&apos;t submit requests from the owner portal; staff still can.</p>
         </Section>
 
-        <Section title="Board Approval Defaults" padded>
-          <Field label="Select Participants" htmlFor="arc-default-committee" className="mb-3">
+        <Section title="Reviewing committee" padded>
+          <Field label="Committee" htmlFor="arc-default-committee" hint="New requests are assigned to this committee.">
             <Select id="arc-default-committee" name="default_committee_id" defaultValue={settings?.default_committee_id ?? ''} className="max-w-md">
-              <option value="">- Select a committee -</option>
+              <option value="">No committee</option>
               {(committees ?? []).map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </Select>
           </Field>
-
-          <div className="mb-3 flex items-center gap-4 text-sm">
-            <label className="flex items-center gap-2">
-              <input type="radio" name="default_approver_scope" value="all" defaultChecked={(settings?.default_approver_scope ?? 'all') === 'all'} />
-              All
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="default_approver_scope" value="select" defaultChecked={settings?.default_approver_scope === 'select'} />
-              Select Approvers
-            </label>
-          </div>
-
-          <Field label="Voting Scheme" htmlFor="arc-default-voting-scheme">
-            <Select id="arc-default-voting-scheme" name="default_voting_scheme" defaultValue={settings?.default_voting_scheme ?? 'majority_approval_required'} className="w-72 max-w-full">
-              <option value="majority_approval_required">Majority Approval Required</option>
-              <option value="unanimous_approval_required">Unanimous Approval Required</option>
-              <option value="any_one_approver">Any One Approver</option>
-              <option value="percentage_required">Percentage Required</option>
-            </Select>
-          </Field>
         </Section>
 
-        <RichTextSection
-          title="Portal Homepage"
-          help="Provide a brief overview of what you would like homeowners to know prior to submitting an Architectural Review."
+        <InstructionSection
+          title="Requests page note"
+          help="Shown to homeowners at the top of their architectural requests page, for example what needs approval and how long a review takes."
           name="portal_homepage_html"
           defaultValue={settings?.portal_homepage_html ?? ''}
         />
 
-        <RichTextSection
-          title="Architectural Review Submission Form"
-          help="Give the homeowner context for how you would like them to describe the modification they'd like to make to their home."
+        <InstructionSection
+          title="Request form guidance"
+          help="Shown above the new-request form: what to include when describing the planned change."
           name="submission_form_html"
           defaultValue={settings?.submission_form_html ?? ''}
         />
 
-        <RichTextSection
-          title="Document Upload Instructions"
-          help="Describe the kind of documents you'd like the homeowner to upload."
+        <InstructionSection
+          title="Document guidance"
+          help="Shown next to the document upload: which plans, drawings, quotes or photos to attach."
           name="document_upload_html"
           defaultValue={settings?.document_upload_html ?? ''}
         />
 
         <div className="flex items-center gap-2 pt-2">
-          <Button type="submit" size="sm">Save Settings</Button>
+          <Button type="submit">Save settings</Button>
         </div>
       </form>
     </Workspace>
   );
 }
 
-function RichTextSection({
+function InstructionSection({
   title, help, name, defaultValue,
 }: {
   title: string; help: string; name: string; defaultValue: string;
@@ -161,25 +159,13 @@ function RichTextSection({
       <Textarea
         name={name}
         defaultValue={defaultValue}
-        rows={6}
+        rows={5}
         aria-label={title}
         aria-describedby={`${name}-help`}
         className="block resize-y"
         maxLength={500}
       />
-      <div className="mt-1 text-right text-xs text-gray-400">Up to 500 characters</div>
+      <div className="mt-1 text-right text-xs text-gray-400">Plain text, up to 500 characters</div>
     </Section>
   );
-}
-
-function parseVotingScheme(value: FormDataEntryValue | null): VotingScheme {
-  switch (value) {
-    case 'unanimous_approval_required':
-    case 'any_one_approver':
-    case 'percentage_required':
-      return value;
-    case 'majority_approval_required':
-    default:
-      return 'majority_approval_required';
-  }
 }
