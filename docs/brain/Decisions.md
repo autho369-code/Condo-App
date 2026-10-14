@@ -301,3 +301,7 @@ accounts: a vendor-portal invoice arrives without one and staff set it.
   a previous system keep their vendor without emailing it; they are past
   jobs, not new assignments.
 
+## Claude may auto-merge its PRs (2026-10-14)
+Mirsad gave permission in chat to auto-merge and keep working through the
+TODO list. Conditions in [[PR Rules]] (Codex clean, CI green, threads
+resolved, migration live; enable through the PR tool, never merge by hand).

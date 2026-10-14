@@ -41,7 +41,7 @@ export default async function EditPurchaseOrderPage({
     redirect(`/purchase-orders/${id}?error=${encodeURIComponent('Only draft or rejected purchase orders can be edited.')}`);
   }
 
-  const options = await loadPurchaseOrderFormOptions(db, me.portfolio?.id);
+  const options = await loadPurchaseOrderFormOptions(db, me.portfolio?.id, po.work_order_id);
 
   return (
     <DataWorkspace
