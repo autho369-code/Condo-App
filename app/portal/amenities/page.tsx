@@ -5,7 +5,7 @@ import { requireOwner } from '@/lib/auth/me'
 import { Alert, Badge, SectionTitle, Surface } from '@/components/ui/shell'
 import { zonedWallTimeToUtc } from '@/lib/time/zoned'
 import { buttonClass } from '@/components/ui/button'
-import { amenityPriceLabel, amenityReserveAction, withinAmenityHours } from '@/lib/amenities/portal'
+import { amenityEndsNextDay, amenityPriceLabel, amenityReserveAction, nextCalendarDate, withinAmenityHours } from '@/lib/amenities/portal'
 
 const DEFAULT_TZ = 'America/Chicago'
 
@@ -103,7 +103,9 @@ async function requestReservation(formData: FormData) {
   // The owner types times in their community's zone; the server runs in UTC.
   const timeZone = amenity.associations?.timezone || DEFAULT_TZ
   const start = zonedWallTimeToUtc(date, startTime, timeZone)
-  const end = zonedWallTimeToUtc(date, endTime, timeZone)
+  // Ending at midnight, or past midnight for late-night hours, ends the next day.
+  const endDate = amenityEndsNextDay(startTime, endTime, amenity.opens_at, amenity.closes_at) ? nextCalendarDate(date) : date
+  const end = endDate ? zonedWallTimeToUtc(endDate, endTime, timeZone) : null
   if (!start || !end) { failTo('That date/time is not valid'); return }
   if (end <= start) { failTo('End time must be after the start time'); return }
   if (start < new Date()) { failTo('Please pick a time in the future'); return }

@@ -17,14 +17,12 @@ import { SelectAllCheckbox } from '@/components/ui/select-all';
 import { markInspectionsDone } from '@/lib/rpcs/inspections-bulk';
 import { todayInZone } from '@/lib/time/zoned';
 import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';
-import { inspectionSearchTerm, inspectionSearchOr } from '@/lib/inspections/list-query';
+import { inspectionSearchTerm } from '@/lib/inspections/list-query';
 
 export const dynamic = 'force-dynamic';
 
 // Inspections per page; the counts above the table cover every inspection.
 const PAGE_SIZE = 100;
-// Matches per related record kind (association, unit, inspector, notes) a search looks for.
-const SEARCH_MATCH_LIMIT = 200;
 
 // ── Types ──
 type Tab = 'all' | 'scheduled' | 'in_progress' | 'completed';
@@ -79,27 +77,14 @@ export default async function InspectionsPage({
   const page = Math.max(1, Number.parseInt(sp.page ?? '1', 10) || 1);
   const from = (page - 1) * PAGE_SIZE;
 
-  // ── Search: the inspection type, or the ids of matching associations,
-  // units, inspectors and (staff-only) notes — resolved in the database. ──
+  // ── Search: the inspection type, association, unit, inspector or
+  // (staff-only) notes, matched in the database by inspection_search under the
+  // caller's row-level security, so every match is listed and counted. ──
   const term = inspectionSearchTerm(q);
-  let searchOr: string | null = null;
-  let searchError: string | null = null;
-  if (term) {
-    const like = `%${term}%`;
-    const [assocMatch, unitMatch, vendorMatch, notesMatch] = await Promise.all([
-      db.from('associations').select('id').ilike('name', like).order('id').limit(SEARCH_MATCH_LIMIT),
-      db.from('units').select('id').ilike('unit_number', like).order('id').limit(SEARCH_MATCH_LIMIT),
-      db.from('vendors').select('id').ilike('name', like).order('id').limit(SEARCH_MATCH_LIMIT),
-      db.from('inspection_private').select('inspection_id').ilike('notes', like).order('inspection_id').limit(SEARCH_MATCH_LIMIT),
-    ]);
-    searchError = assocMatch.error?.message ?? unitMatch.error?.message ?? vendorMatch.error?.message ?? notesMatch.error?.message ?? null;
-    searchOr = inspectionSearchOr(term, {
-      associationIds: (assocMatch.data ?? []).map((r: any) => r.id),
-      unitIds: (unitMatch.data ?? []).map((r: any) => r.id),
-      vendorIds: (vendorMatch.data ?? []).map((r: any) => r.id),
-      inspectionIds: (notesMatch.data ?? []).map((r: any) => r.inspection_id),
-    });
-  }
+  const inspectionsFrom = (columns: string) =>
+    term
+      ? db.rpc('inspection_search', { p_term: term }, { count: 'exact' }).select(columns)
+      : db.from('inspections').select(columns, { count: 'exact' });
 
   // Every list filter runs in the query.
   const listFilters = (query: any) => {
@@ -108,7 +93,6 @@ export default async function InspectionsPage({
     if (status) x = x.eq('status', status);
     if (type) x = x.eq('inspection_type', type);
     if (association_id) x = x.eq('association_id', association_id);
-    if (searchOr) x = x.or(searchOr);
     return x;
   };
   const headCount = (build: (query: any) => any) =>
@@ -126,8 +110,7 @@ export default async function InspectionsPage({
     archivedRes,
     typesRes,
   ] = await Promise.all([
-    listFilters(db.from('inspections')
-      .select('id, inspection_type, association_id, unit_id, scheduled_date, inspector_vendor_id, inspector_user_id, status, completed_date, created_at, associations(name), units(unit_number), vendors:inspector_vendor_id(name)', { count: 'exact' }))
+    listFilters(inspectionsFrom('id, inspection_type, association_id, unit_id, scheduled_date, inspector_vendor_id, inspector_user_id, status, completed_date, created_at, associations(name), units(unit_number), vendors:inspector_vendor_id(name)'))
       .order('scheduled_date', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false })
       .order('id')
@@ -147,7 +130,7 @@ export default async function InspectionsPage({
   ]);
 
   const pageRows: any[] = listRes.data ?? [];
-  const listError: string | null = listRes.error?.message ?? searchError;
+  const listError: string | null = listRes.error?.message ?? null;
   const matching: number = listRes.count ?? pageRows.length;
   const pageCount = Math.max(1, Math.ceil(matching / PAGE_SIZE));
   // A page past the end goes to the last one.
@@ -155,7 +138,7 @@ export default async function InspectionsPage({
   const pastEnd = page > 1 && listRes.error?.code === 'PGRST103';
   if (pastEnd || (!listRes.error && matching > 0 && page > pageCount)) {
     const lastPage = pastEnd
-      ? Math.max(1, Math.ceil(((await listFilters(db.from('inspections').select('id', { count: 'exact', head: true }))).count ?? 0) / PAGE_SIZE))
+      ? Math.max(1, Math.ceil(((await listFilters(inspectionsFrom('id')).limit(1)).count ?? 0) / PAGE_SIZE))
       : pageCount;
     const params = new URLSearchParams(Object.entries({ tab, q, status, type, association_id }).filter(([, v]) => v) as Array<[string, string]>);
     if (lastPage > 1) params.set('page', String(lastPage));

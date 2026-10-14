@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { reminderWindow } from '@/lib/insurance/reminder-window';
 import { amenityPriceLabel, amenityReserveAction, withinAmenityHours } from '@/lib/amenities/portal';
-import { inspectionSearchOr, inspectionSearchTerm } from '@/lib/inspections/list-query';
+import { inspectionSearchTerm } from '@/lib/inspections/list-query';
 import { expirationTone, vendorComplianceStatus } from '@/lib/company-admin/vendor-compliance';
 import { selectInChunks } from '@/lib/supabase/select-in-chunks';
 
@@ -56,8 +56,7 @@ describe('resident amenities follow the configured reserve method', () => {
     expect(withinAmenityHours('19:00', '21:00', '08:00:00', '20:00:00')).toBe(false);
     expect(withinAmenityHours('19:00', '20:00', '08:00', '20:00')).toBe(true);
     expect(withinAmenityHours('23:00', '23:30', null, null)).toBe(true);
-    // Hours past midnight are not checked here (nor by the database guard).
-    expect(withinAmenityHours('23:00', '23:30', '18:00', '02:00')).toBe(true);
+    // Hours past midnight: codex-379-380-followups.test.ts.
   });
 });
 
@@ -65,12 +64,6 @@ describe('inspections list search', () => {
   it('cleans text the filter syntax treats specially', () => {
     expect(inspectionSearchTerm('  move-in, (annual) *50%  ')).toBe('move-in annual 50');
     expect(inspectionSearchTerm('x'.repeat(300))).toHaveLength(100);
-  });
-  it('matches the type or the related ids', () => {
-    const a = '11111111-1111-4111-8111-111111111111';
-    const n = '22222222-2222-4222-8222-222222222222';
-    expect(inspectionSearchOr('annual', { associationIds: [a, a, 'bad'], unitIds: [], vendorIds: [], inspectionIds: [n] }))
-      .toBe(`inspection_type.ilike."*annual*",association_id.in.(${a}),id.in.(${n})`);
   });
 });
 
