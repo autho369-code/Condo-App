@@ -293,3 +293,12 @@ describe('migration 20261016010000_ownership_fixes', () => {
     expect(owner).toContain('p.payment_date <= v_owner.cutoff');
   });
 });
+
+describe('20261016020000_statement_visibility_co_owners migration', () => {
+  it('a buyer never sees the seller’s sale-month statement; co-owners still share', () => {
+    const m = read('supabase/migrations/20261016020000_statement_visibility_co_owners.sql');
+    expect(m).toContain('and o.owner_id = s.owner_id');
+    expect(m).toContain("and o.status = 'current'");
+    expect(m).toContain('where s.owner_id in (select public.current_owner_ids())');
+  });
+});

@@ -9,6 +9,10 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#387 merged; open PR: #388 ownership 
   main session first: future sale refused; Sept owner statements to seller
   and buyer; Aug monthly statement to the seller, Sept to the buyer; read
   back: trigger, both policies, transfer check):
+  - Codex P1: a buyer can't read the seller's sale-month statement; the
+    shared-unit branch admits only current co-owners' statements
+    (20261016020000 LIVE as 20261014112304; dry-run: buyer sees the
+    co-owner's October statement, not the seller's October or September).
   - A sale can't be recorded before it closes: change_unit_homeowner and
     transfer_unit_ownership refuse a transfer date after the association's
     local today; the action checks it before creating a buyer record; the
