@@ -160,6 +160,7 @@ describe('email worker sender selection', () => {
     // On production the link is the company's address (CI and local runs
     // otherwise stay on their own origin).
     vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://portier369.com');
+    vi.stubEnv('NEXT_PUBLIC_APEX_DOMAIN', 'portier369.com');
     await expect(runWorker()).resolves.toMatchObject({ sent: 1 });
     const page = linkUrls[0]?.page_url;
     expect(page).toBe(`https://stellar.portier369.com/unsubscribe/${token}`);
