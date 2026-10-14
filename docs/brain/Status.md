@@ -3,7 +3,18 @@
 Back to [[Home]]. Updated 2026-10-14 (#279-#388 merged; open PR: none; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- none
+- claude/setup-records-deep-check: deep check of setup records (associations, units, owners,
+  charges, parking, keys, letters, reminders, calendar, reserves). 20261016164000 LIVE as
+  20261014122819, 20261016164100 LIVE as 20261014122901 (author dry-run on production,
+  rolled back; read back). Fixed: duplicate bulk charges on double click; bulk charges to
+  non-current units or other associations' categories; recurring re-run reposting a period;
+  UTC instead of association dates; category scope not enforced in the database; posting to
+  archived units; subscribe_unit_to_charge callable signed out; owner ACH/tax rows plantable
+  by another company; Stripe Connect fields and payment settings writable by any staff;
+  cascading hard deletes of units/buildings/associations; board seats, lock boxes and
+  calendar reminders crossing associations; owners reading parking staff notes and prior
+  owners' history; automation/calendar emails to former owners. Reviewers: security, schema,
+  design, white-label, migration (two passes).
 
 ## Merged 2026-10-14
 - #388 (merged 2026-10-14) claude/ownership-fixes (sale and move-out, from a deep check of the

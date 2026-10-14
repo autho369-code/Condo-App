@@ -4,6 +4,12 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Setup records deep check (claude/setup-records-deep-check, 20261016164000 +
+  20261016164100, LIVE as 20261014122819 / 20261014122901): bulk and recurring charges
+  post once in the association's own categories and dates; owner bank details and Stripe
+  settings locked to their company; no cascading deletes; board seats, lock boxes and
+  reminders stay in their association; owners can't read parking notes; former owners
+  get no automation or calendar emails.
 - Ownership fixes (claude/ownership-fixes, 20261016010000): a sale can't be
   dated in the future; statements go to the owner(s) of record in the
   period; a sale or move-out ends the outgoing owner's parking, stops its
