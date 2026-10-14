@@ -63,6 +63,10 @@
 - Search RPCs called as db.rpc(..).select().eq().range() (20261015110000 inspection_search): a SET clause blocks SRF inlining, so page filters/count run over the full match set; prefer OR-ed `i.x in (select ...)` sets over per-row EXISTS into tables with per-row policies (inspection_private).
 - association_id NULL = "company-wide" (visible to every scoped manager) on signature_requests and similar: any create RPC taking a linked record must file under the record's association (Codex P1 #381, fix 20261015120000). A derived coalesce(p_x, v_derived) skips the checks done only on p_x (archived_at); ask for a read-only count of existing NULL-but-linked rows.
 
+- A definer trigger that UPDATEs a guarded table still runs that table's BEFORE UPDATE guard with the CALLER's auth.uid(): a vendor/owner-fired cascade hits the non-staff branch (`new := old`, keep status only). 20261015170000 work_order_sync_request_triage sets service_requests.resolved_at, which service_request_guard_update reverts for vendors. Check the guard's pg_trigger_depth() carve-outs.
+- Status backfills fire AFTER UPDATE triggers: service_requests -> completed fires dispatch_sr_webhook 'service_request.resolved' per row (customer webhooks). Ask for a pre-run count + whether historical rows should notify.
+- sql -> plpgsql on SECURITY DEFINER helpers is NOT a speed change (never inlined either way; sql-pitfalls). What matters is that policies call them as `x in (select f())`; still flag bare per-row calls (service_requests_resident_read, payment_plans_owner_read call current_resident_unit_since(unit_id) per row as of 20261015170000).
+
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns

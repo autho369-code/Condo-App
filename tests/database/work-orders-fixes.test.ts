@@ -21,12 +21,21 @@ describe('20261015170000_work_orders_fixes migration', () => {
     expect(migration).toContain("execute replace(d, a, a || $new$");
   });
 
-  it('completes the request when its last work order finishes, and rechecks stored requests', () => {
+  it('keeps the request in step with its work orders, without a backfill', () => {
     const trigger = migration.slice(migration.indexOf('create or replace function public.work_order_sync_request_triage()'));
-    expect(trigger).toContain("new.status::text in ('done', 'completed', 'billed', 'closed')");
+    // Completed when the last open work order leaves (finished, cancelled, archived, deleted, moved).
+    expect(trigger).toContain("(tg_op = 'DELETE' or not v_new_open or new.service_request_id is distinct from old.service_request_id)");
     expect(trigger).toContain("set status = 'completed'");
-    expect(trigger).toContain("and s.status in ('open', 'waiting')");
-    expect(migration).toMatch(/-- Requests already in that state[\s\S]*update public\.service_requests s/);
+    // Reopened: back to waiting, unless the request was cancelled.
+    expect(trigger).toContain("old.status::text in ('done', 'completed', 'billed', 'closed') then");
+    expect(trigger).toMatch(/set status = 'waiting',\s+resolved_at = null[\s\S]*?and s\.status = 'completed';/);
+    // No backfill: it would fire the resolved webhook for old requests.
+    expect(migration).not.toMatch(/^update public\.service_requests/m);
+  });
+
+  it('keeps resolved_at on nested updates by non-staff callers', () => {
+    expect(migration).toContain("pg_get_functiondef('public.service_request_guard_update()'::regprocedure)");
+    expect(migration).toContain('new.resolved_at := v_resolved;');
   });
 
   it('shows permission to enter only to the assigned vendor', () => {
@@ -39,29 +48,43 @@ describe('20261015170000_work_orders_fixes migration', () => {
   it('dates requests and tenure by the association calendar, not the server date', () => {
     expect(migration).toContain("a1 text := E'    new.created_at := now(); new.created_on := current_date;\\n';");
     expect(migration).toContain('new.created_on := public.association_local_date(new.association_id, coalesce(new.created_at, now()));');
+    // An explicit staff date is kept; the server-date default is gone.
+    expect(migration).toContain('if (not v_is_staff and auth.uid() is not null) or new.created_on is null then');
+    expect(migration).toContain('alter table public.service_requests alter column created_on set default null;');
     const helpers = migration.slice(
       migration.indexOf('create or replace function public.current_resident_unit_ids()'),
       migration.indexOf('revoke all on function public.current_resident_unit_ids()'),
     );
     expect(helpers).not.toMatch(/current_date|created_at::date/);
-    expect(helpers.match(/coalesce\(nullif\(a\.timezone, ''\), 'America\/Chicago'\)/g)?.length).toBe(4);
+    expect(helpers.match(/coalesce\(nullif\(a\.timezone, ''\), 'America\/Chicago'\)/g)?.length).toBe(9);
     // RLS helpers stay PL/pgSQL (a nested SQL helper is re-planned per call).
     expect(helpers).not.toMatch(/language sql/i);
     expect(migration).toContain('public.association_local_date(wo.association_id, wo.created_at) >= public.current_resident_unit_since(wo.unit_id)) /* work_orders_fixes */');
   });
 
-  it('lets residents post only on work orders they can see', () => {
+  it('lets residents post only as themselves, on unarchived work orders they can see', () => {
     expect(migration).toContain('alter policy wo_msg_resident_insert on public.work_order_messages');
-    expect(migration).toContain('and work_order_id in (select rls_private.resident_visible_work_order_ids())');
+    expect(migration).toContain('and author_id = (select auth.uid())');
+    expect(migration).toContain('and work_order_id in (select rls_private.resident_postable_work_order_ids())');
+    const postable = migration.slice(migration.indexOf('create or replace function rls_private.resident_postable_work_order_ids()'));
+    expect(postable).toContain('where w.archived_at is null');
+  });
+
+  it('reads resident requests and payment plans through once-per-query id sets', () => {
+    expect(migration).toContain('or id in (select rls_private.resident_visible_service_request_ids()))');
+    expect(migration).toContain('using (id in (select rls_private.resident_visible_payment_plan_ids()));');
+    const policies = migration.match(/alter policy[^;]*;/g) ?? [];
+    expect(policies.length).toBe(3);
+    for (const p of policies) expect(p).not.toContain('current_resident_unit_since(');
   });
 
   it('is re-runnable and drops or deletes nothing', () => {
     expect(migration).not.toMatch(/\bdrop\s+(table|column|view|function|policy|trigger)\b/i);
     expect(migration).not.toMatch(/\bdelete\s+from\b/i);
     const patches = migration.match(/position\('work_orders_fixes' in d\) > 0 then return/g) ?? [];
-    expect(patches.length).toBe(3);
+    expect(patches.length).toBe(4);
     const anchors = migration.match(/anchor not found exactly once/g) ?? [];
-    expect(anchors.length).toBe(4);
+    expect(anchors.length).toBe(7);
   });
 });
 

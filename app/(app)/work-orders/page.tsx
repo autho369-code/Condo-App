@@ -367,7 +367,9 @@ export default async function WorkOrdersPage({
           </FilterSelect>
         </FilterBar>
 
-        {sp.bulk && (
+        {sp.bulk && sp.done === '0' && sp.unchanged && !sp.failed ? (
+          <Alert tone="info" title={`No changes: ${sp.unchanged} already had that status`} />
+        ) : sp.bulk && (
           <Alert tone={sp.failed ? 'danger' : 'success'} title={`${sp.done ?? 0} work order${sp.done === '1' ? '' : 's'} ${BULK_LABEL[sp.bulk] ?? 'updated'}${sp.unchanged ? ` · ${sp.unchanged} already had that status` : ''}${sp.failed ? ` · ${sp.failed} could not be` : ''}`}>
             {sp.reason}
           </Alert>

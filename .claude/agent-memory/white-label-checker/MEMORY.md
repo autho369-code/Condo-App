@@ -87,3 +87,7 @@
 
 ## Codex #379/#380/#381 follow-ups (Oct 2026, 20261015110000/120000)
 - Amenity guard raises ("outside the amenity's hours", "must end by the next day"), signature "archived association" raise, portal/amenities hints and inspections inspection_search RPC: clean. Anchor-patch `raise exception '<fn>: anchor not found'` text runs at migration time only, never user-facing: skip.
+
+## Work-order fixes (claude/work-orders-fixes, Oct 2026, 20261015170000)
+- Vendor assignment mail (lib/notifications/vendor-assignment.ts): clean. fromName = company_name (fallback 'Your management team', unreachable given the CHECK), replyTo support_email, from_address unset -> EMAIL_FROM (worker moves it to the verified sender domain), links companyUrl with custom_domain cols selected, association_id set. Same pattern as status-change.ts; use it as the reference for new company mail helpers.
+- Status-change mail now reroutes work orders with service_request_id to the request submitter (same helper, same branding). Bulk-comms {source_ref} merges refs 'WO #n — title'; neutral.

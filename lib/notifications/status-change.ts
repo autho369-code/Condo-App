@@ -128,6 +128,8 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }
       if (error || !wo) return false;
       // A work order from a service request answers whoever submitted that
       // request (owner or tenant), not whoever owns the unit today.
+      // Intentional: the requester keeps getting updates on their own
+      // request even after they sell or move out (reviewed 2026-10-14).
       if (wo.service_request_id) {
         return notifyOwnerOfStatusChange({ kind: 'service_request', id: wo.service_request_id, newStatus, message });
       }

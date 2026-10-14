@@ -52,11 +52,12 @@ export default async function ServiceRequestsPage({
 
   const OPEN = ['open', 'waiting'];
   const LIST_LIMIT = 500;
+  const LOOKUP_CAP = 200;
   const nowIso = new Date().toISOString();
   // Queue predicates run in the database so they see every request, not just
   // the first page (has_open_work_order is kept in sync by a work_orders trigger).
   let listQuery = db.from('service_requests')
-    .select('id, number, description, priority, status, source, permission_to_enter, created_at, association_id, unit_id, tenant_id, owner_id, homeowner_id, request_kind, admin_topic, category, duplicate_of, duplicate_reviewed, first_response_due_at, acknowledged_at, associations(name), units(unit_number), tenants:tenant_id(first_name,last_name,email), owners:owner_id(full_name,email), homeowners:homeowner_id(full_name,email), work_orders(id,number,status)')
+    .select('id, number, description, priority, status, source, permission_to_enter, created_at, association_id, unit_id, tenant_id, owner_id, homeowner_id, request_kind, admin_topic, category, duplicate_of, duplicate_reviewed, first_response_due_at, acknowledged_at, associations(name), units(unit_number), tenants:tenant_id(first_name,last_name,email), owners:owner_id(full_name,email), homeowners:homeowner_id(full_name,email), work_orders(id,number,status)', { count: 'exact' })
     .is('archived_at', null);
   if (intake === 'overdue') listQuery = listQuery.in('status', OPEN).is('acknowledged_at', null).lt('first_response_due_at', nowIso);
   else if (intake === 'questions') listQuery = listQuery.in('status', OPEN).eq('request_kind', 'admin');
@@ -70,32 +71,43 @@ export default async function ServiceRequestsPage({
 
   // Search runs in the database (number, description, and association, unit
   // or resident names), so it covers every request, not just the 500 loaded.
+  // Each name lookup is capped so a broad term can't build a huge request;
+  // hitting a cap shows the "narrow the search" notice.
   const term = sanitizeSearchTerm(q);
+  let lookupCapped = false;
   if (term) {
     const quoted = (v: string) => `"${v.replace(/"/g, '')}"`;
+    const ilike = (col: string, v: string) => `${col}.ilike.${quoted(`*${v}*`)}`;
     const like = `%${term}%`;
-    const [{ rows: aMatch }, { rows: uMatch }, { rows: oMatch }, { rows: tMatch }] = await Promise.all([
-      fetchAllRows<any>(() => db.from('associations').select('id').ilike('name', like).order('id')),
-      fetchAllRows<any>(() => db.from('units').select('id').ilike('unit_number', like).order('id')),
-      fetchAllRows<any>(() => db.from('owners').select('id').ilike('full_name', like).order('id')),
-      fetchAllRows<any>(() => db.from('tenants').select('id').or(`first_name.ilike.${quoted(`*${term}*`)},last_name.ilike.${quoted(`*${term}*`)}`).order('id')),
+    // "Jane Doe": first name on the first word and last name on the rest.
+    const [first, ...rest] = term.split(' ');
+    const tenantClauses = [ilike('first_name', term), ilike('last_name', term)];
+    if (rest.length) tenantClauses.push(`and(${ilike('first_name', first)},${ilike('last_name', rest.join(' '))})`);
+    const capped = (query: any) => query.order('id').limit(LOOKUP_CAP + 1);
+    const [aRes, uRes, oRes, tRes] = await Promise.all([
+      capped(db.from('associations').select('id').ilike('name', like)),
+      capped(db.from('units').select('id').ilike('unit_number', like)),
+      capped(db.from('owners').select('id').ilike('full_name', like)),
+      capped(db.from('tenants').select('id').or(tenantClauses.join(','))),
     ]);
-    const ids = (rows: any[]) => rows.map((r) => r.id).join(',');
-    const clauses = [
-      `description.ilike.${quoted(`*${term}*`)}`,
-      `number.ilike.${quoted(`*${term}*`)}`,
-    ];
-    if (aMatch.length) clauses.push(`association_id.in.(${ids(aMatch)})`);
-    if (uMatch.length) clauses.push(`unit_id.in.(${ids(uMatch)})`);
-    if (oMatch.length) clauses.push(`owner_id.in.(${ids(oMatch)})`, `homeowner_id.in.(${ids(oMatch)})`);
-    if (tMatch.length) clauses.push(`tenant_id.in.(${ids(tMatch)})`);
+    const ids = (res: any) => {
+      const rows = (res?.data ?? []) as any[];
+      if (rows.length > LOOKUP_CAP) lookupCapped = true;
+      return rows.slice(0, LOOKUP_CAP).map((r) => r.id).join(',');
+    };
+    const [aIds, uIds, oIds, tIds] = [ids(aRes), ids(uRes), ids(oRes), ids(tRes)];
+    const clauses = [ilike('description', term), ilike('number', term)];
+    if (aIds) clauses.push(`association_id.in.(${aIds})`);
+    if (uIds) clauses.push(`unit_id.in.(${uIds})`);
+    if (oIds) clauses.push(`owner_id.in.(${oIds})`, `homeowner_id.in.(${oIds})`);
+    if (tIds) clauses.push(`tenant_id.in.(${tIds})`);
     listQuery = listQuery.or(clauses.join(','));
   }
 
   const openCount = (build: (query: any) => any) =>
     build(db.from('service_requests').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', OPEN));
 
-  const [{ data: requestRows, error: listError }, { data: associations }, { data: openRows }, overdueRes, questionRes, duplicateRes, emergencyRes, newRes, triagedRes] = await Promise.all([
+  const [{ data: requestRows, error: listError, count: listCount }, { data: associations }, { data: openRows }, overdueRes, questionRes, duplicateRes, emergencyRes, newRes, triagedRes] = await Promise.all([
     listQuery.order('priority', { ascending: false }).order('created_at', { ascending: false }).limit(LIST_LIMIT),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     // Every open request for the average age (one request stops at 1,000 rows).
@@ -114,7 +126,8 @@ export default async function ServiceRequestsPage({
   const isDuplicate = (request: any) => Boolean(request.duplicate_of) && !request.duplicate_reviewed && isOpen(request);
   const now = Date.now();
   const filtered = all;
-  const listCapped = all.length >= LIST_LIMIT;
+  // Only when more requests match than are shown (an exact count).
+  const listCapped = lookupCapped || (listCount ?? 0) > LIST_LIMIT;
 
   const newCount = newRes.count ?? 0;
   const triagedCount = triagedRes.count ?? 0;
@@ -200,7 +213,7 @@ export default async function ServiceRequestsPage({
         </FilterBar>
 
         {listCapped && (
-          <Alert tone="warning" title={`Showing the first ${LIST_LIMIT} matches`}>Narrow the list with search, queue, priority or association to see the rest.</Alert>
+          <Alert tone="warning">{`Showing the first ${LIST_LIMIT.toLocaleString()} matches. Narrow the search to see the rest.`}</Alert>
         )}
 
         {filtered.length === 0 ? (

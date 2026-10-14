@@ -94,3 +94,6 @@
 - "Decided records are final" guards (ARC 20261015090000): also check DELETE (staff FOR ALL policy + cascade wipes the thread), service-role paths that pass app_is_repair_session (arc_remove_attachment p_require_open=false for staff), and client-set attribution columns (decided_by/decided_at, messages.created_at).
 - DEFINER BEFORE INSERT triggers that upsert a private side row keyed on new.id (move_owner_form_submission_notes): a REST upsert with ignore-duplicates passes WITH CHECK on the proposed row, the trigger overwrites the existing (other company's) side row, then the parent insert is skipped. Write side rows in an AFTER trigger.
 - `document_requests` mgr_assoc_scope covers vendor rows only (20261009020000); owner-linked rows are company-wide for scoped managers.
+
+- PostgREST `.or()` with user search: safe when the term goes through `sanitizeSearchTerm` (lib/search/global.ts strips `,()*%_\"'`) before interpolation (service-requests page, 2026-10-14). Flag raw `q` in `.or()`.
+- Work-order status emails for a WO linked to a service request go to the request's submitter (owner or tenant), not the unit's current owner; WOs without a request skip ones opened before the owner's move-in (status-change.ts, 20261015170000). Accepted design: a seller still hears about their own request.

@@ -22,20 +22,32 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: #382 (Codex on 
     of other associations could read its signers); archived association
     refused (#381; live: 0 requests misfiled).
 
-- claude/work-orders-fixes (not pushed yet): work orders and service
-  requests. 20261015170000 dry-run rolled back on production (NOT applied).
+- claude/work-orders-fixes (no PR yet, not pushed): work orders and
+  service requests. 20261015170000 NOT applied; dry-run rolled back on
+  production as the manager, vendor and owner logins (all checks passed).
+  Migration, security, design, schema and white-label reviewers ran; their
+  findings fixed in the second commit.
   - One work order per request: a request with a finished work order is not
-    triaged again; the request completes when its last work order finishes.
-  - Work order status emails go to the request's submitter; a unit work
-    order opened before the current owner moved in emails nobody.
+    triaged again. The request follows its work orders: completed when the
+    last open one finishes, is cancelled, archived or deleted while another
+    is finished (resolved_at kept even when a vendor finishes it); back to
+    waiting when a finished one is reopened (cancelled requests stay). No
+    backfill (it would fire the resolved webhook for old requests).
+  - Work order status emails go to the request's submitter (intentional);
+    a unit work order opened before the current owner moved in emails
+    nobody.
   - Permission to enter on the staff work order page and, through
     vendor_work_order_permission_to_enter, to the assigned vendor.
   - Assigned vendors get a white-labeled email (single and bulk, one email
     per bulk run); bulk messages name every selected job; bulk status skips
-    rows already at that status.
-  - Service request search runs in the database, with the 500-row notice.
-  - Request date and resident tenure use the association's local date;
-    residents post messages only on work orders they can see.
+    rows already at that status ("No changes" notice).
+  - Service request search runs in the database (full names, 200-id caps)
+    with the 500-row notice on an exact count.
+  - Request date, resident tenure, resident associations and tenant work
+    orders use the association's local date; an explicit staff request date
+    is kept. Residents post messages only as themselves on unarchived work
+    orders they can see. Resident service requests and payment plans read
+    through once-per-query id sets (same rows as before in the dry run).
 
 ## Merged 2026-10-14
 - #381 architectural reviews, documents, forms, e-sign (20261015090000 LIVE
