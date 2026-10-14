@@ -146,11 +146,11 @@ Back to [[Home]]. Don't redo these.
   ledger keeps the history and the daily run can't charge it again. A paid
   fee is refused (give a credit or refund). Finance staff only. The owner's
   ledger shows the credit as "Late fee removed"; the reason is staff-only.
-- **Interest is on principal only** (Claude, 2026-10-13, from the deep
-  check; Mirsad can change it): late fees and NSF fees don't earn interest
-  (the function's own description: "simple interest, never compounding"),
-  and a previous owner's charges don't earn interest billed to the new
-  owner, the same rule late fees follow.
+- **No interest on overdue balances** (Mirsad, 2026-10-14: "THERE IS NO
+  INTEREST", "ITS ONE TIME LATE CHARGE"): a late payment gets one late
+  fee, charged once. Interest settings and the daily interest job were
+  removed; never add interest back. Changing how a money rule works is
+  Mirsad's call; bug fixes are not.
 - **A bill posts to its header expense account** (verified 2026-10-13):
   payable_bill_line_items is unused (no writer, no reader), so
   set_payable_bill_expense_account decides what is posted. Line-item

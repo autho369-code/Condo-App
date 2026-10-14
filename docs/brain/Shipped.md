@@ -6,7 +6,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 ## 2026-10-13
 - Managers can remove a late fee (unit page, with a reason; credited back,
   never charged again). Collections deep check: late fees, ladder and plans
-  use the association's own date; interest on principal only; late-fee
+  use the association's own date (interest later removed entirely); late-fee
   records and plan cancel reasons protected (20261015040000).
 - 1099 totals over 10x faster at scale (781 -> 56 ms at 50,000 paid bills),
   same results; bill line items verified unused (bills post to the header

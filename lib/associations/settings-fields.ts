@@ -68,18 +68,6 @@ export const ASSOCIATION_SECTIONS: SettingSection[] = [
     ],
   },
   {
-    key: 'interest',
-    title: 'Interest on delinquent balances',
-    subtitle: 'Posted automatically on the posting day each month as simple interest on overdue principal (never on prior interest). Confirm your declaration and state law allow interest and the rate.',
-    fields: [
-      { key: 'annual_interest_rate', label: 'Annual interest rate (%)', type: 'percent' },
-      { key: 'interest_grace_days', label: 'Subject to interest after (days past due)', type: 'number' },
-      { key: 'interest_post_day_of_month', label: 'Posts on day of month (1–28)', type: 'number' },
-      { key: 'interest_grace_balance', label: 'Grace balance (no interest below)', type: 'money' },
-      { key: 'interest_income_gl_account_id', label: 'Interest income GL account', type: 'gl' },
-    ],
-  },
-  {
     key: 'portal',
     title: 'Owner portal & payments',
     fields: [

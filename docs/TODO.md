@@ -23,6 +23,8 @@ DNS or decisions). Details for the older items are further down.
          always sent. A bounced address gets nothing.
       2. Staff can't clear an owner's unsubscribe (only the owner, from the
          link); staff can clear a bounce after the address is fixed.
+- [ ] **Optional cleanup (interest removed from the product, 0 rows):** interest on overdue balances is gone from the app (no settings, no daily job). To drop what is left in the database:
+      `drop function public.assess_association_interest(date); drop table public.interest_assessments; alter table public.associations drop column annual_interest_rate, drop column interest_grace_days, drop column interest_post_day_of_month, drop column interest_grace_balance, drop column interest_income_gl_account_id;`
 - [ ] **Optional cleanup (unused table, 0 rows):** `drop table public.payable_bill_line_items;`
       Nothing in the app or the database reads or writes it; bills post to
       their header expense account. Keep it if you want itemized bills later.

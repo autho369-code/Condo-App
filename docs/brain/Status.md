@@ -12,6 +12,12 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#376 merged; open PR: claude/journal-
   and steer remove_late_fee's reversal account; rolled back on production:
   allowed before, refused (42501) after; a charge and remove_late_fee still
   post.
+  - LIVE as applied (journal revoke). Production had no hand-made journal
+    entries (all 16 match their source's company).
+  - Interest removed (Mirsad: "THERE IS NO INTEREST", "ITS ONE TIME LATE
+    CHARGE"): no interest settings on the association page, no daily
+    interest job (route + cron removed). Database leftovers: drop SQL in
+    TODO. Late fee = one fee per overdue charge, charged once (as built).
 
 ## Merged 2026-10-13
 - #376 claude/collections-codex-fixes: Codex on #375 (two P1s). Codex: P1
@@ -47,7 +53,7 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#376 merged; open PR: claude/journal-
     could be charged a day early and dated tomorrow on a US evening),
     overrides, ladder days past due, referral readiness, plan schedule and
     paid amount (plans rechecked), plan/offer/vote date checks.
-  - Interest on principal only (no interest on late/NSF fees or a previous
+  - (SUPERSEDED: interest removed entirely, Mirsad) Interest on principal only (no interest on late/NSF fees or a previous
     owner's charges). The unit query went from 8 to 58 ms at 2,000 units
     (the ownership check runs once per unit; offset 0 stops it running per
     charge): fine for a monthly run, where posting the interest charges is
