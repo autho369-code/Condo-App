@@ -1,17 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#393 merged; open PR: platform mail flag; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#393 merged; no open PR; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/po-decisions: decisions 1-7. 20261016220000 LIVE as
-  20261014181833 (dry-runs rolled back first; read back). Reviewers:
-  security, migration, design, white-label; all findings fixed. After
-  deploy Mirsad may drop capital_project_spend_totals /
-  project_budget_vs_actual (replaced). Codex round: 20261016235000 LIVE as 20261014182846:
-  the po_cost_by_billed_gl migration (category open PO amounts follow the
-  bill GL account); vendor email queued before the notes write.
+- none
 
 ## Merged 2026-10-14
+- #397 decisions 1-7: PO bills within a board-approved PO skip the board, vendor emailed on approval, recurring POs current period only, project committed vs spent, automatic PO numbers, POs finance-only (20261014181833 + 20261014182846). All 10 decisions done; nothing left for Claude until Mirsad sets Stripe test keys.
 - #396 decisions 8-10: inventory for company admins, work order # within the company, late fees held for due AutoPay after reactivation and for money in flight (20261014181309).
 - #395 platform mail flag (20261014172807).
 - #393 (merged 2026-10-14) claude/reports-deep-check: deep check of reports, scheduled reports and dashboards. 20261016100000 LIVE as 20261014123933 (author dry-run on production, rolled back; read back). Fixed: people-data reports (users, permissions, login audit) limited to full-access staff/company admins; scheduled report emails only to active staff who can see the report, link requires sign-in (no 30-day public links; 15 stored links rewritten); downloads re-check access; schedules whose user lost access pause once; A/R aging matches the Receivables page (credits); fund reports tie out per fund (interfund line); association-local as-of dates; fiscal-year net income. Reviewers: security, schema, migration (twice), design (twice), white-label.
