@@ -10,6 +10,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   settings locked to their company; no cascading deletes; board seats, lock boxes and
   reminders stay in their association; owners can't read parking notes; former owners
   get no automation or calendar emails.
+- GL / close deep check (20261016200000 live as 20261014121412): no double
+  posting of lockbox checks, management fees or recurring entries; lockbox
+  posts to the current owner; used GL accounts locked; scoped managers can't
+  change company-wide GL or fee defaults; finalized year-end frozen; owners
+  can't read management agreements.
 - Ownership fixes (claude/ownership-fixes, 20261016010000): a sale can't be
   dated in the future; statements go to the owner(s) of record in the
   period; a sale or move-out ends the outgoing owner's parking, stops its

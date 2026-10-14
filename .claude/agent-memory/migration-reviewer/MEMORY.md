@@ -76,6 +76,9 @@
 - A new scope guard trigger on a write target (charges category scope, 20261016164000) must be checked against EVERY writer that PICKS the value by a looser rule: assess_late_fee / assess_association_interest / advance_violation choose categories by portfolio only (no association filter). Loops with no exception handler (post_unit_recurring_charges) abort the whole run on one bad legacy row; ask for a pre-run count of existing violators. Accepted fix: one trigger fn with tg_argv level ('company' on charges, 'association' on unit_recurring_charges) + the posting loop filters out mismatched rows.
 - Overloaded RPCs with all-default tails (subscribe_unit_to_charge 6/7 args) are ambiguous unless callers pass the extra named arg; grep `.rpc('<fn>'` callers when defaults change.
 
+- Freeze guards on "final" records: confirm columns written AFTER finalize stay writable (year_end_packages.signature_request_id via link_year_end_signature; 20261016200000 correctly left it out). Delete guards using app_is_repair_session are safe for purge_rows (SQL editor: session_user postgres).
+- A BEFORE DELETE guard on a child with parent ON DELETE CASCADE (gl_accounts <- associations/portfolios) also fires on parent deletes; a "has sub-accounts" check then blocks the whole cascade. OK only while no app/API path deletes the parent (grep `.from('<parent>')...delete`); 20261016200000 clean.
+
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns

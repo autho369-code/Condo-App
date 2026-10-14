@@ -72,6 +72,26 @@ export async function createOwnerWithDetails(formData: FormData) {
   }
   const today = local.today;
 
+  // Every fee category must fit the unit's association before anything is
+  // created: a category limited to another association would be refused after
+  // the owner already exists, leaving them without the fee.
+  const feeCategoryIds = [...new Set((formData.getAll('fee_category_id') as string[]).map((c) => c.trim()).filter(Boolean))];
+  if (feeCategoryIds.length > 0) {
+    const { data: feeCats, error: feeCatsErr } = await db
+      .from('charge_categories')
+      .select('id, name, association_id')
+      .in('id', feeCategoryIds);
+    if (feeCatsErr) redirect('/owners/new?error=' + encodeURIComponent(`Could not check the fee categories: ${feeCatsErr.message}`));
+    const misfit = ((feeCats ?? []) as Array<{ id: string; name: string; association_id: string | null }>)
+      .find((c) => c.association_id && c.association_id !== assignment.associationId);
+    if (misfit || (feeCats ?? []).length !== feeCategoryIds.length) {
+      redirect('/owners/new?error=' + encodeURIComponent(
+        misfit
+          ? `The fee "${misfit.name}" belongs to another association. Remove it or pick a category for this unit's association.`
+          : 'A selected fee category was not found. Refresh the page and try again.'));
+    }
+  }
+
   const warnings: string[] = [];
   const activatePortal = formData.get('activate_portal') === 'on';
   const addBoardSeat = formData.get('board_member') === 'on';
