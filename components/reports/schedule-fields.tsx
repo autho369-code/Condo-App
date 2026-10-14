@@ -81,8 +81,8 @@ export function ScheduleFields({
         </Select>
       </Field>
       <div className="sm:col-span-2">
-        <Field label="Recipients" htmlFor="delivery_targets" hint="Email addresses separated by commas. Required for email delivery.">
-          <Input id="delivery_targets" name="delivery_targets" defaultValue={(s?.delivery_targets ?? []).join(', ')} placeholder="board@example.com, treasurer@example.com" />
+        <Field label="Recipients" htmlFor="delivery_targets" hint="Sign-in emails of staff who can see this report, separated by commas. They get a link and sign in to download.">
+          <Input id="delivery_targets" name="delivery_targets" defaultValue={(s?.delivery_targets ?? []).join(', ')} placeholder="manager@yourcompany.com, accountant@yourcompany.com" />
         </Field>
       </div>
     </div>

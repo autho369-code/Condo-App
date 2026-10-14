@@ -4,6 +4,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Reports deep check (20261016100000 live as 20261014123933): user and sign-in reports limited to full-access staff and company admins; scheduled report emails only to active staff who can see the report, with sign-in links; downloads re-check access; schedules whose user lost access pause once; A/R aging matches Receivables; fund reports tie out per fund; association-local as-of dates; fiscal-year net income.
 - Setup records deep check (claude/setup-records-deep-check, 20261016164000 +
   20261016164100, LIVE as 20261014122819 / 20261014122901): bulk and recurring charges
   post once in the association's own categories and dates; owner bank details and Stripe

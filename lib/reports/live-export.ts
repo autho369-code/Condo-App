@@ -10,6 +10,8 @@ import {
   normalBalance,
   type LedgerTotals,
 } from '@/lib/reports/financial';
+import { fiscalYearStartFor } from '@/lib/reports/fiscal-year';
+import { loadUnappliedCredits } from '@/lib/reports/receivables';
 
 type ServiceClient = any;
 type LiveExportSlug = (typeof LIVE_EXPORT_SLUGS)[number];
@@ -182,7 +184,8 @@ async function balanceSheetRows(
     }
   }
 
-  const currentYearStart = `${dateTo.slice(0, 4)}-01-01`;
+  // The association's fiscal year (the company's for a company-wide sheet).
+  const currentYearStart = await fiscalYearStartFor(db, dateTo, associationId, portfolioId);
   const currentYearTotals = await loadLedgerTotals(
     db,
     accounts.map((account: any) => account.id),
@@ -469,6 +472,7 @@ async function arAgingRows(
   db: ServiceClient,
   portfolioId: string,
   associationId: string | null,
+  includeCredits = true,
 ) {
   let associationsQuery = db
     .from('associations')
@@ -492,7 +496,7 @@ async function arAgingRows(
   if (error) throw new Error(error);
   if (truncated) throw new Error('A/R aging has more open charges than can be exported at once; filter by association.');
 
-  return data.map((row: any) => ({
+  const charges = data.map((row: any) => ({
     Association: row.association_name,
     Unit: row.unit_number,
     Description: row.description,
@@ -503,6 +507,24 @@ async function arAgingRows(
     'Balance due': Number(row.balance_due ?? 0),
     'Charge ID': row.charge_id,
   }));
+  if (!includeCredits) return charges;
+  // Unapplied payments and credits reduce what is owed, as on the Receivables
+  // page, so the report's total matches that page's outstanding balance.
+  const credits = await loadUnappliedCredits(db, associationIds);
+  return [
+    ...charges,
+    ...credits.map((credit) => ({
+      Association: credit.associationName,
+      Unit: credit.unitNumber,
+      Description: 'Unapplied payment or credit',
+      'Due date': credit.paymentDate,
+      'Aging bucket': 'credit',
+      Charged: 0,
+      Paid: credit.unapplied,
+      'Balance due': -credit.unapplied,
+      'Charge ID': '',
+    })),
+  ];
 }
 
 async function delinquencySummaryRows(
@@ -510,7 +532,8 @@ async function delinquencySummaryRows(
   portfolioId: string,
   associationId: string | null,
 ) {
-  const detail = await arAgingRows(db, portfolioId, associationId);
+  // Open charges only: the summary ages what is owed and counts charges.
+  const detail = await arAgingRows(db, portfolioId, associationId, false);
   const summaries = new Map<string, {
     current: number;
     oneToThirty: number;

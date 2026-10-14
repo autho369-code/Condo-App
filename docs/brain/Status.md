@@ -1,9 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#392 merged; open PRs: #391 setup records, #393 reports; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#392 merged; open PR: #393 reports; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #391 claude/setup-records-deep-check: deep check of setup records (associations, units, owners,
+- #393 claude/reports-deep-check: deep check of reports, scheduled reports and dashboards. 20261016100000 LIVE as 20261014123933 (author dry-run on production, rolled back; read back). Fixed: people-data reports (users, permissions, login audit) limited to full-access staff/company admins; scheduled report emails only to active staff who can see the report, link requires sign-in (no 30-day public links; 15 stored links rewritten); downloads re-check access; schedules whose user lost access pause once; A/R aging matches the Receivables page (credits); fund reports tie out per fund (interfund line); association-local as-of dates; fiscal-year net income. Reviewers: security, schema, migration (twice), design (twice), white-label.
+
+## Merged 2026-10-14
+- #391 (merged 2026-10-14) claude/setup-records-deep-check: deep check of setup records (associations, units, owners,
   charges, parking, keys, letters, reminders, calendar, reserves). 20261016164000 LIVE as
   20261014122819, 20261016164100 LIVE as 20261014122901 (author dry-run on production,
   rolled back; read back). Fixed: duplicate bulk charges on double click; bulk charges to
@@ -15,8 +18,6 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#392 merged; open PRs: #391 setup rec
   calendar reminders crossing associations; owners reading parking staff notes and prior
   owners' history; automation/calendar emails to former owners. Reviewers: security, schema,
   design, white-label, migration (two passes).
-
-## Merged 2026-10-14
 - #392 (merged 2026-10-14) claude/admin-operator-deep-check: deep check of company admin, platform operator, settings and AI assistants. 20261016130000 LIVE as 20261014123525 (author dry-run on production, rolled back; read back). Fixed: company settings writable only by the company admin (managers had direct write to MFA/AI/fees; admins couldn't save settings); staff roles editable only by the company admin/operator; a suspended company's email, texts, mail, webhooks, AutoPay, scheduled reports, scheduled management fees, late fees and automation flows are held (not dropped) until reactivation; platform mail still goes out; webhook SSRF via IPv6 forms closed; fee-run markers, fee defaults and custom_domain_verified_at frozen for direct writes; vendor AI assistant scoped to its company; AI routes no longer return raw errors; operator audit failures reported; more reserved company addresses. Open for Mirsad: late fee vs AutoPay order on reactivation day. Reviewers: security, migration (twice), schema, white-label.
 - #390 (merged 2026-10-14) claude/gl-close-deep-check: deep check of the general ledger, period and
   year-end close, management fees, loans, credit cards and bank lockbox.

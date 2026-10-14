@@ -4,6 +4,7 @@ import { Workspace, WorkspaceHeader, Section } from '@/components/reports/worksp
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { cancelReportRun } from '@/lib/rpcs/reports';
 import { date } from '@/lib/utils';
+import { reportRunDownloadPath } from '@/lib/reports/run-files';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,7 +91,7 @@ export default async function ReportRunsHistory() {
                     <td className="px-4 py-2 text-gray-600">{date(r.started_at ?? r.created_at)}</td>
                     <td className="whitespace-nowrap px-5 py-2 text-right">
                       {r.status === 'succeeded' && r.output_url && (
-                        <a href={r.output_url} target="_blank" rel="noopener" className="text-xs font-medium text-gray-600 transition-colors hover:text-gray-950">Download</a>
+                        <a href={reportRunDownloadPath(r.id)} className="inline-flex min-h-10 items-center text-xs font-medium text-gray-600 transition-colors hover:text-gray-950">Download</a>
                       )}
                       {(r.status === 'queued' || r.status === 'running') && (
                         <form action={cancelReportRun.bind(null, r.id) as any} className="inline">
