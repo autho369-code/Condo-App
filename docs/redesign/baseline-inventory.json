@@ -7508,7 +7508,7 @@
    "route": "/inventory",
    "file": "app/(app)/inventory/page.tsx",
    "pageGuards": [
-    "requireStaff"
+    "requireWorkspaceStaff"
    ],
    "caps": {
     "link": [
@@ -7539,7 +7539,7 @@
      "table:inventory_items"
     ],
     "guard": [
-     "requireStaff"
+     "requireWorkspaceStaff"
     ],
     "confirm": []
    }
@@ -7549,7 +7549,7 @@
    "route": "/inventory/:id",
    "file": "app/(app)/inventory/[id]/page.tsx",
    "pageGuards": [
-    "requireStaff"
+    "requireWorkspaceStaff"
    ],
    "caps": {
     "link": [
@@ -7557,7 +7557,6 @@
      "/inventory/:param?page=:param",
      "/inventory?archived=1",
      "/work-orders/:param",
-     ":param?error=${encodeURIComponent(",
      ":param?error=:param",
      ":param?moved=:param",
      ":param?saved=1"
@@ -7597,7 +7596,7 @@
      "table:work_orders"
     ],
     "guard": [
-     "requireStaff"
+     "requireWorkspaceStaff"
     ],
     "confirm": [
      "Remove this item from inventory?"
@@ -7609,7 +7608,7 @@
    "route": "/inventory/bulk",
    "file": "app/(app)/inventory/bulk/page.tsx",
    "pageGuards": [
-    "requireStaff"
+    "requireWorkspaceStaff"
    ],
    "caps": {
     "link": [
@@ -7631,7 +7630,7 @@
      "table:inventory_items"
     ],
     "guard": [
-     "requireStaff"
+     "requireWorkspaceStaff"
     ],
     "confirm": []
    }
@@ -7641,7 +7640,7 @@
    "route": "/inventory/new",
    "file": "app/(app)/inventory/new/page.tsx",
    "pageGuards": [
-    "requireStaff"
+    "requireWorkspaceStaff"
    ],
    "caps": {
     "link": [
@@ -7669,7 +7668,7 @@
      "table:inventory_items"
     ],
     "guard": [
-     "requireStaff"
+     "requireWorkspaceStaff"
     ],
     "confirm": []
    }

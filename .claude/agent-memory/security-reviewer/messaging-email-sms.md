@@ -30,3 +30,4 @@ metadata:
 - RFC 8058 one-click POSTs come from shared provider IPs: no per-IP rate limit; per-token and fail open.
 - A complaint stops optional mail only; auth links (reset, invites) must still go (holds_auth_link).
 - Per-recipient failure must not mark the shared parent message failed.
+- Work-order status emails for a WO linked to a service request go to the request's submitter (owner or tenant), not the unit's current owner; WOs without a request skip ones opened before the owner's move-in (status-change.ts, 20261015170000). Accepted design: a seller still hears about their own request.

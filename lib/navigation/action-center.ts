@@ -41,6 +41,7 @@ const COMPANY_ADMIN_SHARED_ROUTES = [
   /^\/gl-accounts\/permissions(?:\/|$)/,
   /^\/settings(?:\/|$)/,
   /^\/company-admin(?:\/|$)/,
+  /^\/inventory(?:\/|$)/,
 ];
 
 const work = (title: string, links: ActionCenterLink[]): ActionCenterSection => ({ title, tab: 'work', links });

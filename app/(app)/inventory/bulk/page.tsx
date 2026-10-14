@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button, buttonClass } from '@/components/ui/button';
 import { Field } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -36,12 +36,12 @@ function splitLine(line: string): string[] | null {
 }
 
 export default async function BulkInventoryPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  await requireStaff();
+  await requireWorkspaceStaff();
   const sp = await searchParams;
 
   async function bulkAdd(formData: FormData) {
     'use server';
-    await requireStaff();
+    await requireWorkspaceStaff();
     const fail = (message: string): never => redirect('/inventory/bulk?error=' + encodeURIComponent(message));
     const text = String(formData.get('items') ?? '');
     // Keep each line's own number so errors point at the right row.

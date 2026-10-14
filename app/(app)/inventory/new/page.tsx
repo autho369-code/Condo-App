@@ -4,18 +4,18 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function NewInventoryItemPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  await requireStaff();
+  await requireWorkspaceStaff();
   const sp = await searchParams;
 
   async function createItem(formData: FormData) {
     'use server';
-    await requireStaff();
+    await requireWorkspaceStaff();
     const supabase = await createClient();
     const name = (formData.get('name') as string)?.trim();
     if (!name) redirect('/inventory/new?error=' + encodeURIComponent('Item name is required.'));

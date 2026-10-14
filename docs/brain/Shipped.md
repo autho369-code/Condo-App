@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Inventory and reactivation decisions (20261016230000 live as
+  20261014181309): company admins use inventory; work order # matched within
+  the company; no late fee on due-AutoPay units the day a company is
+  reactivated, nor while a unit's payment is in flight.
 - Platform mail marked by the server (email_queue.platform_mail, live as
   20261014172807): a company named "Portier369 ..." is never treated as the
   platform for the suspension hold, unsubscribe links or the sending address.

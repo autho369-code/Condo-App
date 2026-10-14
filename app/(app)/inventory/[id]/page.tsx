@@ -7,7 +7,7 @@ import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { archiveInventoryItem, recordInventoryMovement, updateInventoryItem } from '@/lib/rpcs/inventory';
 import { createClient } from '@/lib/supabase/server';
 import { money } from '@/lib/utils';
@@ -33,6 +33,13 @@ const MOVED_LABEL: Record<string, string> = {
 const OPEN_WORK_ORDER_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress'];
 const PAGE_SIZE = 100;
 
+// "#12-1" when the work order has a number, else its title.
+function workOrderLabel(wo: { number?: string | number | null; title?: string | null } | null | undefined) {
+  if (wo?.number) return `#${wo.number}`;
+  if (wo?.title) return wo.title;
+  return 'Work order';
+}
+
 export default async function InventoryItemPage({
   params,
   searchParams,
@@ -40,9 +47,12 @@ export default async function InventoryItemPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string; saved?: string; moved?: string; page?: string }>;
 }) {
-  const me = await requireStaff();
-  // Platform operators can look at a company's inventory but not change it.
-  let canEdit = me.is_staff;
+  const me = await requireWorkspaceStaff();
+  // Platform operators can look at a company's inventory but not change it;
+  // company admins use it like staff.
+  let canEdit = me.is_staff || me.is_company_admin;
+  // Company admins can't run reports.
+  const canOpenReports = me.is_staff || me.is_platform_operator;
   const { id } = await params;
   const sp = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
@@ -191,7 +201,7 @@ export default async function InventoryItemPage({
                   <TD className="text-sm">
                     {m.work_order_id ? (
                       <Link href={`/work-orders/${m.work_order_id}`} className="text-gray-900 underline decoration-gray-300 underline-offset-4">
-                        {m.work_orders?.number ? `#${m.work_orders.number}` : 'Work order'}
+                        {workOrderLabel(m.work_orders)}
                       </Link>
                     ) : '—'}
                     {m.associations?.name && <div className="text-[13px] text-gray-500">{m.associations.name}</div>}
@@ -221,7 +231,7 @@ export default async function InventoryItemPage({
           <form action={archiveInventoryItem} className="mt-4 border-t border-gray-100 pt-4">
             <input type="hidden" name="item_id" value={item.id} />
             <PendingSubmit variant="secondary" pendingLabel="Removing…" confirm="Remove this item from inventory?">Remove from inventory</PendingSubmit>
-            <span className="ml-3 text-xs text-gray-500">Its history stays in the Inventory Usage report.</span>
+            <span className="ml-3 text-xs text-gray-500">{canOpenReports ? 'Its history stays in the Inventory Usage report.' : 'Its history is kept.'}</span>
           </form>
         </Surface>}
       </div>

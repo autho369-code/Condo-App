@@ -67,6 +67,7 @@ export const companyAdminModules: AppModule[] = [
   { label: 'Compliance', href: '/company-admin/compliance' },
   { label: 'State Rules', href: '/company-admin/state-rules' },
   { label: 'Maintenance', href: '/company-admin/maintenance' },
+  { label: 'Inventory', href: '/inventory' },
   { label: 'Owners', href: '/company-admin/owners' },
   { label: 'Vendors', href: '/company-admin/vendors' },
   { label: 'Documents', href: '/company-admin/documents' },
