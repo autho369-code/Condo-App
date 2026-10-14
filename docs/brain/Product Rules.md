@@ -207,5 +207,9 @@ Back to [[Home]].
   undoing money (a removed fee, a returned payment) debits or credits the
   account the original journal entry used, read from its posted lines; the
   current category or account mapping is only a fallback.
+- **The journal is written only by database functions** (Codex on #376,
+  2026-10-14): signed-in users can read journal_entries/journal_lines but
+  not insert, update or delete them (20261015060000). A lookup that trusts
+  a row's source fields (source_type/source_id) needs that guarantee.
 - Every form field has a name a screen reader can read: a <label htmlFor> tied to the control (use Field + Input/Select/Textarea), a fieldset/legend for radio groups, or aria-label. `npm run lint` enforces labels (jsx-a11y/label-has-associated-control). Field ties its label to a single Input/Select/Textarea child itself; with several controls pass htmlFor + id. (2026-10-11)
 - Scripts: app pages run under an enforced nonce CSP (lib/server/csp.ts). No inline <script> or on*= handlers in app pages; a new third-party script/frame host must be added to lib/server/csp.ts; an inline script in a blob/print window needs its sha256 in the policy (see PRINT_SCRIPT_HASH). (2026-10-11)
