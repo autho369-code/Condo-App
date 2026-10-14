@@ -74,10 +74,15 @@ describe('20261016230000: late fees on the reactivation day', () => {
     expect(columns.portfolios).toContain('reactivated_at');
   });
 
-  it('skips AutoPay units for 24 hours after reactivation and still holds suspended companies', () => {
+  it('skips due AutoPay units for 24 hours after reactivation, in-flight payments since it, and still holds suspended companies', () => {
     const job = fn('cron_assess_late_fees');
     expect(job).toContain("pf.reactivated_at > now() - interval '24 hours'");
-    expect(job).toMatch(/if a\.just_reactivated and exists \(\s+select 1 from public\.autopay_mandates am\s+where am\.unit_id = c\.unit_id\s+and am\.status = 'active'/);
+    expect(job).toMatch(/if \(a\.just_reactivated and exists \(\s+select 1 from public\.autopay_mandates am\s+where am\.unit_id = c\.unit_id\s+and am\.status = 'active'/);
+    // Only mandates actually due today (the AutoPay run's own skip rule).
+    expect(job).toContain('and am.next_run_date <= a.today');
+    expect(job).toContain('and (am.skip_until is null or am.skip_until < a.today)');
+    // A Stripe payment still clearing (ACH) since the reactivation holds the fee.
+    expect(job).toMatch(/or \(a\.reactivated_at is not null and exists \(\s+select 1 from public\.payment_intents pi\s+where pi\.unit_id = c\.unit_id\s+and pi\.status in \('pending', 'processing'\)\s+and pi\.created_at >= a\.reactivated_at\)\) then\s+v_autopay_held := v_autopay_held \+ 1;/);
     expect(job).toContain('pf.suspended_at is not null');
     expect(job).toContain("'autopay_held', v_autopay_held");
   });

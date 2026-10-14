@@ -9,15 +9,22 @@
 -- 9. "Used on work order #N" is resolved in the app (lib/rpcs/inventory.ts)
 --    within the item's company and refuses an ambiguous number; the database
 --    function already takes the work order id and checks it.
--- 10. Late fees after a suspended company is reactivated: the first late-fee
---    run (11:10 UTC) came before the held AutoPay charges (14:00 UTC), so an
---    AutoPay owner could get a late fee. portfolios.reactivated_at records
---    when a suspension was lifted (set by portfolios_guard_platform_columns
---    whenever suspended_at goes from set to empty, so the operator page's
---    service-client update and reactivate_portfolio both record it; signed-in
---    users can't write it directly). For 24 hours after that,
---    cron_assess_late_fees skips charges of units with an active AutoPay
---    mandate; the next day's run assesses whatever AutoPay didn't pay.
+-- 10. Late fees after a suspended company is reactivated: late fees run twice
+--    a day (pg_cron cron_assess_late_fees at 11:10 UTC and the Vercel route
+--    /api/billing/assess-late-fees at 15:00 UTC), and the held AutoPay
+--    charges run at 14:00 UTC, so on the reactivation day an AutoPay owner
+--    could get a late fee before AutoPay paid. portfolios.reactivated_at
+--    records when a suspension was lifted (set by
+--    portfolios_guard_platform_columns whenever suspended_at goes from set to
+--    empty, so the operator page's service-client update and
+--    reactivate_portfolio both record it; signed-in users can't write it
+--    directly). cron_assess_late_fees then skips a charge (a) for 24 hours
+--    after that, when its unit has an active AutoPay mandate that is due
+--    (next run date reached, not skipped), which covers both runs on the
+--    reactivation day; and (b) while its unit has a Stripe payment still in
+--    flight (pending/processing) that was started since the reactivation, so
+--    ACH AutoPay that takes days to clear isn't fined. Whatever AutoPay
+--    doesn't pay is assessed on a later run.
 --
 -- Function bodies are the live bodies (pg_get_functiondef, 2026-10-14) with
 -- only the marked changes.
@@ -117,7 +124,7 @@ end $function$;
 alter table public.portfolios add column if not exists reactivated_at timestamptz;
 
 comment on column public.portfolios.reactivated_at is
-  'When the company''s last suspension was lifted. Set by portfolios_guard_platform_columns; not writable by signed-in users. cron_assess_late_fees holds late fees on AutoPay units for 24 hours after it.';
+  'When the company''s last suspension was lifted. Set by portfolios_guard_platform_columns; not writable by signed-in users. cron_assess_late_fees holds late fees on units with due AutoPay for 24 hours after it, and on units with a payment in flight started since it.';
 
 create or replace function public.portfolios_guard_platform_columns()
  returns trigger
@@ -132,7 +139,8 @@ begin
     raise exception 'The reactivation time is recorded automatically' using errcode = '42501';
   end if;
   -- Changed: lifting a suspension records when (cron_assess_late_fees holds
-  -- late fees on AutoPay units for a day after it). Who may lift it is
+  -- late fees on due AutoPay units for a day after it, and on units with a
+  -- payment in flight started since it). Who may lift it is
   -- checked further down.
   if old.suspended_at is not null and new.suspended_at is null then
     new.reactivated_at := now();
@@ -199,7 +207,9 @@ begin
   for a in
     -- Changed: table alias x (equivalent), for the suspension check below.
     select x.id, x.name, coalesce(x.late_fee_grace_days, 0) as grace, public.association_local_date(x.id) as today,
-           -- Changed: the company's suspension was lifted in the last 24 hours.
+           -- Changed: when the company's last suspension was lifted, and whether
+           -- that was in the last 24 hours.
+           (select pf.reactivated_at from public.portfolios pf where pf.id = x.portfolio_id) as reactivated_at,
            coalesce((select pf.reactivated_at > now() - interval '24 hours'
                        from public.portfolios pf where pf.id = x.portfolio_id), false) as just_reactivated
       from public.associations x
@@ -223,15 +233,25 @@ begin
          and ch.amount - coalesce((select sum(pa.amount_applied) from public.payment_applications pa where pa.charge_id = ch.id), 0) > 0.005
        order by ch.due_date, ch.id
     loop
-      -- Changed (Mirsad, 2026-10-14): on the reactivation day the held AutoPay
-      -- charges (14:00 UTC) run after this job (11:10 UTC), so units with an
-      -- active AutoPay mandate get no late fee until the next run.
-      if a.just_reactivated and exists (
-           select 1 from public.autopay_mandates am
-            where am.unit_id = c.unit_id
-              and am.status = 'active'
-              and am.canceled_at is null
-              and (am.end_date is null or am.end_date >= a.today)) then
+      -- Changed (Mirsad, 2026-10-14): late fees run at 11:10 UTC (here) and
+      -- 15:00 UTC (Vercel), the held AutoPay charges at 14:00 UTC. For 24 hours
+      -- after a reactivation (both runs that day), a unit whose AutoPay
+      -- mandate is due gets no late fee yet; and while a Stripe payment for the
+      -- unit started since the reactivation is still pending/processing (ACH
+      -- takes days), it gets none either. A later run assesses what's unpaid.
+      if (a.just_reactivated and exists (
+            select 1 from public.autopay_mandates am
+             where am.unit_id = c.unit_id
+               and am.status = 'active'
+               and am.canceled_at is null
+               and (am.end_date is null or am.end_date >= a.today)
+               and am.next_run_date <= a.today
+               and (am.skip_until is null or am.skip_until < a.today)))
+         or (a.reactivated_at is not null and exists (
+            select 1 from public.payment_intents pi
+             where pi.unit_id = c.unit_id
+               and pi.status in ('pending', 'processing')
+               and pi.created_at >= a.reactivated_at)) then
         v_autopay_held := v_autopay_held + 1;
         continue;
       end if;

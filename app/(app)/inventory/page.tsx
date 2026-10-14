@@ -43,7 +43,9 @@ export default async function InventoryPage({
 }: {
   searchParams: Promise<{ q?: string; category?: string; location?: string; view?: string; archived?: string; removed?: string; added?: string }>;
 }) {
-  await requireWorkspaceStaff();
+  const me = await requireWorkspaceStaff();
+  // The inventory reports are staff-only; company admins don't get the tabs.
+  const canOpenReports = me.is_staff || me.is_platform_operator;
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().toLowerCase();
   const category = sp.category ?? 'all';
@@ -132,7 +134,13 @@ export default async function InventoryPage({
       <div className="space-y-4">
         {listTruncated && <Alert tone="warning" title="List is incomplete">There are more inventory items than this page can load. Filter by category or location.</Alert>}
         {sp.added && <Alert tone="success">{`${sp.added} item${sp.added === '1' ? '' : 's'} added to inventory.`}</Alert>}
-        {sp.archived && <Alert tone="success">Item removed from inventory. Its history stays in the Inventory Usage report.</Alert>}
+        {sp.archived && (
+          <Alert tone="success">
+            {canOpenReports
+              ? 'Item removed from inventory. Its history stays in the Inventory Usage report.'
+              : 'Item removed from inventory. Its history is kept.'}
+          </Alert>
+        )}
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           <Link
             href="/inventory"
@@ -152,18 +160,22 @@ export default async function InventoryPage({
           >
             Locations
           </Link>
-          <Link
-            href="/reports/inventory_status"
-            className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
-          >
-            Inventory Status report
-          </Link>
-          <Link
-            href="/reports/inventory_usage"
-            className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
-          >
-            Inventory Usage report
-          </Link>
+          {canOpenReports && (
+            <>
+              <Link
+                href="/reports/inventory_status"
+                className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
+              >
+                Inventory Status report
+              </Link>
+              <Link
+                href="/reports/inventory_usage"
+                className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
+              >
+                Inventory Usage report
+              </Link>
+            </>
+          )}
         </nav>
 
         <MetricStrip

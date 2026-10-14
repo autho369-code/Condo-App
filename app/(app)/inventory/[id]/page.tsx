@@ -33,6 +33,14 @@ const MOVED_LABEL: Record<string, string> = {
 const OPEN_WORK_ORDER_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress'];
 const PAGE_SIZE = 100;
 
+// "#12-1" when the work order has a number. Company admins can't open work
+// orders, so without a number they see its title instead of a bare label.
+function workOrderLabel(wo: { number?: string | number | null; title?: string | null } | null | undefined, canOpen: boolean) {
+  if (wo?.number) return `#${wo.number}`;
+  if (!canOpen && wo?.title) return wo.title;
+  return 'Work order';
+}
+
 export default async function InventoryItemPage({
   params,
   searchParams,
@@ -195,10 +203,10 @@ export default async function InventoryItemPage({
                     {m.work_order_id ? (
                       canOpenWorkOrders ? (
                         <Link href={`/work-orders/${m.work_order_id}`} className="text-gray-900 underline decoration-gray-300 underline-offset-4">
-                          {m.work_orders?.number ? `#${m.work_orders.number}` : 'Work order'}
+                          {workOrderLabel(m.work_orders, canOpenWorkOrders)}
                         </Link>
                       ) : (
-                        <span className="text-gray-900">{m.work_orders?.number ? `#${m.work_orders.number}` : 'Work order'}</span>
+                        <span className="text-gray-900">{workOrderLabel(m.work_orders, canOpenWorkOrders)}</span>
                       )
                     ) : '—'}
                     {m.associations?.name && <div className="text-[13px] text-gray-500">{m.associations.name}</div>}
