@@ -7,13 +7,14 @@ import { describe, expect, it } from 'vitest';
 // database; these checks keep every app writer and lookup in step.
 
 const root = process.cwd();
-const read = (p: string) => readFileSync(resolve(root, p), 'utf8');
+// LF line endings and forward-slash paths, so a Windows checkout reads the same.
+const read = (p: string) => readFileSync(resolve(root, p), 'utf8').replace(/\r\n/g, '\n');
 
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
   for (const name of readdirSync(resolve(root, dir))) {
     if (name === 'node_modules' || name.startsWith('.')) continue;
-    const rel = join(dir, name);
+    const rel = join(dir, name).replace(/\\/g, '/');
     const st = statSync(resolve(root, rel));
     if (st.isDirectory()) out.push(...sourceFiles(rel));
     else if (/\.(ts|tsx|mjs)$/.test(name) && !/\.test\.tsx?$/.test(name)) out.push(rel);

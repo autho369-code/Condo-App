@@ -333,7 +333,8 @@ function idsOf(parts) {
 function checkFile(root, file, schema, fks, out) {
   const sf = parse(file);
   if (!sf) return;
-  const rel = relative(root, file);
+  // Forward slashes on every OS: reports and unchecked-selects.json keys match.
+  const rel = relative(root, file).replace(/\\/g, '/');
   const constants = constantResolver(root, file);
   const lineOf = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
   walk(sf, (call) => {

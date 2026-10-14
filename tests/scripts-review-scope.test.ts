@@ -12,7 +12,10 @@ const write = (cwd: string, path: string, text: string) => {
   writeFileSync(join(cwd, path), text);
 };
 
-describe('review scope', () => {
+// Each test runs dozens of git processes: well under a second on Linux, but
+// process start-up on Windows (and a busy full-suite run) can pass vitest's
+// 5 s default.
+describe('review scope', { timeout: 60_000 }, () => {
   it("lists only the branch's own changes against main's tip", () => {
     const dir = mkdtempSync(join(tmpdir(), 'scope-'));
     git(dir, 'init', '-q', '-b', 'main');
@@ -67,7 +70,11 @@ describe('review scope', () => {
     write(dir, 'staged.ts', 'v1\n');
     write(dir, 'run.sh', 'echo hi\n');
     write(dir, 'guard.ts', 'guard v1\n');
-    git(dir, 'add', '-A'); git(dir, 'commit', '-qm', 'base');
+    git(dir, 'add', '-A');
+    // Committed executable while the file on disk is not: a mode-only change
+    // on every OS (chmod can't set the executable bit on Windows).
+    git(dir, 'update-index', '--chmod=+x', 'run.sh');
+    git(dir, 'commit', '-qm', 'base');
     git(dir, 'checkout', '-qb', 'topic');
     // Added by both sides, then removed again here (staged) with an untracked
     // copy matching main: the branch's net change is nothing and a merge keeps
@@ -85,7 +92,7 @@ describe('review scope', () => {
     write(dir, 'staged.ts', 'v2\n');
     git(dir, 'add', 'staged.ts');
     write(dir, 'staged.ts', 'v1\n'); // undone on disk only; v2 is still staged
-    chmodSync(join(dir, 'run.sh'), 0o755);
+    chmodSync(join(dir, 'run.sh'), 0o644); // no-op on Windows; clears the bit elsewhere
 
     try {
       // No origin remote: falls back to the local main branch.
@@ -94,7 +101,7 @@ describe('review scope', () => {
         { status: 'M', path: 'run.sh' },
         { status: 'M', path: 'staged.ts' },
       ]);
-      // Where git ignores the executable bit (Windows), a chmod is not a change.
+      // Where git ignores the executable bit (Windows), a mode-only difference is not a change.
       git(dir, 'config', 'core.fileMode', 'false');
       expect(reviewScope(dir)).toEqual([
         { status: 'D', path: 'guard.ts' },

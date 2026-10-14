@@ -263,7 +263,7 @@ describe('opening balances from the trial balance', () => {
   it('posts exactly the inputs the shown comparison was made from', () => {
     // A slower, older comparison never replaces a newer one, and posting sends the
     // compared snapshot rather than what the controls hold now.
-    const section = readFileSync(resolve(process.cwd(), 'app/(app)/owners/import/previous-system/gl-section.tsx'), 'utf8');
+    const section = readFileSync(resolve(process.cwd(), 'app/(app)/owners/import/previous-system/gl-section.tsx'), 'utf8').replace(/\r\n/g, '\n');
     expect(section).toContain('if (id !== requestId.current) return;');
     expect(section).toContain('await postOpeningBalances(input.associationId, input.asOf, input.rows, {');
     expect(section).toContain('setAssociationId(e.target.value); invalidate();');
