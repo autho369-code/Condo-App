@@ -140,6 +140,10 @@ Back to [[Home]]. Don't redo these.
   Management fees only accept the management-company vendor. Asked: "one
   company-level exception" vs a copy per association — he chose the
   exception. 1099s stay per association (each association is the payer).
+- **A bill posts to its header expense account** (verified 2026-10-13):
+  payable_bill_line_items is unused (no writer, no reader), so
+  set_payable_bill_expense_account decides what is posted. Line-item
+  posting would be a new feature, not a fix.
 - **One vendor login across associations: build now** (Mirsad,
   2026-10-09), as its own PR after vendors-per-association. Until then the
   auto-link links the oldest matching record (no more failed sign-ups when

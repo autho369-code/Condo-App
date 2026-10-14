@@ -23,6 +23,9 @@ DNS or decisions). Details for the older items are further down.
          always sent. A bounced address gets nothing.
       2. Staff can't clear an owner's unsubscribe (only the owner, from the
          link); staff can clear a bounce after the address is fixed.
+- [ ] **Optional cleanup (unused table, 0 rows):** `drop table public.payable_bill_line_items;`
+      Nothing in the app or the database reads or writes it; bills post to
+      their header expense account. Keep it if you want itemized bills later.
 - [ ] **Optional SQL (unused function):** `drop function public.claim_email_queue(integer);`
       The email worker uses claim_email_queue_snapshot; the old one is no
       longer callable by anyone (20261015010000) and doesn't skip

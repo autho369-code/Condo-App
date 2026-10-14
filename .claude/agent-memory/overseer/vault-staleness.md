@@ -119,3 +119,20 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   email_unsubscribe" only. Status line 3 "next: see Next gaps" and Next gaps
   #1 "in the open PR" again; a deferred design finding (tooltip-only reason,
   invisible on touch) not recorded anywhere.
+- 2026-10-13 (payables-followups start): the branch's first vault commit
+  wrote "open PR: #374" in Status line 3 + Open PR before any PR existed
+  (REST 404). Never guess a PR number; write the branch name and fill the
+  number after `gh pr create`.
+- Payables gap premise (same start): payable_bill_line_items is read/written
+  by no function and no app code (only baseline DDL + GL-permission trigger);
+  ensure_payable_bill_accrual posts the header gl_account_id. The 1099
+  functions were patched by replace() on pg_get_functiondef (20261009020000,
+  20261014150000/160000), so the repo file is not the live body: rewrites
+  start from the live definition.
+- Correction (2026-10-13, same start): I flagged payable_bill_line_items
+  policies as per-row (can_manage_finance / can_view_association_row) from
+  the baseline file; live pg_policy already uses once-per-query helpers
+  ((select my_finance_portfolio()), (select is_platform_operator()),
+  (select my_managed_association_ids())) - later migrations rewrote policies
+  in bulk. For policies, read pg_policy live (or grep every later migration
+  touching the table), never the baseline file alone.
