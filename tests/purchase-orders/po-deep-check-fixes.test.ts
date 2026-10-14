@@ -149,3 +149,10 @@ describe('20261015234500_approval_request_decided_context migration', () => {
     expect(m).toContain("old.status is distinct from 'pending'::public.approval_request_status");
   });
 });
+
+describe('20261015235000_reserve_component_asset_lock migration', () => {
+  it('locks the asset while checking a component link, so a concurrent move serializes', () => {
+    const m = read('supabase/migrations/20261015235000_reserve_component_asset_lock.sql');
+    expect(m).toMatch(/where id = new\.fixed_asset_id[\s\S]*?for share;/);
+  });
+});

@@ -24,6 +24,8 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: #387 purchase o
     and requester are frozen too (20261015234500 LIVE as 20261014094714).
     Codex's FK concern checked: deleting a vendor with a decided request
     still works (FK SET NULL runs as the table owner).
+  - Codex: linking a reserve component share-locks the asset, so a
+    concurrent asset move serializes (20261015235000 LIVE as 20261014095415).
   Reviewers: migration (twice, final file), security (DELETE/re-point gaps
   fixed), design (note hint moved under the row, bill page too),
   white-label (two messages reworded). 9 business-rule questions -> TODO.
