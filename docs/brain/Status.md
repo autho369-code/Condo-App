@@ -1,9 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#368 merged; open PR: #369 claude/comms-followups; next: email unsubscribe and suppression; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#369 merged; open PR: claude/sms-sender-routing (Codex on #369); next: email unsubscribe and suppression; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #369 claude/comms-followups: communications follow-ups.
+- claude/sms-sender-routing: Codex on #369 (in progress).
+
+## Merged 2026-10-13
+- #369 communications follow-ups.
   20261014233000 (LIVE):
   - REGRESSION FIX from #367: the email worker-columns guard checked
     auth.role(), still 'authenticated' inside definer functions an owner's
@@ -27,8 +30,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#368 merged; open PR: #369 claude/com
   at a time (were cut at 300/100); mass email leaves out owners who moved
   out by the association's today. Letters vs email owners checked: the
   same 17 owners (unit_owners is synced from occupancies), no change.
-
-## Merged 2026-10-13
 - #368 email limit counted by the database time under a per-company lock
   (Codex on #367; 20261014230000). Codex clean.
 - #367 email security: sign-in links unreadable by staff; staff mail checked
