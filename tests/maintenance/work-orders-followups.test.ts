@@ -7,6 +7,9 @@ const mocks = vi.hoisted(() => ({
   notifyVendor: vi.fn(),
   rows: [] as unknown[],
   error: null as null | { message: string },
+  // Ids a claim returns; null claims everything it was asked for.
+  claimable: null as null | string[],
+  claimError: null as null | { message: string },
 }));
 
 vi.mock('@/lib/supabase/server', () => ({ createServiceClient: mocks.createServiceClient }));
@@ -21,22 +24,47 @@ const req = (auth = `Bearer ${SECRET}`) =>
 
 function query() {
   const q: any = {};
-  for (const m of ['select', 'eq', 'not', 'is', 'gte', 'update']) q[m] = vi.fn(() => q);
+  for (const m of ['select', 'eq', 'not', 'is', 'gte', 'in']) q[m] = vi.fn(() => q);
   q.limit = vi.fn(async () => ({ data: mocks.rows, error: mocks.error }));
-  // .in() filters the read (chainable) and ends the stamp update.
-  q.in = vi.fn((col: string) => (col === 'status' ? q : Promise.resolve({ error: null })));
   return q;
+}
+
+/** update(...).in('id', ids)[.is(...).select('id')] — a claim or a release. */
+function updates(log: Array<{ values: any; ids: string[]; claim: boolean }>) {
+  return () => {
+    const entry = { values: null as any, ids: [] as string[], claim: false };
+    const u: any = {};
+    u.update = vi.fn((values: any) => { entry.values = values; log.push(entry); return u; });
+    u.in = vi.fn((_col: string, ids: string[]) => { entry.ids = ids; return u; });
+    u.is = vi.fn(() => { entry.claim = true; return u; });
+    u.select = vi.fn(async () => mocks.claimError
+      ? { data: null, error: mocks.claimError }
+      : { data: entry.ids.filter((id) => !mocks.claimable || mocks.claimable.includes(id)).map((id) => ({ id })), error: null });
+    u.then = (resolve: (v: unknown) => void) => resolve({ error: null });
+    return u;
+  };
 }
 
 describe('/api/work-orders/notify-recurring', () => {
   let q: any;
+  let writes: Array<{ values: any; ids: string[]; claim: boolean }>;
   beforeEach(() => {
     vi.stubEnv('CRON_SECRET', SECRET);
     mocks.rows = [];
     mocks.error = null;
+    mocks.claimable = null;
+    mocks.claimError = null;
     mocks.notifyVendor.mockReset().mockResolvedValue(true);
     q = query();
-    mocks.createServiceClient.mockReturnValue({ from: vi.fn(() => q) });
+    writes = [];
+    const update = updates(writes);
+    let first = true;
+    mocks.createServiceClient.mockReturnValue({
+      from: vi.fn(() => {
+        if (first) { first = false; return q; }
+        return update();
+      }),
+    });
   });
 
   it('refuses without the cron secret', async () => {
@@ -52,19 +80,45 @@ describe('/api/work-orders/notify-recurring', () => {
       { id: 'w3', vendor_id: 'v1' },
     ];
     const res = await GET(req());
-    expect(await res.json()).toEqual({ workOrders: 3, vendors: 2, emailed: 2 });
+    expect(await res.json()).toEqual({ workOrders: 3, vendors: 2, emailed: 2, failed: 0 });
     expect(mocks.notifyVendor).toHaveBeenCalledWith({ vendorId: 'v1', workOrderIds: ['w1', 'w3'] });
     expect(mocks.notifyVendor).toHaveBeenCalledWith({ vendorId: 'v2', workOrderIds: ['w2'] });
-    expect(q.update).toHaveBeenCalledWith({ vendor_notified_at: expect.any(String) });
-    expect(q.in).toHaveBeenCalledWith('id', ['w1', 'w3']);
+    // Claimed (stamped where still empty) before sending, never released.
+    expect(writes).toEqual([
+      { values: { vendor_notified_at: expect.any(String) }, ids: ['w1', 'w3'], claim: true },
+      { values: { vendor_notified_at: expect.any(String) }, ids: ['w2'], claim: true },
+    ]);
   });
 
-  it('marks jobs emailed only when the email was queued', async () => {
+  it('emails only the jobs it claimed (another run took the rest)', async () => {
+    mocks.rows = [{ id: 'w1', vendor_id: 'v1' }, { id: 'w2', vendor_id: 'v1' }];
+    mocks.claimable = ['w2'];
+    await GET(req());
+    expect(mocks.notifyVendor).toHaveBeenCalledWith({ vendorId: 'v1', workOrderIds: ['w2'] });
+  });
+
+  it('sends nothing when another run claimed every job', async () => {
+    mocks.rows = [{ id: 'w1', vendor_id: 'v1' }];
+    mocks.claimable = [];
+    const res = await GET(req());
+    expect(await res.json()).toEqual({ workOrders: 1, vendors: 1, emailed: 0, failed: 0 });
+    expect(mocks.notifyVendor).not.toHaveBeenCalled();
+  });
+
+  it('releases the claim when no email was queued, so the next run retries', async () => {
     mocks.rows = [{ id: 'w1', vendor_id: 'v1' }];
     mocks.notifyVendor.mockResolvedValue(false);
     const res = await GET(req());
-    expect(await res.json()).toEqual({ workOrders: 1, vendors: 1, emailed: 0 });
-    expect(q.update).not.toHaveBeenCalled();
+    expect(await res.json()).toEqual({ workOrders: 1, vendors: 1, emailed: 0, failed: 0 });
+    expect(writes[1]).toEqual({ values: { vendor_notified_at: null }, ids: ['w1'], claim: false });
+  });
+
+  it('fails loudly and sends nothing when a claim fails', async () => {
+    mocks.rows = [{ id: 'w1', vendor_id: 'v1' }];
+    mocks.claimError = { message: 'boom' };
+    const res = await GET(req());
+    expect(res.status).toBe(500);
+    expect(mocks.notifyVendor).not.toHaveBeenCalled();
   });
 
   it('reads only open nightly-generated jobs with a vendor', async () => {

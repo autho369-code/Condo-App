@@ -8,7 +8,8 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: #386 work order
     vendor now email that vendor: /api/work-orders/notify-recurring (Vercel
     cron 12:00 UTC, after pg_cron's 11:30 generator) sends the same
     white-labeled assignment email staff assignment sends, per vendor,
-    each job once (work_orders.vendor_notified_at, stamped after queueing;
+    each job at most once (work_orders.vendor_notified_at claimed before
+    sending where still empty, released if nothing was queued; Codex P2;
     a 7-day catch-up window; any still-active status, Codex P2). "Generate
     now" emails the vendor right away.
   - 20261015220000: a completed request goes back to waiting whenever an

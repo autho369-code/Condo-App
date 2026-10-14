@@ -8,8 +8,11 @@
  *
  * Nightly jobs are the ones whose service request has source 'recurring'
  * ("Generate now" creates none and emails the vendor itself). Each job is
- * emailed once: vendor_notified_at is stamped when its email is queued, and
- * only unstamped jobs from the last week are read (a missed run catches up).
+ * emailed at most once: a run first claims its jobs by stamping
+ * vendor_notified_at where it is still empty (so overlapping runs can't both
+ * send), emails only what it claimed, and clears the stamp again when no
+ * email was queued so the next run retries. Only unstamped jobs from the
+ * last week are read (a missed run catches up).
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCronSecret } from '@/lib/server/cron-auth';
@@ -48,14 +51,33 @@ export async function GET(request: NextRequest) {
   }
 
   let emailed = 0;
+  let failed = 0;
   for (const [vendorId, workOrderIds] of byVendor) {
-    if (!(await notifyVendorOfAssignment({ vendorId, workOrderIds }))) continue;
-    emailed += 1;
-    const { error: stampError } = await svc
+    const { data: claimed, error: claimError } = await svc
       .from('work_orders')
       .update({ vendor_notified_at: new Date().toISOString() })
-      .in('id', workOrderIds);
-    if (stampError) console.error('[notify-recurring] failed to mark jobs emailed:', vendorId, stampError.message);
+      .in('id', workOrderIds)
+      .is('vendor_notified_at', null)
+      .select('id');
+    if (claimError) {
+      console.error('[notify-recurring] failed to claim jobs:', vendorId, claimError.message);
+      failed += 1;
+      continue;
+    }
+    const ids = ((claimed ?? []) as Array<{ id: string }>).map((r) => r.id);
+    if (ids.length === 0) continue;
+    if (await notifyVendorOfAssignment({ vendorId, workOrderIds: ids })) {
+      emailed += 1;
+      continue;
+    }
+    // Nothing was queued (no email on file, or the queue refused): let the
+    // next run try again.
+    const { error: releaseError } = await svc
+      .from('work_orders')
+      .update({ vendor_notified_at: null })
+      .in('id', ids);
+    if (releaseError) console.error('[notify-recurring] failed to release jobs:', vendorId, releaseError.message);
   }
-  return NextResponse.json({ workOrders: data?.length ?? 0, vendors: byVendor.size, emailed });
+  const body = { workOrders: data?.length ?? 0, vendors: byVendor.size, emailed, failed };
+  return NextResponse.json(body, { status: failed > 0 ? 500 : 200 });
 }
