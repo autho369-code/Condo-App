@@ -217,10 +217,26 @@ Back to [[Home]]. Don't redo these.
   reads/writes go through explicit `to anon` policies or the service
   client. maintenance_templates "Anyone can read templates" was switched
   off with USING (false) instead of dropped (DROPs are Mirsad's).
-- 2026-10-13: a completed bank reconciliation is final in the app (no undo);
-  the database refuses changes to it and its items and refuses completing an
-  unbalanced one (20261013080000/090000). A mistaken one is fixed by the
-  platform (service role is not blocked). The app never offered reopening.
+- 2026-10-13 (replaced the same day): a completed bank reconciliation can be
+  undone, as in AppFolio, but only the account's LATEST one, by finance staff
+  who can reconcile the account, with a reason (audited; kept on the row), and
+  not when a month it covers is closed (reopen the month first). It goes back
+  to in progress with its cleared items as they were. Otherwise the database
+  still refuses changes to a completed one and its items, and completing an
+  unbalanced one (20261013080000/090000, 20261015020000). The earlier "final,
+  no undo" rule was Claude's from the deep check, not Mirsad's. A
+  reconciliation in progress can be discarded (items, then the
+  reconciliation: two steps, so a failure can leave an empty one in progress,
+  which can be discarded again); a reopened one can't (it was completed once;
+  complete it again).
+- 2026-10-13: a month inside a finalized year-end package can't be reopened
+  until the package is superseded (finalizing already needs every month
+  closed). Months are company-wide, so one association's finalized year keeps
+  that month closed for the whole company (20261015020000).
+- 2026-10-13: a ledger line, journal entry or bank adjustment cleared on a
+  completed reconciliation can't change amount, account, date or posting, or
+  be deleted, until that reconciliation is undone; a reversal (new entry) is
+  the correction (20261015020000).
 - 2026-10-13: a payment plan measures a bounced receipt as a pair: the
   receipt and its reversal charge are both left out only when the receipt is
   inside the plan window; a receipt from before the plan that bounces counts

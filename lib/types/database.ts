@@ -2976,6 +2976,9 @@ export type Database = {
           statement_balance: number
           statement_date: string
           status: string
+          undo_reason: string | null
+          undone_at: string | null
+          undone_by: string | null
           updated_at: string
         }
         Insert: {
@@ -2992,6 +2995,9 @@ export type Database = {
           statement_balance?: number
           statement_date: string
           status?: string
+          undo_reason?: string | null
+          undone_at?: string | null
+          undone_by?: string | null
           updated_at?: string
         }
         Update: {
@@ -3008,6 +3014,9 @@ export type Database = {
           statement_balance?: number
           statement_date?: string
           status?: string
+          undo_reason?: string | null
+          undone_at?: string | null
+          undone_by?: string | null
           updated_at?: string
         }
         Relationships: [

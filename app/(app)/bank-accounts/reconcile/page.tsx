@@ -4,13 +4,15 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Button, buttonClass } from '@/components/ui/button';
-import { Field, Select } from '@/components/ui/input';
+import { Field, Select, Textarea } from '@/components/ui/input';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { discardBankReconciliation, undoBankReconciliation } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +26,10 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 export default async function BankReconciliationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ account_id?: string; tab?: string; error?: string }>;
+  searchParams: Promise<{ account_id?: string; tab?: string; error?: string; done?: string }>;
 }) {
   await requireFinanceStaff();
-  const { account_id = '', tab = 'unreconciled', error: pageError } = await searchParams;
+  const { account_id = '', tab = 'unreconciled', error: pageError, done } = await searchParams;
   const activeTab: TabKey = TABS.some((t) => t.key === tab) ? (tab as TabKey) : 'unreconciled';
 
   const supabase = await createClient();
@@ -54,6 +56,7 @@ export default async function BankReconciliationPage({
   let reconciliationItems: any[] = [];
   let glAccount: any = null;
   let recentReconciliation: any = null;
+  let latestCompleted: any = null;
   const loadErrors: string[] = [];
 
   if (selectedAccount) {
@@ -81,6 +84,10 @@ export default async function BankReconciliationPage({
     const activeReconciliation = reconciliations.find((r: any) => r.status === 'in_progress');
     const displayReconciliation =
       activeReconciliation || (activeTab === 'unreconciled' ? reconciliations[0] : null);
+
+    latestCompleted = reconciliations
+      .filter((r: any) => r.status === 'completed')
+      .sort((a: any, b: any) => String(b.statement_date).localeCompare(String(a.statement_date)))[0] ?? null;
 
     if (activeTab === 'reconciled') {
       recentReconciliation = reconciliations.find((r: any) => r.status === 'completed') ?? null;
@@ -201,6 +208,8 @@ export default async function BankReconciliationPage({
     >
       <div className="space-y-6">
         {pageError && <Alert tone="danger" title="Reconciliation not updated.">{pageError}</Alert>}
+        {done === 'undone' && <Alert tone="success">The reconciliation was undone and is in progress again. Change what you need, then complete it.</Alert>}
+        {done === 'discarded' && <Alert tone="success">The reconciliation in progress was discarded.</Alert>}
         {loadErrors.length > 0 && <Alert tone="danger" title="Could not load reconciliation data.">{loadErrors.join(' · ')}</Alert>}
         {selectedAccount && !selectedAccount.gl_account_id && (
           <Alert tone="warning" title="This bank account isn't linked to a GL account.">
@@ -346,9 +355,37 @@ export default async function BankReconciliationPage({
                         <Button type="submit">Complete reconciliation</Button>
                       </form>
                     )}
+                    {/* A reopened reconciliation was completed once: complete it again. */}
+                    {recentReconciliation.status === 'in_progress' && !recentReconciliation.undone_at && (
+                      <form action={discardBankReconciliation}>
+                        <input type="hidden" name="reconciliation_id" value={recentReconciliation.id} />
+                        <input type="hidden" name="bank_account_id" value={selectedAccount.id} />
+                        <PendingSubmit variant="secondary" pendingLabel="Discarding…" confirm="Discard this reconciliation in progress? Its cleared items are removed; nothing in the ledger changes.">
+                          Discard
+                        </PendingSubmit>
+                      </form>
+                    )}
                     <Link href={`/bank-accounts/reconcile/new?account_id=${encodeURIComponent(selectedAccount.id)}`} className={buttonClass('secondary')}>New reconciliation</Link>
                   </div>
                 </div>
+                {recentReconciliation.undone_at && (
+                  <p className="mt-3 text-[13px] text-gray-500">
+                    <span className="font-medium text-ink">Reopened {date(recentReconciliation.undone_at)}</span>
+                    {recentReconciliation.undo_reason ? `: ${recentReconciliation.undo_reason}` : ''}
+                  </p>
+                )}
+                {recentReconciliation.status === 'completed' && latestCompleted?.id === recentReconciliation.id && (
+                  <form action={undoBankReconciliation} className="mt-4 space-y-3 border-t border-line pt-4">
+                    <input type="hidden" name="reconciliation_id" value={recentReconciliation.id} />
+                    <input type="hidden" name="bank_account_id" value={selectedAccount.id} />
+                    <Field label="Reason for undoing this reconciliation" htmlFor="undo_reason" required hint="The reconciliation reopens as in progress and its cleared items stay cleared. Every month it covers must still be open in the books. At least 10 characters.">
+                      <Textarea id="undo_reason" name="reason" required minLength={10} rows={2} />
+                    </Field>
+                    <PendingSubmit variant="secondary" pendingLabel="Undoing…" confirm="Undo this reconciliation? It goes back to in progress until you complete it again.">
+                      Undo reconciliation
+                    </PendingSubmit>
+                  </form>
+                )}
               </Surface>
             )}
 

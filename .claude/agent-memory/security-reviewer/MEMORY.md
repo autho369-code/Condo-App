@@ -37,6 +37,9 @@
 - Flipping an rls_private id-set helper INVOKER -> DEFINER widens every policy that uses it: it stops inheriting the inner table's RLS (resident_payment_ids, 20261014190000: buyer reads the applications on their unit's charges; kept on purpose for correct balances, notes column unused, applied_by a staff id; payments.notes is private via payment_private). List the columns of each table whose policy uses the helper.
 - Owner-facing "force fields for non-staff" triggers (service_request_intake, arch_msg_set_author) skip on global is_any_staff(): staff at A who own at B escape them at B. Skip only when the caller can_access_association(row's association) (fixed in both before the PR).
 
+- Cross-RPC invariants (undo_bank_reconciliation vs set_accounting_period_status close, 20261015020000): A locks bank_accounts and checks periods, but B reads bank_accounts with no lock, so both pass. Both sides must lock one shared row (e.g. undo takes `for share` on the company's accounting_periods, which close holds `for update`). Also year-end finalize vs month reopen. (Fixed in 20261015020000: undo and finalize take accounting_periods FOR SHARE.)
+- DEFINER RPCs that `select ... for update` the parent (bank account) BEFORE the access helper: the house rule (guard comment) is check access first, then lock. (Fixed in undo_bank_reconciliation.)
+
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import
 - [Missed checks](missed-checks.md) -- domain-proof replay/relay, token minting, html_escape, storage cleanup, finance RPC scope triggers, hidden columns copied by DEFINER triggers (soft_delete_log), owner_visible_history writers

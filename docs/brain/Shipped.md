@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Banking follow-ups: finance staff can undo an account's latest bank
+  reconciliation (reason, audited; not when a month it covers is closed);
+  a month in a finalized year-end package can't be reopened until the
+  package is superseded; cleared ledger lines, entries and bank adjustments
+  can't change under a completed reconciliation (20261015020000).
 - Email unsubscribe and suppression: optional mail (mass email, reminders,
   automations) has an Unsubscribe link and one-click List-Unsubscribe headers
   on the company's address; unsubscribed, spam-reported and bounced

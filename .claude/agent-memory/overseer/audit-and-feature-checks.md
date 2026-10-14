@@ -64,3 +64,18 @@ metadata:
   as two apply_migration calls (two schema_migrations versions) - ask for the
   read-back and make file(s) match live versions; migration-reviewer re-runs
   when definer RPCs are added after its review.
+- Start check 2026-10-13 (banking follow-ups): gap "year-end close does not
+  lock months" was half stale - finalize_year_end_package already requires
+  all 12 months closed (year_end_readiness periods_closed); the real hole is
+  reopening a month inside a finalized package (set_accounting_period_status).
+  Periods are company-wide, packages per association. Also "undo
+  reconciliation" reverses a Decisions entry (2026-10-13 "final in the app");
+  Decisions must be rewritten in the same PR. Cleared items point at
+  journal_lines too, not only bank_adjustments - guard both. An undo that
+  DELETEs items makes the migration Mirsad's; reopen by status instead.
+- Pre-PR 2026-10-13 (banking follow-ups): app-side two-step deletes (items,
+  then parent) are not atomic - ask for an RPC or accept in Decisions. A
+  "Discard" offered on a reopened (undone) record deletes the once-completed
+  row (audit_logs keeps the undo only): Decisions must say if intended.
+  Reviewer leftovers ("no FK on X") must land in Next gaps or be marked
+  "not needed" - they vanish otherwise.
