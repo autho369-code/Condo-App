@@ -4,8 +4,11 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: claude/ownershi
 
 ## Open PR
 - claude/ownership-fixes (sale and move-out, from a deep check of the
-  change-homeowner flow). Migration 20261016010000_ownership_fixes.sql,
-  NOT LIVE yet (do not merge until it is):
+  change-homeowner flow). Migration 20261016010000_ownership_fixes.sql
+  LIVE as 20261014102121 (final file dry-run rolled back on production by the
+  main session first: future sale refused; Sept owner statements to seller
+  and buyer; Aug monthly statement to the seller, Sept to the buyer; read
+  back: trigger, both policies, transfer check):
   - A sale can't be recorded before it closes: change_unit_homeowner and
     transfer_unit_ownership refuse a transfer date after the association's
     local today; the action checks it before creating a buyer record; the
