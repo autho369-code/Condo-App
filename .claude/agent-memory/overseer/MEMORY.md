@@ -105,6 +105,11 @@
   as the SQL is settled (reviewers clean), read back, then open the PR with
   "do not merge until live". Also check Status "Where things stand" gets the
   just-merged PR, not only Open PR.
+- Multi-round Codex PRs (#383, 5 rounds, 2026-10-14): PR body, Shipped.md,
+  Product Rules and reviewer memories all described round 1 only; no
+  "missed:" lines; security memory still called the method/reversed_at hole
+  "low" after 130000/160000 fixed it; round-N raise texts + page Alert got no
+  white-label pass. Pre-merge: diff each artifact against the LAST round.
 - Importer credits / tie-out / opening-balance pre-PR checks: see [finance-import-checks](finance-import-checks.md).
 
 - "Notify X when assigned" features: grep EVERY writer of the column (app inserts, RPCs, SQL

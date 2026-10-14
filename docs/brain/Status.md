@@ -1,9 +1,39 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#382 and #385 merged; open PRs: #383 removed late fee status, #384 owner portal fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: #383 removed late fee status; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #384 claude/owner-portal-fixes: owner portal fixes, app
+- #383 claude/removed-late-fee-status: a removed late fee reads "Removed", not
+  "Paid", on the owner's ledger and the unit page (v_charge_balances;
+  balances unchanged); only remove_late_fee can mark its credit; past due
+  by the association's local date. 20261015130000 LIVE as 20261014024847,
+  20261015140000 (clearer reserved-reference message) LIVE as 20261014025022,
+  20261015150000 (Codex P1: a removal credit counts only for its own fee;
+  signed-in users can't add or move its applications) LIVE as 20261014025658,
+  20261015160000 (Codex P2: reversed_at locked on a removal credit) LIVE as
+  20261014030321,
+  20261015180000 (Codex P1: removal credits can't be deleted) LIVE as
+  20261014030816,
+  20261015190000 (Codex P1: a removal credit's applications can't be
+  deleted by hand either) LIVE as 20261014031317,
+  20261015200000 (Codex P1: reallocate_payment refuses a removal credit;
+  the payment page hides its allocation form) LIVE as 20261014031827,
+  20261015210000 (reviewers re-ran on rounds 2-5 and found the rest: the
+  credit is frozen except notes, the fee can't be deleted or changed except
+  its description, a removal credit applies only to its own fee for every
+  caller, v_unapplied_credits leaves it out so apply_credits/auto-apply
+  never spend it; manager wording) LIVE as 20261014074814 (dry-run rolled
+  back on production first, read back).
+  Checked: the only other signed-in-callable function that rewrites
+  applications, reverse_homeowner_payment, already refuses credits
+  (dry-run rolled back on production first: manager and owner see removed,
+  unremoved fee outstanding, due-today not past due, marker guard blocks
+  setting, changing or re-typing it; read back). Round 1: migration, security and
+  design reviewers ran; rounds 2-5 re-reviewed before 20261015210000; their suggestions done (method locked, UTC
+  fallback date, past-due badge stays red on the unit page).
+
+## Merged 2026-10-14
+- #384 owner portal fixes (merged 2026-10-14), app
   code only (no migrations).
   - Ledger: a previous owner's paid charges are hidden; charges still open
     stay (screen and export). Unit column on charges and payments; the
@@ -23,8 +53,6 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#382 and #385 merged; open PRs: #383 
   - Communications uses the shared text box.
   - A removed late fee reads "Late fee removed", never as a payment
     received (ledger, dashboard, timeline, owner assistant).
-
-## Merged 2026-10-14
 - #385 work orders and service requests (20261015170000 LIVE as
   20261014034204). Codex: one P2 (complete a request when its only work
   order is deleted) answered as intended: unfinished work never marks a
@@ -740,10 +768,8 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#382 and #385 merged; open PRs: #383 
   resolved_by and resolution_note (migration review, 20261015170000).
 - DONE in the journal-source-guard PR (20261015060000): direct journal writes
   revoked from signed-in users.
-- Owner ledger: a removed late fee still shows status "paid" (v_charge_balances
-  has no removed/waived state; its credit row reads "Late fee removed").
-  Needs a view change (a credit-covered late fee -> "Removed"); not done in
-  the collections PR to keep the view change separate.
+- DONE 2026-10-14 (20261015130000): a removed late fee reads "removed" on
+  the owner's ledger and the unit page.
 - DONE 2026-10-13 (verified live, no change): payable_bill_line_items
   policies already use the once-per-query helpers (my_finance_portfolio,
   is_platform_operator, my_managed_association_ids) through an EXISTS on

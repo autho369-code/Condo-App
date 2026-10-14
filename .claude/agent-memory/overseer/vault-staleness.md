@@ -136,6 +136,13 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   (select my_managed_association_ids())) - later migrations rewrote policies
   in bulk. For policies, read pg_policy live (or grep every later migration
   touching the table), never the baseline file alone.
+- 9th (2026-10-14, removed-late-fee start check): Status header + "Open PR"
+  still listed #382 as open; it merged 07:40Z (squash 32593a97 on main).
+  The next PR must move #382 to "Merged 2026-10-14".
+- Same start check: a view rewrite (v_charge_balances) carries old rule
+  breaks along - its is_past_due uses UTC current_date (Product Rules:
+  association_local_date). Flag adjacent rule breaks in any object being
+  replaced; fix as a bug or list as a gap, never drop silently.
 - Recurring 9th time (owner-portal-fixes pre-PR, 2026-10-14): Status header
   "open PR: #382" + #382 still under Open PR after it merged 07:40Z; new
   branch entry "no PR number yet". Also open #383 (another session) missing

@@ -1,0 +1,102 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { toneForStatus } from '@/components/ui/shell';
+
+const read = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf8').replace(/\r\n/g, '\n');
+const migration = read('supabase/migrations/20261015130000_removed_late_fee_status.sql');
+
+describe('20261015130000_removed_late_fee_status migration', () => {
+  it('labels a late fee covered by a removal credit as removed', () => {
+    expect(migration).toContain("then 'removed'::text");
+    expect(migration).toContain("c.charge_type = 'late_fee'");
+    expect(migration).toContain("rp.reference = 'Late fee removed'");
+    expect(migration).toContain('rp.reversed_at is null');
+  });
+
+  it('keeps the view security_invoker with one sum per charge', () => {
+    expect(migration).toContain('with (security_invoker = true)');
+    expect(migration.match(/left join lateral/g)?.length).toBe(1);
+  });
+
+  it('uses the association local date for past due', () => {
+    expect(migration).toContain("(pg_catalog.now() at time zone coalesce(nullif(a.timezone, ''), 'America/Chicago'))::date");
+    expect(migration).not.toMatch(/c\.due_date < current_date/);
+  });
+
+  it('only database functions can mark a credit as a removed late fee', () => {
+    expect(migration).toContain("current_user in ('authenticated', 'anon')");
+    expect(migration).toContain('before insert or update of reference, method on public.payments');
+  });
+
+  it('says the reference is reserved (20261015140000)', () => {
+    const message = read('supabase/migrations/20261015140000_removed_late_fee_marker_message.sql');
+    expect(message).toContain('The reference "Late fee removed" is reserved. Remove late fees from the unit page');
+    expect(message).toContain("current_user in ('authenticated', 'anon')");
+  });
+
+  it('a removal credit counts only for its own fee and its applications are guarded (Codex on #383)', () => {
+    const guard = read('supabase/migrations/20261015150000_removed_late_fee_applications.sql');
+    expect(guard).toContain('and rp.charge_id = c.id');
+    expect(guard).toContain('before insert or update of reference, method, charge_id on public.payments');
+    expect(guard).toContain('before insert or update on public.payment_applications');
+    expect(guard).toContain('public.is_late_fee_removal_credit(new.payment_id)');
+    expect(guard).not.toMatch(/\bdrop\s+(table|column|view|function|policy)\b/i);
+  });
+
+  it('reversed_at is locked on a removal credit (Codex on #383)', () => {
+    const rev = read('supabase/migrations/20261015160000_removed_late_fee_reversal_guard.sql');
+    expect(rev).toContain('new.reversed_at is distinct from old.reversed_at');
+    expect(rev).toContain('before insert or update of reference, method, charge_id, reversed_at on public.payments');
+  });
+
+  it('a removal credit cannot be deleted by signed-in users (Codex on #383)', () => {
+    const del = read('supabase/migrations/20261015180000_removed_late_fee_delete_guard.sql');
+    expect(del).toContain('before delete on public.payments');
+    expect(del).toContain("old.reference = 'Late fee removed'");
+  });
+
+  it('a removal credit application cannot be deleted by signed-in users (Codex on #383)', () => {
+    const g = read('supabase/migrations/20261015190000_removed_late_fee_application_delete_guard.sql');
+    expect(g).toContain('before insert or update or delete on public.payment_applications');
+    expect(g).toContain("tg_op in ('UPDATE', 'DELETE') and public.is_late_fee_removal_credit(old.payment_id)");
+  });
+
+  it('reallocation refuses a removal credit and the page hides its form (Codex on #383)', () => {
+    const m = read('supabase/migrations/20261015200000_removed_late_fee_no_reallocation.sql');
+    expect(m).toContain("pay.method = ''credit'' and pay.reference = ''Late fee removed''");
+    const page = read('app/(app)/payments/[id]/page.tsx');
+    expect(page).toContain("const isLateFeeRemoval = isCredit && p.reference === 'Late fee removed';");
+    expect(page).toContain('{!reversed && !isLateFeeRemoval && (');
+  });
+
+  it('locks the credit, the fee and spending in one pass (reviewers on #383)', () => {
+    const m = read('supabase/migrations/20261015210000_removed_late_fee_lock_complete.sql');
+    expect(m).toContain("(to_jsonb(new) - 'notes') is distinct from (to_jsonb(old) - 'notes')");
+    expect(m).toContain("(to_jsonb(new) - 'description') is distinct from (to_jsonb(old) - 'description')");
+    expect(m).toContain('before insert or update on public.payments');
+    expect(m).toContain('before update or delete on public.charges');
+    expect(m).toContain("A removed late fee''s credit applies only to that fee.");
+    expect(m).toContain("AND NOT (p.method = 'credit' AND p.reference IS NOT DISTINCT FROM 'Late fee removed')");
+    expect(m).toContain('grant execute on function public.is_removed_late_fee(uuid) to authenticated');
+    expect(m).not.toMatch(/\bdrop\s+(table|column|view|function|policy)\b/i);
+    expect(m).not.toMatch(/\bdelete\s+from\b/i);
+  });
+
+  it('drops or deletes nothing', () => {
+    expect(migration).not.toMatch(/\bdrop\s+(table|column|view|function|policy)\b/i);
+    expect(migration).not.toMatch(/\bdelete\s+from\b/i);
+  });
+});
+
+describe('removed late fee display', () => {
+  it('shows removed in a neutral tone', () => {
+    expect(toneForStatus('removed')).toBe('inactive');
+  });
+
+  it('the unit page uses the shared Badge for charge status', () => {
+    const page = read('app/(app)/units/[id]/page.tsx');
+    expect(page).toContain("<Badge status={c.payment_status} tone={c.is_past_due ? 'danger' : undefined} />");
+    expect(page).not.toContain("c.payment_status === 'paid' ? 'bg-green-100");
+  });
+});

@@ -1,7 +1,7 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-10-12.
+Last updated: 2026-10-14.
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
 
@@ -13,6 +13,11 @@ Everything Claude can do alone is done; these need Mirsad (accounts, keys,
 DNS or decisions). Details for the older items are further down.
 
 **Housekeeping (quick)**
+- [ ] **Merge #383** (2026-10-14; CI green, Codex clean, migrations already
+      live): removed late fees read "Removed" and are fully locked (#384
+      and #385 merged 2026-10-14). After merging, `git pull` in
+      `C:\Users\autho\Portier369-current` (or turn on the Obsidian Git
+      plugin) so Obsidian shows the new notes.
 - [ ] **Email opt-out: two defaults to confirm** (2026-10-13). Answered:
       every owner and tenant gets email, sender picks owners, tenants or
       both (preferred contact and electronic consent don't stop it). Built

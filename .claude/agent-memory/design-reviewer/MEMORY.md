@@ -29,6 +29,7 @@
 - No-company guards (NoCompanyNotice, components/workspace/no-company-notice.tsx, 2026-10-11): when a page gets the notice, check its siblings that only got an action-side `?error=` guard (settings/ai still rendered the full form for operators). The notice takes the page `title` and renders its PageHeader (h1); put a page's no-company check before any role-based early return (settings/ai). Inside RoleShell (company-admin/layout.tsx) render it bare: RoleShell's <main> already pads, PageShell would double it.
 - Capped-list Alerts ("Showing the newest N of {count}"): check the count is toLocaleString'd and the Alert sits in the same spot on sibling pages (company-admin violations vs work-orders, 2026-10-12).
 - Render caps (missed on PR #321, Codex caught it): when a page renders fewer rows than it loads/exports (owners, units 500-row cap), check every way the list leaves the page: print, CSV, PDF, email. ExportActions' Print used window.print() and printed only rendered rows; pass `printFromTables` (prints the export tables in their own window) on any capped page.
+- toneForStatus edits: grep `'<status>'` across app/components/lib for other Badge callers whose tone shifts. Hand-pill -> `<Badge status>` swaps can change tone (charge `outstanding` was red, Badge makes it blue 'open'; accepted on units/[id], 2026-10-14, Balance column stays red).
 - Alert (components/ui/shell.tsx) always sets role="alert"; persistent status banners ("AI is on") get announced on every load - nit, not a blocker.
 
 ## Owner-facing state cards (portal/violations/[id], 2026-10-13)
@@ -87,13 +88,11 @@
 - bills/[id]/page.tsx:72 still renders sp.error in a hand-rolled red div (not Alert) and has no ?saved= branch; new forms there (expense account, Record decision) redirect clean on success. Irreversible board-decision submits want PendingSubmit `confirm`.
 - Option-list queries for new Selects (gl_accounts expense list) often skip the error check and the empty-list state: a required Select with only a disabled placeholder is a dead end.
 
-## Owner/resident portal data scoping (2026-10-13, owner-portal-fixes)
-- Lesson: check that a page's existing error box is an <Alert> when new ?error= messages land there (portal/pay hand-rolled red div; fixed in 20261014190000's PR).
-- Lesson: when filters/RPCs are added to a page, check it captures their errors; a failed scoping RPC must not render the "not linked"/empty state (resident pages fixed in the same PR).
-- Lesson: sibling feeds must apply the same rules (association-feed meetings now exclude executive_session, like resident/meetings; fixed in the same PR).
+## Owner/resident portal data scoping (2026-10-13)
+- New ?error= landing spots must be <Alert>; new filters/RPCs must surface errors (not fall to the "not linked"/empty state); sibling feeds apply the same rules.
 
-## Newer/Older pagers (inbox, 2026-10-13)
-- Precedent: communication-center/page.tsx:215 renders the count+pager line OUTSIDE the empty branch. Copies that put it inside the non-empty branch leave a stale `?page=N` past the end on an EmptyState with no way back (inbox:115). Also check the page's 2nd query (sms) surfaces its error. Pager text links were ~20px tall (shared debt). (All fixed in the comms-followups PR: pager outside the empty branch, redirect past the end, sms Alert, min-h-10 links in inbox and Communication Center.)
+## Newer/Older pagers (2026-10-13)
+- Count+pager line must sit OUTSIDE the empty branch (communication-center:215); redirect `?page=` past the end; pager links min-h-10.
 
 ## Public token pages, cont. (unsubscribe, 2026-10-13)
 - app/(public) token pages copy vendor-upload's hand-rolled `card` const (rounded-2xl + own shadow) instead of `Surface`; flag as nit on each new copy (unsubscribe/[token]/page.tsx:20). Also `?done=` echoed verbatim into a success Alert lets anyone craft a message on the company's domain: prefer a key -> message map. (Fixed on unsubscribe: Surface + fixed wording by ?done/?error code. vendor-upload still has both.)

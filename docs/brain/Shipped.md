@@ -4,6 +4,13 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- A removed late fee reads "Removed" instead of "Paid" on the owner's
+  ledger and the unit page; past-due charges use the association's own date
+  (20261015130000). A removal credit is locked: signed-in users can't change
+  its fee, method, reference or reversal, delete it, or add, move or delete
+  its applications; reallocation refuses it and the payment page hides the
+  allocation form; the fee itself can't be deleted or re-priced and the
+  credit is never spent on other charges (20261015150000-20261015210000).
 - Owner portal fixes (claude/owner-portal-fixes, app code only): previous
   owner's paid charges hidden on the ledger (open ones stay); Unit column
   and per-association export; AutoPay respects "online payments off";

@@ -14,7 +14,7 @@ import { notFound } from 'next/navigation';
 import { RECEIPT_METHODS, receiptMethodLabel } from '@/lib/payments/methods';
 import { postHomeownerCredit, removeLateFee } from '@/lib/rpcs/credits';
 import { PendingSubmit } from '@/components/ui/pending-submit';
-import { Alert } from '@/components/ui/shell';
+import { Alert, Badge } from '@/components/ui/shell';
 import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-meta';
 import { loadRecordMeta } from '@/lib/records/load';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
@@ -206,11 +206,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
                   <TD className="text-right">{money(c.charged_amount)}</TD>
                   <TD className="text-right text-green-600">{money(c.applied_amount)}</TD>
                   <TD className={`text-right ${Number(c.balance_due) > 0 ? 'text-red-600 font-medium' : ''}`}>{money(c.balance_due)}</TD>
-                  <TD><span className={`rounded px-2 py-0.5 text-xs ${
-                    c.payment_status === 'paid' ? 'bg-green-100 text-green-700'
-                    : c.payment_status === 'partial' ? 'bg-amber-100 text-amber-800'
-                    : 'bg-red-100 text-red-800'
-                  }`}>{c.payment_status}</span></TD>
+                  <TD><Badge status={c.payment_status} tone={c.is_past_due ? 'danger' : undefined} /></TD>
                 </TR>
               ))}
             </tbody>
