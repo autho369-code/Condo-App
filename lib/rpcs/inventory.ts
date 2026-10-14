@@ -2,8 +2,9 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { workOrderMatch } from '@/lib/inventory/work-order-match';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -26,7 +27,7 @@ function itemPath(formData: FormData) {
 
 /** Edit an item's details. Quantity is not editable here — it moves only through stock movements. */
 export async function updateInventoryItem(formData: FormData) {
-  await requireStaff();
+  await requireWorkspaceStaff();
   const { id, back } = itemPath(formData);
   const name = text(formData, 'name');
   if (!name) redirect(`${back}?error=${encodeURIComponent('Item name is required.')}`);
@@ -50,17 +51,30 @@ export async function updateInventoryItem(formData: FormData) {
 
 /** Receive, use (optionally on a work order) or adjust stock. Authorization is re-checked in record_inventory_movement. */
 export async function recordInventoryMovement(formData: FormData) {
-  await requireStaff();
+  await requireWorkspaceStaff();
   const { id, back } = itemPath(formData);
   const kind = text(formData, 'kind');
   let workOrder = text(formData, 'work_order_id');
   const workOrderNumber = text(formData, 'work_order_number').replace(/^#/, '');
   const db = (await createClient()) as any;
   if (kind === 'used' && !UUID.test(workOrder) && workOrderNumber) {
-    // RLS limits the lookup to work orders this staffer can see.
-    const { data: wo } = await db.from('work_orders').select('id').eq('number', workOrderNumber).limit(1).maybeSingle();
-    if (!wo) redirect(`${back}?error=${encodeURIComponent(`Work order #${workOrderNumber} not found.`)}`);
-    workOrder = wo.id;
+    // Work order numbers aren't unique, so look only inside the item's company
+    // (items belong to the company, not one association; RLS further limits it
+    // to work orders this user can see) and refuse a number that still matches
+    // more than one.
+    const { data: item, error: itemError } = await db.from('inventory_items').select('portfolio_id').eq('id', id).maybeSingle();
+    if (itemError) redirect(`${back}?error=${encodeURIComponent(itemError.message)}`);
+    if (!item?.portfolio_id) redirect(`${back}?error=${encodeURIComponent('Inventory item not found.')}`);
+    const { data: matches, error: woError } = await db
+      .from('work_orders')
+      .select('id')
+      .eq('portfolio_id', item.portfolio_id)
+      .eq('number', workOrderNumber)
+      .limit(2);
+    if (woError) redirect(`${back}?error=${encodeURIComponent(woError.message)}`);
+    const found = workOrderMatch(matches, workOrderNumber);
+    if ('error' in found) redirect(`${back}?error=${encodeURIComponent(found.error)}`);
+    workOrder = found.id;
   }
   const { error } = await db.rpc('record_inventory_movement', {
     p_item_id: id,
@@ -79,7 +93,7 @@ export async function recordInventoryMovement(formData: FormData) {
 
 /** Hide an item from inventory (history and reports keep it). */
 export async function archiveInventoryItem(formData: FormData) {
-  await requireStaff();
+  await requireWorkspaceStaff();
   const { id, back } = itemPath(formData);
   const db = (await createClient()) as any;
   const { data, error } = await db.from('inventory_items').update({ archived_at: new Date().toISOString() }).eq('id', id).select('id').maybeSingle();

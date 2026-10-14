@@ -8,7 +8,7 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -43,7 +43,7 @@ export default async function InventoryPage({
 }: {
   searchParams: Promise<{ q?: string; category?: string; location?: string; view?: string; archived?: string; removed?: string; added?: string }>;
 }) {
-  await requireStaff();
+  await requireWorkspaceStaff();
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().toLowerCase();
   const category = sp.category ?? 'all';

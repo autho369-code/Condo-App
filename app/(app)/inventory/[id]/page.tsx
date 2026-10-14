@@ -7,7 +7,7 @@ import { Button, buttonClass } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { archiveInventoryItem, recordInventoryMovement, updateInventoryItem } from '@/lib/rpcs/inventory';
 import { createClient } from '@/lib/supabase/server';
 import { money } from '@/lib/utils';
@@ -40,9 +40,12 @@ export default async function InventoryItemPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string; saved?: string; moved?: string; page?: string }>;
 }) {
-  const me = await requireStaff();
-  // Platform operators can look at a company's inventory but not change it.
-  let canEdit = me.is_staff;
+  const me = await requireWorkspaceStaff();
+  // Platform operators can look at a company's inventory but not change it;
+  // company admins use it like staff.
+  let canEdit = me.is_staff || me.is_company_admin;
+  // Work order pages are staff pages; a company admin sees the number only.
+  const canOpenWorkOrders = me.is_staff || me.is_platform_operator;
   const { id } = await params;
   const sp = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
@@ -190,9 +193,13 @@ export default async function InventoryItemPage({
                   <TD className="text-right tabular-nums">{Number(m.quantity_after)}</TD>
                   <TD className="text-sm">
                     {m.work_order_id ? (
-                      <Link href={`/work-orders/${m.work_order_id}`} className="text-gray-900 underline decoration-gray-300 underline-offset-4">
-                        {m.work_orders?.number ? `#${m.work_orders.number}` : 'Work order'}
-                      </Link>
+                      canOpenWorkOrders ? (
+                        <Link href={`/work-orders/${m.work_order_id}`} className="text-gray-900 underline decoration-gray-300 underline-offset-4">
+                          {m.work_orders?.number ? `#${m.work_orders.number}` : 'Work order'}
+                        </Link>
+                      ) : (
+                        <span className="text-gray-900">{m.work_orders?.number ? `#${m.work_orders.number}` : 'Work order'}</span>
+                      )
                     ) : '—'}
                     {m.associations?.name && <div className="text-[13px] text-gray-500">{m.associations.name}</div>}
                   </TD>
