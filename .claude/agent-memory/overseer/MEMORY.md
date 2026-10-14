@@ -84,6 +84,9 @@
 - Hardening added after a reviewer's pass (security pin added to a definer RPC
   after migration-reviewer's "clean"): ask whether migration-reviewer saw the
   FINAL file; its memory note should mention the change.
+  2nd: work-orders-followups 2026-10-14 (vendor_notified_at column + index
+  added after security's finding; migration-reviewer memory silent on it).
+  Also confirm the single live version holds the late addition.
 - Status said "Claude applies once Codex is clean" — PR Rules say apply the
   additive migration as soon as the SQL is settled and put "do not merge
   until the migration is live" in the PR body. Check the wording.
@@ -121,3 +124,7 @@
 - Reviewer memory still naming holes the same PR fixed (7x; 2026-10-13 twice): see [reviewer-memory-staleness](reviewer-memory-staleness.md).
 - Audit/feature checks 2026-10-10..13 (settings fields, anon helpers, DROP POLICY, deep-audit roles, owner portal, email suppression, SMS routing, renamed migrations): see [audit-and-feature-checks](audit-and-feature-checks.md) - read before any start/pre-PR check in those areas.
 - Reused branch names: `gh pr list --head <branch> --state all` (claude/payables-followups was #360, MERGED; 2026-10-13 reuse OK: remote deleted, based on main). Also `git log origin/main..HEAD` for unpushed vault commits that ride in the new PR.
+- SQL that queues email from a SECURITY INVOKER RPC called by staff (e.g.
+  generate_recurring_work_order_now) runs as `authenticated`: email_queue
+  sender/rate/required-key checks apply. Prefer the app route + service
+  client (notifyVendorOfAssignment) for staff paths; SQL only in definer/cron.

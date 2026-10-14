@@ -11,6 +11,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/work-orders/notify-recurring",
+      "schedule": "0 12 * * *"
+    },
+    {
       "path": "/api/maintenance/send-reminders",
       "schedule": "0 13 * * *"
     },

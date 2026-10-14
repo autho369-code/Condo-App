@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { nextRecurringDate } from '@/lib/time/recurrence';
 import { todayInZone } from '@/lib/time/zoned';
+import { notifyVendorOfAssignment } from '@/lib/notifications/vendor-assignment';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,6 +64,10 @@ export async function POST(req: NextRequest) {
   });
   if (genErr) return back('?error=' + encodeURIComponent(`Could not generate the work order: ${genErr.message}`));
   if (!woId) return back('?error=' + encodeURIComponent('This occurrence was already generated. Refresh to see the next due date.'));
+
+  // The new work order is already assigned to the plan's vendor: send the
+  // same assignment email staff assignment sends (never fails the request).
+  if (tpl.vendor_id) await notifyVendorOfAssignment({ vendorId: tpl.vendor_id, workOrderIds: [woId] });
 
   return back('?generated=1');
 }
