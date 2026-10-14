@@ -23,7 +23,8 @@ function query() {
   const q: any = {};
   for (const m of ['select', 'eq', 'not', 'is', 'gte', 'update']) q[m] = vi.fn(() => q);
   q.limit = vi.fn(async () => ({ data: mocks.rows, error: mocks.error }));
-  q.in = vi.fn(async () => ({ error: null }));
+  // .in() filters the read (chainable) and ends the stamp update.
+  q.in = vi.fn((col: string) => (col === 'status' ? q : Promise.resolve({ error: null })));
   return q;
 }
 
@@ -70,7 +71,7 @@ describe('/api/work-orders/notify-recurring', () => {
     await GET(req());
     expect(q.select).toHaveBeenCalledWith('id, vendor_id, service_requests!inner(source)');
     expect(q.eq).toHaveBeenCalledWith('service_requests.source', 'recurring');
-    expect(q.eq).toHaveBeenCalledWith('status', 'assigned');
+    expect(q.in).toHaveBeenCalledWith('status', ['assigned', 'scheduled', 'in_progress']);
     expect(q.not).toHaveBeenCalledWith('vendor_id', 'is', null);
     expect(q.is).toHaveBeenCalledWith('archived_at', null);
     expect(q.is).toHaveBeenCalledWith('vendor_notified_at', null);

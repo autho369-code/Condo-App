@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
     .from('work_orders')
     .select('id, vendor_id, service_requests!inner(source)')
     .eq('service_requests.source', 'recurring')
-    .eq('status', 'assigned')
+    // Still active: staff may schedule or start a job before this runs.
+    .in('status', ['assigned', 'scheduled', 'in_progress'])
     .not('vendor_id', 'is', null)
     .is('vendor_notified_at', null)
     .is('archived_at', null)
