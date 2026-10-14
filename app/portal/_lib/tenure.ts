@@ -9,17 +9,23 @@ import { ownerIdList, type OwnerIds } from '@/lib/portal/own-units';
 // rows dated on/after their current occupancy's move_in_date.
 
 /** unit_id → the owner's move-in date (null = no recorded move-in, no cutoff). */
-export type TenureCutoffs = Map<string, string | null>;
+// `error` is set when the read failed (the map is then empty): pages must
+// render it in an <Alert> instead of showing an empty history as if real.
+export type TenureCutoffs = Map<string, string | null> & { error?: string | null };
 
 export async function ownerTenureCutoffs(db: any, ownerIds: OwnerIds): Promise<TenureCutoffs> {
   const cutoffs: TenureCutoffs = new Map();
   const ids = ownerIdList(ownerIds);
   if (!ids.length) return cutoffs;
-  const { data } = await db
+  const { data, error } = await db
     .from('occupancies')
     .select('unit_id, move_in_date')
     .in('owner_id', ids)
     .eq('status', 'current');
+  if (error) {
+    cutoffs.error = `Could not load your ownership dates: ${error.message ?? 'unknown error'}`;
+    return cutoffs;
+  }
   for (const row of (data ?? []) as { unit_id: string | null; move_in_date: string | null }[]) {
     if (!row.unit_id) continue;
     const date = row.move_in_date ? String(row.move_in_date).slice(0, 10) : null;
@@ -56,6 +62,18 @@ export function withinTenure(cutoffs: TenureCutoffs, unitId: string | null | und
   if (!since) return true;
   if (!value) return false;
   return String(value).slice(0, 10) >= since;
+}
+
+/**
+ * A charge the owner sees on their ledger: one dated in their tenure, or one
+ * still open (the debt is real and stays on the unit). A paid charge from a
+ * previous owner's time is the seller's history, not the buyer's.
+ */
+export function ownerVisibleCharge(
+  cutoffs: TenureCutoffs,
+  charge: { unit_id?: string | null; due_date?: string | null; balance_due?: number | string | null },
+): boolean {
+  return withinTenure(cutoffs, charge.unit_id, charge.due_date) || Number(charge.balance_due ?? 0) > 0;
 }
 
 /** The association's zone when it is a valid IANA zone, else the default. */

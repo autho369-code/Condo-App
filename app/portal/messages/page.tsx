@@ -8,6 +8,8 @@ export default async function OwnerMessagesPage({ searchParams }: { searchParams
   const me = await requireOwner();
   const sp = await searchParams;
   const party = { kind: 'owner' as const, ownerIds: me.owner_ids };
-  const [threads, units] = await Promise.all([residentThreads(party), residentUnitOptions(me.resident_unit_ids ?? [])]);
-  return <ResidentConversationList base="/portal/messages" threads={threads} units={units} error={sp.error} compose={sp.compose === '1' || threads.length === 0} />;
+  const [{ threads, error: threadsError }, { units, error: unitsError }] = await Promise.all([residentThreads(party), residentUnitOptions(me.resident_unit_ids ?? [])]);
+  const loadError = threadsError ?? unitsError;
+  // Open compose for a first message only when the threads really loaded empty.
+  return <ResidentConversationList base="/portal/messages" threads={threads} units={units} error={sp.error} loadError={loadError} compose={!loadError && (sp.compose === '1' || threads.length === 0)} />;
 }

@@ -207,7 +207,7 @@ export default async function OwnerAmenitiesPage({
   const db = supabase as any
 
   // Bookable amenities for the owner's association(s) — RLS scopes the rows.
-  const { data: amenityRows } = await db
+  const { data: amenityRows, error: amenitiesError } = await db
     .from('association_amenities')
     .select('id, name, association_id, description_html, opens_at, closes_at, allow_reservations, pricing_mode, price_amount, reserve_method, reservation_email, reservation_url')
     .eq('allow_reservations', true)
@@ -218,7 +218,7 @@ export default async function OwnerAmenitiesPage({
   const requestable = amenities.filter((a) => amenityReserveAction(a).kind === 'request')
 
   // The owner's own reservations.
-  const { data: resRows } = await db
+  const { data: resRows, error: reservationsError } = await db
     .from('amenity_reservations')
     .select('id, status, start_time, end_time, party_size, notes, association_id, association_amenities(name)')
     .in('owner_id', me.owner_ids)
@@ -227,9 +227,12 @@ export default async function OwnerAmenitiesPage({
   const reservations = (resRows ?? []) as Reservation[]
 
   const assocIds = [...new Set([...amenities.map((a) => a.association_id), ...reservations.map((r) => r.association_id)].filter(Boolean))] as string[]
-  const { data: zoneRows } = assocIds.length > 0
+  const { data: zoneRows, error: zonesError } = assocIds.length > 0
     ? await db.from('associations').select('id, timezone').in('id', assocIds)
-    : { data: [] }
+    : { data: [], error: null }
+  // A failed read must not look like "no amenities" or "no reservations"
+  // (or show times in the wrong zone).
+  const loadError = amenitiesError ?? reservationsError ?? zonesError
   const zones: Record<string, string> = Object.fromEntries((zoneRows ?? []).map((z: any) => [z.id, z.timezone || DEFAULT_TZ]))
 
   const now = Date.now()
@@ -248,6 +251,7 @@ export default async function OwnerAmenitiesPage({
       {sp.error && <Alert tone="danger" title="Could not submit">{sp.error}</Alert>}
       {sp.requested === '1' && <Alert tone="success">Thanks — your reservation request was sent to management for review.</Alert>}
       {sp.cancelled === '1' && <Alert tone="info">Your reservation was cancelled.</Alert>}
+      {loadError && <Alert tone="danger" title="Could not load amenities:">{loadError.message}. Please refresh.</Alert>}
 
       {/* Bookable amenities, each with the way staff set it to be reserved */}
       {amenities.length > 0 && (
@@ -292,7 +296,7 @@ export default async function OwnerAmenitiesPage({
       {/* Request form */}
       <section className="space-y-3">
         <SectionTitle title="Request a reservation" />
-        {requestable.length === 0 ? (
+        {amenitiesError ? null : requestable.length === 0 ? (
           <Surface>
             <p className="text-sm text-gray-600">
               {amenities.length === 0
@@ -357,7 +361,7 @@ export default async function OwnerAmenitiesPage({
       {/* My reservations */}
       <section className="space-y-3">
         <SectionTitle title="My reservations" />
-        {reservations.length === 0 ? (
+        {reservationsError ? null : reservations.length === 0 ? (
           <Surface>
             <p className="text-sm text-gray-500">You have no reservations yet.</p>
           </Surface>

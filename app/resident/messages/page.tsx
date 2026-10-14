@@ -8,6 +8,8 @@ export default async function TenantMessagesPage({ searchParams }: { searchParam
   const me = await requireTenant();
   const sp = await searchParams;
   const party = await tenantParty();
-  const [threads, units] = await Promise.all([residentThreads(party), residentUnitOptions(me.tenant_unit_ids ?? [])]);
-  return <ResidentConversationList base="/resident/messages" threads={threads} units={units} error={sp.error} compose={sp.compose === '1' || threads.length === 0} />;
+  const [{ threads, error: threadsError }, { units, error: unitsError }] = await Promise.all([residentThreads(party), residentUnitOptions(me.tenant_unit_ids ?? [])]);
+  const loadError = threadsError ?? unitsError;
+  // Open compose for a first message only when the threads really loaded empty.
+  return <ResidentConversationList base="/resident/messages" threads={threads} units={units} error={sp.error} loadError={loadError} compose={!loadError && (sp.compose === '1' || threads.length === 0)} />;
 }

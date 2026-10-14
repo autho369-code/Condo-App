@@ -6,7 +6,8 @@ import { Badge, Alert } from '@/components/ui/shell';
 import { StatusChip } from '@/components/operations/status-chip';
 import { money, date } from '@/lib/utils';
 import { LedgerActions, type LedgerChargeRow, type LedgerPaymentRow } from '@/components/portal/ledger-actions';
-import { ownerTenureCutoffs, tenureFilter, withinTenure } from '../_lib/tenure';
+import { ownerTenureCutoffs, ownerVisibleCharge, tenureFilter, withinTenure } from '../_lib/tenure';
+import { isLateFeeRemoval } from '@/lib/portal/ledger-rows';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,22 +19,36 @@ export default async function LedgerPage() {
   // to the whole association, which leaked every owner's ledger here.
   const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_ids);
   const myUnits = unitFilter(ownUnits.ids);
-  const { data: charges, error: chargesError } = await (supabase as any)
-    .from('v_charge_balances')
-    .select('*')
-    .in('unit_id', myUnits)
-    .order('due_date', { ascending: false });
+  const [{ data: chargeRows, error: chargesError }, tenure, { data: unitRows, error: unitsError }] = await Promise.all([
+    (supabase as any)
+      .from('v_charge_balances')
+      .select('*')
+      .in('unit_id', myUnits)
+      .order('due_date', { ascending: false }),
+    ownerTenureCutoffs(supabase, me.owner_ids),
+    // Unit number + association per unit, for the Unit column and the export
+    // header (v_charge_balances is a view with no foreign key to embed).
+    (supabase as any)
+      .from('units')
+      .select('id, unit_number, buildings(associations(name))')
+      .in('id', myUnits),
+  ]);
+  const unitInfo = new Map<string, { unit: string; association: string }>(
+    ((unitRows ?? []) as any[]).map((u) => [u.id, { unit: u.unit_number ?? '', association: u.buildings?.associations?.name ?? '' }]),
+  );
+  const unitLabel = (unitId: string | null | undefined) => (unitId ? unitInfo.get(unitId)?.unit : '') || '—';
 
-  // Charges show the unit's full open balance (the debt is real), but payment
-  // details only from the owner's own move-in on — a buyer must not see the
-  // seller's payments or references. Staff `notes` are internal and never
-  // shown to owners. Reversed (returned) payments are listed but marked.
-  const tenure = await ownerTenureCutoffs(supabase, me.owner_ids);
+  // Charges show the unit's full open balance (the debt is real), but a paid
+  // charge only from the owner's own move-in on; payment details likewise —
+  // a buyer must not see the seller's history, payments or references.
+  // Staff `notes` are internal and never shown to owners. Reversed (returned)
+  // payments are listed but marked.
+  const charges = ((chargeRows ?? []) as any[]).filter((c) => ownerVisibleCharge(tenure, c));
   const paymentScope = tenureFilter(tenure, 'payment_date', myUnits);
   const { data: payments, error: paymentsError } = paymentScope
     ? await (supabase as any)
         .from('payments')
-        .select('id, amount, payment_date, method, reference, reversed_at, reversal_reason')
+        .select('id, unit_id, amount, payment_date, method, reference, reversed_at, reversal_reason, units(unit_number)')
         .or(paymentScope)
         .order('payment_date', { ascending: false })
     : { data: [], error: null };
@@ -47,21 +62,14 @@ export default async function LedgerPage() {
   const unappliedCredit = ((summaries ?? []) as { unapplied_credit: number | string | null }[])
     .reduce((s, u) => s + Number(u.unapplied_credit ?? 0), 0);
 
-  // Association name for the export header (owner's first current occupancy)
-  let associationName = 'Association';
-  if (me.owner_ids.length) {
-    const { data: occ } = await (supabase as any)
-      .from('occupancies')
-      .select('units(buildings(associations(name)))')
-      .in('owner_id', me.owner_ids)
-      .eq('status', 'current')
-      .order('is_primary', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    associationName = occ?.units?.buildings?.associations?.name ?? associationName;
-  }
+  // The export carries one header per association (a login can own units in
+  // several); each row names its association and unit.
+  const associationNames = [...new Set([...unitInfo.values()].map((u) => u.association).filter(Boolean))];
+  const associationName = associationNames.join(', ') || 'Association';
 
-  const exportCharges: LedgerChargeRow[] = (charges ?? []).map((c: any) => ({
+  const exportCharges: LedgerChargeRow[] = charges.map((c: any) => ({
+    association: unitInfo.get(c.unit_id)?.association ?? '',
+    unit: unitLabel(c.unit_id),
     date: c.due_date ? date(c.due_date) : '',
     description: c.description ?? '',
     amount: Number(c.charged_amount ?? 0),
@@ -70,14 +78,22 @@ export default async function LedgerPage() {
     status: String(c.payment_status ?? '').replace(/_/g, ' '),
   }));
   const exportPayments: LedgerPaymentRow[] = (payments ?? []).map((p: any) => ({
+    association: unitInfo.get(p.unit_id)?.association ?? '',
+    unit: p.units?.unit_number ?? unitLabel(p.unit_id),
     date: p.payment_date ? date(p.payment_date) : '',
-    method: String(p.method ?? '').toUpperCase(),
+    // A removed late fee is a credit, not a payment received.
+    method: isLateFeeRemoval(p) ? 'Late fee removed' : String(p.method ?? '').toUpperCase(),
     reference: p.reference ?? '',
     amount: Number(p.amount ?? 0),
     status: p.reversed_at ? `Returned${p.reversal_reason ? ` (${p.reversal_reason})` : ''}` : '',
   }));
-  const loadError = (ownUnits.error ? { message: ownUnits.error } : null) ?? chargesError ?? paymentsError ?? summariesError;
-  const totalBalance = Math.round((exportCharges.reduce((s, c) => s + c.balance, 0) - unappliedCredit) * 100) / 100;
+  const loadError = (ownUnits.error ? { message: ownUnits.error } : null)
+    ?? (tenure.error ? { message: tenure.error } : null)
+    ?? chargesError ?? paymentsError ?? summariesError ?? unitsError;
+  // The balance counts every charge on the unit (hidden ones are paid), so it
+  // still agrees with the dashboard and the pay page.
+  const chargesBalance = ((chargeRows ?? []) as any[]).reduce((s, c) => s + Number(c.balance_due ?? 0), 0);
+  const totalBalance = Math.round((chargesBalance - unappliedCredit) * 100) / 100;
 
   // Active payment plans for the owner's units (RLS: their own units; one per unit).
   // A plan made with a previous owner is theirs, not the buyer's: keep plans
@@ -146,14 +162,15 @@ export default async function LedgerPage() {
         <h2 className="mb-3 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">Charges</h2>
         <Table>
           <THead><TR>
-            <TH>Date</TH><TH>Description</TH>
+            <TH>Date</TH><TH>Unit</TH><TH>Description</TH>
             <TH className="text-right">Amount</TH><TH className="text-right">Paid</TH>
             <TH className="text-right">Balance</TH><TH>Status</TH>
           </TR></THead>
           <tbody>
-            {(charges ?? []).map((c: any) => (
+            {charges.map((c: any) => (
               <TR key={c.charge_id}>
                 <TD>{date(c.due_date)}</TD>
+                <TD>{unitLabel(c.unit_id)}</TD>
                 <TD>{c.description}</TD>
                 <TD className="text-right">{money(c.charged_amount)}</TD>
                 <TD className="text-right text-emerald-700">{money(c.applied_amount)}</TD>
@@ -168,12 +185,15 @@ export default async function LedgerPage() {
       <section>
         <h2 className="mb-3 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">Payments</h2>
         <Table>
-          <THead><TR><TH>Date</TH><TH>Method</TH><TH>Reference</TH><TH className="text-right">Amount</TH><TH>Status</TH></TR></THead>
+          <THead><TR><TH>Date</TH><TH>Unit</TH><TH>Method</TH><TH>Reference</TH><TH className="text-right">Amount</TH><TH>Status</TH></TR></THead>
           <tbody>
             {(payments ?? []).map((p: any) => (
               <TR key={p.id}>
                 <TD>{date(p.payment_date)}</TD>
-                <TD className="uppercase">{p.method}</TD>
+                <TD>{p.units?.unit_number ?? unitLabel(p.unit_id)}</TD>
+                {isLateFeeRemoval(p)
+                  ? <TD>Late fee removed</TD>
+                  : <TD className="uppercase">{p.method}</TD>}
                 <TD className="text-gray-600">{p.reference ?? '—'}</TD>
                 <TD className={p.reversed_at ? 'text-right text-gray-400 line-through' : 'text-right text-emerald-700'}>{money(p.amount)}</TD>
                 <TD>{p.reversed_at ? <StatusChip tone="danger">Returned{p.reversal_reason ? ` · ${p.reversal_reason}` : ''}</StatusChip> : null}</TD>

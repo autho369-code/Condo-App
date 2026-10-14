@@ -9,6 +9,7 @@ import { money, date } from '@/lib/utils'
 import { htmlToPlainText } from '@/lib/security/rich-text'
 import { CreditCard, Wrench, MessageSquare, Shield, FileText, Calendar, Siren, Phone, Mail, Sparkles } from 'lucide-react'
 import { ownerTenureCutoffs, tenureFilter } from './_lib/tenure'
+import { isLateFeeRemoval, ownerPaymentMethodLabel } from '@/lib/portal/ledger-rows'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +39,7 @@ export default async function OwnerDashboard() {
     db.from('violations').select('id', { count: 'exact', head: true }).in('owner_id', ownerIds).is('archived_at', null).not('status','in','("closed","cured")'),
   ])
   track('your units', occRes.error)
+  track('ownership dates', tenure.error ? { message: tenure.error } : null)
   const occs: any[] = occRes.data ?? []
   const unitIds = occs.map((o: any) => o.unit_id).filter(Boolean)
   const assocId = occs[0]?.association_id
@@ -84,7 +86,7 @@ export default async function OwnerDashboard() {
         .order('created_at',{ascending:false}).limit(3)
       : none,
     // Recent payments on the owner's units, from their own move-in on.
-    paymentScope ? db.from('payments').select('id, amount, payment_date, method, reversed_at').or(paymentScope).order('payment_date', { ascending: false }).limit(5) : none,
+    paymentScope ? db.from('payments').select('id, amount, payment_date, method, reference, reversed_at').or(paymentScope).order('payment_date', { ascending: false }).limit(5) : none,
     // Emergency notice: open emergency-priority work orders in the owner's
     // communities. Residents can't read those rows via RLS, so a SECURITY
     // DEFINER RPC returns just the title + created_at.
@@ -283,7 +285,8 @@ export default async function OwnerDashboard() {
                 <div key={p.id} className="flex items-center justify-between border-b border-gray-50 py-2 last:border-0">
                   <div>
                     <div className={p.reversed_at ? 'text-sm text-gray-400 line-through' : 'text-sm text-gray-900'}>{money(Number(p.amount ?? 0))}</div>
-                    <div className="text-xs capitalize text-gray-500">{(p.method ?? 'payment').replace(/_/g, ' ')}</div>
+                    {/* A removed late fee is a credit, not a payment received. */}
+                    <div className={isLateFeeRemoval(p) ? 'text-xs text-gray-500' : 'text-xs capitalize text-gray-500'}>{ownerPaymentMethodLabel(p)}</div>
                   </div>
                   {p.reversed_at && <StatusChip tone="danger">Returned</StatusChip>}
                   <div className="text-xs tabular-nums text-gray-500">{date(p.payment_date)}</div>

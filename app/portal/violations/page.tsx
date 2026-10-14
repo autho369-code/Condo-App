@@ -1,23 +1,53 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { Badge, Alert } from '@/components/ui/shell'
 import { money, date } from '@/lib/utils'
+import { buttonClass } from '@/components/ui/button'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { pageCount, pageHref, pageRange, parsePage } from '@/lib/portal/paging'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OwnerViolationsPage({ searchParams }: { searchParams: Promise<{ reported?: string; notice?: string }> }) {
+const PATH = '/portal/violations'
+// Violations per page; the tiles above the table cover every violation.
+const PAGE_SIZE = 50
+
+export default async function OwnerViolationsPage({ searchParams }: { searchParams: Promise<{ reported?: string; notice?: string; page?: string }> }) {
   const banner = await searchParams
+  const page = parsePage(banner.page)
+  const { from, to } = pageRange(page, PAGE_SIZE)
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
 
-  const { data: viols, error: violsError } = await db.from('violations')
-    .select('id, title, violation_type, status, date_observed, fine_amount, fines_total, hearing_date, hearing_at, units!inner(unit_number)')
-    .in('owner_id', me.owner_ids).is('archived_at', null)
-    .order('date_observed', { ascending: false }).limit(100)
+  // Every query reads the same rows: this login's owner records, not archived,
+  // with a unit (the list's inner join).
+  const mine = (select: string, opts?: { count: 'exact'; head?: boolean }) =>
+    db.from('violations').select(select, opts).in('owner_id', me.owner_ids).is('archived_at', null)
+  const [listRes, openRes, hearingRes, finesRes] = await Promise.all([
+    mine('id, title, violation_type, status, date_observed, fine_amount, fines_total, hearing_date, hearing_at, units!inner(unit_number)', { count: 'exact' })
+      .order('date_observed', { ascending: false }).order('id').range(from, to),
+    // Tiles come from their own counts, not the current page.
+    mine('id, units!inner(id)', { count: 'exact', head: true }).not('status', 'in', '("closed","cured")'),
+    // hearing_at is what the detail page and the hearing workflow set.
+    mine('id, units!inner(id)', { count: 'exact', head: true }).or('hearing_at.not.is.null,hearing_date.not.is.null'),
+    fetchAllRows<{ fine_amount: number | string | null; fines_total: number | string | null }>(
+      () => mine('id, fine_amount, fines_total, units!inner(id)').order('id'),
+    ),
+  ])
 
-  const all = viols ?? []
+  // A page past the end goes back to the last page (the API refuses a range
+  // past the end with PGRST103).
+  const total: number = listRes.count ?? (listRes.data ?? []).length
+  const pages = pageCount(total, PAGE_SIZE)
+  if (page > 1 && (listRes.error?.code === 'PGRST103' || (!listRes.error && page > pages))) {
+    redirect(listRes.error ? PATH : pageHref(PATH, pages))
+  }
+  const violsError = listRes.error
+  const tilesError: string | null = openRes.error?.message ?? hearingRes.error?.message ?? finesRes.error ?? null
+  const all = listRes.data ?? []
   // Same rule as the detail page: accumulated fines when recorded, else the base fine.
   const fineOf = (v: any) => Number(v.fines_total ?? 0) > 0 ? Number(v.fines_total) : Number(v.fine_amount ?? 0)
 
@@ -42,13 +72,13 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
       )}
 
       {violsError && <Alert tone="danger" title="Could not load violations:">{violsError.message}</Alert>}
+      {tilesError && <Alert tone="danger" title="Could not load your violation totals:">{tilesError}. Please refresh.</Alert>}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
-          { label: 'Open', value: all.filter((v: any) => !['closed','cured'].includes(v.status)).length },
-          { label: 'Total Fines', value: money(all.reduce((s: number, v: any) => s + fineOf(v), 0)) },
-          // hearing_at is what the detail page and the hearing workflow set.
-          { label: 'Hearings Scheduled', value: all.filter((v: any) => v.hearing_at || v.hearing_date).length },
+          { label: 'Open', value: tilesError ? '—' : (openRes.count ?? 0) },
+          { label: 'Total Fines', value: tilesError ? '—' : money(finesRes.rows.reduce((s: number, v: any) => s + fineOf(v), 0)) },
+          { label: 'Hearings Scheduled', value: tilesError ? '—' : (hearingRes.count ?? 0) },
         ].map(s => (
           <div key={s.label} className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="text-[13px] font-medium text-gray-500">{s.label}</div>
@@ -89,6 +119,18 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!violsError && pages > 1 && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-gray-500">
+            Violations {(from + 1).toLocaleString()}-{Math.min(from + PAGE_SIZE, total).toLocaleString()} of {total.toLocaleString()}, newest first. The totals above include every violation.
+          </p>
+          <div className="flex gap-2">
+            {page > 1 && <Link href={pageHref(PATH, page - 1)} className={buttonClass('secondary')}>Previous</Link>}
+            {page < pages && <Link href={pageHref(PATH, page + 1)} className={buttonClass('secondary')}>Next</Link>}
+          </div>
         </div>
       )}
     </div>

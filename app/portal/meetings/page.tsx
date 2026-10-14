@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
+import { Alert } from '@/components/ui/shell'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ export default async function OwnerMeetingsPage() {
   // member who is also an owner would otherwise see executive sessions,
   // cancelled meetings and unpublished minutes here through board RLS.
   const assocIds = me.resident_association_ids ?? []
-  const { data: meetings } = assocIds.length === 0 ? { data: [] } : await db.from('meetings')
+  const { data: meetings, error: meetingsError } = assocIds.length === 0 ? { data: [], error: null } : await db.from('meetings')
     .select('id, title, meeting_type, status, start_time, agenda, minutes, ai_summary')
     .in('association_id', assocIds)
     .is('archived_at', null)
@@ -32,7 +33,9 @@ export default async function OwnerMeetingsPage() {
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Approved minutes from your association&apos;s meetings</p>
       </div>
 
-      {all.length === 0 ? (
+      {meetingsError && <Alert tone="danger" title="Could not load meeting minutes:">{meetingsError.message}. Please refresh.</Alert>}
+
+      {meetingsError ? null : all.length === 0 ? (
         <div className="rounded-2xl border border-line bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <p className="text-sm text-gray-500">No meeting minutes published yet.</p>
         </div>

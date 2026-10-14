@@ -7,6 +7,7 @@ import { htmlToPlainText } from '@/lib/security/rich-text'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { loadOwnerRecords } from '@/lib/portal/owner-records'
+import { Textarea } from '@/components/ui/input'
 
 export const dynamic = 'force-dynamic'
 
@@ -96,7 +97,7 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
             <input type="hidden" name="record_id" value={me.owner_ids.length === 1 ? me.owner_id ?? '' : ''} />
           )}
           <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Subject</span><input name="subject" required minLength={2} maxLength={200} className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" /></label>
-          <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Message</span><textarea name="body" required minLength={2} maxLength={10000} rows={4} className="mt-1.5 block h-10 w-full rounded-[10px] border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" /></label>
+          <label className="block"><span className="text-[13.5px] font-medium text-gray-700">Message</span><Textarea name="body" required minLength={2} maxLength={10000} rows={4} className="mt-1.5" /></label>
           <button type="submit" className="rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">Send Message</button>
         </form>
       </div>

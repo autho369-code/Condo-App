@@ -32,12 +32,14 @@ function when(ts: string) {
 }
 
 export function ResidentConversationList({
-  base, threads, units, error, compose,
+  base, threads, units, error, loadError, compose,
 }: {
   base: '/portal/messages' | '/resident/messages';
   threads: ResidentThreadRow[];
   units: { id: string; label: string }[];
   error?: string;
+  /** A failed read: shown instead of an empty list (never as "no messages"). */
+  loadError?: string | null;
   compose?: boolean;
 }) {
   return (
@@ -48,6 +50,7 @@ export function ResidentConversationList({
         actions={!compose ? <Link href={`${base}?compose=1`} className={buttonClass()}><Send className="h-4 w-4" /> New message</Link> : null}
       />
       {error ? <Alert>{error}</Alert> : null}
+      {loadError ? <Alert tone="danger">{loadError}. Please refresh.</Alert> : null}
 
       {compose ? (
         <Surface>
@@ -83,7 +86,7 @@ export function ResidentConversationList({
         </Surface>
       ) : null}
 
-      <Surface padded={false}>
+      {loadError && threads.length === 0 ? null : <Surface padded={false}>
         {threads.length === 0 ? (
           <EmptyState icon={MessageSquare} title="No messages yet" description="Conversations with your management team show up here." />
         ) : (
@@ -109,7 +112,7 @@ export function ResidentConversationList({
             ))}
           </ul>
         )}
-      </Surface>
+      </Surface>}
     </div>
   );
 }

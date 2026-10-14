@@ -25,7 +25,7 @@ export default async function MyHomePage() {
   // Every owner record of the login (one per association).
   const ownerIds = me.owner_ids
 
-  const [{ data: occupancies }, { data: ownerRows, error: contactsError }] = await Promise.all([
+  const [{ data: occupancies, error: occupanciesError }, { data: ownerRows, error: contactsError }] = await Promise.all([
     db.from('occupancies')
       .select('id, unit_id, occupancy_type, status, move_in_date, dues_amount, dues_frequency, units(id, unit_number, sqft, bedrooms, bathrooms, storage_number, parking_spaces, home_warranty_company, home_warranty_expires), associations(name)')
       .in('owner_id', ownerIds)
@@ -40,17 +40,19 @@ export default async function MyHomePage() {
   const occs = occupancies ?? []
   const unitIds = occs.map((o: any) => o.unit_id).filter(Boolean)
 
-  const [{ data: parking }, { data: pets }] = await Promise.all([
+  const [{ data: parking, error: parkingError }, { data: pets, error: petsError }] = await Promise.all([
     unitIds.length > 0
       ? db.from('parking_assignments')
           .select('id, vehicle_make, vehicle_model, vehicle_color, license_plate, status, parking_spaces(label, space_type)')
           .in('unit_id', unitIds)
           .eq('status', 'active')
-      : Promise.resolve({ data: [] as any[] }),
+      : Promise.resolve({ data: [] as any[], error: null }),
     unitIds.length > 0
       ? db.from('unit_pets').select('id, pet_type, name, breed').in('unit_id', unitIds).is('archived_at', null)
-      : Promise.resolve({ data: [] as any[] }),
+      : Promise.resolve({ data: [] as any[], error: null }),
   ])
+  // A failed read must not look like "no unit / no parking / no pets on file".
+  const loadError = occupanciesError ?? parkingError ?? petsError
 
   return (
     <div className="space-y-6">
@@ -59,7 +61,9 @@ export default async function MyHomePage() {
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Your unit, parking, storage, and household details on file</p>
       </div>
 
-      {occs.length === 0 ? (
+      {loadError && <Alert tone="danger" title="Could not load your home details:">{loadError.message}. Please refresh.</Alert>}
+
+      {occupanciesError ? null : occs.length === 0 ? (
         <div className={`${card} py-10 text-center text-sm text-gray-500`}>No current unit is linked to your account — contact your management company.</div>
       ) : (
         occs.map((o: any) => (
