@@ -66,6 +66,9 @@ export default async function PaymentPage({
   const zone = assoc?.timezone && isValidTimeZone(assoc.timezone) ? assoc.timezone : undefined;
   const reversed = !!p.reversed_at;
   const isCredit = p.method === 'credit';
+  // A removed late fee's credit stays on that fee (remove_late_fee); it is
+  // never reallocated.
+  const isLateFeeRemoval = isCredit && p.reference === 'Late fee removed';
 
   return (
     <DataWorkspace
@@ -101,7 +104,11 @@ export default async function PaymentPage({
           )}
         </Surface>
 
-        {!reversed && (
+        {!reversed && isLateFeeRemoval && (
+          <Alert tone="info" title="Late fee removed">This credit removed a late fee and stays applied to it.</Alert>
+        )}
+
+        {!reversed && !isLateFeeRemoval && (
           <Surface>
             <SectionTitle
               title="Allocation"

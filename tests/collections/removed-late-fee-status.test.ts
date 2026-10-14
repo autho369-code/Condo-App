@@ -62,6 +62,14 @@ describe('20261015130000_removed_late_fee_status migration', () => {
     expect(g).toContain("tg_op in ('UPDATE', 'DELETE') and public.is_late_fee_removal_credit(old.payment_id)");
   });
 
+  it('reallocation refuses a removal credit and the page hides its form (Codex on #383)', () => {
+    const m = read('supabase/migrations/20261015200000_removed_late_fee_no_reallocation.sql');
+    expect(m).toContain("pay.method = ''credit'' and pay.reference = ''Late fee removed''");
+    const page = read('app/(app)/payments/[id]/page.tsx');
+    expect(page).toContain("const isLateFeeRemoval = isCredit && p.reference === 'Late fee removed';");
+    expect(page).toContain('{!reversed && !isLateFeeRemoval && (');
+  });
+
   it('drops or deletes nothing', () => {
     expect(migration).not.toMatch(/\bdrop\s+(table|column|view|function|policy)\b/i);
     expect(migration).not.toMatch(/\bdelete\s+from\b/i);
