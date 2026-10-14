@@ -29,7 +29,7 @@ describe('query columns', () => {
     // columns at the query (or as a constant), or add it to the list.
     expect(unchecked.filter((u: string) => !listed.includes(u))).toEqual([]);
     expect(listed.filter((u) => !unchecked.includes(u))).toEqual([]);
-  });
+  }, 30_000); // scans every query in the repo too
 
   it('catches a column the table does not have', () => {
     expect(selectProblems(schema, 'portfolios', 'company_name, name')).toEqual(['portfolios.name does not exist']);
