@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { canonicalPhone, validTwilioSignature } from '@/lib/sms/twilio';
-import { logUnmatchedReply, recordInboundReply } from '@/lib/sms/inbound-reply';
+import { logUnmatchedReply, recordInboundReply, senderCompanies, textedConversations } from '@/lib/sms/inbound-reply';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,47 +40,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error?.message ?? 'Could not record the reply' }, { status: 500 });
     }
   }
-  const { data: candidates, error: readError } = await db.from('sms_opt_ins')
-    .select('id, portfolio_id')
-    .eq('phone_number', from)
-    .in('entity_type', ['owner', 'vendor'])
-    .limit(10);
-  if (readError) return NextResponse.json({ error: readError.message }, { status: 500 });
-  let matching = candidates ?? [];
-
-  if (optOutType === 'STOP' && matching.length > 0) {
-    const now = new Date().toISOString();
+  if (optOutType === 'STOP') {
+    // Every company's record for the number.
     const { error } = await db.from('sms_opt_ins').update({
       opted_in: false,
       opted_in_at: null,
-      opted_out_at: now,
+      opted_out_at: new Date().toISOString(),
       source: 'twilio_advanced_opt_out',
       notes: 'STOP received and verified by Twilio inbound webhook.',
-    }).in('id', matching.map((candidate: any) => candidate.id));
+    })
+      .eq('phone_number', from)
+      .in('entity_type', ['owner', 'vendor']);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return new NextResponse(null, { status: 204 });
   }
 
-  if (matching.length > 1 && to) {
-    const { data: conversations } = await db.from('sms_conversations')
-      .select('portfolio_id')
-      .eq('with_phone_number', from)
-      .eq('our_phone_number', to)
-      .limit(10);
-    const portfolioIds = new Set((conversations ?? []).map((conversation: any) => conversation.portfolio_id));
-    matching = matching.filter((candidate: any) => portfolioIds.has(candidate.portfolio_id));
+  // START: the one company that knows them, else the one that texted them
+  // from the number they texted (as Twilio reported it).
+  let company: string | null;
+  try {
+    const companies = await senderCompanies(db, from);
+    if (companies.length === 0) return new NextResponse(null, { status: 204 });
+    company = companies.length === 1 ? companies[0] : null;
+    if (!company) {
+      const texted = [...new Set((await textedConversations(db, from, to)).map((c) => c.portfolio_id))];
+      company = texted.length === 1 ? texted[0] : null;
+    }
+  } catch (matchError: any) {
+    return NextResponse.json({ error: matchError?.message ?? 'Could not match the sender' }, { status: 500 });
   }
-  if (matching.length === 0) return new NextResponse(null, { status: 204 });
-  if (matching.length !== 1) return NextResponse.json({ error: 'Ambiguous SMS consent owner' }, { status: 409 });
+  if (!company) return NextResponse.json({ error: 'Ambiguous SMS consent owner' }, { status: 409 });
 
-  const now = new Date().toISOString();
   const { error } = await db.from('sms_opt_ins').update({
     opted_in: true,
-    opted_in_at: now,
+    opted_in_at: new Date().toISOString(),
     opted_out_at: null,
     source: 'twilio_advanced_opt_out',
     notes: `${optOutType} received and verified by Twilio inbound webhook.`,
-  }).eq('id', matching[0].id);
+  })
+    .eq('portfolio_id', company)
+    .eq('phone_number', from)
+    .in('entity_type', ['owner', 'vendor']);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return new NextResponse(null, { status: 204 });
 }

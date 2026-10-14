@@ -78,7 +78,8 @@ async function resolveRecipients(db: any, msg: any): Promise<Recipient[]> {
   const ownerGroups = ['affected_residents', 'all_owners', 'owners', 'both', 'residents'];
   if (assocId && (ownerGroups.includes(group))) {
     // Owners who moved out (sold) by the association's today aren't owners.
-    const today = await associationToday(db, assocId);
+    const { today, error: todayError } = await associationToday(db, assocId);
+    if (todayError) fail(`Could not load the association: ${todayError}.`);
     const occs = await readAll('owners', () => db
       .from('occupancies')
       .select('id, owners!owner_id(id, email, full_name, archived_at)')

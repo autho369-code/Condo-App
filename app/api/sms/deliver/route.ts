@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCronSecret } from '@/lib/server/cron-auth';
-import { sendTwilioSms, smsDeliveryConfigured } from '@/lib/sms/twilio';
+import { recordTwilioSender, sendTwilioSms, smsDeliveryConfigured } from '@/lib/sms/twilio';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -28,6 +28,10 @@ export async function GET(request: NextRequest) {
       const { error: completeError } = await db.rpc('complete_sms_delivery', { p_message_id: message.id, p_provider_message_id: delivered.id });
       if (completeError) throw new Error(completeError.message);
       sent += 1;
+      // Sent: a failure here must not mark the message failed (the status
+      // callback records the sender too).
+      await recordTwilioSender(db, delivered.id, delivered.from)
+        .catch((senderError: any) => console.error('Could not record the SMS sender:', senderError?.message));
     } catch (deliveryError: any) {
       failed += 1;
       const outcomeUnknown = Boolean(providerMessageId || deliveryError?.deliveryOutcomeUnknown);

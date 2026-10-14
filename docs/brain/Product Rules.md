@@ -128,6 +128,12 @@ Back to [[Home]].
   rate (20261014220000). Checks inside a trigger that reads other tables run
   in a definer helper: the caller's row-level security on every row made
   2,000 emails take ~4 s.
+- **Route by what the provider reports, never by what staff can edit**
+  (2026-10-13): deciding which company a reply, consent change or webhook
+  belongs to uses a value only the server writes (e.g.
+  sms_messages.provider_from_number), every column the match reads is
+  frozen for signed-in users, and routing lookups have no row cap and count
+  distinct companies: one company's rows can't hide or claim another's.
 - **Guards check current_user, not auth.role()** (2026-10-13): inside a
   SECURITY DEFINER function an owner's action runs, auth.role() is still
   'authenticated' while current_user is the function owner. A trigger that

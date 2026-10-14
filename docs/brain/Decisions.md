@@ -2,6 +2,14 @@
 
 Back to [[Home]]. Don't redo these.
 
+- **A reply belongs to the company that texted from that number**
+  (2026-10-13, Codex on #369): when several companies know a sender, a text
+  reply or START goes to the company with a text we sent the sender from
+  that number, as Twilio reported it (sms_messages.provider_from_number,
+  server-only). Otherwise it is not filed with any company (each gets a log
+  entry without the message). STOP opts out every company. Numbers staff can
+  edit (from_number, our_phone_number) never decide.
+
 - **Sign-in emails are invisible in the app** (2026-10-13, 20261014220000):
   password-reset, invitation, e-signature and upload emails (email_queue
   holds_auth_link) show nowhere a signed-in user can read: not in an owner's

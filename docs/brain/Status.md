@@ -1,9 +1,36 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#368 merged; open PR: #369 claude/comms-followups; next: email unsubscribe and suppression; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#369 merged; open PR: #370 claude/sms-sender-routing (Codex on #369); next: email unsubscribe and suppression; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #369 claude/comms-followups: communications follow-ups.
+- #370 claude/sms-sender-routing: Codex on #369. 20261014234500 (LIVE, applied as
+  three live versions: 20261013195620 sms_provider_sender, 20261013200049
+  sms_reply_routing_rpcs, 20261013200334 sms_messages_freeze_routing_columns;
+  the file is the final, re-runnable state, no history fix needed):
+  sms_messages.provider_from_number, the number Twilio reports it sent
+  from; a trigger keeps signed-in users from setting it or the Twilio id
+  (current_user) and from moving any message (recipient, conversation,
+  direction), including one mid-send. Server-only
+  RPCs sms_sender_companies (every company that knows a number, no row cap)
+  and sms_reply_conversations (conversations we texted them in from a number).
+  - Text replies and START from a number several companies know go to the
+    company that texted them from the number they replied to, proven only by
+    provider_from_number (from_number and our_phone_number are staff-editable,
+    so another company could have claimed the replies; security review).
+    The delivery cron and the status callback record it. Matching uses
+    the two RPCs, so one company's rows can't hide or claim another's.
+    START goes to the one company that knows them, else the one that texted
+    them from that number (else 409). STOP opts out every company's record
+    for the number (was the first 10).
+  - With one platform Messaging Service and sticky sender, several
+    companies often text a person from the same pool number, so their
+    replies stay unmatched (each company gets a log entry). Fails safe.
+  - Mass email stops if the association's date can't be loaded (it fell
+    back to the default zone and could include or skip owners who moved
+    out that day).
+
+## Merged 2026-10-13
+- #369 communications follow-ups.
   20261014233000 (LIVE):
   - REGRESSION FIX from #367: the email worker-columns guard checked
     auth.role(), still 'authenticated' inside definer functions an owner's
@@ -21,14 +48,13 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#368 merged; open PR: #369 claude/com
   - inbound texts: one row per Twilio message id.
   App: inbound SMS replies are recorded in the sender's conversation (they
   were dropped), in the owner's or vendor's association; a sender known to
-  more than one company is matched only by the number they texted, else
+  more than one company is matched by the number they texted (since the
+  follow-up: as Twilio reported it, provider_from_number), else
   each company gets a log entry without the message; the SMS sender number comes
   from the configuration, not the form; inbox and its texts tab page 100
   at a time (were cut at 300/100); mass email leaves out owners who moved
   out by the association's today. Letters vs email owners checked: the
   same 17 owners (unit_owners is synced from occupancies), no change.
-
-## Merged 2026-10-13
 - #368 email limit counted by the database time under a per-company lock
   (Codex on #367; 20261014230000). Codex clean.
 - #367 email security: sign-in links unreadable by staff; staff mail checked

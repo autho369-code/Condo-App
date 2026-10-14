@@ -141,3 +141,15 @@
   233000 after applying live): grep the old version in docs/brain and every
   agent memory (Product Rules, Shipped, white-label still said 240000), and
   ask for the live schema_migrations read-back of both versions.
+- When a fix changes what a column stores/means (sms-sender-routing start,
+  2026-10-13: sms_conversations.our_phone_number), grep every READER too: the
+  plan covered lib/sms/inbound-reply.ts but missed the STOP/START consent
+  disambiguation in app/api/sms/twilio/inbound/route.ts (~line 64). Also check
+  whether a Codex finding is already fixed in the working tree (P2 was).
+- Design changed mid-PR (sms-sender-routing pre-PR, 2026-10-13): Product
+  Rules kept the superseded "capped lookup that comes back full = ambiguous"
+  after the fix moved to uncapped RPCs counting distinct companies. Re-read each
+  new vault rule against the FINAL code. Also: one migration file applied live
+  as two apply_migration calls (two schema_migrations versions) - ask for the
+  read-back and make file(s) match live versions; migration-reviewer re-runs
+  when definer RPCs are added after its review.
