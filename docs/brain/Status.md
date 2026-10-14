@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#371 merged; open PR: claude/banking-followups; next: Payables follow-ups (Next gaps); waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#371 merged; open PR: #372 claude/banking-followups; next: Payables follow-ups (Next gaps); waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/banking-followups: banking follow-ups (Next gaps). 20261015020000
+- #372 claude/banking-followups: banking follow-ups (Next gaps). 20261015020000
   LIVE as 20261013215404 banking_followups, 20261013215740
   banking_followups_wording, 20261013215843 banking_followups_locks (the file
   is the final, re-runnable state); rolled-back production tests passed
