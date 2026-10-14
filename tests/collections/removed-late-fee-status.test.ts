@@ -44,6 +44,12 @@ describe('20261015130000_removed_late_fee_status migration', () => {
     expect(guard).not.toMatch(/\bdrop\s+(table|column|view|function|policy)\b/i);
   });
 
+  it('reversed_at is locked on a removal credit (Codex on #383)', () => {
+    const rev = read('supabase/migrations/20261015160000_removed_late_fee_reversal_guard.sql');
+    expect(rev).toContain('new.reversed_at is distinct from old.reversed_at');
+    expect(rev).toContain('before insert or update of reference, method, charge_id, reversed_at on public.payments');
+  });
+
   it('drops or deletes nothing', () => {
     expect(migration).not.toMatch(/\bdrop\s+(table|column|view|function|policy)\b/i);
     expect(migration).not.toMatch(/\bdelete\s+from\b/i);
