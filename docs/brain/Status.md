@@ -1,9 +1,22 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#388 merged; open PR: none; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#388 merged; open PR: GL / close deep check; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- none
+- claude/reports-deep-check: deep check of reports, scheduled reports and dashboards. 20261016100000 LIVE as 20261014123933 (author dry-run on production, rolled back; read back). Fixed: people-data reports (users, permissions, login audit) limited to full-access staff/company admins; scheduled report emails only to active staff who can see the report, link requires sign-in (no 30-day public links; 15 stored links rewritten); downloads re-check access; schedules whose user lost access pause once; A/R aging matches the Receivables page (credits); fund reports tie out per fund (interfund line); association-local as-of dates; fiscal-year net income. Reviewers: security, schema, migration (twice), design (twice), white-label.
+- claude/gl-close-deep-check: deep check of the general ledger, period and
+  year-end close, management fees, loans, credit cards and bank lockbox.
+  20261016200000 LIVE as 20261014121412 (agent dry-run on production,
+  rolled back, before/after; read back: table writes revoked, delete guard,
+  helper revoked, owner agreements policy false). Fixed: double posting via
+  direct writes to lockbox/fee ledger/recurring templates (writes revoked);
+  recurring JE once per date; lockbox posts to the unit's current owner and
+  only the batch's association; used GL accounts can't be re-typed, moved or
+  deleted; scoped managers can't change the company-wide GL map or fee
+  defaults; finalized year-end frozen; owners can't read management
+  agreements; scoped managers can't make an agreement company-wide or sign
+  one outside their associations; local dates; lockbox page reads >1,000.
+  Reviewers: migration, security, schema, design (agent + main session).
 
 ## Merged 2026-10-14
 - #388 (merged 2026-10-14) claude/ownership-fixes (sale and move-out, from a deep check of the

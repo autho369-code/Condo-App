@@ -12,6 +12,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { money } from '@/lib/utils';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,9 +77,11 @@ export default async function ManagementFeesPage({
 }) {
   const me = await requireFinanceStaff();
   const sp = await searchParams;
-  const now = new Date();
-  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const month = MONTH.test(sp.month ?? '') ? sp.month! : `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+  // Last month on the viewer's associations' calendar (the server runs in UTC, which is
+  // already next month on a US evening of the last day).
+  const [ty, tm] = todayInZone().split('-').map(Number);
+  const lastMonth = tm === 1 ? `${ty - 1}-12` : `${ty}-${String(tm - 1).padStart(2, '0')}`;
+  const month = MONTH.test(sp.month ?? '') ? sp.month! : lastMonth;
   const db = (await createClient()) as any;
 
   const [{ data: preview, error }, { data: vendors }, { data: gls }, { data: portfolio }] = await Promise.all([

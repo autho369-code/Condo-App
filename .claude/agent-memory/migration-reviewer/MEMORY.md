@@ -78,6 +78,8 @@
 
 - "Take over owner/run_as when column tuple changes" guards: grep app writers of EACH tuple column. 20261016100000:297 had next_run_at in the tuple, so "Run now" (lib/rpcs/reports.ts runScheduleNow writes only next_run_at) silently became a takeover + recipient re-check.
 - Claim-switch helpers (report_access_error_as: set request.jwt.claims to another user, restore after) are safe only if no helper caches identity in a GUC; grep set_config('app.*') before accepting.
+- Freeze guards on "final" records: confirm columns written AFTER finalize stay writable (year_end_packages.signature_request_id via link_year_end_signature; 20261016200000 correctly left it out). Delete guards using app_is_repair_session are safe for purge_rows (SQL editor: session_user postgres).
+- A BEFORE DELETE guard on a child with parent ON DELETE CASCADE (gl_accounts <- associations/portfolios) also fires on parent deletes; a "has sub-accounts" check then blocks the whole cascade. OK only while no app/API path deletes the parent (grep `.from('<parent>')...delete`); 20261016200000 clean.
 
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
