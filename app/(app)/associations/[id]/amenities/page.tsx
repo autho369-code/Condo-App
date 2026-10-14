@@ -88,6 +88,12 @@ export default async function AmenitiesTab({
     const pricingMode = parsePricingMode(formData.get('pricing_mode'));
     const priceRaw = String(formData.get('price_amount') ?? '').trim();
     const reserveMethod = parseReserveMethod(formData.get('reserve_method'));
+    if (allowReservations && reserveMethod === 'email' && !String(formData.get('reservation_email') ?? '').trim()) {
+      failTo('Enter the email address residents reserve with, or choose another way to reserve.'); return;
+    }
+    if (allowReservations && reserveMethod === 'platform_link' && !String(formData.get('reservation_url') ?? '').trim()) {
+      failTo('Enter the reservation platform link, or choose another way to reserve.'); return;
+    }
 
     // Optional amenity photo → private storage; we keep the object PATH in
     // image_url and sign it at render time (same pattern as owner documents).
@@ -286,7 +292,7 @@ export default async function AmenitiesTab({
               <div className="mb-2 text-sm font-semibold text-gray-700">&quot;Reserve&quot; button in resident portal</div>
               <div className="mb-3 flex flex-col gap-2 text-sm">
                 <label className="flex items-center gap-2">
-                  <input type="radio" name="reserve_method" value="email" defaultChecked />
+                  <input type="radio" name="reserve_method" value="email" />
                   Email Address
                 </label>
                 <label className="flex items-center gap-2">
@@ -294,7 +300,7 @@ export default async function AmenitiesTab({
                   Reservation Platform Link
                 </label>
                 <label className="flex items-center gap-2">
-                  <input type="radio" name="reserve_method" value="in_app" />
+                  <input type="radio" name="reserve_method" value="in_app" defaultChecked />
                   Request in the resident portal (you approve each request)
                 </label>
               </div>

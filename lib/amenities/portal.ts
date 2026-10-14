@@ -19,12 +19,16 @@ export function amenityReserveAction(a: {
   reservation_url?: string | null;
 }): AmenityReserveAction {
   if (!a.allow_reservations) return { kind: 'none' };
+  // An email or link amenity saved without its address is requested in the
+  // portal (an unusable address that is set is not offered at all).
   if (a.reserve_method === 'email') {
     const email = (a.reservation_email ?? '').trim();
+    if (!email) return { kind: 'request' };
     return EMAIL.test(email) ? { kind: 'email', email } : { kind: 'none' };
   }
   if (a.reserve_method === 'platform_link') {
     const url = (a.reservation_url ?? '').trim();
+    if (!url) return { kind: 'request' };
     return /^https?:\/\/[^\s]+$/i.test(url) ? { kind: 'link', url } : { kind: 'none' };
   }
   if (a.reserve_method == null) return { kind: 'request' };

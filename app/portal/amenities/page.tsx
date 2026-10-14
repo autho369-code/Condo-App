@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { Badge } from '@/components/ui/shell'
+import { Alert, Badge, SectionTitle, Surface } from '@/components/ui/shell'
 import { zonedWallTimeToUtc } from '@/lib/time/zoned'
 import { buttonClass } from '@/components/ui/button'
 import { amenityPriceLabel, amenityReserveAction, withinAmenityHours } from '@/lib/amenities/portal'
@@ -87,7 +87,7 @@ async function requestReservation(formData: FormData) {
   // RLS on association_amenities already scopes this to the owner's associations.
   const { data: amenity, error: aErr } = await db
     .from('association_amenities')
-    .select('id, association_id, allow_reservations, archived_at, reserve_method, opens_at, closes_at, associations(timezone)')
+    .select('id, association_id, allow_reservations, archived_at, reserve_method, reservation_email, reservation_url, opens_at, closes_at, associations(timezone)')
     .eq('id', amenityId)
     .maybeSingle()
   if (aErr || !amenity) { failTo('Amenity not found or unavailable'); return }
@@ -227,31 +227,21 @@ export default async function OwnerAmenitiesPage({
       <div>
         <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Amenities</h1>
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
-          Browse bookable amenities and request a reservation. Management reviews each request.
+          Request a reservation, or use the email or link shown for each amenity.
         </p>
       </div>
 
-      {sp.error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          <span className="font-semibold">Could not submit:</span> {sp.error}
-        </div>
-      )}
-      {sp.requested === '1' && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Thanks — your reservation request was sent to management for review.
-        </div>
-      )}
-      {sp.cancelled === '1' && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-          Your reservation was cancelled.
-        </div>
-      )}
+      {sp.error && <Alert tone="danger" title="Could not submit">{sp.error}</Alert>}
+      {sp.requested === '1' && <Alert tone="success">Thanks — your reservation request was sent to management for review.</Alert>}
+      {sp.cancelled === '1' && <Alert tone="info">Your reservation was cancelled.</Alert>}
 
       {/* Bookable amenities, each with the way staff set it to be reserved */}
       {amenities.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-[13px] font-semibold text-gray-700">Bookable amenities</h2>
-          <ul className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <Surface padded={false}>
+          <div className="px-5 pt-5">
+            <SectionTitle title="Bookable amenities" description="Hours, prices and how to reserve, as your management team set them." />
+          </div>
+          <ul className="divide-y divide-gray-100">
             {amenities.map((a) => {
               const action = amenityReserveAction(a)
               const hrs = fmtHours(a.opens_at, a.closes_at)
@@ -282,7 +272,7 @@ export default async function OwnerAmenitiesPage({
               )
             })}
           </ul>
-        </section>
+        </Surface>
       )}
 
       {/* Request form */}

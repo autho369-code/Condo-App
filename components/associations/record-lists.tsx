@@ -56,7 +56,7 @@ export function InsuranceList({ policies, associationId, back, today }: Common &
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  {exp && (exp < today ?<StatusChip tone="danger">Expired</StatusChip> : exp < soon ? <StatusChip tone="warning">Expires {date(p.expiration_date)}</StatusChip> : <StatusChip tone="success">Through {date(p.expiration_date)}</StatusChip>)}
+                  {exp && (exp < today ? <StatusChip tone="danger">Expired</StatusChip> : exp < soon ? <StatusChip tone="warning">Expires {date(p.expiration_date)}</StatusChip> : <StatusChip tone="success">Through {date(p.expiration_date)}</StatusChip>)}
                   <form action={archiveAssociationInsurance}><Hidden associationId={associationId} back={back} /><input type="hidden" name="id" value={p.id} /><PendingSubmit variant="ghost" size="sm" pendingLabel="Archiving…" confirm="Archive this insurance policy?">Archive</PendingSubmit></form>
                 </div>
               </li>

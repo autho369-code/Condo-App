@@ -1,5 +1,6 @@
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { ClipboardCheck, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { mergePrivateFields } from '@/lib/private-fields';
@@ -149,6 +150,17 @@ export default async function InspectionsPage({
   const listError: string | null = listRes.error?.message ?? searchError;
   const matching: number = listRes.count ?? pageRows.length;
   const pageCount = Math.max(1, Math.ceil(matching / PAGE_SIZE));
+  // A page past the end goes to the last one.
+  // (The API refuses a range past the end with PGRST103; count it separately.)
+  const pastEnd = page > 1 && listRes.error?.code === 'PGRST103';
+  if (pastEnd || (!listRes.error && matching > 0 && page > pageCount)) {
+    const lastPage = pastEnd
+      ? Math.max(1, Math.ceil(((await listFilters(db.from('inspections').select('id', { count: 'exact', head: true }))).count ?? 0) / PAGE_SIZE))
+      : pageCount;
+    const params = new URLSearchParams(Object.entries({ tab, q, status, type, association_id }).filter(([, v]) => v) as Array<[string, string]>);
+    if (lastPage > 1) params.set('page', String(lastPage));
+    redirect(`/inspections?${params.toString()}`);
+  }
   const totalCount: number = totalRes.count ?? 0;
   const scheduledCount: number = scheduledRes.count ?? 0;
   const inProgressCount: number = inProgressRes.count ?? 0;

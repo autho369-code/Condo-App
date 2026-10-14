@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Plus, ShieldCheck, FileText } from 'lucide-react';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
@@ -75,6 +76,13 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
   const total: number = totalCount ?? rows.length;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageHref = (n: number) => (n > 1 ? `/insurance?page=${n}` : '/insurance');
+  // A page past the end (policies were archived or renewed) goes to the last one.
+  // (The API refuses a range past the end with PGRST103; count it separately.)
+  if (page > 1 && policiesError?.code === 'PGRST103') {
+    const { count } = await view().select('id', { count: 'exact', head: true });
+    redirect(pageHref(Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE))));
+  }
+  if (!policiesError && total > 0 && page > pageCount) redirect(pageHref(pageCount));
 
   // Signed links for uploaded certificates (private bucket)
   const certLinkById = new Map<string, string>();

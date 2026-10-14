@@ -33,21 +33,39 @@ grant select, insert, update, delete on public.insurance_policy_private to authe
 
 do $$
 begin
+  -- Staff only. The parent row's own row-level security applies inside the
+  -- exists; a policy with an association must also be in the caller's
+  -- associations (a staff member who owns a unit elsewhere can read their
+  -- own policy row there, never its notes).
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'insurance_policy_private' and policyname = 'insurance_policy_private_staff') then
     create policy insurance_policy_private_staff on public.insurance_policy_private
       for all to authenticated
-      using (exists (
-        select 1 from public.insurance_policies ip
-         where ip.id = insurance_policy_private.insurance_policy_id
-           and ((select public.is_platform_operator())
-                or (((select public.is_any_staff()) or (select public.is_company_admin()))
-                    and coalesce(ip.association_id in (select rls_private.my_accessible_association_ids()), false)))))
-      with check (exists (
-        select 1 from public.insurance_policies ip
-         where ip.id = insurance_policy_private.insurance_policy_id
-           and ((select public.is_platform_operator())
-                or (((select public.is_any_staff()) or (select public.is_company_admin()))
-                    and coalesce(ip.association_id in (select rls_private.my_accessible_association_ids()), false)))));
+      using (((select public.is_platform_operator()) or (select public.is_any_staff()) or (select public.is_company_admin()))
+           and exists (
+             select 1 from public.insurance_policies ip
+              where ip.id = insurance_policy_private.insurance_policy_id
+                and (ip.association_id is null
+                     or coalesce(ip.association_id in (select rls_private.my_accessible_association_ids()), false))))
+      with check (((select public.is_platform_operator()) or (select public.is_any_staff()) or (select public.is_company_admin()))
+           and exists (
+             select 1 from public.insurance_policies ip
+              where ip.id = insurance_policy_private.insurance_policy_id
+                and (ip.association_id is null
+                     or coalesce(ip.association_id in (select rls_private.my_accessible_association_ids()), false))));
+  else
+    alter policy insurance_policy_private_staff on public.insurance_policy_private
+      using (((select public.is_platform_operator()) or (select public.is_any_staff()) or (select public.is_company_admin()))
+           and exists (
+             select 1 from public.insurance_policies ip
+              where ip.id = insurance_policy_private.insurance_policy_id
+                and (ip.association_id is null
+                     or coalesce(ip.association_id in (select rls_private.my_accessible_association_ids()), false))))
+      with check (((select public.is_platform_operator()) or (select public.is_any_staff()) or (select public.is_company_admin()))
+           and exists (
+             select 1 from public.insurance_policies ip
+              where ip.id = insurance_policy_private.insurance_policy_id
+                and (ip.association_id is null
+                     or coalesce(ip.association_id in (select rls_private.my_accessible_association_ids()), false))));
   end if;
   -- Association-scoped managers see only their associations' notes.
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'insurance_policy_private' and policyname = 'mgr_assoc_scope') then
@@ -86,8 +104,12 @@ security definer
 set search_path = pg_catalog, public
 as $function$
 begin
-  if public.is_self_service_caller() then
-    -- Owners never write management's notes.
+  -- Only staff of this policy's association (or the server, with no
+  -- signed-in user) write management's notes. Anyone else - an owner, even
+  -- one who is staff at another company - never does.
+  if auth.uid() is not null
+     and not ((public.is_platform_operator() or public.is_any_staff() or public.is_company_admin())
+              and public.can_access_association(new.association_id)) then
     new.notes := null;
     return new;
   end if;
@@ -378,7 +400,7 @@ begin
   end if;
   v_def := replace(v_def, v_anchor, v_anchor || E'\n'
     || E'     -- Staff-only internal management reminders are never shown to residents.\n'
-    || E'     and e.event_type::text not in (''insurance_expiration'', ''contract_renewal'', ''assessment_deadline'')');
+    || E'     and e.event_type::text not in (''insurance_expiration'', ''contract_renewal'')');
   execute v_def;
 end $$;
 
@@ -395,21 +417,30 @@ declare
   v_end timestamp;
   v_end_time time;
 begin
-  if pg_trigger_depth() > 1 or not public.is_self_service_caller() then
+  -- Staff of the amenity's association and server writes pass; everyone
+  -- else is checked, including someone who is staff at another company.
+  if pg_trigger_depth() > 1 or auth.uid() is null then
+    return new;
+  end if;
+  if (public.is_platform_operator() or public.is_any_staff() or public.is_company_admin())
+     and public.can_access_association(new.association_id) then
     return new;
   end if;
 
   select a.id, a.association_id, a.allow_reservations, a.archived_at, a.reserve_method,
-         a.opens_at, a.closes_at,
+         a.reservation_email, a.reservation_url, a.opens_at, a.closes_at,
          coalesce(nullif(s.timezone, ''), 'America/Chicago') as tz
     into am
     from public.association_amenities a
     left join public.associations s on s.id = a.association_id
    where a.id = new.amenity_id
      for share of a;
-  -- Reserved in the portal only when staff chose that (no email or link).
+  -- Reserved in the portal only when staff chose that: no email or link
+  -- method, or one saved without its address.
   if not found or am.archived_at is not null or not coalesce(am.allow_reservations, false)
-     or am.reserve_method is not null or am.association_id is distinct from new.association_id then
+     or (am.reserve_method::text = 'email' and nullif(btrim(coalesce(am.reservation_email, '')), '') is not null)
+     or (am.reserve_method::text = 'platform_link' and nullif(btrim(coalesce(am.reservation_url, '')), '') is not null)
+     or am.association_id is distinct from new.association_id then
     raise exception 'That amenity does not take reservation requests here' using errcode = '42501';
   end if;
   if new.start_time is null or new.end_time is null or new.end_time <= new.start_time then
@@ -455,8 +486,18 @@ language plpgsql
 security definer
 set search_path = pg_catalog, public
 as $function$
+declare
+  v_assoc uuid;
 begin
-  if pg_trigger_depth() > 1 or not public.is_self_service_caller() then
+  if pg_trigger_depth() > 1 or auth.uid() is null then
+    return new;
+  end if;
+  -- Staff of the inspection's association pass; everyone else (a vendor,
+  -- even one who is staff at another company) only adds findings.
+  select i.association_id into v_assoc from public.inspections i
+   where i.id = case when tg_op = 'INSERT' then new.inspection_id else old.inspection_id end;
+  if (public.is_platform_operator() or public.is_any_staff() or public.is_company_admin())
+     and public.can_access_association(v_assoc) then
     return new;
   end if;
   if tg_op = 'INSERT' then

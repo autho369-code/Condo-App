@@ -36,8 +36,12 @@ describe('resident amenities follow the configured reserve method', () => {
       .toEqual({ kind: 'link', url: 'https://book.example.com/pool' });
     expect(amenityReserveAction({ allow_reservations: true, reserve_method: null })).toEqual({ kind: 'request' });
   });
+  it('an email or link amenity saved without its address is requested in the portal', () => {
+    expect(amenityReserveAction({ allow_reservations: true, reserve_method: 'email', reservation_email: '  ' }).kind).toBe('request');
+    expect(amenityReserveAction({ allow_reservations: true, reserve_method: 'platform_link', reservation_url: null }).kind).toBe('request');
+  });
   it('never offers a request for an email or link amenity, nor an unsafe link', () => {
-    expect(amenityReserveAction({ allow_reservations: true, reserve_method: 'email', reservation_email: '' }).kind).toBe('none');
+    expect(amenityReserveAction({ allow_reservations: true, reserve_method: 'email', reservation_email: 'not an email' }).kind).toBe('none');
     expect(amenityReserveAction({ allow_reservations: true, reserve_method: 'platform_link', reservation_url: 'javascript:alert(1)' }).kind).toBe('none');
     expect(amenityReserveAction({ allow_reservations: false, reserve_method: null }).kind).toBe('none');
   });
@@ -147,11 +151,39 @@ describe('migration 20261015080000', () => {
     }
   });
   it('hides internal reminders from residents, guards amenity requests and vendor findings', () => {
-    expect(SQL).toMatch(/'insurance_expiration'', ''contract_renewal'', ''assessment_deadline''/);
+    // Assessment deadlines stay visible to residents.
+    expect(SQL).toMatch(/not in \(''insurance_expiration'', ''contract_renewal''\)'\)/);
+    expect(SQL).not.toMatch(/assessment_deadline/);
     expect(SQL).toMatch(/v_marker text := 'internal management reminders'/);
     expect(SQL).toMatch(/before insert on public\.amenity_reservations/);
-    expect(SQL).toMatch(/am\.reserve_method is not null/);
+    expect(SQL).toMatch(/am\.reserve_method::text = 'email' and nullif\(btrim\(coalesce\(am\.reservation_email/);
     expect(SQL).toMatch(/before insert or update on public\.inspection_items/);
     expect(SQL).toMatch(/new\.work_order_id is distinct from old\.work_order_id/);
+  });
+
+  // Someone who is staff at another company but an owner or vendor here is
+  // still guarded: staff pass only for the row's own association.
+  function fnBody(name: string): string {
+    const start = SQL.indexOf(`create or replace function public.${name}(`);
+    expect(start).toBeGreaterThan(0);
+    return SQL.slice(start, SQL.indexOf('$function$;', start));
+  }
+  it.each([
+    ['move_insurance_policy_private_fields', 'public.can_access_association(new.association_id)'],
+    ['amenity_reservations_resident_insert_guard', 'public.can_access_association(new.association_id)'],
+    ['inspection_items_self_service_guard', 'public.can_access_association(v_assoc)'],
+  ])('%s lets staff through only for the row\'s association', (name, check) => {
+    const body = fnBody(name);
+    expect(body).not.toMatch(/is_self_service_caller/);
+    expect(body).toContain('(public.is_platform_operator() or public.is_any_staff() or public.is_company_admin())');
+    expect(body).toContain(check);
+  });
+  it('the findings guard reads the association from the inspection the row belongs to', () => {
+    expect(fnBody('inspection_items_self_service_guard'))
+      .toMatch(/where i\.id = case when tg_op = 'INSERT' then new\.inspection_id else old\.inspection_id end/);
+  });
+  it('staff read insurance notes of a policy without an association through its own row security', () => {
+    const start = SQL.indexOf('create policy insurance_policy_private_staff');
+    expect(SQL.slice(start, start + 1200)).toMatch(/ip\.association_id is null\s+or coalesce\(ip\.association_id in \(select rls_private\.my_accessible_association_ids\(\)\), false\)/);
   });
 });
