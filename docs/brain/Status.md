@@ -1,23 +1,30 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#376 merged; open PR: #377 claude/journal-source-guard; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#378 merged; open PR: claude/board-vendor-fixes (PR not opened yet); fixer branches claude/insurance-inspections-fixes and claude/arc-documents-fixes in progress; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #377 claude/journal-source-guard: Codex on #376 (P1) and the
-  security review on #375. 20261015060000: signed-in users can't insert,
-  update or delete journal_entries / journal_lines directly (the app only
-  reads them; every posting goes through definer functions and triggers;
-  the one invoker writer, record_check_run_legacy, is postgres-only). A
-  finance user could insert a posted-style entry with source_type 'charge'
-  and steer remove_late_fee's reversal account; rolled back on production:
-  allowed before, refused (42501) after; a charge and remove_late_fee still
-  post.
-  - LIVE as applied (journal revoke). Production had no hand-made journal
-    entries (all 16 match their source's company).
-  - Interest removed (Mirsad: "THERE IS NO INTEREST", "ITS ONE TIME LATE
-    CHARGE"): no interest settings on the association page, no daily
-    interest job (route + cron removed). Database leftovers: drop SQL in
-    TODO. Late fee = one fee per overdue charge, charged once (as built).
+- (PR not opened yet) claude/board-vendor-fixes: DEEP CHECK of the board and
+  vendor portals (agent, rolled back on production) + fixes, 20261015100000.
+  - Vendor-entered compliance dates no longer become official: the sync
+    trigger (meant to be off since 20261002131203) was ON in production;
+    disabled, plus a self-service early return; vendors_self_service_guard
+    no longer trusts trigger depth alone (live: 0 vendor claims yet).
+  - Board seats only through a linked login (email-match branch removed;
+    live: 0 seats relied on it).
+  - Board receivables, aging and meeting snapshot use the association's
+    local date/month; delinquent units = units with an overdue balance.
+  - Vendors can't read in-house labor costs (policy false).
+  - Board budget local fiscal year; cancelled future meetings listed;
+    meeting type labels; archived meetings refused; vendor profile email
+    removal; vendor dashboard counts from the database.
+
+## Merged 2026-10-14
+- #378 tests pass on Windows (CRLF, backslash paths, slow process start;
+  1,058/1,058). Codex clean.
+- #377 journal written only by database functions (20261015060000 live;
+  Codex on #376) + interest on overdue balances removed (Mirsad: "THERE IS
+  NO INTEREST", "ITS ONE TIME LATE CHARGE"; drop SQL in TODO). Codex clean.
+
 
 ## Merged 2026-10-13
 - #376 claude/collections-codex-fixes: Codex on #375 (two P1s). Codex: P1
