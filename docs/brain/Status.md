@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#378 merged; open PR: claude/board-vendor-fixes (PR not opened yet); fixer branches claude/insurance-inspections-fixes and claude/arc-documents-fixes in progress; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#378 merged; open PR: #379 claude/board-vendor-fixes; fixer branches claude/insurance-inspections-fixes and claude/arc-documents-fixes in progress; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (PR not opened yet) claude/board-vendor-fixes: DEEP CHECK of the board and
+- #379 claude/board-vendor-fixes: DEEP CHECK of the board and
   vendor portals (agent, rolled back on production) + fixes, 20261015100000
   LIVE as 20261014004501 (read back; migration, security and design
   reviewers ran; their findings fixed: aging date inline, summary date once
