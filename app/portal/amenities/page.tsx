@@ -251,7 +251,7 @@ export default async function OwnerAmenitiesPage({
       {sp.error && <Alert tone="danger" title="Could not submit">{sp.error}</Alert>}
       {sp.requested === '1' && <Alert tone="success">Thanks — your reservation request was sent to management for review.</Alert>}
       {sp.cancelled === '1' && <Alert tone="info">Your reservation was cancelled.</Alert>}
-      {loadError && <Alert tone="danger" title="Could not load amenities:">{loadError.message}. Please refresh.</Alert>}
+      {loadError && <Alert tone="danger" title="Could not load amenities:">{loadError.message.replace(/\.\s*$/, '')}. Please refresh.</Alert>}
 
       {/* Bookable amenities, each with the way staff set it to be reserved */}
       {amenities.length > 0 && (

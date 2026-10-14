@@ -28,7 +28,7 @@ export default async function OwnerHearingsPage({ searchParams }: { searchParams
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">View hearings scheduled for your violations</p>
       </div>
 
-      {violsError && <Alert tone="danger" title="Could not load your hearings:">{violsError.message}. Please refresh.</Alert>}
+      {violsError && <Alert tone="danger" title="Could not load your hearings:">{violsError.message.replace(/\.\s*$/, '')}. Please refresh.</Alert>}
 
       {violsError ? null : all.length === 0 ? (
         <Surface padded={false} className="px-6 py-12 text-center">

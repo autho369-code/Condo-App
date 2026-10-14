@@ -61,7 +61,7 @@ export default async function MyHomePage() {
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Your unit, parking, storage, and household details on file</p>
       </div>
 
-      {loadError && <Alert tone="danger" title="Could not load your home details:">{loadError.message}. Please refresh.</Alert>}
+      {loadError && <Alert tone="danger" title="Could not load your home details:">{loadError.message.replace(/\.\s*$/, '')}. Please refresh.</Alert>}
 
       {occupanciesError ? null : occs.length === 0 ? (
         <div className={`${card} py-10 text-center text-sm text-gray-500`}>No current unit is linked to your account — contact your management company.</div>

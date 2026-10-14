@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { Badge, Alert } from '@/components/ui/shell'
+import { Badge, Alert, SectionTitle, Surface } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 import { htmlToPlainText } from '@/lib/security/rich-text'
 import { revalidatePath } from 'next/cache'
@@ -82,12 +82,12 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
       {banner.error && <Alert tone="danger" title="Could not send:">{banner.error}</Alert>}
       {loadError && <Alert tone="danger" title="Could not load your messages:">{loadError.message}</Alert>}
       {banner.sent === '1' && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your message was sent to management.</div>
+        <Alert tone="success">Your message was sent to management.</Alert>
       )}
 
       {/* Send Message */}
-      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
-        <h2 className="mb-4 text-sm font-semibold text-gray-950">Send a Message</h2>
+      <Surface>
+        <SectionTitle title="Send a Message" />
         <form action={sendMessage} className="space-y-4">
           <input type="hidden" name="request_key" value={requestKey} />
           {records.length > 1 ? (
@@ -101,11 +101,11 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
           <Field label="Message" required><Textarea name="body" required minLength={2} maxLength={10000} rows={4} /></Field>
           <PendingSubmit pendingLabel="Sending…">Send Message</PendingSubmit>
         </form>
-      </div>
+      </Surface>
 
       {/* Announcements */}
-      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
-        <h2 className="mb-3 text-sm font-semibold text-gray-950">Announcements</h2>
+      <Surface>
+        <SectionTitle title="Announcements" />
         {announcements.length === 0 ? (
           <p className="text-sm text-gray-400">No announcements yet.</p>
         ) : (
@@ -120,11 +120,11 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
             ))}
           </div>
         )}
-      </div>
+      </Surface>
 
       {/* Message History */}
-      <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
-        <h2 className="mb-3 text-sm font-semibold text-gray-950">Message History</h2>
+      <Surface>
+        <SectionTitle title="Message History" />
         {(msgs ?? []).length === 0 ? (
           <p className="text-sm text-gray-400">No messages sent yet.</p>
         ) : (
@@ -141,7 +141,7 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
             ))}
           </div>
         )}
-      </div>
+      </Surface>
     </div>
   )
 }

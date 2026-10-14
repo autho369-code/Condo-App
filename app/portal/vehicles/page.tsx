@@ -32,7 +32,7 @@ export default async function OwnerVehiclesPage() {
         </p>
       </div>
 
-      {assignmentsError && <Alert tone="danger" title="Could not load your vehicles and parking:">{assignmentsError.message}. Please refresh.</Alert>}
+      {assignmentsError && <Alert tone="danger" title="Could not load your vehicles and parking:">{assignmentsError.message.replace(/\.\s*$/, '')}. Please refresh.</Alert>}
 
       <div className="grid grid-cols-2 gap-3">
         {[

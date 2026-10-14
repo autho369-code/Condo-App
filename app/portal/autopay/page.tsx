@@ -301,7 +301,7 @@ export default async function AutopayPage({
       </div>
 
       {sp.error && <Alert tone="danger" title="AutoPay error">{sp.error}</Alert>}
-      {loadError && <Alert tone="danger" title="Could not load your AutoPay details:">{loadError.message}. Please refresh before making changes.</Alert>}
+      {loadError && <Alert tone="danger" title="Could not load your AutoPay details:">{loadError.message.replace(/\.\s*$/, '')}. Please refresh before making changes.</Alert>}
       {sp.enrolled && <Alert tone="success" title="Payment method saved">Your AutoPay enrollment activates as soon as Stripe confirms the saved payment method (usually instant).</Alert>}
       {setupAttempt?.status === 'completed' && <Alert tone="success" title="Payment method saved">Your AutoPay enrollment is active.</Alert>}
       {(!sp.canceled || cancelOutcome === 'completing') && setupAttempt && ['pending', 'session_created'].includes(setupAttempt.status) && <Alert tone="info" title="Setup received">Stripe is confirming your saved payment method. This page will show the enrollment once processing completes.</Alert>}

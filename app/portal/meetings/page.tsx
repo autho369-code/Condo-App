@@ -33,7 +33,7 @@ export default async function OwnerMeetingsPage() {
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Approved minutes from your association&apos;s meetings</p>
       </div>
 
-      {meetingsError && <Alert tone="danger" title="Could not load meeting minutes:">{meetingsError.message}. Please refresh.</Alert>}
+      {meetingsError && <Alert tone="danger" title="Could not load meeting minutes:">{meetingsError.message.replace(/\.\s*$/, '')}. Please refresh.</Alert>}
 
       {meetingsError ? null : all.length === 0 ? (
         <Surface padded={false} className="px-6 py-12 text-center">

@@ -72,7 +72,7 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
       )}
 
       {violsError && <Alert tone="danger" title="Could not load violations:">{violsError.message}</Alert>}
-      {!violsError && tilesError && <Alert tone="danger" title="Could not load your violation totals:">{tilesError}. Please refresh.</Alert>}
+      {!violsError && tilesError && <Alert tone="danger" title="Could not load your violation totals:">{tilesError.replace(/\.\s*$/, '')}. Please refresh.</Alert>}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
