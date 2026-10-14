@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#382 and #385 merged; open PRs: #383 removed late fee status, #384 owner portal fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: #383 removed late fee status; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
 - #383 claude/removed-late-fee-status: a removed late fee reads "Removed", not
@@ -33,33 +33,30 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#382 and #385 merged; open PRs: #383 
   fallback date, past-due badge stays red on the unit page).
 
 ## Merged 2026-10-14
-- #385 work orders and service requests (merged 2026-10-14).
-  20261015170000 LIVE as 20261014034204 (dry-run rolled back on production
-  first as the manager, vendor and owner logins; read back: 11 patched
-  functions, created_on default null, message policy). Migration and
-  security reviewers ran twice, design, schema and white-label once; their
-  findings fixed.
-  - One work order per request: a request with a finished work order is not
-    triaged again. The request follows its work orders: completed when the
-    last open one finishes, is cancelled, archived or deleted while another
-    is finished (resolved_at kept even when a vendor finishes it); back to
-    waiting when a finished one is reopened (cancelled requests stay). No
-    backfill (it would fire the resolved webhook for old requests).
-  - Work order status emails go to the request's submitter (intentional);
-    a unit work order opened before the current owner moved in emails
-    nobody.
-  - Permission to enter on the staff work order page and, through
-    vendor_work_order_permission_to_enter, to the assigned vendor.
-  - Assigned vendors get a white-labeled email (new work order, single and
-    bulk, one email per bulk run); bulk messages name every selected job; bulk status skips
-    rows already at that status ("No changes" notice).
-  - Service request search runs in the database (full names, 200-id caps)
-    with the 500-row notice on an exact count.
-  - Request date, resident tenure, resident associations and tenant work
-    orders use the association's local date; an explicit staff request date
-    is kept. Residents post messages only as themselves on unarchived work
-    orders they can see. Resident service requests and payment plans read
-    through once-per-query id sets (same rows as before in the dry run).
+- #384 owner portal fixes (merged 2026-10-14), app
+  code only (no migrations).
+  - Ledger: a previous owner's paid charges are hidden; charges still open
+    stay (screen and export). Unit column on charges and payments; the
+    export has one header per association.
+  - AutoPay: an account with online payments switched off can't be set up,
+    isn't offered, and existing enrollments show as paused.
+  - Hearings: the recorded hearing time wins over the old scheduled date,
+    accumulated fines over the base fine; hearing dates show in the
+    association's own time zone (hearings list and violation page).
+  - Work orders show errors sent back by the message form.
+  - Work orders and violations are paged (50 a page); violation totals
+    count every violation, not just the first 100.
+  - A failed read shows an error instead of an empty page (ownership dates,
+    My Home, hearings, meetings, vehicles, amenities, AutoPay, messages;
+    messages no longer opens "new message" when the list failed to load).
+  - A failed or canceled online payment says so and links back to Pay.
+  - Communications uses the shared text box.
+  - A removed late fee reads "Late fee removed", never as a payment
+    received (ledger, dashboard, timeline, owner assistant).
+- #385 work orders and service requests (20261015170000 LIVE as
+  20261014034204). Codex: one P2 (complete a request when its only work
+  order is deleted) answered as intended: unfinished work never marks a
+  request resolved.
 - #382 Codex follow-ups on #379-#381 (20261015110000 LIVE as
   20261014022209, 20261015120000 LIVE as 20261014022727). Codex clean.
 - #381 architectural reviews, documents, forms, e-sign (20261015090000 LIVE

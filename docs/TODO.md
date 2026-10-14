@@ -13,10 +13,9 @@ Everything Claude can do alone is done; these need Mirsad (accounts, keys,
 DNS or decisions). Details for the older items are further down.
 
 **Housekeeping (quick)**
-- [ ] **Merge two ready PRs** (2026-10-14; CI green, Codex comments
-      answered, migrations already live): #383 removed late fees read
-      "Removed" and are fully locked; #384 owner portal fixes (#385 work
-      orders merged 2026-10-14). After each merge, `git pull` in
+- [ ] **Merge #383** (2026-10-14; CI green, Codex clean, migrations already
+      live): removed late fees read "Removed" and are fully locked (#384
+      and #385 merged 2026-10-14). After merging, `git pull` in
       `C:\Users\autho\Portier369-current` (or turn on the Obsidian Git
       plugin) so Obsidian shows the new notes.
 - [ ] **Email opt-out: two defaults to confirm** (2026-10-13). Answered:

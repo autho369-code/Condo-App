@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/me';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
-import { Alert } from '@/components/ui/shell';
+import { Alert, Surface } from '@/components/ui/shell';
 import { StatusChip } from '@/components/operations/status-chip';
 import { date, money } from '@/lib/utils';
 import {
@@ -18,7 +18,6 @@ import { associationZone } from '../_lib/tenure';
 
 export const dynamic = 'force-dynamic';
 
-const card = 'rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
 const RETURN = '/portal/autopay';
 
 const MODES = [
@@ -107,7 +106,7 @@ async function startAutopaySetup(formData: FormData) {
   const { data: occ } = await svc
     .from('occupancies')
     // The login's owner record that holds this unit (one record per association).
-    .select('owner_id, unit_id, association_id, associations(portfolio_id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at)')
+    .select('owner_id, unit_id, association_id, allow_online_payments, associations(portfolio_id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at)')
     .in('owner_id', me.owner_ids.length ? me.owner_ids : ['00000000-0000-0000-0000-000000000000'])
     .eq('unit_id', unitId)
     .eq('status', 'current')
@@ -116,6 +115,11 @@ async function startAutopaySetup(formData: FormData) {
     .maybeSingle();
   if (!occ?.owner_id || !occ?.association_id || !occ?.associations?.portfolio_id || !associationCanAcceptStripePayments(occ.associations)) {
     redirect(`${RETURN}?error=${encodeURIComponent('Online payments are not enabled for your association yet.')}`);
+  }
+  // Management can switch online payments off per account; the AutoPay run
+  // skips such accounts, so never enroll one.
+  if (occ.allow_online_payments === false) {
+    redirect(`${RETURN}?error=${encodeURIComponent('Online payments are off for this account. Please contact your management company.')}`);
   }
 
   const { data: existingMandate } = await svc
@@ -259,21 +263,30 @@ export default async function AutopayPage({
         .maybeSingle()
     : { data: null };
 
-  const [{ data: mandates }, { data: occs }] = await Promise.all([
+  const [{ data: mandates, error: mandatesError }, { data: occs, error: occsError }] = await Promise.all([
     db.from('autopay_mandates')
       .select('*, units(unit_number), payment_methods(brand, last_four, method_type, bank_name), associations(name, timezone)')
       .in('owner_id', me.owner_ids)
       .neq('status', 'canceled')
       .order('created_at', { ascending: false }),
     db.from('occupancies')
-      .select('unit_id, units(unit_number), associations(id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at)')
+      .select('owner_id, unit_id, allow_online_payments, units(unit_number), associations(id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at)')
       .in('owner_id', me.owner_ids)
       .eq('status', 'current'),
   ]);
 
+  const loadError = mandatesError ?? occsError;
   const activeMandateUnitIds = new Set((mandates ?? []).map((m: any) => m.unit_id));
-  const enrollableUnits = (occs ?? []).filter(
-    (o: any) => associationCanAcceptStripePayments(o.associations) && !activeMandateUnitIds.has(o.unit_id),
+  // Accounts (owner record + unit) where management switched online payments
+  // off: not offered for setup, and existing enrollments show as paused (the
+  // AutoPay run skips them).
+  const onlineOff = new Set(
+    ((occs ?? []) as any[]).filter((o) => o.allow_online_payments === false).map((o) => `${o.owner_id}:${o.unit_id}`),
+  );
+  const enrollableUnits = loadError ? [] : (occs ?? []).filter(
+    (o: any) => associationCanAcceptStripePayments(o.associations)
+      && o.allow_online_payments !== false
+      && !activeMandateUnitIds.has(o.unit_id),
   );
   // Each mandate's "today" is its association's local date.
   const todayFor = (m: any) => todayInZone(associationZone(m.associations?.timezone));
@@ -288,6 +301,7 @@ export default async function AutopayPage({
       </div>
 
       {sp.error && <Alert tone="danger" title="AutoPay error">{sp.error}</Alert>}
+      {loadError && <Alert tone="danger" title="Could not load your AutoPay details:">{loadError.message.replace(/\.\s*$/, '')}. Please refresh before making changes.</Alert>}
       {sp.enrolled && <Alert tone="success" title="Payment method saved">Your AutoPay enrollment activates as soon as Stripe confirms the saved payment method (usually instant).</Alert>}
       {setupAttempt?.status === 'completed' && <Alert tone="success" title="Payment method saved">Your AutoPay enrollment is active.</Alert>}
       {(!sp.canceled || cancelOutcome === 'completing') && setupAttempt && ['pending', 'session_created'].includes(setupAttempt.status) && <Alert tone="info" title="Setup received">Stripe is confirming your saved payment method. This page will show the enrollment once processing completes.</Alert>}
@@ -301,8 +315,9 @@ export default async function AutopayPage({
       {(mandates ?? []).map((m: any) => {
         const today = todayFor(m);
         const onHold = m.skip_until && m.skip_until >= today;
+        const paused = onlineOff.has(`${m.owner_id}:${m.unit_id}`);
         return (
-          <div key={m.id} className={card}>
+          <Surface key={m.id}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">
@@ -322,8 +337,11 @@ export default async function AutopayPage({
                     : `${(m.payment_methods?.brand ?? 'Card').toUpperCase()} ••••${m.payment_methods?.last_four ?? ''}`}
                   {' · '}next run {date(m.next_run_date)}
                 </p>
+                {paused && <p className="mt-0.5 text-[13px] text-gray-500">Online payments are off for this account.</p>}
               </div>
-              <StatusChip tone={onHold ? 'warning' : 'success'}>{onHold ? `On hold until ${date(m.skip_until)}` : 'Active'}</StatusChip>
+              {paused
+                ? <StatusChip tone="warning">Paused</StatusChip>
+                : <StatusChip tone={onHold ? 'warning' : 'success'}>{onHold ? `On hold until ${date(m.skip_until)}` : 'Active'}</StatusChip>}
             </div>
 
             <div className="mt-4 flex flex-wrap items-end gap-2">
@@ -358,13 +376,13 @@ export default async function AutopayPage({
                 <Button type="submit" variant="secondary" className="gap-1.5 text-red-700 hover:bg-red-50"><XCircle className="h-4 w-4" /> Cancel AutoPay</Button>
               </form>
             </div>
-          </div>
+          </Surface>
         );
       })}
 
       {/* ── Enrollment ────────────────────────────────── */}
       {enrollableUnits.length > 0 ? (
-        <div className={card}>
+        <Surface>
           <div className="mb-4 flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-950">
               <RefreshCcw className="h-4.5 w-4.5 text-white" />
@@ -419,14 +437,14 @@ export default async function AutopayPage({
               than your cap, and you can skip a month, set vacation mode, or cancel any time.
             </p>
           </form>
-        </div>
-      ) : (mandates ?? []).length === 0 ? (
-        <div className={`${card} text-center`}>
+        </Surface>
+      ) : !loadError && (mandates ?? []).length === 0 ? (
+        <Surface className="text-center">
           <p className="text-sm text-gray-500">
             AutoPay becomes available once your association enables online payments.
             Meanwhile, see <Link href="/portal/pay" className="font-medium text-gray-700 underline">How to Pay</Link>.
           </p>
-        </div>
+        </Surface>
       ) : null}
     </div>
   );

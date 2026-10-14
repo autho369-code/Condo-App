@@ -30,7 +30,10 @@ export default async function OwnerWorkOrderDetail({ params, searchParams }: { p
 
   if (!wo) return notFound()
   // A buyer must not open the seller's work orders (filed before move-in).
-  if (!withinTenure(await ownerTenureCutoffs(db, me.owner_ids), wo.unit_id, wo.created_at)) return notFound()
+  const tenure = await ownerTenureCutoffs(db, me.owner_ids)
+  // A failed read is an error, not "this work order does not exist".
+  if (tenure.error) throw new Error(tenure.error)
+  if (!withinTenure(tenure, wo.unit_id, wo.created_at)) return notFound()
 
   const { data: messages } = await db.from('work_order_messages')
     .select('id, author_name, author_role, body, created_at')

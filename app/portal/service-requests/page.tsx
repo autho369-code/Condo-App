@@ -47,7 +47,7 @@ export default async function ServiceRequestsList({
   // A buyer must not see the previous owner's requests: keep rows naming this
   // owner, or (when no owner is recorded) created on/after this owner's move-in.
   const tenure = await ownerTenureCutoffs(supabase, me.owner_ids);
-  const loadError = ownUnits.error ?? (rowsError ? rowsError.message as string : null);
+  const loadError = ownUnits.error ?? tenure.error ?? (rowsError ? rowsError.message as string : null);
   const rows = ((unitRows ?? []) as any[]).filter((r) =>
     r.homeowner_id || r.owner_id
       ? (me.owner_ids.includes(r.homeowner_id) || me.owner_ids.includes(r.owner_id))

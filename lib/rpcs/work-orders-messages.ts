@@ -46,6 +46,7 @@ export async function postWorkOrderMessage(
       .from('work_orders').select('unit_id, created_at').eq('id', workOrderId).maybeSingle();
     if (woError) { redirect(`${back}?error=${encodeURIComponent(woError.message)}`); return; }
     const tenure = await ownerTenureCutoffs(supabase, me.owner_ids);
+    if (tenure.error) { redirect(`${back}?error=${encodeURIComponent(tenure.error)}`); return; }
     if (!wo || !withinTenure(tenure, wo.unit_id, wo.created_at)) {
       redirect(`/portal/work-orders?error=${encodeURIComponent('That work order is not available.')}`);
       return;

@@ -10,6 +10,7 @@ import 'server-only';
 import { requireOwner } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { ownerTenureCutoffs, tenureFilter } from '@/app/portal/_lib/tenure';
+import { isLateFeeRemoval } from '@/lib/portal/ledger-rows';
 
 export interface OwnerSnapshot {
   generatedAt: string;
@@ -70,6 +71,7 @@ export async function buildOwnerSnapshot(portfolioId: string): Promise<OwnerSnap
   // Unit history only from the owner's own move-in on — a buyer must not see
   // the seller's payments or work orders (same scoping as the portal pages).
   const tenure = await ownerTenureCutoffs(db, ownerIds);
+  track('ownership dates', tenure.error ? { message: tenure.error } : null);
   const paymentScope = tenureFilter(tenure, 'payment_date', unitIds);
   const woScope = tenureFilter(tenure, 'created_at', unitIds);
 
@@ -88,7 +90,7 @@ export async function buildOwnerSnapshot(portfolioId: string): Promise<OwnerSnap
     unitIds.length ? db.rpc('resident_unit_balances') : { data: [] },
     unitIds.length ? db.from('aged_receivables').select('description, balance_due, due_date').in('unit_id', unitIds).order('due_date') : { data: [] },
     // Reversed (returned) payments are excluded — they no longer count.
-    paymentScope ? db.from('payments').select('amount, payment_date, method').or(paymentScope).is('reversed_at', null).order('payment_date', { ascending: false }).limit(8) : { data: [] },
+    paymentScope ? db.from('payments').select('amount, payment_date, method, reference').or(paymentScope).is('reversed_at', null).order('payment_date', { ascending: false }).limit(8) : { data: [] },
     woScope ? db.from('work_orders').select('title, status, created_at').or(woScope).is('archived_at', null).order('created_at', { ascending: false }).limit(10) : { data: [] },
     db.from('violations').select('title, status, date_observed').in('owner_id', ownerIds).is('archived_at', null).order('date_observed', { ascending: false }).limit(10),
     db.from('architectural_requests').select('title, status').in('owner_id', ownerIds).order('created_at', { ascending: false }).limit(10),
@@ -140,7 +142,8 @@ export async function buildOwnerSnapshot(portfolioId: string): Promise<OwnerSnap
       recentPayments: (payments ?? []).map((p: any) => ({
         amount: Number(p.amount ?? 0),
         date: p.payment_date ?? null,
-        method: p.method ?? null,
+        // A removed late fee is a credit, not a payment the owner made.
+        method: isLateFeeRemoval(p) ? 'late fee removed (credit, not a payment)' : p.method ?? null,
       })),
       paymentInstructions,
     },
