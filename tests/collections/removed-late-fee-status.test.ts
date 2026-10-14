@@ -41,7 +41,7 @@ describe('20261015130000_removed_late_fee_status migration', () => {
     expect(guard).toContain('before insert or update of reference, method, charge_id on public.payments');
     expect(guard).toContain('before insert or update on public.payment_applications');
     expect(guard).toContain('public.is_late_fee_removal_credit(new.payment_id)');
-    expect(guard).not.toMatch(/drop\s+(table|column|view|function|policy)/i);
+    expect(guard).not.toMatch(/\bdrop\s+(table|column|view|function|policy)\b/i);
   });
 
   it('drops or deletes nothing', () => {
