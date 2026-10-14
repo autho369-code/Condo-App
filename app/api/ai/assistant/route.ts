@@ -114,7 +114,8 @@ export async function POST(request: NextRequest) {
     console.error('Portfolio assistant error:', error);
     return NextResponse.json(
       {
-        error: error?.message || 'Assistant failed',
+        // Provider and data-load details stay in the server log.
+        error: 'The assistant could not answer right now.',
         hint: 'Check your AI provider settings and API key.',
       },
       { status: 500 },

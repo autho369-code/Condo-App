@@ -38,6 +38,11 @@
 - Root app/layout.tsx `authors`, `creator` ('Portier369'), `keywords`, `description` (platform pitch), `verification` are NOT set by brandedMetadata, so they leak into every tenant page (and twitter/og description falls back to the root description). Check any branded metadata helper sets authors/creator/keywords/description.
 - accept-invitation page + acceptInvitation action (Oct 2026): clean. Company name via user_invitations->portfolios(company_name) + hasVisibleText/NEUTRAL_COMPANY_NAME; tokenMatchesAddress gate; links relative (/login). Residual: (auth)/layout.tsx `tenant?.companyName ?? 'Portier369'` brand panel shows on the platform host, where this page is still allowed.
 
+## Company-address surface (wip-next 3355c8f0, Oct 2026)
+- Fixed in 9e37c3d2 (verified): matcher now includes .html; /report-card.html is PLATFORM_ONLY (404 on company hosts) + PUBLIC_ASSETS on platform. Any new public/*.html must be added to both lists. Matcher still skips svg/png/jpg/gif/webp in public/.
+- Fixed in 9e37c3d2: error page, help page (support_email or no button), palette aria-label, MFA issuer/friendlyName (company; 'Portier369' only for operators), send-email From fallback, invite Shell (brand -> tenant -> 'Portier369').
+- Unknown hosts (x-tenant-state=not-found) only reach /login?error=workspace_not_found; every other path redirects there, so page-level `tenant ?? 'Portier369'` fallbacks (e.g. invite Shell) cannot fire on an unknown host. Only (auth)/layout's brand panel on that one login page matters.
+
 ## submit_owner_message lineage (checked Oct 2026)
 - 20260730002000 (from 'hello@portier369.com', 'Portier369') -> 20261004180000 redefines with same -> 20261005094500 patches live body to from_name null -> 20261009060000 (owner-per-record 4-arg overload) copies hello@ + null. hello@ on a platform-domain address is the intended input: worker moves it to the company's verified sender domain (usesPlatformSender) and fills company_name. Not a leak; keep it. Watch: a future copy from an OLD migration file would bring back 'Portier369'.
 - Owner multi-record branch (RecordSwitcher, OwnerSelect, lib/portal/owner-records.ts): labels = association names, hrefs relative; portal errors point to "your management company". Clean.
@@ -54,3 +59,33 @@
 
 ## Past audits (detail)
 - [audits-oct-2026.md](audits-oct-2026.md) — audited pages, company-address surface, root 404, unsubscribe, credit memos, work orders, PO, scheduled reports: what was clean and wording watches.
+## Email unsubscribe (claude/email-unsubscribe, Oct 2026, 20261015010000)
+- Footer/List-Unsubscribe link = companyUrl(portfolio with COMPANY_ADDRESS_COLUMNS, '/unsubscribe/<token>'), stored once in email_unsubscribe_links.page_url; footer names portfolios.company_name; public page/actions use email_unsubscribe_session company_name + companyAddressRedirect. Clean.
+- Watch: SQL "is this platform mail?" checks must match JS isPlatformSenderName (case-insensitive startsWith 'Portier369'); email_prepare_batch used exact `not in ('Portier369','Portier369 Platform')`, so 'Portier369 Billing' optional mail would get a company footer. (Fixed: like 'portier369%' plus sent_by null or a platform operator.)
+
+## Credit memos (verified Oct 2026, late-fee removal branch 20261015040000)
+- post_homeowner_credit(p_memo) writes payments.notes, which trigger payments_move_private_fields moves to staff-only payment_private (20261004200000). Owners see method 'credit' + payments.reference (default 'Credit'; remove_late_fee overwrites it to 'Late fee removed'), never the memo. Callers that set reference: check it is neutral, owner-safe text. So 'Late fee removed: <reason>' is staff-only; earlier note claiming memos reach owners was wrong.
+- Owner-facing side effect to check for credit-based fee removals: portal/ledger shows the fee as Paid (applied_amount, payment_status) plus a credit row referenced 'Late fee removed'; v_charge_balances has no "waived" state (recorded as a Next gap, Oct 2026).
+- remove_late_fee raise text (20261015050000, Oct 2026): clean, staff-only. lib/rpcs/credits.ts removeLateFee passes error.message raw (no period added), while its own fail() strings end in "."; DB raise text there has no period: punctuation nit only.
+
+## Codex #379/#380/#381 follow-ups (Oct 2026, 20261015110000/120000)
+- Amenity guard raises ("outside the amenity's hours", "must end by the next day"), signature "archived association" raise, portal/amenities hints and inspections inspection_search RPC: clean. Anchor-patch `raise exception '<fn>: anchor not found'` text runs at migration time only, never user-facing: skip.
+- 'removed' charge status (20261015130000, Oct 2026): v_charge_balances payment_status 'removed' renders via Badge (status.replace('_',' ')) on portal/ledger + units/[id]; toneForStatus maps it inactive. Marker-trigger raise 'Late fees are removed from the unit page' (staff typing reference 'Late fee removed'): clean, no period.
+- Removal-credit guards (Oct 2026, 20261015150000..200000 + payments/[id] "Late fee removed" Alert): clean. Only reallocate_payment's raise reaches the app (reallocatePayment fail(error.message), raw, no period); the payments/payment_applications trigger raises fire only on direct table writes. Watch: one guard per concept should share wording (insert said "applied by hand", delete "applied or unapplied by hand").
+
+## Work-order fixes (claude/work-orders-fixes, Oct 2026, 20261015170000)
+- Vendor assignment mail (lib/notifications/vendor-assignment.ts): clean. fromName = company_name (fallback 'Your management team', unreachable given the CHECK), replyTo support_email, from_address unset -> EMAIL_FROM (worker moves it to the verified sender domain), links companyUrl with custom_domain cols selected, association_id set. Same pattern as status-change.ts; use it as the reference for new company mail helpers.
+- Status-change mail now reroutes work orders with service_request_id to the request submitter (same helper, same branding). Bulk-comms {source_ref} merges refs 'WO #n — title'; neutral.
+
+## Setup-records deep check (Oct 2026, 20261016164000/164100)
+- New raise text + bulk/parking/board-seat errors: clean. To tell new raises from carried-over copies, grep the string in older migrations (e.g. 'GL account is outside this portfolio', 'Permission denied for unit %' predate it). associationToday's 'association not found' gives "Could not load the association: association not found" (lowercase, no period): recurring nit.
+
+## PO board decision + reserve/asset guards (claude/po-projects-deep-check, Oct 2026, 20261015230000)
+- Staff record board decisions on PO/bill pages (board portal read-only); copy clean. fixed_assets/reserve trigger raises reach staff raw via lib/rpcs/fixed-assets.ts fail(error.message): watch DB jargon ("scope") in raise text.
+## Cross-cutting checks (detail in [audited-branches](audited-branches.md))
+- DB raise text reaches staff raw via fail(error.message)/`?error=`: watch "the platform", "Portier369 support" (use "platform support"), DB jargon, double periods.
+- SQL "is this platform mail?" must match isPlatformSenderName: `lower(btrim(from_name)) like 'portier369%'`, not an exact list.
+- Slug-only links in SQL mail justified as "sign-in address" are often ordinary links: need the verified-custom-domain case.
+- Portal/vendor copy: "your management company", not "management office"/"property manager"/bare "management".
+- Reference company-mail helper: lib/notifications/vendor-assignment.ts.
+- Per-branch audit history (what was clean, lineages like submit_owner_message): see audited-branches.md.

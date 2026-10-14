@@ -16,9 +16,37 @@ function publicIpv4(address: string) {
   if (a === 172 && b >= 16 && b <= 31) return false;
   if (a === 192 && b === 168) return false;
   if (a === 192 && b === 0 && (c === 0 || c === 2)) return false;
+  if (a === 192 && b === 88 && c === 99) return false; // 6to4 relay anycast
   if (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) return false;
   if (a === 203 && b === 0 && c === 113) return false;
   return true;
+}
+
+/**
+ * Expand an IPv6 address to eight 16-bit groups (a dotted IPv4 tail becomes
+ * the last two). Null when it isn't a valid IPv6 address.
+ */
+function ipv6Groups(address: string): number[] | null {
+  let text = address;
+  const dotted = text.match(/^(.*:)(\d+\.\d+\.\d+\.\d+)$/);
+  if (dotted) {
+    const parts = dotted[2].split('.').map(Number);
+    if (parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return null;
+    text = `${dotted[1]}${((parts[0] << 8) | parts[1]).toString(16)}:${((parts[2] << 8) | parts[3]).toString(16)}`;
+  }
+  const halves = text.split('::');
+  if (halves.length > 2) return null;
+  const head = halves[0] ? halves[0].split(':') : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(':') : [];
+  const missing = 8 - head.length - tail.length;
+  if (halves.length === 2 ? missing < 1 : missing !== 0) return null;
+  const groups = [...head, ...Array<string>(halves.length === 2 ? missing : 0).fill('0'), ...tail];
+  if (groups.some((group) => !/^[0-9a-f]{1,4}$/.test(group))) return null;
+  return groups.map((group) => parseInt(group, 16));
+}
+
+function ipv4FromGroups(high: number, low: number) {
+  return `${high >> 8}.${high & 0xff}.${low >> 8}.${low & 0xff}`;
 }
 
 export function isPublicWebhookIp(address: string) {
@@ -26,12 +54,25 @@ export function isPublicWebhookIp(address: string) {
   const family = isIP(normalized);
   if (family === 4) return publicIpv4(normalized);
   if (family !== 6) return false;
-  if (normalized === '::' || normalized === '::1') return false;
-  if (normalized.startsWith('fc') || normalized.startsWith('fd')) return false;
-  if (/^fe[89ab]/.test(normalized)) return false;
-  if (normalized.startsWith('2001:db8:')) return false;
-  const mapped = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-  if (mapped) return publicIpv4(mapped[1]);
+  // Judge the expanded groups, not the text: the URL parser writes
+  // [::ffff:169.254.169.254] as ::ffff:a9fe:a9fe, which a text match missed.
+  const g = ipv6Groups(normalized);
+  if (!g) return false;
+  const zeros = (count: number) => g.slice(0, count).every((group) => group === 0);
+  // IPv4-mapped (::ffff:a.b.c.d): judge the IPv4 address it carries.
+  if (zeros(5) && g[5] === 0xffff) return publicIpv4(ipv4FromGroups(g[6], g[7]));
+  // IPv4-translated (::ffff:0:a.b.c.d): same.
+  if (zeros(4) && g[4] === 0xffff && g[5] === 0) return publicIpv4(ipv4FromGroups(g[6], g[7]));
+  // Unspecified, loopback and the old IPv4-compatible form (::a.b.c.d).
+  if (zeros(6)) return false;
+  // 6to4 (2002::/16) carries an IPv4 address in its next 32 bits.
+  if (g[0] === 0x2002) return publicIpv4(ipv4FromGroups(g[1], g[2]));
+  if (g[0] === 0x64 && g[1] === 0xff9b) return false; // NAT64
+  if (g[0] === 0x100 && g[1] === 0 && g[2] === 0 && g[3] === 0) return false; // discard 100::/64
+  if (g[0] === 0x2001 && (g[1] === 0 || g[1] === 0xdb8)) return false; // Teredo, documentation
+  if ((g[0] & 0xfe00) === 0xfc00) return false; // unique local fc00::/7
+  if ((g[0] & 0xffc0) === 0xfe80 || (g[0] & 0xffc0) === 0xfec0) return false; // link-local, site-local
+  if ((g[0] & 0xff00) === 0xff00) return false; // multicast
   return true;
 }
 

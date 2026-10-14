@@ -16067,9 +16067,9 @@
     "field": [],
     "button": [],
     "data": [
+     "rpc:portal_parking_assignments",
      "table:occupancies",
      "table:owners",
-     "table:parking_assignments",
      "table:unit_pets"
     ],
     "guard": [
@@ -16643,7 +16643,7 @@
     "field": [],
     "button": [],
     "data": [
-     "table:parking_assignments"
+     "rpc:portal_parking_assignments"
     ],
     "guard": [
      "requireOwner"

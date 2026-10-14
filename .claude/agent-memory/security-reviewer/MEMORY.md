@@ -51,6 +51,9 @@
 - `receivable_payments_ledger.owner_id` is ONE owner per payment (primary unit_owners row on the date, else occupancy): `.eq('owner_id', x)` hides co-owners' payments. Completeness bug, not a leak (owners/[id] page, 20261016010000).
 - Occupancy-end DEFINER trigger (end_owner_unit_items_when_occupancy_ends) is safe because occupancies_owner_same_association pins owner/unit/association and occupancies_self_update is `false`. Recheck if owners can update occupancies again.
 
+- associations column guards keyed on `current_user` (stripe/allocation, 20261016164100): the only authenticated DEFINER writer is update_association_settings, whose allowlist excludes stripe/bank/allocation columns; Stripe writes go through the service client. Recheck if the allowlist grows.
+- Since 20261016164100 residents read parking only via DEFINER `portal_parking_assignments()` (resident_read policies USING false); new portal parking reads must use it, not the tables.
+
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import
 - [Missed checks](missed-checks.md) -- domain-proof replay/relay, token minting, html_escape, storage cleanup, finance RPC scope triggers, hidden columns copied by DEFINER triggers (soft_delete_log), owner_visible_history writers
@@ -88,3 +91,5 @@
 
 - Reports claim switch (report_run_access_error, report_access_error_as, 20261016100000): local set_config of request.jwt.claims/claim.sub, then restore. Safe because no helper reads request.headers or a cached GUC (grep both when a new helper lands). An authenticated-executable wrapper (report_recipients_error) is an access oracle on other staff of the caller's company: low.
 - Swapping stored/emailed Supabase signed URLs for an authed download route revokes nothing already issued (token valid until expiry for that path): old output_url values and sent emails keep working. Ask for cleanup of recent objects or an accepted window.
+- portfolios is company-admin-writable via REST since 20261016130000 (portfolios_admin_update -> my_admin_portfolio()). Platform columns are guarded by portfolios_guard_platform_columns, guard_domain_verification (custom_domain_verified_at) and secure_ai_credentials (ai_endpoint). When portfolios gains a column, check it is guarded or really the admin's.
+- Suspension pauses (claim_* skip suspended portfolios, 20261016130000): the email carve-out keys on `from_name like 'portier369%'`. from_name is company_name, which admins can write with no reserved-prefix check, and rows with a null portfolio_id get past the pause. claim_automation_flow_run is not paused.

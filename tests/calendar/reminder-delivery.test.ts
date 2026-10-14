@@ -16,7 +16,7 @@ function fakeDb(tables: Record<string, any[]>) {
     const filters: any[] = [];
     let patch: any = null;
     const q: any = {
-      select: () => q, order: () => q, limit: () => q, lte: () => q, is: () => q, in: () => q,
+      select: () => q, order: () => q, limit: () => q, lte: () => q, is: () => q, in: () => q, or: () => q,
       range: async () => ({ data: tables[table] ?? [], error: null }),
       eq: (col: string, val: any) => { filters.push([col, val]); return q; },
       update: (p: any) => { patch = p; return q; },
@@ -49,8 +49,8 @@ describe('deliverDueCalendarReminders', () => {
   it('emails the office and residents; residents only see the public notice', async () => {
     const { db, updates } = fakeDb({
       calendar_event_reminders: [
-        { id: 'r1', recipient_group: 'management_office', action: 'notify_management_office,notify_affected_residents', calendar_events: event() },
-        { id: 'r2', recipient_group: 'affected_residents', action: 'notify_management_office,notify_affected_residents', calendar_events: event() },
+        { portfolio_id: 'p1', association_id: 'a1', id: 'r1', recipient_group: 'management_office', action: 'notify_management_office,notify_affected_residents', calendar_events: event() },
+        { portfolio_id: 'p1', association_id: 'a1', id: 'r2', recipient_group: 'affected_residents', action: 'notify_management_office,notify_affected_residents', calendar_events: event() },
       ],
       occupancies: [{ owners: { full_name: 'Liam', email: 'liam@example.test' } }],
     });
@@ -68,8 +68,8 @@ describe('deliverDueCalendarReminders', () => {
   it('expires reminders for events that already started and skips cancelled events', async () => {
     const { db, updates } = fakeDb({
       calendar_event_reminders: [
-        { id: 'r1', recipient_group: 'management_office', action: 'notify_management_office', calendar_events: event({ start_datetime: past }) },
-        { id: 'r2', recipient_group: 'management_office', action: 'notify_management_office', calendar_events: event({ operations_status: 'canceled' }) },
+        { portfolio_id: 'p1', association_id: 'a1', id: 'r1', recipient_group: 'management_office', action: 'notify_management_office', calendar_events: event({ start_datetime: past }) },
+        { portfolio_id: 'p1', association_id: 'a1', id: 'r2', recipient_group: 'management_office', action: 'notify_management_office', calendar_events: event({ operations_status: 'canceled' }) },
       ],
     });
     const summary = await deliverDueCalendarReminders(db);
@@ -80,7 +80,7 @@ describe('deliverDueCalendarReminders', () => {
 
   it('sends vendor reminders to the vendor email', async () => {
     const { db } = fakeDb({
-      calendar_event_reminders: [{ id: 'r1', recipient_group: 'vendor', action: 'notify_vendor', calendar_events: event() }],
+      calendar_event_reminders: [{ portfolio_id: 'p1', association_id: 'a1', id: 'r1', recipient_group: 'vendor', action: 'notify_vendor', calendar_events: event() }],
       vendors: [{ name: 'Plumbing Co', emails: ['dispatch@plumb.test'] }],
     });
     await deliverDueCalendarReminders(db);
@@ -92,8 +92,8 @@ describe('deliverDueCalendarReminders', () => {
   it('does not email a group unless its Notify action was ticked', async () => {
     const { db, updates } = fakeDb({
       calendar_event_reminders: [
-        { id: 'r1', recipient_group: 'management_office', action: 'create_email_draft,create_follow_up_task', calendar_events: event() },
-        { id: 'r2', recipient_group: 'affected_residents', action: 'notify_management_office', calendar_events: event() },
+        { portfolio_id: 'p1', association_id: 'a1', id: 'r1', recipient_group: 'management_office', action: 'create_email_draft,create_follow_up_task', calendar_events: event() },
+        { portfolio_id: 'p1', association_id: 'a1', id: 'r2', recipient_group: 'affected_residents', action: 'notify_management_office', calendar_events: event() },
       ],
       occupancies: [{ id: 'o1', owners: { full_name: 'Liam', email: 'liam@example.test' } }],
     });
@@ -105,7 +105,7 @@ describe('deliverDueCalendarReminders', () => {
 
   it('still sends a zero-offset reminder picked up just after the start', async () => {
     const { db } = fakeDb({
-      calendar_event_reminders: [{ id: 'r1', recipient_group: 'management_office', action: 'notify_management_office', offset_minutes: 0, calendar_events: event({ start_datetime: justStarted }) }],
+      calendar_event_reminders: [{ portfolio_id: 'p1', association_id: 'a1', id: 'r1', recipient_group: 'management_office', action: 'notify_management_office', offset_minutes: 0, calendar_events: event({ start_datetime: justStarted }) }],
     });
     const summary = await deliverDueCalendarReminders(db);
     expect(summary.sent).toBe(1);
@@ -113,9 +113,23 @@ describe('deliverDueCalendarReminders', () => {
 
   it('expires an earlier notice that runs late after the start', async () => {
     const { db } = fakeDb({
-      calendar_event_reminders: [{ id: 'r1', recipient_group: 'management_office', action: 'notify_management_office', offset_minutes: 480, calendar_events: event({ start_datetime: justStarted }) }],
+      calendar_event_reminders: [{ portfolio_id: 'p1', association_id: 'a1', id: 'r1', recipient_group: 'management_office', action: 'notify_management_office', offset_minutes: 480, calendar_events: event({ start_datetime: justStarted }) }],
     });
     const summary = await deliverDueCalendarReminders(db);
     expect(summary).toEqual({ sent: 0, expired: 1, skipped: 0, failed: 0 });
+  });
+
+  it('skips a reminder whose company or association is not that of its event', async () => {
+    const { db, updates } = fakeDb({
+      calendar_event_reminders: [
+        { portfolio_id: 'p-other', association_id: 'a1', id: 'r1', recipient_group: 'affected_residents', action: 'notify_affected_residents', calendar_events: event() },
+        { portfolio_id: 'p1', association_id: 'a-other', id: 'r2', recipient_group: 'affected_residents', action: 'notify_affected_residents', calendar_events: event() },
+      ],
+      occupancies: [{ owners: { full_name: 'Liam', email: 'liam@example.test' } }],
+    });
+    const summary = await deliverDueCalendarReminders(db);
+    expect(summary).toEqual({ sent: 0, expired: 0, skipped: 2, failed: 0 });
+    expect(queued).toEqual([]);
+    expect(updates.every((u) => u.patch.status === 'skipped')).toBe(true);
   });
 });
