@@ -18,6 +18,7 @@ import { loadRecordMeta } from '@/lib/records/load';
 import { mergePrivateFieldsOne } from '@/lib/private-fields';
 import { AdditionalFees, AuditLog, InsuranceList, KeysList, LinkedRecords, NotesList, UpcomingActivities } from '@/components/associations/record-lists';
 import { todayInZone } from '@/lib/time/zoned';
+import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { CopyButton } from '@/components/ui/copy-button';
 import { companyUrl, isPortfolioSlug } from '@/lib/tenant/host';
@@ -339,7 +340,12 @@ export default async function AssociationProfileTab({
         <AssociationSettingsSection key={section.key} section={section} association={record} associationRef={assocParam} glAccounts={assocGl} />
       ))}
 
-      <InsuranceList policies={insurance ?? []} associationId={id} back={recordBack} />
+      <InsuranceList
+        policies={insurance ?? []}
+        associationId={id}
+        back={recordBack}
+        today={todayInZone(typeof record?.timezone === 'string' && isValidTimeZone(record.timezone) ? record.timezone : displayTimeZone())}
+      />
       <AdditionalFees fees={fees ?? []} glAccounts={assocGl} associationId={id} back={recordBack} />
       <LinkedRecords banks={banks ?? []} assets={assets ?? []} associationId={id} />
       <div className="grid gap-6 lg:grid-cols-2">

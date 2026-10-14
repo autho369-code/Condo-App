@@ -70,9 +70,11 @@ describe('owner insurance policy filing', () => {
     mocks.requireOwner.mockResolvedValue({ auth_user_id: 'auth-a', owner_id: 'owner-a', owner_ids: ['owner-a'] });
   });
 
-  it('files an uploaded certificate with the supported HO6 document type', async () => {
+  it('files an uploaded certificate with the supported HO6 document type, before saving the policy', async () => {
     const { db, policyInsert } = sessionDb();
-    const documentInsert = vi.fn().mockResolvedValue({ error: null });
+    const documentInsert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { id: 'document-a' }, error: null }) }),
+    });
     const storageRemove = vi.fn().mockResolvedValue({ error: null });
     mocks.createClient.mockResolvedValue(db);
     mocks.createServiceClient.mockReturnValue({
@@ -94,19 +96,20 @@ describe('owner insurance policy filing', () => {
       doc_type: 'ho6',
       file_url: input.cert.path,
     }));
+    // A saved policy archives the earlier one, so the document goes first.
+    expect(documentInsert.mock.invocationCallOrder[0]).toBeLessThan(policyInsert.mock.invocationCallOrder[0]);
     expect(storageRemove).not.toHaveBeenCalled();
   });
 
-  it('removes the policy row and uploaded object when document filing fails', async () => {
-    const { db } = sessionDb();
-    const policyDeleteEq = vi.fn().mockReturnThis();
-    const documentInsert = vi.fn().mockResolvedValue({ error: { message: 'constraint failed' } });
+  it('saves no policy and removes the upload when document filing fails', async () => {
+    const { db, policyInsert } = sessionDb();
+    const documentInsert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: null, error: { message: 'constraint failed' } }) }),
+    });
     const storageRemove = vi.fn().mockResolvedValue({ error: null });
     mocks.createClient.mockResolvedValue(db);
     mocks.createServiceClient.mockReturnValue({
-      from: vi.fn((table: string) => table === 'documents'
-        ? { insert: documentInsert, ...certificateReads() }
-        : { delete: vi.fn(() => ({ eq: policyDeleteEq })), ...certificateReads() }),
+      from: vi.fn(() => ({ insert: documentInsert, ...certificateReads() })),
       storage: storage(storageRemove),
     });
 
@@ -114,8 +117,29 @@ describe('owner insurance policy filing', () => {
       error: 'Could not file the policy document: constraint failed',
     });
 
-    expect(policyDeleteEq).toHaveBeenCalledWith('id', 'policy-a');
-    expect(policyDeleteEq).toHaveBeenCalledWith('owner_id', 'owner-a');
+    expect(policyInsert).not.toHaveBeenCalled();
+    expect(storageRemove).toHaveBeenCalledWith([input.cert.path]);
+  });
+
+  it('removes the filed document and upload when the policy is refused', async () => {
+    const { db, policyInsert } = sessionDb();
+    policyInsert.mockReturnValue({
+      select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: null, error: { message: 'row-level security' } }) }),
+    });
+    const documentInsert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { id: 'document-a' }, error: null }) }),
+    });
+    const documentDeleteEq = vi.fn().mockReturnThis();
+    const storageRemove = vi.fn().mockResolvedValue({ error: null });
+    mocks.createClient.mockResolvedValue(db);
+    mocks.createServiceClient.mockReturnValue({
+      from: vi.fn(() => ({ insert: documentInsert, delete: vi.fn(() => ({ eq: documentDeleteEq })), ...certificateReads() })),
+      storage: storage(storageRemove),
+    });
+
+    await expect(saveInsurancePolicy(input)).resolves.toEqual({ error: 'row-level security' });
+    expect(documentDeleteEq).toHaveBeenCalledWith('id', 'document-a');
+    expect(documentDeleteEq).toHaveBeenCalledWith('entity_id', 'owner-a');
     expect(storageRemove).toHaveBeenCalledWith([input.cert.path]);
   });
 

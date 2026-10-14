@@ -2,8 +2,10 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { Badge } from '@/components/ui/shell'
+import { Alert, Badge, SectionTitle, Surface } from '@/components/ui/shell'
 import { zonedWallTimeToUtc } from '@/lib/time/zoned'
+import { buttonClass } from '@/components/ui/button'
+import { amenityPriceLabel, amenityReserveAction, withinAmenityHours } from '@/lib/amenities/portal'
 
 const DEFAULT_TZ = 'America/Chicago'
 
@@ -16,6 +18,12 @@ type Amenity = {
   description_html: string | null
   opens_at: string | null
   closes_at: string | null
+  allow_reservations: boolean | null
+  pricing_mode: string | null
+  price_amount: number | string | null
+  reserve_method: string | null
+  reservation_email: string | null
+  reservation_url: string | null
 }
 
 type Reservation = {
@@ -79,12 +87,18 @@ async function requestReservation(formData: FormData) {
   // RLS on association_amenities already scopes this to the owner's associations.
   const { data: amenity, error: aErr } = await db
     .from('association_amenities')
-    .select('id, association_id, allow_reservations, archived_at, associations(timezone)')
+    .select('id, association_id, allow_reservations, archived_at, reserve_method, reservation_email, reservation_url, opens_at, closes_at, associations(timezone)')
     .eq('id', amenityId)
     .maybeSingle()
   if (aErr || !amenity) { failTo('Amenity not found or unavailable'); return }
   if (amenity.archived_at) { failTo('That amenity is no longer available'); return }
   if (!amenity.allow_reservations) { failTo('That amenity does not accept reservations'); return }
+  // Staff chose how this amenity is reserved: email or the reservation
+  // platform link are used instead of a request here.
+  if (amenityReserveAction(amenity).kind !== 'request') { failTo('That amenity is reserved by email or online, not through a request here'); return }
+  if (!withinAmenityHours(startTime, endTime, amenity.opens_at, amenity.closes_at)) {
+    failTo(`That time is outside the amenity's hours (${fmtHours(amenity.opens_at, amenity.closes_at)})`); return
+  }
 
   // The owner types times in their community's zone; the server runs in UTC.
   const timeZone = amenity.associations?.timezone || DEFAULT_TZ
@@ -181,11 +195,13 @@ export default async function OwnerAmenitiesPage({
   // Bookable amenities for the owner's association(s) — RLS scopes the rows.
   const { data: amenityRows } = await db
     .from('association_amenities')
-    .select('id, name, association_id, description_html, opens_at, closes_at')
+    .select('id, name, association_id, description_html, opens_at, closes_at, allow_reservations, pricing_mode, price_amount, reserve_method, reservation_email, reservation_url')
     .eq('allow_reservations', true)
     .is('archived_at', null)
     .order('name')
   const amenities = (amenityRows ?? []) as Amenity[]
+  // Each amenity is reserved the way staff configured it.
+  const requestable = amenities.filter((a) => amenityReserveAction(a).kind === 'request')
 
   // The owner's own reservations.
   const { data: resRows } = await db
@@ -211,32 +227,62 @@ export default async function OwnerAmenitiesPage({
       <div>
         <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Amenities</h1>
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
-          Browse bookable amenities and request a reservation. Management reviews each request.
+          Request a reservation, or use the email or link shown for each amenity.
         </p>
       </div>
 
-      {sp.error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          <span className="font-semibold">Could not submit:</span> {sp.error}
-        </div>
-      )}
-      {sp.requested === '1' && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Thanks — your reservation request was sent to management for review.
-        </div>
-      )}
-      {sp.cancelled === '1' && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-          Your reservation was cancelled.
-        </div>
+      {sp.error && <Alert tone="danger" title="Could not submit">{sp.error}</Alert>}
+      {sp.requested === '1' && <Alert tone="success">Thanks — your reservation request was sent to management for review.</Alert>}
+      {sp.cancelled === '1' && <Alert tone="info">Your reservation was cancelled.</Alert>}
+
+      {/* Bookable amenities, each with the way staff set it to be reserved */}
+      {amenities.length > 0 && (
+        <Surface padded={false}>
+          <div className="px-5 pt-5">
+            <SectionTitle title="Bookable amenities" description="Hours, prices and how to reserve, as your management team set them." />
+          </div>
+          <ul className="divide-y divide-gray-100">
+            {amenities.map((a) => {
+              const action = amenityReserveAction(a)
+              const hrs = fmtHours(a.opens_at, a.closes_at)
+              const price = amenityPriceLabel(a.pricing_mode, a.price_amount)
+              return (
+                <li key={a.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="font-medium text-gray-900">{a.name}</div>
+                    <div className="text-[13px] text-gray-500">
+                      {[hrs ? `Hours ${hrs}` : null, price].filter(Boolean).join(' · ') || 'Reservations accepted'}
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    {action.kind === 'email' && (
+                      <a href={`mailto:${action.email}?subject=${encodeURIComponent(`Reservation request: ${a.name}`)}`} className={buttonClass('secondary')}>
+                        Reserve by email
+                      </a>
+                    )}
+                    {action.kind === 'link' && (
+                      <a href={action.url} target="_blank" rel="noopener noreferrer" className={buttonClass('secondary')}>
+                        Reserve online
+                      </a>
+                    )}
+                    {action.kind === 'request' && <span className="text-[13px] text-gray-500">Request below</span>}
+                    {action.kind === 'none' && <span className="text-[13px] text-gray-500">Contact your management team to reserve</span>}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </Surface>
       )}
 
       {/* Request form */}
       <section className="space-y-3">
         <h2 className="text-[13px] font-semibold text-gray-700">Request a reservation</h2>
-        {amenities.length === 0 ? (
+        {requestable.length === 0 ? (
           <div className="rounded-2xl border border-line bg-white p-6 text-sm text-gray-600 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            No bookable amenities are available for your community yet. Check back later or contact your management team.
+            {amenities.length === 0
+              ? 'No bookable amenities are available for your community yet. Check back later or contact your management team.'
+              : 'Your community’s amenities are reserved by email or online. Use the links above.'}
           </div>
         ) : (
           <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
@@ -249,7 +295,7 @@ export default async function OwnerAmenitiesPage({
                   className="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
                 >
                   <option value="">Choose an amenity…</option>
-                  {amenities.map((a) => {
+                  {requestable.map((a) => {
                     const hrs = fmtHours(a.opens_at, a.closes_at)
                     return (
                       <option key={a.id} value={a.id}>

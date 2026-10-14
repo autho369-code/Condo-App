@@ -20,6 +20,21 @@ export const VENDOR_EXPIRATION_COLUMNS =
 
 export type VendorComplianceStatus = 'none' | 'expired' | 'expiring' | 'compliant'
 
+export type ExpirationTone = 'neutral' | 'danger' | 'warning' | 'success'
+
+/**
+ * One expiration date's tone, by the same rule as vendorComplianceStatus: valid
+ * through its date (`today` is a YYYY-MM-DD calendar day), expiring within
+ * `windowDays`.
+ */
+export function expirationTone(expiresAt: unknown, today: string, windowDays = 30): ExpirationTone {
+  if (typeof expiresAt !== 'string' || expiresAt.length < 10) return 'neutral'
+  const d = expiresAt.slice(0, 10)
+  if (d < today) return 'danger'
+  if (d <= addDaysToDate(today, windowDays)) return 'warning'
+  return 'success'
+}
+
 export function vendorComplianceStatus(vendor: Record<string, unknown>, today: string, windowDays = 30): VendorComplianceStatus {
   const dates = VENDOR_EXPIRATION_FIELDS
     .map((field) => vendor[field])

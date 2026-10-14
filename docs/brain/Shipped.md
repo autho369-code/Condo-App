@@ -8,6 +8,19 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   line endings, backslash paths and slow process start; Linux CI was
   already green). check:columns prints forward-slash paths.
 
+## 2026-10-14
+- Insurance, inspections, amenities (deep check + fixes; 20261015080000 live
+  as 20261014005902): staff insurance notes private (owners could read them
+  via the API); a renewal archives the earlier policy and reminders skip
+  archived policies and former owners; expiry dates and reminders by the
+  association's date; insurance list paged and fast (5,000 policies: view
+  197 -> 62 ms); residents' calendar hides internal insurance/contract
+  reminders; portal amenities follow each amenity's booking method (email,
+  link, or request in the portal - Mirsad kept requests) with price and
+  hours, and the database checks requests; vendors only add inspection
+  findings; inspections list filtered and paged in the database. Guards treat
+  a caller as staff only for associations they can access.
+
 ## 2026-10-13
 - Managers can remove a late fee (unit page, with a reason; credited back,
   never charged again). Collections deep check: late fees, ladder and plans

@@ -1,8 +1,10 @@
-// THE association calendar. Board portal and owner portal render this same
-// feed — one code path so the two can never drift apart. RLS scopes rows per
-// viewer, and the resident/board policies are aligned (see migration
-// 20260714020000_calendar_parity_owner_board) so identical association ids
-// yield identical items.
+// THE residents' association calendar. The owner portal (/portal/calendar)
+// and the tenant portal (/resident/calendar) render this same feed, so the
+// two can never drift apart. Calendar events come from the
+// resident_calendar_events RPC (resident-safe fields only; no events about
+// other owners or units, and no internal management reminders such as
+// insurance expirations, contract renewals or assessment deadlines); the
+// board has no calendar-event access of its own.
 import { createClient } from '@/lib/supabase/server';
 
 export type AssociationCalendarItem = {

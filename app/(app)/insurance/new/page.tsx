@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import NewInsuranceForm from './new-insurance-form';
 
 export const dynamic = 'force-dynamic';
@@ -23,6 +24,8 @@ async function addPolicy(formData: FormData) {
   if (ownerError) failTo(ownerError.message);
   if (!owner) failTo('That owner is not in the chosen association.');
 
+  // Notes are moved to the staff-only insurance_policy_private table by a
+  // trigger; a newer policy archives the owner's earlier active one there too.
   const { error } = await db.from('insurance_policies').insert({
     owner_id: ownerId,
     association_id: associationId,
@@ -48,17 +51,21 @@ export default async function NewInsurancePage({ searchParams }: { searchParams:
   const supabase = await createClient();
   const db = supabase as any;
 
-  const [{ data: owners }, { data: associations }] = await Promise.all([
-    db.from('owners').select('id, full_name, association_id').is('archived_at', null).order('full_name'),
+  const [ownersRes, { data: associations }] = await Promise.all([
+    // Every owner (one request stops at 1,000 rows).
+    fetchAllRows<any>(() => db.from('owners').select('id, full_name, association_id').is('archived_at', null).order('full_name').order('id')),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
   ]);
+  const ownersError = ownersRes.error
+    ? `Could not load every owner: ${ownersRes.error}`
+    : ownersRes.truncated ? 'There are more owners than this form can list. Contact support.' : null;
 
   return (
     <NewInsuranceForm
-      owners={owners ?? []}
+      owners={ownersRes.rows}
       associations={associations ?? []}
       addPolicy={addPolicy}
-      serverError={sp.error ?? null}
+      serverError={sp.error ?? ownersError}
     />
   );
 }

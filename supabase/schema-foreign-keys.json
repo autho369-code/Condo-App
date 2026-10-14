@@ -237,6 +237,7 @@
 "inspections.unit_id":"units",
 "insurance_policies.association_id":"associations",
 "insurance_policies.owner_id":"owners",
+"insurance_policy_private.insurance_policy_id":"insurance_policies",
 "interest_assessments.association_id":"associations",
 "interest_assessments.charge_id":"charges",
 "interest_assessments.unit_id":"units",
