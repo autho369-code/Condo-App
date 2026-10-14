@@ -35,6 +35,15 @@ describe('20261015130000_removed_late_fee_status migration', () => {
     expect(message).toContain("current_user in ('authenticated', 'anon')");
   });
 
+  it('a removal credit counts only for its own fee and its applications are guarded (Codex on #383)', () => {
+    const guard = read('supabase/migrations/20261015150000_removed_late_fee_applications.sql');
+    expect(guard).toContain('and rp.charge_id = c.id');
+    expect(guard).toContain('before insert or update of reference, method, charge_id on public.payments');
+    expect(guard).toContain('before insert or update on public.payment_applications');
+    expect(guard).toContain('public.is_late_fee_removal_credit(new.payment_id)');
+    expect(guard).not.toMatch(/drop\s+(table|column|view|function|policy)/i);
+  });
+
   it('drops or deletes nothing', () => {
     expect(migration).not.toMatch(/\bdrop\s+(table|column|view|function|policy)\b/i);
     expect(migration).not.toMatch(/\bdelete\s+from\b/i);
