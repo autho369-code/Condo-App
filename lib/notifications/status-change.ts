@@ -21,6 +21,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { queueEmails } from '@/lib/email/queue';
 import { companyUrl, type CompanyAddress } from '@/lib/tenant/host';
 import { DEFAULT_TIME_ZONE, todayInZone } from '@/lib/time/zoned';
+import { todayForAssociationZone } from '@/lib/time/association-today';
 
 
 export interface StatusChangeParams {
@@ -42,12 +43,12 @@ function statusLabel(status: string): string {
  * current owner occupancy. Exported so the automation-flows cron resolves
  * charge/work-order subjects to owners the exact same way.
  */
-export async function resolveUnitOwnerId(svc: any, unitId: string): Promise<string | null> {
+export async function resolveUnitOwnerId(svc: any, unitId: string, today: string = todayInZone()): Promise<string | null> {
   // An owner counts only while they hold a current owner occupancy that has
   // not reached its move-out date. A unit_owners row opened for a sale with a
   // future move-out stays open past that date (no trigger fires when a date
-  // passes), so it is checked against the occupancy here.
-  const today = todayInZone();
+  // passes), so it is checked against the occupancy here. `today` is the
+  // association's date when the caller knows it.
   const { data: occs } = await svc
     .from('occupancies')
     .select('owner_id, is_primary, move_out_date')
@@ -80,7 +81,7 @@ export async function resolveUnitOwnerId(svc: any, unitId: string): Promise<stri
  * The current owner's move-in date for a unit, or null when any of their
  * current occupancies has none (no cutoff), as current_resident_unit_since.
  */
-async function ownerMoveInDate(svc: any, unitId: string, ownerId: string): Promise<string | null> {
+export async function ownerMoveInDate(svc: any, unitId: string, ownerId: string): Promise<string | null> {
   const { data } = await svc
     .from('occupancies')
     .select('move_in_date')
@@ -94,7 +95,7 @@ async function ownerMoveInDate(svc: any, unitId: string, ownerId: string): Promi
 
 /** True when a work order was opened (association's local date) before the owner moved in. */
 export function workOrderPredatesOwner(createdAt: string, moveInDate: string, timeZone?: string | null): boolean {
-  const opened = todayInZone(timeZone?.trim() || DEFAULT_TIME_ZONE, new Date(createdAt));
+  const opened = todayForAssociationZone(timeZone?.trim() || DEFAULT_TIME_ZONE, new Date(createdAt));
   return opened < moveInDate;
 }
 
@@ -134,7 +135,7 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }
         return notifyOwnerOfStatusChange({ kind: 'service_request', id: wo.service_request_id, newStatus, message });
       }
       if (!wo.unit_id) return false; // common-area work order — no single owner to inform
-      ownerId = await resolveUnitOwnerId(svc, wo.unit_id);
+      ownerId = await resolveUnitOwnerId(svc, wo.unit_id, todayForAssociationZone(wo.associations?.timezone));
       // A buyer never hears about the seller's work orders: skip one opened
       // before the current owner moved in (the association's local date).
       if (ownerId) {

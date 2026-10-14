@@ -9,7 +9,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { resolveAuthorizedOwnerUnit } from '@/lib/security/tenant-boundaries';
 import { queueOwnerPortalInvitation } from '@/lib/auth/owner-invitation';
-import { todayInZone } from '@/lib/time/zoned';
+import { associationToday } from '@/lib/time/association-today';
 import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
 
 function s(fd: FormData, k: string): string | null {
@@ -65,6 +65,13 @@ export async function createOwnerWithDetails(formData: FormData) {
     }
   }
 
+  // "Today" is the association's date, not the server's.
+  const local = await associationToday(db, assignment.associationId);
+  if (local.error !== null) {
+    redirect('/owners/new?error=' + encodeURIComponent(`Could not load the association: ${local.error}`));
+  }
+  const today = local.today;
+
   const warnings: string[] = [];
   const activatePortal = formData.get('activate_portal') === 'on';
   const addBoardSeat = formData.get('board_member') === 'on';
@@ -100,7 +107,7 @@ export async function createOwnerWithDetails(formData: FormData) {
   }
 
   const ownerId = owner.id;
-  const moveIn = s(formData, 'move_in_date') ?? todayInZone();
+  const moveIn = s(formData, 'move_in_date') ?? today;
 
   // 3) Owner occupancy + regular monthly assessment
   let occupancyId: string | null = null;
@@ -212,7 +219,7 @@ export async function createOwnerWithDetails(formData: FormData) {
       phone: s(formData, 'phone'),
       role,
       active: true,
-      term_start: todayInZone(),
+      term_start: today,
       auth_user_id: null,
     });
     if (bmErr) {

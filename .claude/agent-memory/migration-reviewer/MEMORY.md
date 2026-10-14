@@ -73,6 +73,8 @@
 - Dropping a NOT NULL column default for a BEFORE INSERT trigger to fill: grep SQL-function inserts too (recurring WO generators omit created_on); safe unless a path runs with session_replication_role=replica.
 
 - Widening "who gets a statement/notice" to past owners (period overlap, 20261016010000 generate_owner_statements): check the AMOUNTS are bounded to that owner's tenure too; unit-wide sums email the seller the buyer's total due (lib/rpcs/bulk-operations.ts sends total_due). Dropping a unit_id branch from a resident policy also drops co-owners when the generator writes one row per unit. Fix v2 capped at move_out_date-1 but only when status='past'; key tenure cutoffs on the DATE, not status (current rows can carry a future move_out_date).
+- A new scope guard trigger on a write target (charges category scope, 20261016164000) must be checked against EVERY writer that PICKS the value by a looser rule: assess_late_fee / assess_association_interest / advance_violation choose categories by portfolio only (no association filter). Loops with no exception handler (post_unit_recurring_charges) abort the whole run on one bad legacy row; ask for a pre-run count of existing violators. Accepted fix: one trigger fn with tg_argv level ('company' on charges, 'association' on unit_recurring_charges) + the posting loop filters out mismatched rows.
+- Overloaded RPCs with all-default tails (subscribe_unit_to_charge 6/7 args) are ambiguous unless callers pass the extra named arg; grep `.rpc('<fn>'` callers when defaults change.
 
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards

@@ -51,6 +51,9 @@
 - `receivable_payments_ledger.owner_id` is ONE owner per payment (primary unit_owners row on the date, else occupancy): `.eq('owner_id', x)` hides co-owners' payments. Completeness bug, not a leak (owners/[id] page, 20261016010000).
 - Occupancy-end DEFINER trigger (end_owner_unit_items_when_occupancy_ends) is safe because occupancies_owner_same_association pins owner/unit/association and occupancies_self_update is `false`. Recheck if owners can update occupancies again.
 
+- associations column guards keyed on `current_user` (stripe/allocation, 20261016164100): the only authenticated DEFINER writer is update_association_settings, whose allowlist excludes stripe/bank/allocation columns; Stripe writes go through the service client. Recheck if the allowlist grows.
+- Since 20261016164100 residents read parking only via DEFINER `portal_parking_assignments()` (resident_read policies USING false); new portal parking reads must use it, not the tables.
+
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import
 - [Missed checks](missed-checks.md) -- domain-proof replay/relay, token minting, html_escape, storage cleanup, finance RPC scope triggers, hidden columns copied by DEFINER triggers (soft_delete_log), owner_visible_history writers

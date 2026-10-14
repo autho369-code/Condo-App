@@ -3,21 +3,30 @@ import { isReceiptMethod } from '@/lib/payments/methods';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
-import { todayInZone } from '@/lib/time/zoned';
+import { associationToday } from '@/lib/time/association-today';
 import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 import { redirect } from 'next/navigation';
 
 /* ============ Charge Categories ============ */
 
 export async function createChargeCategory(formData: FormData) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
+  const me = await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/charge-categories/new?error=${encodeURIComponent(msg)}`);
   };
+  // The caller's own company, never a company id sent with the form.
+  const portfolioId = me.portfolio?.id;
+  if (!portfolioId) { failTo('No company selected for your account.'); return; }
   const supabase = await createClient();
+  const associationId = (formData.get('association_id') as string) || null;
+  if (associationId) {
+    const { data: association } = await (supabase as any).from('associations')
+      .select('id').eq('id', associationId).eq('portfolio_id', portfolioId).maybeSingle();
+    if (!association) { failTo('That association is not in your company.'); return; }
+  }
   const { data, error } = await (supabase as any).from('charge_categories').insert({
-    portfolio_id:       formData.get('portfolio_id') as string,
-    association_id:     (formData.get('association_id') as string) || null,
+    portfolio_id:       portfolioId,
+    association_id:     associationId,
     name:               formData.get('name') as string,
     code:               (formData.get('code') as string)?.toUpperCase() || null,
     description:        (formData.get('description') as string) || null,
@@ -95,13 +104,29 @@ export async function subscribeUnitToCharge(formData: FormData) {
   const charge_category_id = formData.get('charge_category_id') as string;
   const amount             = parseFloat(formData.get('amount') as string);
   const frequency          = (formData.get('frequency') as any) || null;
-  const start_date         = (formData.get('start_date') as string) || undefined;
   const memo               = (formData.get('memo') as string) || undefined;
   // Always send p_identifier: with it omitted, the 6- and 7-argument versions
   // of subscribe_unit_to_charge both matched and the call failed as ambiguous.
   const identifier         = (formData.get('identifier') as string) || null;
+  const db = supabase as any;
+  // A blank start date is the association's today (an omitted date fell back
+  // to the server's UTC date, already tomorrow in a US evening).
+  let start_date = (formData.get('start_date') as string) || null;
+  if (!start_date) {
+    const { data: unit } = await db.from('units').select('id, buildings!inner(association_id)').eq('id', unit_id).maybeSingle();
+    if (!unit) { failTo('Unit not found.'); return; }
+    const local = await associationToday(db, unit.buildings.association_id);
+    if (local.error !== null) { failTo(`Could not load the association: ${local.error}`); return; }
+    start_date = local.today;
+  }
 
-  const { error } = await (supabase as any).rpc('subscribe_unit_to_charge', {
+  // A double click or re-sent form must not add the recurring charge twice.
+  const claim = await claimSubmission(db, formData, 'unit_recurring_charge');
+  if (claim.status === 'error') { failTo(claim.message); return; }
+  if (claim.status === 'duplicate') { revalidatePath(`/units/${unit_id}`); redirect(`/units/${unit_id}`); }
+  const token = (claim as { token: string }).token;
+
+  const { data: added, error } = await db.rpc('subscribe_unit_to_charge', {
     p_unit_id:            unit_id,
     p_charge_category_id: charge_category_id,
     p_amount:             amount,
@@ -110,7 +135,8 @@ export async function subscribeUnitToCharge(formData: FormData) {
     p_memo:               memo,
     p_identifier:         identifier,
   });
-  if (error) { failTo(error.message); return; }
+  if (error) { await releaseSubmission(db, token); failTo(error.message); return; }
+  if (typeof added?.id === 'string') await completeSubmission(db, token, added.id);
   revalidatePath(`/units/${unit_id}`);
 }
 
@@ -131,8 +157,13 @@ export async function unsubscribeUnit(subscriptionId: string, unitId: string) {
   const failTo = await requireUnitFinanceAccess(unitId);
   if (!UUID_RE.test(subscriptionId)) failTo('Recurring charge not found.');
   const db = (await createClient()) as any;
+  // Ends on the association's today, not the server's.
+  const { data: unit } = await db.from('units').select('id, buildings!inner(association_id)').eq('id', unitId).maybeSingle();
+  if (!unit) failTo('Unit not found.');
+  const local = await associationToday(db, unit.buildings.association_id);
+  if (local.error !== null) failTo(`Could not load the association: ${local.error}`);
   const { data: updated, error } = await db.from('unit_recurring_charges')
-    .update({ active: false, end_date: todayInZone() })
+    .update({ active: false, end_date: local.today })
     .eq('id', subscriptionId)
     .eq('unit_id', unitId)
     .select('id');

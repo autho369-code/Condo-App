@@ -95,5 +95,8 @@
 - Vendor assignment mail (lib/notifications/vendor-assignment.ts): clean. fromName = company_name (fallback 'Your management team', unreachable given the CHECK), replyTo support_email, from_address unset -> EMAIL_FROM (worker moves it to the verified sender domain), links companyUrl with custom_domain cols selected, association_id set. Same pattern as status-change.ts; use it as the reference for new company mail helpers.
 - Status-change mail now reroutes work orders with service_request_id to the request submitter (same helper, same branding). Bulk-comms {source_ref} merges refs 'WO #n — title'; neutral.
 
+## Setup-records deep check (Oct 2026, 20261016164000/164100)
+- New raise text + bulk/parking/board-seat errors: clean. To tell new raises from carried-over copies, grep the string in older migrations (e.g. 'GL account is outside this portfolio', 'Permission denied for unit %' predate it). associationToday's 'association not found' gives "Could not load the association: association not found" (lowercase, no period): recurring nit.
+
 ## PO board decision + reserve/asset guards (claude/po-projects-deep-check, Oct 2026, 20261015230000)
 - Staff record board decisions on PO/bill pages (board portal read-only); copy clean. fixed_assets/reserve trigger raises reach staff raw via lib/rpcs/fixed-assets.ts fail(error.message): watch DB jargon ("scope") in raise text.
