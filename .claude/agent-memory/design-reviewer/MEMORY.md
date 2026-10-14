@@ -88,4 +88,4 @@
 - Lesson: sibling feeds must apply the same rules (association-feed meetings now exclude executive_session, like resident/meetings; fixed in the same PR).
 
 ## Newer/Older pagers (inbox, 2026-10-13)
-- Precedent: communication-center/page.tsx:215 renders the count+pager line OUTSIDE the empty branch. Copies that put it inside the non-empty branch leave a stale `?page=N` past the end on an EmptyState with no way back (inbox:115). Also check the page's 2nd query (sms) surfaces its error. Pager text links are ~20px tall (shared debt).
+- Precedent: communication-center/page.tsx:215 renders the count+pager line OUTSIDE the empty branch. Copies that put it inside the non-empty branch leave a stale `?page=N` past the end on an EmptyState with no way back (inbox:115). Also check the page's 2nd query (sms) surfaces its error. Pager text links were ~20px tall (shared debt). (All fixed in the comms-followups PR: pager outside the empty branch, redirect past the end, sms Alert, min-h-10 links in inbox and Communication Center.)

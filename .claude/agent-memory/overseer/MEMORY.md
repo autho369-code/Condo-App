@@ -137,3 +137,7 @@
   at the queue (guard trigger or process-queue dispatcher) with a required-mail
   exemption, and that the unsubscribe route is in public-paths + tenant-filtered.
   owner_notification_prefs is a legacy camelCase table (integer ownerId), unused.
+- Renamed migration (comms-followups, 2026-10-13: 20261014240000 ->
+  233000 after applying live): grep the old version in docs/brain and every
+  agent memory (Product Rules, Shipped, white-label still said 240000), and
+  ask for the live schema_migrations read-back of both versions.

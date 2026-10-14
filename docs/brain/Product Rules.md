@@ -133,7 +133,7 @@ Back to [[Home]].
   'authenticated' while current_user is the function owner. A trigger that
   limits direct writes by signed-in users checks current_user, so trusted
   functions pass (an auth.role() guard refused staff notifications for owner
-  messages after #367; 20261014240000).
+  messages after #367; 20261014233000).
 - **A limit counts what the server sets, under a lock** (2026-10-13): a rate
   limit or quota must count by values the database sets (created_at := now(),
   sent_by := auth.uid() in the guard), never ones the caller supplies, and
