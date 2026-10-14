@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#369 merged; open PR: claude/sms-sender-routing (Codex on #369); next: email unsubscribe and suppression; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#369 merged; open PR: #370 claude/sms-sender-routing (Codex on #369); next: email unsubscribe and suppression; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/sms-sender-routing: Codex on #369. 20261014234500 (LIVE, applied as
+- #370 claude/sms-sender-routing: Codex on #369. 20261014234500 (LIVE, applied as
   three live versions: 20261013195620 sms_provider_sender, 20261013200049
   sms_reply_routing_rpcs, 20261013200334 sms_messages_freeze_routing_columns;
   the file is the final, re-runnable state, no history fix needed):
