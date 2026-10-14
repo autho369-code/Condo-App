@@ -156,3 +156,11 @@ describe('20261015235000_reserve_component_asset_lock migration', () => {
     expect(m).toMatch(/where id = new\.fixed_asset_id[\s\S]*?for share;/);
   });
 });
+
+describe('20261015235500_approval_votes_no_signed_in_writes migration', () => {
+  it('signed-in users can't update or delete board votes either', () => {
+    const m = read('supabase/migrations/20261015235500_approval_votes_no_signed_in_writes.sql');
+    expect(m).toContain('as restrictive for update to authenticated, anon');
+    expect(m).toContain('as restrictive for delete to authenticated, anon');
+  });
+});
