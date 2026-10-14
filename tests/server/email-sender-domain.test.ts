@@ -157,9 +157,12 @@ describe('email worker sender selection', () => {
     queued = [email()];
     domains = [];
     prepared = { e1: { id: 'e1', suppressed: false, unsubscribe_token: token, unsubscribe_url: null } };
+    // On production the link is the company's address (CI and local runs
+    // otherwise stay on their own origin).
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://portier369.com');
     await expect(runWorker()).resolves.toMatchObject({ sent: 1 });
     const page = linkUrls[0]?.page_url;
-    expect(page).toMatch(new RegExp(`^https?://stellar\\.[^/]+/unsubscribe/${token}$`));
+    expect(page).toBe(`https://stellar.portier369.com/unsubscribe/${token}`);
     expect(payloads[0].html).toContain(`href="${page}"`);
     expect(payloads[0].html).toContain('optional email from Stellar Property Group');
     expect(payloads[0].headers).toEqual({
