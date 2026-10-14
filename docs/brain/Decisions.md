@@ -310,3 +310,22 @@ resolved, migration live; enable through the PR tool, never merge by hand).
 Selling a unit = recording the new owner moving in (Change homeowner). No
 closing settlements, seller history access, board-seat rules or other sale
 policy. Ownership work is done (#388); only real, reported breaks get fixed.
+
+## Purchase orders, projects, inventory, reactivation: 10 decisions (Mirsad, 2026-10-14)
+Mirsad: "go with your recommendations on all 10 decisions".
+1. Staff record the board's decision on a PO, including one they created
+   (like bills; the note says where the board decided).
+2. A bill within a board-approved PO's amount skips the board vote.
+3. The vendor is emailed when its PO is approved (once per approval).
+4. A recurring PO creates only the current period's draft, never a backlog
+   of missed periods.
+5. Project "Committed" = open approved PO balances + unpaid bills (open PO
+   balances only for finance staff); "Spent" = paid bills.
+6. PO numbers are automatic per company (PO-00001) and unique (case-insensitive).
+7. Purchase orders are finance-only in the database too, like the pages.
+8. Company admins see and use inventory (reports stay staff-only).
+9. "Used on work order #N" is resolved within the item's company and an
+   ambiguous number is refused.
+10. No late fee for 24h after a company is reactivated on units whose AutoPay
+    is due; and in every company, none while the unit has money in flight
+    (processing payment under 14 days old, or AutoPay pending under 1 day).
