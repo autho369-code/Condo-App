@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: claude/email-unsubscribe; next: Banking follow-ups (Next gaps); waiting on Mirsad: email opt-out defaults (TODO), NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: #371 claude/email-unsubscribe; next: Banking follow-ups (Next gaps); waiting on Mirsad: email opt-out defaults (TODO), NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/email-unsubscribe: email unsubscribe and suppression (Mirsad's
+- #371 claude/email-unsubscribe: email unsubscribe and suppression (Mirsad's
   recommended defaults from TODO). 20261015010000 LIVE as four versions:
   20261013203100 email_unsubscribe, 20261013203437
   email_prepare_batch_platform_name, 20261013203802
