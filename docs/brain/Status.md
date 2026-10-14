@@ -1,9 +1,43 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#373 merged; open PR: #374 claude/payables-followups; next: Stripe TEST-mode checkout and AutoPay run (Next gaps; needs Mirsad's Stripe test keys), else a new gap from the AppFolio gap analysis; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#374 merged; open PR: #375 claude/collections-deep-check; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #374 claude/payables-followups: Payables follow-ups (Next gaps).
+- #375 claude/collections-deep-check: DEEP CHECK of delinquencies
+  and collections (rolled back on production at 2,000 units) + Mirsad's
+  "THE MANAGER SHOULD BE ABLE TO REMOVE LATE FEES". 20261015040000 LIVE as
+  20261013232520 (dry runs passed; all 13 patched functions read back).
+  - Remove late fee: unit page "Late fees" card (finance staff), reason +
+    Remove (confirm) -> remove_late_fee: credit of the open amount to the
+    fee's income account, applied to the fee, owner sees "Late fee removed",
+    reason staff-only; the fee stays recorded so the daily run never charges
+    it again; paid fee refused; second removal refused.
+  - Association-local dates (was UTC current_date) in late fees (a fee
+    could be charged a day early and dated tomorrow on a US evening),
+    overrides, ladder days past due, referral readiness, plan schedule and
+    paid amount (plans rechecked), plan/offer/vote date checks.
+  - Interest on principal only (no interest on late/NSF fees or a previous
+    owner's charges). The unit query went from 8 to 58 ms at 2,000 units
+    (the ownership check runs once per unit; offset 0 stops it running per
+    charge): fine for a monthly run, where posting the interest charges is
+    most of the time.
+  - late_fee_assessments not writable by signed-in users (a deleted row
+    meant the fee was charged again).
+  - Payment plan cancel reason staff-only (owners could read it through the
+    API; security review).
+  - Notice days left blank now errors (was silently 30); bad plan id errors.
+  - Verified, no change: late-fee cron 1,600 fees in 9 s at 2,000 units,
+    second run 0 (no double fees); ladder writes only through definer
+    functions (cases/events SELECT-only grants); legal transitions guarded;
+    every action re-checks auth; board/owner/vendor/tenant can't read
+    cases, events or notes; cron routes need the secret. Charge posting
+    ~3 ms per charge (2,000 units ~6 s); slower only with stale statistics
+    inside one huge transaction. The ladder advances only when staff act
+    (sync on the Delinquencies page, Advance per case; no cron), by design:
+    steps can need human approval.
+
+## Merged 2026-10-13
+- #374 payables follow-ups (Next gaps). Codex clean.
   - 1099 totals (vendor_1099_totals, assemble_vendor_1099_data): the tax
     year is a range on paid_at in the time zone of the association
     of each bill, instead of association_local_date per bill; starts from
@@ -23,8 +57,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#373 merged; open PR: #374 claude/pay
     number and no payment, so the duplicate-invoice and payment-date rules
     don't apply (by design, no change). Purchase-order bills go through
     create_payable_bill (checked in #360); pay_owner_payable checks dates.
-
-## Merged 2026-10-13
 - #373 reconciliation statement balance (Codex on #372, P1): a reconciliation
   in progress can have its statement ending balance corrected on the
   reconcile page (a reopened one was stuck). App only. Codex: no findings.
@@ -635,6 +667,10 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#373 merged; open PR: #374 claude/pay
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- Owner ledger: a removed late fee still shows status "paid" (v_charge_balances
+  has no removed/waived state; its credit row reads "Late fee removed").
+  Needs a view change (a credit-covered late fee -> "Removed"); not done in
+  the collections PR to keep the view change separate.
 - DONE 2026-10-13 (verified live, no change): payable_bill_line_items
   policies already use the once-per-query helpers (my_finance_portfolio,
   is_platform_operator, my_managed_association_ids) through an EXISTS on

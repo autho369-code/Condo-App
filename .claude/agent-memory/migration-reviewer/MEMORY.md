@@ -47,6 +47,7 @@
 
 - INVOKER triggers run their callees as the caller: every helper an invoker trigger calls needs EXECUTE for authenticated (first draft of 20261015010000 revoked them -> all staff sends broken; FIXED: key helpers granted :77-78, suppression moved to definer email_prepare_batch). Details in sql-pitfalls "Email suppression".
 
+- Local-date patches: `association_local_date` is a definer SQL fn (never inlined); check each call is once per association/initplan, not per row. Lateral pullup trap in sql-pitfalls.
 - Text-patch migrations: run every multi-line anchor against the latest repo body with a node count script; a skipped comment line aborts the migration (20261015020000:56). See sql-pitfalls. (Fixed before apply: anchor, indexes, draft early-return, association_id, adjustment refused on any open reconciliation.)
 
 - Replacing a per-row definer helper (association_local_date(pb.association_id,..)) with an inner JOIN to the parent changes semantics: rows with a NULL/hidden FK drop (payable_bills.association_id is nullable; 20261015030000 vendor_1099_totals), and the join now evaluates parent-only expressions (free-text timezone) for parents with no rows. Check nullability + RLS parity + caller's null handling.

@@ -30,6 +30,9 @@ metadata:
   public/API/AI/cron/storage routes; and DB-only DO blocks never exercise the
   server actions (auth re-check, emails). Charges with no charge_gl_accounts
   branch (fine, chargeback) fall to the category/default income: check GL.
+  Recurred 2026-10-13 (collections deep check plan): same role list, and
+  missed the cron routes (assess-late-fees, assess-interest), AI assistant
+  delinquent lookup, and that the ladder only advances on the page (no cron).
 - Owner-portal deep check (2026-10-13): one owner test user isn't enough -
   need a multi-record login (owner_portal_logins, ?record=), a paused portal,
   an owner with no current unit (sold: no access), a resident/tenant login

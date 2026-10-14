@@ -56,7 +56,7 @@ export async function createPaymentPlan(formData: FormData) {
 export async function cancelPaymentPlan(formData: FormData) {
   await requireStaff();
   const id = text(formData, 'plan_id');
-  if (!UUID.test(id)) redirect('/payment-plans');
+  if (!UUID.test(id)) redirect(`/payment-plans?error=${encodeURIComponent('Payment plan not found.')}`);
   const db = (await createClient()) as any;
   const { error } = await db.rpc('cancel_payment_plan', { p_plan_id: id, p_reason: text(formData, 'reason') });
   if (error) redirect(`/payment-plans/${id}?error=${encodeURIComponent(error.message)}`);

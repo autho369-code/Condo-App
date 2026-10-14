@@ -194,7 +194,7 @@
 "payment_intents":["amount","association_id","breakdown","created_at","currency","failure_reason","id","idempotency_key","method","owner_id","payment_id","portfolio_id","processor","processor_account_id","processor_charge_id","processor_fee_cents","processor_livemode","processor_payment_intent_id","processor_payout_id","processor_session_id","settled_at","status","succeeded_at","unit_id","updated_at"],
 "payment_methods":["account_type","archived_at","association_id","bank_name","brand","created_at","exp_month","exp_year","failed_attempts","id","is_default","is_verified","last_failure_at","last_failure_reason","last_four","method_type","owner_id","portfolio_id","processor","processor_account_id","processor_customer_id","processor_token","updated_at","verified_at"],
 "payment_plan_installments":["amount","due_date","id","installment_number","plan_id"],
-"payment_plan_private":["notes","payment_plan_id","updated_at"],
+"payment_plan_private":["cancel_reason","notes","payment_plan_id","updated_at"],
 "payment_plans":["association_id","cancel_reason","cancelled_at","completed_at","created_at","created_by","first_due_date","frequency","id","installment_count","notes","owner_id","portfolio_id","start_date","status","total_amount","unit_id","updated_at"],
 "payment_private":["notes","payment_id","updated_at"],
 "payment_processor_adjustments":["adjustment_type","amount","created_at","currency","id","payment_intent_id","processor_account_id","reason","review_status","reviewed_at","reviewed_by","stripe_event_id"],

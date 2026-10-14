@@ -37,12 +37,12 @@ export default async function PaymentPlanPage({
 
   const { data: plan } = await db
     .from('payment_plans')
-    .select('id, status, total_amount, installment_count, frequency, first_due_date, start_date, cancel_reason, cancelled_at, owner_id, unit_id, associations(name), units(unit_number), owners(full_name)')
+    .select('id, status, total_amount, installment_count, frequency, first_due_date, start_date, cancelled_at, owner_id, unit_id, associations(name), units(unit_number), owners(full_name)')
     .eq('id', id)
     .maybeSingle();
   if (!plan) notFound();
-  // Plan notes are staff-only (payment_plan_private); the owner reads the plan row.
-  await mergePrivateFieldsOne(db, 'payment_plan_private', 'payment_plan_id', ['notes'], plan);
+  // Plan notes and the cancellation reason are staff-only (payment_plan_private); the owner reads the plan row.
+  await mergePrivateFieldsOne(db, 'payment_plan_private', 'payment_plan_id', ['notes', 'cancel_reason'], plan);
 
   const { data: schedule, error: scheduleError } = await db.rpc('payment_plan_schedule', { p_plan_id: id });
   const rows = (schedule ?? []) as { installment_number: number; due_date: string; amount: number; covered: number; status: string }[];

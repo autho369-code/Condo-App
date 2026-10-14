@@ -45,3 +45,25 @@ export async function postHomeownerCredit(formData: FormData) {
   revalidatePath(back);
   redirect(`${back}?credited=1#credits`);
 }
+
+// remove_late_fee re-checks finance permission and the unit's association,
+// that the charge is an open late fee, and credits it back to the fee's own
+// income account. The fee stays recorded, so it is never charged again.
+export async function removeLateFee(formData: FormData) {
+  await requireFinanceStaff();
+  const unitId = s(formData, 'unit_id');
+  if (!UUID_RE.test(unitId)) redirect('/units?error=' + encodeURIComponent('Unit not found'));
+  const back = `/units/${unitId}`;
+  // No #late-fees anchor: the error Alert is at the top of the page and must be seen.
+  const fail = (msg: string): never => redirect(`${back}?error=${encodeURIComponent(msg)}`);
+  const chargeId = s(formData, 'charge_id');
+  const reason = s(formData, 'reason');
+  if (!UUID_RE.test(chargeId)) fail('Late fee not found.');
+  if (reason.length < 3) fail('Say why the late fee is removed.');
+
+  const db = (await createClient()) as any;
+  const { error } = await db.rpc('remove_late_fee', { p_charge_id: chargeId, p_reason: reason.slice(0, 400) });
+  if (error) fail(error.message);
+  revalidatePath(back);
+  redirect(`${back}?saved=late_fee_removed#late-fees`);
+}

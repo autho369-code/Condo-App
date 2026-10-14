@@ -28,10 +28,11 @@ export async function saveDelinquencyCompliance(formData: FormData) {
   const nums = ['pre_referral_notice_days', 'payment_plan_min_months', 'foreclosure_min_balance', 'foreclosure_min_months'].map((k) => optionalNumber(s(formData, k)));
   if (nums.some((n) => n !== null && !Number.isFinite(n))) back('error', 'Compliance values must be numbers.');
   const [days, planMonths, fcBalance, fcMonths] = nums;
+  if (days === null) back('error', 'Enter the notice days (0 to 180).');
   const db = (await createClient()) as any;
   const { error } = await db.rpc('save_delinquency_compliance', {
     p_association_id: s(formData, 'association_id'),
-    p_pre_referral_notice_days: days ?? 30,
+    p_pre_referral_notice_days: days,
     p_notice_method: s(formData, 'notice_method') || 'certified_mail',
     p_payment_plan_offer_required: formData.get('payment_plan_offer_required') === 'on',
     p_payment_plan_min_months: planMonths,
