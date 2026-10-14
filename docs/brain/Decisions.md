@@ -305,3 +305,8 @@ accounts: a vendor-portal invoice arrives without one and staff set it.
 Mirsad gave permission in chat to auto-merge and keep working through the
 TODO list. Conditions in [[PR Rules]] (Codex clean, CI green, threads
 resolved, migration live; enable through the PR tool, never merge by hand).
+
+## A unit sale is "move in the new owner" (Mirsad, 2026-10-14)
+Selling a unit = recording the new owner moving in (Change homeowner). No
+closing settlements, seller history access, board-seat rules or other sale
+policy. Ownership work is done (#388); only real, reported breaks get fixed.
