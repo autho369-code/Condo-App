@@ -76,6 +76,8 @@
 
 - "Pause while company suspended" claim filters (20261016130000): list every cron in vercel.json + pg_cron and check which still run; a platform-mail exemption by from_name 'portier369%' must copy the sent_by pairing of 20261015010000:394; ask counts of queue rows with NULL portfolio_id; late fees/fees "resume" on reactivation bill the suspended period (product question).
 - Widening a slug/name reserved list: existing rows aren't revalidated (no CHECK), but re-saving one hits the reserved raise before the `v_old = v_slug` early return; ask a count.
+- Freeze guards on "final" records: confirm columns written AFTER finalize stay writable (year_end_packages.signature_request_id via link_year_end_signature; 20261016200000 correctly left it out). Delete guards using app_is_repair_session are safe for purge_rows (SQL editor: session_user postgres).
+- A BEFORE DELETE guard on a child with parent ON DELETE CASCADE (gl_accounts <- associations/portfolios) also fires on parent deletes; a "has sub-accounts" check then blocks the whole cascade. OK only while no app/API path deletes the parent (grep `.from('<parent>')...delete`); 20261016200000 clean.
 
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards

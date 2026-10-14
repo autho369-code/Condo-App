@@ -5,6 +5,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 
 ## 2026-10-14
 - Company admin / operator deep check (claude/admin-operator-deep-check, 20261016130000 LIVE as 20261014123525): company settings and staff roles only by the company admin; a suspended company's email, texts, mail, webhooks, AutoPay, scheduled reports, management fees, late fees and automation flows are held until reactivation; webhook SSRF via IPv6 forms closed; fee and domain-verification columns frozen for direct writes; AI assistants scoped and errors kept server-side.
+- GL / close deep check (20261016200000 live as 20261014121412): no double
+  posting of lockbox checks, management fees or recurring entries; lockbox
+  posts to the current owner; used GL accounts locked; scoped managers can't
+  change company-wide GL or fee defaults; finalized year-end frozen; owners
+  can't read management agreements.
 - Ownership fixes (claude/ownership-fixes, 20261016010000): a sale can't be
   dated in the future; statements go to the owner(s) of record in the
   period; a sale or move-out ends the outgoing owner's parking, stops its
