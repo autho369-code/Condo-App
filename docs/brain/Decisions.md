@@ -2,6 +2,12 @@
 
 Back to [[Home]]. Don't redo these.
 
+- **Every owner and tenant gets email** (Mirsad, 2026-10-13): as in
+  AppFolio, the sender chooses owners, tenants or both; an owner's preferred
+  contact (mail) and electronic_consent don't stop email (dues reminders
+  included). Only an unsubscribe or spam report (optional mail) or a bounce
+  stops it.
+
 - **Email opt-out follows the recommended defaults** (2026-10-13, Mirsad
   hadn't answered; TODO keeps the question open): an unsubscribe stops
   optional mail only (mass email, announcements, dues, insurance and
@@ -14,9 +20,7 @@ Back to [[Home]]. Don't redo these.
   bounces account-wide). Only the recipient undoes an unsubscribe or spam
   report (from the link); staff can allow a bounced address again. Managers
   limited to some associations don't see or clear suppressions (they are by
-  company, not association). Owners
-  who prefer mail get no optional email. electronic_consent is not
-  enforced (nearly every owner has it false; Mirsad's call). Platform mail
+  company, not association). Platform mail
   sent as Portier369 has no company unsubscribe link (account mail).
   Accepted: staff who queue mail directly with a required kind's key (e.g.
   notice:) send it as required; that is a deliberate act, like emailing

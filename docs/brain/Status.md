@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: #371 claude/email-unsubscribe; next: Banking follow-ups (Next gaps); waiting on Mirsad: email opt-out defaults (TODO), NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: #371 claude/email-unsubscribe; next: Banking follow-ups (Next gaps); waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
 - #371 claude/email-unsubscribe: email unsubscribe and suppression (Mirsad's
@@ -8,7 +8,8 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: #371 claude/ema
   20261013203100 email_unsubscribe, 20261013203437
   email_prepare_batch_platform_name, 20261013203802
   email_unsubscribe_security_fixes, 20261013203849
-  email_prepare_batch_message_alias; the file is the final, re-runnable
+  email_prepare_batch_message_alias (+ 20261013211319
+  email_all_owners_and_tenants); the file is the final, re-runnable
   state (read back live: email_prepare_batch, complete_email_delivery,
   policies). Rolled-back production tests passed.
   - email_queue.mail_class (required | optional) decided in the database
@@ -23,8 +24,11 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: #371 claude/ema
     A suppressed email is kept, failed with suppressed_at and the reason
     (shown as "Not sent" in the Communication Center). Checked when the
     worker sends (email_prepare_batch), not at insert (no per-row cost); a
-    Communication Center message counts stopped recipients as done. Optional mail to an owner
-    whose preferred contact is mail is not sent.
+    Communication Center message counts stopped recipients as done.
+  - Mirsad (2026-10-13): every owner and tenant gets email; the sender picks
+    owners, tenants or both (Send Email page; Communication Center groups).
+    An owner's preferred contact (mail) no longer stops email, dues
+    reminders included (they skipped those owners before).
   - Optional company mail gets an Unsubscribe footer and List-Unsubscribe /
     List-Unsubscribe-Post headers on the company's address
     (/unsubscribe/<token> page; /api/unsubscribe/<token> one-click POST;

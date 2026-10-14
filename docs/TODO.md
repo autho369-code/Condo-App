@@ -13,20 +13,15 @@ Everything Claude can do alone is done; these need Mirsad (accounts, keys,
 DNS or decisions). Details for the older items are further down.
 
 **Housekeeping (quick)**
-- [ ] **Email opt-out: three decisions** (for the unsubscribe/suppression
-      change, 2026-10-13). Built with these recommended defaults; say if any
-      should change. Also open: should owners without electronic consent
-      (16 of 17 today) get no email? Not enforced now. And should legal
-      notices go by letter to owners whose preferred contact is mail (state
-      rules differ)? Recommended defaults:
-      1. Unsubscribing stops mass email, announcements and optional
-         reminders, but not sign-in links, receipts, statements,
-         violation/hearing, meeting or collection notices. Bounced or
-         complained addresses get nothing (they can't receive mail).
-      2. Owners whose preferred contact is mail are left out of mass email;
-         whether legal notices go to them by letter is your call (state
-         rules differ).
-      3. Staff can't clear an owner's unsubscribe (only the owner, from the
+- [ ] **Email opt-out: two defaults to confirm** (2026-10-13). Answered:
+      every owner and tenant gets email, sender picks owners, tenants or
+      both (preferred contact and electronic consent don't stop it). Built
+      as recommended, say if either should change:
+      1. Unsubscribing (or marking as spam) stops optional mail only: mass
+         email, announcements, reminders. Sign-in links, receipts,
+         statements, violation/hearing, meeting and collection notices are
+         always sent. A bounced address gets nothing.
+      2. Staff can't clear an owner's unsubscribe (only the owner, from the
          link); staff can clear a bounce after the address is fixed.
 - [ ] **Optional SQL (unused function):** `drop function public.claim_email_queue(integer);`
       The email worker uses claim_email_queue_snapshot; the old one is no

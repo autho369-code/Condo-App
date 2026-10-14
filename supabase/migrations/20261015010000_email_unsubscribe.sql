@@ -19,8 +19,7 @@
 --    suppressed address is kept, marked failed with the reason
 --    (suppressed_at), so staff see why it wasn't sent (a Communication
 --    Center message counts it as done once the other recipients are sent;
---    the row shows why it was stopped). Optional mail to an owner whose
---    preferred contact is mail is kept the same way. Checking at send time
+--    the row shows why it was stopped). Checking at send time
 --    covers mail queued before an unsubscribe or bounce, and adds no
 --    per-row work to a 5,000-recipient send.
 -- 4. Unsubscribe links: one per optional email, on the company's own
@@ -28,6 +27,10 @@
 --    one-click). Read and written only by the server.
 -- 5. Resend reports a permanent bounce or a spam complaint: the address is
 --    suppressed for that company.
+-- 6. Mirsad (2026-10-13): every owner and tenant gets email; the sender
+--    chooses owners, tenants or both. An owner's preferred contact (mail)
+--    doesn't stop email, including dues reminders, which skipped those
+--    owners before.
 
 -- 1. ----------------------------------------------------------------------------
 alter table public.email_queue
@@ -45,9 +48,9 @@ end
 $do$;
 
 comment on column public.email_queue.mail_class is
-  'required: always sent (unless the address bounced). optional: not sent after an unsubscribe or spam report, or to an owner who prefers mail.';
+  'required: always sent (unless the address bounced). optional: not sent after an unsubscribe or spam report.';
 comment on column public.email_queue.suppressed_at is
-  'Set when the email was not sent because the address is unsubscribed, bounced or complained, or the owner prefers mail (error_message says which).';
+  'Set when the email was not sent because the address is unsubscribed, bounced or complained (error_message says which).';
 
 -- Optional mail, by the email's key (set by every producer of it).
 create or replace function public.email_queue_optional_key(p_key text)
@@ -190,8 +193,8 @@ create trigger email_suppressions_audit_update
   for each row execute function public.email_suppressions_audit();
 
 -- Why an email can't be sent (null: it can). A bounce stops all mail; an
--- unsubscribe, a spam report or a preference for mail stops optional mail
--- (sign-in links and legal notices still go).
+-- unsubscribe or a spam report stops optional mail (sign-in links and legal
+-- notices still go). p_owner is unused (kept in the signature).
 create or replace function public.email_suppression_reason(p_portfolio uuid, p_email text, p_class text, p_owner uuid)
 returns text
 language sql
@@ -213,9 +216,6 @@ as $function$
                   where s.portfolio_id = p_portfolio and s.email = lower(btrim(p_email))
                     and s.reason = 'unsubscribed' and s.cleared_at is null)
       then 'Not sent: the recipient unsubscribed from optional email.'
-    when p_class = 'optional' and p_owner is not null and exists (
-                  select 1 from public.owners o where o.id = p_owner and o.preferred_comm = 'mail')
-      then 'Not sent: the owner prefers mail.'
   end
 $function$;
 
@@ -298,6 +298,23 @@ begin
     raise exception 'complete_email_delivery: expected text not found exactly once';
   end if;
   execute replace(v_def, v_old, v_new);
+end
+$do$;
+
+-- 6. Dues reminders go to owners whose preferred contact is mail too.
+do $do$
+declare
+  v_def text := replace(pg_get_functiondef('public.queue_payment_reminders()'::regprocedure), E'\r\n', E'\n');
+  v_old text := E'           and coalesce(o.preferred_comm, ''email'') <> ''mail''\n';
+begin
+  if position(v_old in v_def) = 0 then
+    raise notice 'queue_payment_reminders already patched';
+    return;
+  end if;
+  if array_length(string_to_array(v_def, v_old), 1) <> 2 then
+    raise exception 'queue_payment_reminders: expected text not found exactly once';
+  end if;
+  execute replace(v_def, v_old, '');
 end
 $do$;
 

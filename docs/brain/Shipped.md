@@ -8,7 +8,8 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   automations) has an Unsubscribe link and one-click List-Unsubscribe headers
   on the company's address; unsubscribed, spam-reported and bounced
   addresses are stopped when the worker sends (kept as "Not sent" with the
-  reason); owners who prefer mail get no optional email; Resend permanent
+  reason); every owner and tenant gets email (Mirsad), dues reminders
+  included for owners who prefer mail; Resend permanent
   bounces and complaints suppress the address; staff can allow a bounced
   address again (20261015010000).
 - SMS routing (Codex on #369): replies and START reach the company that
