@@ -1,9 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#387 merged; open PR: #388 ownership fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#388 merged; open PR: none; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #388 claude/ownership-fixes (sale and move-out, from a deep check of the
+- none
+
+## Merged 2026-10-14
+- #388 (merged 2026-10-14) claude/ownership-fixes (sale and move-out, from a deep check of the
   change-homeowner flow). Migration 20261016010000_ownership_fixes.sql
   LIVE as 20261014102121 (final file dry-run rolled back on production by the
   main session first: future sale refused; Sept owner statements to seller
@@ -74,8 +77,6 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#387 merged; open PR: #388 ownership 
     security re-ran on the fixes: clean. Note: the sale month's monthly
     statement is visible to the buyer if it was filed under the seller
     (unlikely; the seller is no longer primary).
-
-## Merged 2026-10-14
 - #387 (merged 2026-10-14) claude/po-projects-deep-check: deep check of purchase orders, projects,
   inventory and fixed assets (rolled back at 5,000 rows, every role; all
   lists under 45 ms). 20261015230000 LIVE as 20261014092828 (dry-run rolled
