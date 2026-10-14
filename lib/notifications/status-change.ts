@@ -192,13 +192,14 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }
       },
     ]);
     if (queueErr) {
-      console.error(`[status-change] failed to queue ${noun} ${id} email:`, queueErr);
+      // Constant format string; the record kind and id are plain arguments.
+      console.error('[status-change] failed to queue status email:', noun, id, queueErr);
       return false;
     }
     return true;
   } catch (e) {
     // Fire-and-forget: a notification failure must never fail the status update.
-    console.error(`[status-change] notifyOwnerOfStatusChange(${kind}, ${id}) failed:`, e);
+    console.error('[status-change] notifyOwnerOfStatusChange failed:', kind, id, e);
     return false;
   }
 }

@@ -116,13 +116,14 @@ export async function submitArchitecturalRequestOnBehalf(formData: FormData) {
   // Resolve owner + unit + association from the occupancy row (RLS-scoped).
   const { data: occ, error: occErr } = await (supabase as any)
     .from('occupancies')
-    .select('id, unit_id, owner_id, association_id, status, occupancy_type, move_out_date, associations!occupancies_association_id_fkey(portfolio_id)')
+    .select('id, unit_id, owner_id, association_id, status, occupancy_type, move_out_date, associations!occupancies_association_id_fkey(portfolio_id, timezone)')
     .eq('id', occupancyId)
     .maybeSingle();
   if (occErr || !occ) { failTo('That homeowner/unit was not found or is outside your portfolio'); return; }
   if (!occ.owner_id)  { failTo('That unit has no owner on file — link an owner first'); return; }
   // Only the unit's current owner can have a request filed for them.
-  if (!isCurrentOwnerOccupancy(occ, todayInZone())) {
+  // By the association's own calendar day.
+  if (!isCurrentOwnerOccupancy(occ, todayInZone((occ as any).associations?.timezone || undefined))) {
     failTo('That homeowner no longer owns this unit. Choose the current owner.');
     return;
   }
