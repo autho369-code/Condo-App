@@ -171,6 +171,7 @@
 "owner_ach_status":["completed_at","created_at","id","invited_at","last_error","metadata","owner_id","payment_method_id","status","updated_at","verified_at"],
 "owner_attachments":["content_type","created_at","file_name","file_path","id","owner_id","portfolio_id","size_bytes","uploaded_by"],
 "owner_financial_details":["bank_account_number","bank_routing_number","check_consolidation","check_stub_show_detail","created_at","default_check_memo","electronic_1099_consent","email_echeck_receipt","hold_payments","owner_id","paid_by_ach","portfolio_id","send_1099","sending_preference_1099","tax_form_account_number","taxpayer_id","taxpayer_name","updated_at","updated_by"],
+"owner_form_submission_private":["notes","submission_id","updated_at"],
 "owner_form_submissions":["created_at","form_data","form_type","id","notes","owner_id","reviewed_at","reviewed_by","status","submitted_at","updated_at"],
 "owner_messages":["body","channel","companyId","createdAt","direction","id","isRead","isReadByManager","managerId","ownerId","propertyId","subject","threadKey"],
 "owner_notification_prefs":["createdAt","docSharedEmail","docSharedInApp","id","msgReceivedEmail","msgReceivedInApp","ownerId","paymentDueEmail","paymentDueInApp","ticketUpdateEmail","ticketUpdateInApp","updatedAt"],

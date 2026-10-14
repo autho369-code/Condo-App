@@ -1,7 +1,7 @@
 'use server';
 import { randomUUID } from 'node:crypto';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { getMe, requireBoard, requireOwner, requireStaff } from '@/lib/auth/me';
+import { getMe, requireOwner, requireStaff } from '@/lib/auth/me';
 import {
   MAX_ARCHITECTURAL_ATTACHMENT_BYTES,
   architecturalAttachmentBasePath,
@@ -14,6 +14,8 @@ import { revalidatePath } from 'next/cache';
 import { loadOwnPortalUnitIds, ownerRecordForUnit } from '@/lib/portal/own-units';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 import { redirect } from 'next/navigation';
+import { todayInZone } from '@/lib/time/zoned';
+import { ARC_OPEN_STATUSES, decisionInputError, isCurrentOwnerOccupancy } from '@/lib/architectural/rules';
 
 const CATEGORIES = [
   'exterior_paint', 'fence', 'landscaping', 'roof', 'addition',
@@ -27,71 +29,11 @@ function parseCategory(value: FormDataEntryValue | null): Category {
 }
 
 /**
- * Submit a new architectural review request from the owner portal.
- *
- * Like submitServiceRequest, we derive association_id + portfolio_id from the
- * selected unit rather than trusting form input. RLS (arch_req_resident_insert)
- * enforces self + own-association regardless, but we validate here so errors
- * surface before hitting the DB.
- */
-export async function submitArchitecturalRequest(formData: FormData) {
-  const failTo = (msg: string) =>
-    redirect(`/portal/architectural/new?error=${encodeURIComponent(msg)}`);
-
-  const me = await requireOwner();
-
-  const unitId      = formData.get('unit_id') as string;
-  const title       = (formData.get('title') as string)?.trim();
-  const description = (formData.get('description') as string)?.trim();
-  const category    = parseCategory(formData.get('category'));
-
-  if (!unitId)                  { failTo('Unit is required'); return; }
-  if (!title)                   { failTo('Please give your request a short title'); return; }
-  if (!description)             { failTo('Please describe the modification'); return; }
-  if (description.length < 10)  { failTo('Please give us at least a sentence describing the work'); return; }
-
-  const supabase = await createClient();
-  // The unit must be one of the owner's own (RLS lets a board member who owns a
-  // unit see every unit in the association).
-  const own = await loadOwnPortalUnitIds(supabase, me.owner_ids);
-  if (own.error) { failTo(own.error); return; }
-  if (!own.ids.includes(unitId)) { failTo('You can only submit requests for your own unit'); return; }
-  // Filed under the login's owner record that holds this unit (one per association).
-  const holder = await ownerRecordForUnit(supabase, me.owner_ids, unitId);
-  if (holder.error || !holder.ownerId) { failTo(holder.error ?? 'You can only submit requests for your own unit'); return; }
-
-  const { data: unit, error: unitErr } = await (supabase as any)
-    .from('units')
-    .select('id, buildings!inner(association_id, associations!inner(portfolio_id))')
-    .eq('id', unitId)
-    .maybeSingle();
-  if (unitErr || !unit) { failTo('Unit not found or you no longer have access to it'); return; }
-  const associationId = (unit.buildings as any).association_id;
-  const portfolioId   = (unit.buildings as any).associations.portfolio_id;
-
-  const { data: req, error } = await (supabase as any).from('architectural_requests').insert({
-    association_id: associationId,
-    portfolio_id:   portfolioId,
-    unit_id:        unitId,
-    owner_id:       holder.ownerId,
-    submitted_by:   me.auth_user_id,
-    title,
-    description,
-    category,
-    status:         'submitted',
-  }).select('id').single();
-
-  if (error || !req) { failTo(error?.message ?? 'Failed to submit request'); return; }
-
-  revalidatePath('/portal/architectural');
-  revalidatePath('/portal');
-  redirect(`/portal/architectural/${req.id}?submitted=1`);
-}
-
-/**
- * Same validation + insert as submitArchitecturalRequest, but RETURNS the new
- * request id instead of redirecting — used by the owner's one-screen form,
- * which continues uploading the attached documents after creation.
+ * Submit a new architectural review request from the owner portal. RETURNS
+ * the new request id — the owner's one-screen form continues uploading the
+ * attached documents after creation. association_id + portfolio_id come from
+ * the selected unit, never from form input (RLS arch_req_resident_insert also
+ * enforces self + own association).
  */
 export async function createArchitecturalRequest(input: {
   unitId: string;
@@ -174,11 +116,16 @@ export async function submitArchitecturalRequestOnBehalf(formData: FormData) {
   // Resolve owner + unit + association from the occupancy row (RLS-scoped).
   const { data: occ, error: occErr } = await (supabase as any)
     .from('occupancies')
-    .select('id, unit_id, owner_id, association_id, status, associations!occupancies_association_id_fkey(portfolio_id)')
+    .select('id, unit_id, owner_id, association_id, status, occupancy_type, move_out_date, associations!occupancies_association_id_fkey(portfolio_id)')
     .eq('id', occupancyId)
     .maybeSingle();
   if (occErr || !occ) { failTo('That homeowner/unit was not found or is outside your portfolio'); return; }
   if (!occ.owner_id)  { failTo('That unit has no owner on file — link an owner first'); return; }
+  // Only the unit's current owner can have a request filed for them.
+  if (!isCurrentOwnerOccupancy(occ, todayInZone())) {
+    failTo('That homeowner no longer owns this unit. Choose the current owner.');
+    return;
+  }
 
   const { data: req, error } = await (supabase as any).from('architectural_requests').insert({
     association_id: occ.association_id,
@@ -198,14 +145,12 @@ export async function submitArchitecturalRequestOnBehalf(formData: FormData) {
   redirect(`/architectural-reviews/${req.id}`);
 }
 
-// Documents live in the association records bucket. Each document uploads in
-// its own request (one file per submit, 25 MB cap) so large plan sets don't
-// overload a single multipart POST. Cap of 10 documents per request.
+// Documents live in the association records bucket. Files go browser→storage
+// via signed URLs (Vercel caps server-action bodies at ~4.5 MB), so large plan
+// sets are fine. Cap of 10 documents per request.
 const ATTACH_BUCKET = 'association-documents';
 const MAX_ARCH_ATTACHMENTS = 10;
-// Files go browser→storage via signed URLs (Vercel caps server-action bodies
-// at ~4.5 MB), so large plan sets are fine.
-const OPEN_STATUSES = ['submitted', 'under_review', 'more_info'];
+const OPEN_STATUSES: readonly string[] = ARC_OPEN_STATUSES;
 
 type ArchAttachmentRequest = {
   id: string;
@@ -289,68 +234,6 @@ async function verifyArchAttachmentAccess(requestId: string, basePath: string) {
   return { error: null as string | null, req, svc, me, role };
 }
 
-function bindRequestMutation(query: any, req: ArchAttachmentRequest) {
-  const scoped = query.eq('id', req.id).eq('association_id', req.association_id);
-  return req.owner_id ? scoped.eq('owner_id', req.owner_id) : scoped.is('owner_id', null);
-}
-
-/**
- * Attach one document (plans, drawings, quotes, photos) to a request.
- * Writes go through the service client after an explicit ownership/staff
- * check — residents have no UPDATE grant on attachments under RLS.
- */
-export async function addArchitecturalAttachment(
-  requestId: string,
-  basePath: string,
-  formData: FormData,
-) {
-  const me = await getMe();
-  if (!me.auth_user_id) { redirect('/login'); return; }
-  const back = requestBackPath(basePath, requestId);
-  if (!back) { redirect('/?error=' + encodeURIComponent('Invalid return path')); return; }
-  const failTo = (msg: string) => redirect(`${back}?error=${encodeURIComponent(msg)}`);
-
-  const access = await verifyArchAttachmentAccess(requestId, basePath);
-  if (access.error || !access.req) { failTo(access.error ?? 'Request not found'); return; }
-  const { req, svc } = access;
-  if (!OPEN_STATUSES.includes(req.status)) { failTo('Documents can only be added while the request is open'); return; }
-
-  const file = formData.get('document') as File | null;
-  if (!file) { failTo('Choose a document to upload'); return; }
-  const validatedFile = validateArchitecturalAttachmentFile(file.name, file.size);
-  if (validatedFile.error || !validatedFile.safeName) { failTo(validatedFile.error ?? 'Invalid document'); return; }
-
-  const existing = Array.isArray(req.attachments) ? req.attachments : [];
-  if (existing.length >= MAX_ARCH_ATTACHMENTS) { failTo(`This request already has ${MAX_ARCH_ATTACHMENTS} documents — remove one first.`); return; }
-
-  const path = `architectural/${requestId}/${randomUUID()}-${validatedFile.safeName}`;
-  const { error: upErr } = await svc.storage.from(ATTACH_BUCKET).upload(path, file, { contentType: file.type || undefined });
-  if (upErr) { failTo(`Upload failed: ${upErr.message}`); return; }
-
-  const mutation = bindRequestMutation(svc
-    .from('architectural_requests')
-    .update({
-      attachments: [
-        ...existing,
-        {
-          name: file.name,
-          path,
-          size: file.size,
-          uploaded_at: new Date().toISOString(),
-          uploaded_by: me.auth_user_id,
-          uploaded_by_name: me.profile?.full_name ?? me.email ?? null,
-        },
-      ],
-    }), req).in('status', OPEN_STATUSES);
-  const { data: updated, error } = await mutation.select('id').maybeSingle();
-  if (error || !updated) {
-    await removeStoredAttachment(svc, path);
-    failTo(error?.message ?? 'Request changed before the document could be recorded');
-    return;
-  }
-  revalidatePath(back);
-}
-
 /**
  * Direct-to-storage upload flow. Vercel caps request bodies at ~4.5 MB, so
  * files must NOT travel through server actions. The client asks for a signed
@@ -410,30 +293,22 @@ export async function recordArchAttachment(
     return { error: 'Uploaded document size does not match the authorized file' };
   }
 
-  const existing = Array.isArray(req.attachments) ? req.attachments : [];
-  if (existing.some((a: any) => a?.path === file.path)) return { ok: true };
-  if (existing.length >= MAX_ARCH_ATTACHMENTS) {
-    await removeStoredAttachment(svc, file.path);
-    return { error: `Limit of ${MAX_ARCH_ATTACHMENTS} documents reached` };
-  }
-
-  const mutation = bindRequestMutation(svc
-    .from('architectural_requests')
-    .update({
-      attachments: [
-        ...existing,
-        {
-          name: file.name,
-          path: file.path,
-          size: file.size,
-          uploaded_at: new Date().toISOString(),
-          uploaded_by: me.auth_user_id,
-          uploaded_by_name: me.profile?.full_name ?? me.email ?? null,
-        },
-      ],
-    }), req).in('status', OPEN_STATUSES);
-  const { data: updated, error } = await mutation.select('id').maybeSingle();
-  if (error || !updated) {
+  // Appended in one locked statement, so two uploads at once can't drop
+  // each other's document (arc_append_attachment rechecks open + the cap).
+  const { data: outcome, error } = await svc.rpc('arc_append_attachment', {
+    p_request_id: req.id,
+    p_association_id: req.association_id,
+    p_attachment: {
+      name: file.name,
+      path: file.path,
+      size: file.size,
+      uploaded_at: new Date().toISOString(),
+      uploaded_by: me.auth_user_id,
+      uploaded_by_name: me.profile?.full_name ?? me.email ?? null,
+    },
+    p_max: MAX_ARCH_ATTACHMENTS,
+  });
+  if (error || (outcome !== 'added' && outcome !== 'exists')) {
     await removeStoredAttachment(svc, file.path);
     return { error: error?.message ?? 'Request changed before the document could be recorded' };
   }
@@ -465,15 +340,15 @@ export async function removeArchitecturalAttachment(
   }
   if (!isArchitecturalAttachmentPath(requestId, path)) { failTo('Invalid document reference'); return; }
 
-  const existing = Array.isArray(req.attachments) ? req.attachments : [];
-  if (!existing.some((a: any) => a?.path === path)) { failTo('Document not found on this request'); return; }
-
-  let mutation = bindRequestMutation(svc
-    .from('architectural_requests')
-    .update({ attachments: existing.filter((a: any) => a?.path !== path) }), req);
-  if (role === 'owner' || role === 'board') mutation = mutation.in('status', OPEN_STATUSES);
-  const { data: updated, error } = await mutation.select('id').maybeSingle();
-  if (error || !updated) { failTo(error?.message ?? 'Request changed before the document could be removed'); return; }
+  // Removed in one locked statement (owners and the board only while open).
+  const { data: removed, error } = await svc.rpc('arc_remove_attachment', {
+    p_request_id: req.id,
+    p_association_id: req.association_id,
+    p_path: path,
+    p_require_open: role === 'owner' || role === 'board',
+  });
+  if (error) { failTo(error.message); return; }
+  if (removed !== true) { failTo('Document not found on this request'); return; }
   await removeStoredAttachment(svc, path);
   revalidatePath(back);
 }
@@ -499,13 +374,14 @@ export async function withdrawArchitecturalRequest(requestId: string) {
 }
 
 /**
- * Post a message to a request's discussion thread. Works for owner, staff, and
- * board — the caller passes the basePath so we redirect back to the right place,
- * and author_role gates which RLS insert policy applies.
+ * Post a message to a request's discussion thread, from the owner portal or
+ * the staff workspace (the board portal is read-only). The basePath decides
+ * where to return and which sign-in is required; the database stamps the
+ * author (arch_msg_set_author), so a caller can't post as someone else.
  */
 export async function postArchitecturalMessage(
   requestId: string,
-  _claimedAuthorRole: 'owner' | 'staff' | 'board',
+  _claimedAuthorRole: 'owner' | 'staff',
   basePath: string,
   formData: FormData,
 ) {
@@ -513,15 +389,12 @@ export async function postArchitecturalMessage(
     ? { me: await requireOwner(), authorRole: 'owner' as const }
     : basePath === '/architectural-reviews'
       ? { me: await requireStaff(), authorRole: 'staff' as const }
-      : basePath === '/board/architectural-reviews'
-        ? { me: await requireBoard(), authorRole: 'board' as const }
-        : null;
+      : null;
   if (!context) { redirect('/?error=' + encodeURIComponent('Invalid architectural return path')); return; }
   const { me, authorRole } = context;
   const body = (formData.get('body') as string)?.trim();
+  if (!isCanonicalUuid(requestId)) { redirect(`${basePath}?error=${encodeURIComponent('Request not found')}`); return; }
   const back = `${basePath}/${requestId}`;
-  // Never trust the caller-supplied role label — derive it from the session
-  // so a resident cannot post as "staff"/"board".
   if (!body) { redirect(`${back}?error=${encodeURIComponent('Message cannot be empty')}`); return; }
 
   const supabase = await createClient();
@@ -536,25 +409,24 @@ export async function postArchitecturalMessage(
   revalidatePath(back);
 }
 
-/** Staff/board record a decision (approve / deny / request more info). */
+/** Staff record a decision (approve / deny / request more info / under review). */
 export async function decideArchitecturalRequest(
   requestId: string,
   basePath: string,
   formData: FormData,
 ) {
-  const isBoardPath = basePath === '/board/architectural-reviews';
-  const me = basePath === '/architectural-reviews'
-    ? await requireStaff()
-    : isBoardPath
-      ? await requireBoard()
-      : null;
-  if (!me) { redirect('/?error=' + encodeURIComponent('Invalid architectural decision path')); return; }
-  if (!me.auth_user_id) { redirect('/login'); return; }
-  // Decisions are a staff/board power — an owner must never decide their own request.
-  if (!me.is_staff && !me.is_board && !me.is_platform_operator) {
-    redirect(`${basePath}/${requestId}?error=${encodeURIComponent('Only staff or board members can record decisions.')}`);
+  if (basePath !== '/architectural-reviews') {
+    redirect('/?error=' + encodeURIComponent('Invalid architectural decision path'));
     return;
   }
+  const me = await requireStaff();
+  if (!me.auth_user_id) { redirect('/login'); return; }
+  // Decisions are a staff power — an owner must never decide their own request.
+  if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) {
+    redirect(`${basePath}/${requestId}?error=${encodeURIComponent('Only staff can record decisions.')}`);
+    return;
+  }
+  if (!isCanonicalUuid(requestId)) { redirect(`${basePath}?error=${encodeURIComponent('Request not found')}`); return; }
 
   const decision = String(formData.get('decision') ?? '');
   const notes    = (formData.get('decision_notes') as string)?.trim() || null;
@@ -568,46 +440,39 @@ export async function decideArchitecturalRequest(
   };
   const status = statusMap[decision];
   if (!status) { redirect(`${back}?error=${encodeURIComponent('Invalid decision')}`); return; }
+  const inputError = decisionInputError(decision, notes);
+  if (inputError) { redirect(`${back}?error=${encodeURIComponent(inputError)}`); return; }
 
   const supabase = await createClient();
-  if (isBoardPath) {
-    // Boards have read-only RLS on architectural_requests; this function checks
-    // board seat, open status and no self-approval, then posts the decision to
-    // the discussion thread.
-    const { error } = await (supabase as any).rpc('board_decide_architectural_request', {
-      p_request_id: requestId,
-      p_decision: decision,
-      p_notes: notes,
-    });
-    if (error) { redirect(`${back}?error=${encodeURIComponent(error.message)}`); return; }
-  } else {
-    const patch: Record<string, unknown> = { status };
-    if (status === 'approved' || status === 'denied') {
-      patch.decided_by = me.auth_user_id;
-      patch.decided_at = new Date().toISOString();
-      patch.decision_notes = notes;
-    } else if (notes) {
-      patch.decision_notes = notes;
-    }
-
-    const { data: updated, error } = await (supabase as any)
-      .from('architectural_requests')
-      .update(patch)
-      .eq('id', requestId)
-      .in('status', OPEN_STATUSES)
-      .select('id');
-    if (error) { redirect(`${back}?error=${encodeURIComponent(error.message)}`); return; }
-    if (!updated || updated.length === 0) {
-      redirect(`${back}?error=${encodeURIComponent('This request is no longer open, or you do not have access to it.')}`);
-      return;
-    }
+  const patch: Record<string, unknown> = { status };
+  if (status === 'approved' || status === 'denied') {
+    patch.decided_by = me.auth_user_id;
+    patch.decided_at = new Date().toISOString();
+    patch.decision_notes = notes;
+  } else if (notes) {
+    patch.decision_notes = notes;
   }
 
-  // Tell the homeowner (never fails the decision).
-  if (status !== 'under_review') {
-    await notifyOwnerOfStatusChange({ kind: 'architectural_request', id: requestId, newStatus: status, message: notes });
+  // Only an open request can be decided (the database also refuses changes
+  // to a decided one).
+  const { data: updated, error } = await (supabase as any)
+    .from('architectural_requests')
+    .update(patch)
+    .eq('id', requestId)
+    .in('status', OPEN_STATUSES)
+    .select('id');
+  if (error) { redirect(`${back}?error=${encodeURIComponent(error.message)}`); return; }
+  if (!updated || updated.length === 0) {
+    redirect(`${back}?error=${encodeURIComponent('This request is no longer open, or you do not have access to it.')}`);
+    return;
   }
+
+  // Tell the homeowner (never fails the decision); say only what happened.
+  const emailed = status !== 'under_review'
+    ? await notifyOwnerOfStatusChange({ kind: 'architectural_request', id: requestId, newStatus: status, message: notes })
+    : false;
   revalidatePath(back);
   revalidatePath(basePath);
+  if (emailed) redirect(`${back}?decided=${status}&emailed=1`);
   redirect(`${back}?decided=${status}`);
 }

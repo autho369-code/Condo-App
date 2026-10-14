@@ -68,7 +68,7 @@ export const MANAGER_RUNBOOK: Guide = {
         h('Operating documents (required for every association)'),
         p('The association\'s Documents tab holds its governing documents, with a required checklist: Declaration / CC&Rs, Bylaws, Articles of Incorporation, and Rules & Regulations (plus the optional Current Operating Budget and Master Insurance Policy).'),
         ul(
-          'Upload or replace one file at a time (max 10 MB); a chip shows "N of 4 required on file", and a general documents list sits below.',
+          'Upload or replace one file at a time (max 4 MB); a chip shows "N of 4 required on file", and a general documents list sits below.',
           'Everything you upload here appears automatically under Governing Documents in the owner and board portals, with no extra sharing step.',
           'Onboarding step 4 requires all four for every association; the Onboarding page links straight to any association still missing documents.',
         ),
@@ -312,7 +312,7 @@ export const COMPANY_ADMIN_GUIDE: Guide = {
         ul(
           'Required: Declaration / CC&Rs, Bylaws, Articles of Incorporation, Rules & Regulations.',
           'Optional: Current Operating Budget, Master Insurance Policy.',
-          'Upload or replace one file at a time (max 10 MB); a status chip shows "N of 4 required on file" at a glance, and a general documents list with upload sits below the checklist.',
+          'Upload or replace one file at a time (max 4 MB); a status chip shows "N of 4 required on file" at a glance, and a general documents list with upload sits below the checklist.',
           'Uploads appear automatically under Governing Documents in the owner and board portals, with no extra sharing step.',
           'Onboarding step 4 (Upload operating documents) lists each association still missing required documents, with direct links, and only completes when every client has all four.',
         ),

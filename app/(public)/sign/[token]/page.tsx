@@ -6,7 +6,7 @@ import { Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import { Input, Textarea } from '@/components/ui/input';
 import { clientAddress, consumePublicRateLimit } from '@/lib/server/rate-limit';
-import { SIGNATURE_BUCKET, hashSigningToken, isWellFormedToken } from '@/lib/signatures/crypto';
+import { SIGNATURE_BUCKET, canReadSignedDocument, hashSigningToken, isWellFormedToken } from '@/lib/signatures/crypto';
 import { createServiceClient } from '@/lib/supabase/server';
 import { companyAddressOf, companyAddressRedirect, noticeQuery, signingTokenPortfolio, tokenMatchesAddress } from '@/lib/tenant/token-company';
 import { declineDocument, signDocument } from './actions';
@@ -62,8 +62,12 @@ export default async function SignPage({
   if (!session) return invalid;
 
   const { request: r, signer: me, signers, blocked } = session as any;
+  // The document is readable only while the request is open for this signer,
+  // or once it is completed for a signer who signed (signature_session leaves
+  // it out otherwise too).
+  const documentReadable = canReadSignedDocument(r.status, blocked, me.status);
   let pdfUrl: string | null = null;
-  if (r.document_kind === 'pdf' && r.document_path) {
+  if (documentReadable && r.document_kind === 'pdf' && r.document_path) {
     const { data } = await service.storage.from(SIGNATURE_BUCKET).createSignedUrl(r.document_path, 900);
     pdfUrl = data?.signedUrl ?? null;
   }
@@ -92,7 +96,9 @@ export default async function SignPage({
             <span className="flex items-center gap-2 text-sm font-semibold text-gray-900"><FileText className="h-4 w-4 text-gray-400" />Document</span>
             {pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium text-gray-600 hover:text-gray-950">Open PDF</a>}
           </div>
-          {r.document_kind === 'text' ? (
+          {!documentReadable ? (
+            <p className="px-5 py-6 text-sm text-gray-500">This document is no longer available from this link. Contact the sender for a copy.</p>
+          ) : r.document_kind === 'text' ? (
             <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap px-5 py-4 text-[14px] leading-7 text-gray-800">{r.body_text}</div>
           ) : pdfUrl ? (
             <iframe src={pdfUrl} title={r.title} className="h-[70vh] w-full" />

@@ -2,47 +2,34 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/me';
-import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
+import { loadOwnArcContext } from '@/lib/portal/arc-context';
+import { Alert } from '@/components/ui/shell';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { NewArchitecturalRequestForm, type UnitOption } from '@/components/architectural/new-request-form';
 
 export const dynamic = 'force-dynamic';
-
-type UnitRow = {
-  unit_id: string | null;
-  unit_number: string | null;
-  association_id: string | null;
-};
 
 export default async function NewArchitecturalRequest() {
   const me = await requireOwner();
   if (!me.is_resident && !me.is_board) redirect('/portal');
 
   const supabase = await createClient();
+  const context = await loadOwnArcContext(supabase, me.owner_ids);
+  const byAssociation = new Map(context.associations.map((a) => [a.id, a]));
 
-  // RLS on v_unit_account_summary filters to the units this owner belongs to.
-  const { data: units } = await (supabase as any)
-    .from('v_unit_account_summary')
-    .select('unit_id, unit_number, association_id')
-    .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_ids)));
-
-  const unitRows = (units ?? []) as UnitRow[];
-  const associationIds = Array.from(
-    new Set(unitRows.map((u) => u.association_id).filter((id): id is string => Boolean(id)))
-  );
-  const { data: associations } = associationIds.length
-    ? await (supabase as any).from('associations').select('id, name').in('id', associationIds)
-    : { data: [] };
-  const nameById = new Map<string, string>(
-    ((associations ?? []) as Array<{ id: string; name: string }>).map((a) => [a.id, a.name])
-  );
-
-  const unitOptions: UnitOption[] = unitRows
-    .filter((u) => u.unit_id)
+  // Units in associations that take requests online.
+  const unitOptions: UnitOption[] = context.units
+    .filter((u) => !(u.association_id && byAssociation.get(u.association_id)?.instructions.online_requests_disabled))
     .map((u) => ({
-      value: u.unit_id as string,
-      label: `${u.association_id ? nameById.get(u.association_id) ?? 'Association' : 'Association'} - Unit ${u.unit_number ?? '-'}`,
+      value: u.unit_id,
+      label: `${u.association_id ? byAssociation.get(u.association_id)?.name ?? 'Association' : 'Association'} - Unit ${u.unit_number ?? '-'}`,
+      associationId: u.association_id,
     }));
+  const offline = context.units.length > 0 && unitOptions.length === 0;
+  const guidance = Object.fromEntries(context.associations.map((a) => [a.id, {
+    submission: a.instructions.submission_form_html,
+    documents: a.instructions.document_upload_html,
+  }]));
 
   return (
     <div className="space-y-6">
@@ -59,7 +46,11 @@ export default async function NewArchitecturalRequest() {
         </p>
       </div>
 
-      {unitOptions.length === 0 ? (
+      {context.error ? (
+        <Alert tone="danger" title="Could not load your units.">{context.error}</Alert>
+      ) : offline ? (
+        <Alert tone="info">Your association doesn&apos;t take architectural requests online. Contact your management office to submit one.</Alert>
+      ) : unitOptions.length === 0 ? (
         <Card>
           <CardBody>
             <p className="text-sm text-gray-600">
@@ -71,7 +62,7 @@ export default async function NewArchitecturalRequest() {
         <Card>
           <CardHeader><CardTitle>Request details</CardTitle></CardHeader>
           <CardBody>
-            <NewArchitecturalRequestForm unitOptions={unitOptions} />
+            <NewArchitecturalRequestForm unitOptions={unitOptions} guidance={guidance} />
           </CardBody>
         </Card>
       )}

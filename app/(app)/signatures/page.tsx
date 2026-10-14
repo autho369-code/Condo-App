@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { PenLine, Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
 import { buttonClass } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -11,6 +11,8 @@ import { date } from '@/lib/utils';
 import { RequestStatus, SUBJECT_LABEL } from './status';
 
 export const dynamic = 'force-dynamic';
+
+const LIST_LIMIT = 500;
 
 const FILTERS = [
   { value: 'all', label: 'All' },
@@ -25,15 +27,23 @@ export default async function SignaturesPage({ searchParams }: { searchParams: P
   const sp = await searchParams;
   const filter = FILTERS.some((f) => f.value === sp.status) ? sp.status! : 'all';
   const db = (await createClient()) as any;
-  const { data } = await db
+  // The filter runs in the query and the tiles are counted in the database,
+  // so neither is limited to the newest LIST_LIMIT requests.
+  let listQuery = db
     .from('signature_requests')
-    .select('id, title, subject_type, status, expires_at, sent_at, completed_at, associations(name), signature_signers(status)')
-    .order('sent_at', { ascending: false })
-    .limit(500);
-  const all = (data ?? []) as any[];
-  const rows = filter === 'all' ? all : all.filter((r) => r.status === filter);
-  const awaiting = all.filter((r) => r.status === 'sent');
-  const done30 = all.filter((r) => r.status === 'completed' && r.completed_at && new Date(r.completed_at) > new Date(Date.now() - 30 * 86400000));
+    .select('id, title, subject_type, status, expires_at, sent_at, completed_at, associations(name), signature_signers(status)', { count: 'exact' });
+  if (filter !== 'all') listQuery = listQuery.eq('status', filter);
+  const since30 = new Date(Date.now() - 30 * 86400000).toISOString();
+  const head = () => db.from('signature_requests').select('id', { count: 'exact', head: true });
+  const [list, awaiting, done30, declined] = await Promise.all([
+    listQuery.order('sent_at', { ascending: false }).order('id', { ascending: false }).limit(LIST_LIMIT),
+    head().eq('status', 'sent'),
+    head().eq('status', 'completed').gt('completed_at', since30),
+    head().eq('status', 'declined'),
+  ]);
+  const rows = (list.data ?? []) as any[];
+  const total = list.count ?? rows.length;
+  const loadError = [list, awaiting, done30, declined].find((r) => r.error)?.error;
 
   return (
     <DataWorkspace
@@ -43,10 +53,11 @@ export default async function SignaturesPage({ searchParams }: { searchParams: P
     >
       <div className="space-y-6">
         <MetricStrip metrics={[
-          { label: 'Awaiting signatures', value: awaiting.length },
-          { label: 'Completed (30 days)', value: done30.length },
-          { label: 'Declined', value: all.filter((r) => r.status === 'declined').length },
+          { label: 'Awaiting signatures', value: awaiting.count ?? 0 },
+          { label: 'Completed (30 days)', value: done30.count ?? 0 },
+          { label: 'Declined', value: declined.count ?? 0 },
         ]} />
+        {loadError && <Alert tone="danger" title="Could not load signature requests.">{loadError.message ?? String(loadError)}</Alert>}
         <nav className="flex flex-wrap gap-1" aria-label="Filter by status">
           {FILTERS.map((f) => (
             <Link key={f.value} href={f.value === 'all' ? '/signatures' : `/signatures?status=${f.value}`}
@@ -55,6 +66,9 @@ export default async function SignaturesPage({ searchParams }: { searchParams: P
             </Link>
           ))}
         </nav>
+        {total > rows.length && (
+          <p className="text-[13px] text-gray-500">Showing the newest {rows.length.toLocaleString()} of {total.toLocaleString()} requests. Filter by status to find older ones.</p>
+        )}
         {rows.length ? (
           <Table>
             <THead>

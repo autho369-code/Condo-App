@@ -18,6 +18,7 @@ import { descNullsLast, unionSearch } from '@/lib/supabase/search-union';
 export const dynamic = 'force-dynamic';
 
 const OPEN_STATUSES = ['submitted', 'under_review', 'more_info'];
+const LIST_LIMIT = 500;
 
 const STATUS_TONE: Record<string, Tone> = {
   submitted: 'info', under_review: 'warning', more_info: 'warning',
@@ -63,8 +64,8 @@ export default async function ArchitecturalReviewQueue({
   // Every filter runs in the query, so the 500-row window holds matching
   // requests (filtering the 500 newest afterwards dropped older ones).
   const LIST_COLUMNS = 'id, title, category, status, created_at, decided_at, association_id, associations(name), units!architectural_requests_unit_id_fkey(unit_number), owners!architectural_requests_owner_id_fkey(full_name)';
-  const listQuery = (extraColumns = '') => {
-    let q = db.from('architectural_requests').select(LIST_COLUMNS + extraColumns);
+  const listQuery = (extraColumns = '', count = false) => {
+    let q = db.from('architectural_requests').select(LIST_COLUMNS + extraColumns, count ? { count: 'exact' } : undefined);
     if (filters.association) q = q.eq('association_id', filters.association);
     if (status === 'open') q = q.in('status', OPEN_STATUSES);
     else if (status) q = q.eq('status', status);
@@ -72,23 +73,23 @@ export default async function ArchitecturalReviewQueue({
     if (dateFrom) q = q.gte('created_at', localMidnight(dateFrom));
     // Inclusive of the whole "to" day.
     if (dateTo) q = q.lt('created_at', localMidnight(nextDay(dateTo)));
-    return q.order('created_at', { ascending: false }).limit(500);
+    return q.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(LIST_LIMIT);
   };
   // Search: title, association, homeowner or unit number, each as its own
   // query (see unionSearch) so no match is dropped by a capped id lookup.
   const term = (filters.q ?? '').replace(/[%_,()*"\\]/g, ' ').trim();
-  const reviewsQuery: PromiseLike<{ data: any[] | null; error: any }> = term
+  const reviewsQuery: PromiseLike<{ data: any[] | null; error: any; count?: number | null }> = term
     ? unionSearch<any>([
         listQuery().ilike('title', `%${term}%`),
         listQuery(', s_a:associations!inner(name)').ilike('s_a.name', `%${term}%`),
         listQuery(', s_o:owners!architectural_requests_owner_id_fkey!inner(full_name)').ilike('s_o.full_name', `%${term}%`),
         listQuery(', s_u:units!architectural_requests_unit_id_fkey!inner(unit_number)').ilike('s_u.unit_number', term),
-      ], (a, b) => descNullsLast(a.created_at, b.created_at), 500).then(({ rows, error }) => ({ data: rows, error }))
-    : listQuery();
+      ], (a, b) => descNullsLast(a.created_at, b.created_at), LIST_LIMIT).then(({ rows, error }) => ({ data: rows, error: error ? { message: error } : null, count: null }))
+    : listQuery('', true);
 
   // Tiles are counted in the database so the queue view (which narrows the
   // list to open requests) does not zero out the monthly decision counts.
-  const [{ data: associations }, { data: rows, error: listError }, { count: awaitingCount }, { count: approvedCount }, { count: deniedCount }] = await Promise.all([
+  const [{ data: associations, error: associationsError }, { data: rows, error: listError, count: listCount }, { count: awaitingCount, error: awaitingError }, { count: approvedCount, error: approvedError }, { count: deniedCount, error: deniedError }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     reviewsQuery,
     db.from('architectural_requests').select('id', { count: 'exact', head: true }).in('status', OPEN_STATUSES),
@@ -97,6 +98,10 @@ export default async function ArchitecturalReviewQueue({
   ]);
 
   const filtered = (rows ?? []) as any[];
+  const countError = awaitingError ?? approvedError ?? deniedError ?? associationsError;
+  const capNotice = listCount != null
+    ? (listCount > filtered.length ? `Showing the newest ${filtered.length.toLocaleString()} of ${listCount.toLocaleString()} requests. Filter to find older ones.` : null)
+    : (filtered.length >= LIST_LIMIT ? `Showing the newest ${LIST_LIMIT.toLocaleString()} matches. Narrow the search to see older ones.` : null);
 
   const awaiting = awaitingCount ?? 0;
   const approvedThisMonth = approvedCount ?? 0;
@@ -144,6 +149,7 @@ export default async function ArchitecturalReviewQueue({
       <div className="space-y-6">
         <MetricStrip metrics={metrics} />
         {listError && <Alert tone="danger" title="Could not load requests:">{listError.message ?? String(listError)}</Alert>}
+        {countError && <Alert tone="danger" title="Some counts could not be loaded:">{countError.message ?? String(countError)}</Alert>}
 
         <FilterBar action="/architectural-reviews" searchDefault={filters.q ?? ''} searchPlaceholder="Search title, association, homeowner, unit...">
           <FilterSelect label="Association" name="association" defaultValue={filters.association ?? ''}>
@@ -173,6 +179,8 @@ export default async function ArchitecturalReviewQueue({
             <input type="date" name="to" defaultValue={dateTo} className="mt-1 block h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm font-normal text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </label>
         </FilterBar>
+
+        {capNotice && <p className="text-[13px] text-gray-500">{capNotice}</p>}
 
         {filtered.length === 0 ? (
           <EmptyState title="No architectural requests" description="Homeowner requests submitted from the owner portal will appear here for review." />

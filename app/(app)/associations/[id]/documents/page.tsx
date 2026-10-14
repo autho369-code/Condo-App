@@ -225,7 +225,7 @@ export default async function AssociationDocumentsTab({
           <form action={uploadAssociationDocument} className="grid grid-cols-1 gap-3 border-t border-gray-100 px-5 py-4 sm:grid-cols-2 lg:grid-cols-4">
             {hidden(active)}
             <input type="hidden" name="doc_type" value="association_document" />
-            <Field label="File (max 10 MB)" htmlFor="upload-file" className="sm:col-span-2 lg:col-span-1">
+            <Field label="File (max 4 MB)" htmlFor="upload-file" className="sm:col-span-2 lg:col-span-1">
               <input id="upload-file" type="file" name="file" required accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg,.heic" className={fileInput} />
             </Field>
             <Field label="Folder" htmlFor="upload-folder">

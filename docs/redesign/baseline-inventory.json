@@ -1766,15 +1766,12 @@
      "/architectural-reviews/new?error=:param",
      "/login",
      "/portal/architectural/:param?error=:param",
-     "/portal/architectural/:param?submitted=1",
-     "/portal/architectural/new?error=:param",
      "/signatures/new?subject_type=architectural_request&subject_id=:param",
      ":param/:param?error=:param",
      ":param?decided=:param",
      ":param?error=:param"
     ],
     "action": [
-     "addArchitecturalAttachment",
      "createArchAttachmentUpload",
      "createArchitecturalRequest",
      "decideAction",
@@ -1784,7 +1781,6 @@
      "recordArchAttachment",
      "removeAction",
      "removeArchitecturalAttachment",
-     "submitArchitecturalRequest",
      "submitArchitecturalRequestOnBehalf",
      "withdrawArchitecturalRequest"
     ],
@@ -1803,7 +1799,6 @@
      "Send message"
     ],
     "data": [
-     "rpc:board_decide_architectural_request",
      "rpc:can_manage_association",
      "table:architectural_request_messages",
      "table:architectural_requests",
@@ -1817,7 +1812,6 @@
      "table:work_orders"
     ],
     "guard": [
-     "requireBoard",
      "requireOwner",
      "requireStaff"
     ],
@@ -1839,21 +1833,17 @@
      "/architectural-reviews/new?error=:param",
      "/login",
      "/portal/architectural/:param?error=:param",
-     "/portal/architectural/:param?submitted=1",
-     "/portal/architectural/new?error=:param",
      ":param/:param?error=:param",
      ":param?decided=:param",
      ":param?error=:param"
     ],
     "action": [
-     "addArchitecturalAttachment",
      "createArchAttachmentUpload",
      "createArchitecturalRequest",
      "decideArchitecturalRequest",
      "postArchitecturalMessage",
      "recordArchAttachment",
      "removeArchitecturalAttachment",
-     "submitArchitecturalRequest",
      "submitArchitecturalRequestOnBehalf",
      "withdrawArchitecturalRequest"
     ],
@@ -1868,7 +1858,6 @@
      "Submit request"
     ],
     "data": [
-     "rpc:board_decide_architectural_request",
      "rpc:can_manage_association",
      "table:architectural_request_messages",
      "table:architectural_requests",
@@ -1882,7 +1871,6 @@
      "table:work_orders"
     ],
     "guard": [
-     "requireBoard",
      "requireOwner",
      "requireStaff"
     ],
@@ -2091,9 +2079,7 @@
      "saveSettings"
     ],
     "field": [
-     "default_approver_scope",
      "default_committee_id",
-     "default_voting_scheme",
      "document_upload_html",
      "online_requests_disabled",
      "portal_homepage_html",
@@ -15756,14 +15742,11 @@
      "/login",
      "/portal/architectural",
      "/portal/architectural/:param?error=:param",
-     "/portal/architectural/:param?submitted=1",
-     "/portal/architectural/new?error=:param",
      ":param/:param?error=:param",
      ":param?decided=:param",
      ":param?error=:param"
     ],
     "action": [
-     "addArchitecturalAttachment",
      "createArchAttachmentUpload",
      "createArchitecturalRequest",
      "decideArchitecturalRequest",
@@ -15772,7 +15755,6 @@
      "recordArchAttachment",
      "removeAction",
      "removeArchitecturalAttachment",
-     "submitArchitecturalRequest",
      "submitArchitecturalRequestOnBehalf",
      "withdrawArchitecturalRequest"
     ],
@@ -15785,7 +15767,6 @@
      "Withdraw this request"
     ],
     "data": [
-     "rpc:board_decide_architectural_request",
      "rpc:can_manage_association",
      "table:architectural_request_messages",
      "table:architectural_requests",
@@ -15799,7 +15780,6 @@
      "table:work_orders"
     ],
     "guard": [
-     "requireBoard",
      "requireOwner",
      "requireStaff"
     ],
@@ -15823,21 +15803,17 @@
      "/portal/architectural",
      "/portal/architectural/:param?:param",
      "/portal/architectural/:param?error=:param",
-     "/portal/architectural/:param?submitted=1",
-     "/portal/architectural/new?error=:param",
      ":param/:param?error=:param",
      ":param?decided=:param",
      ":param?error=:param"
     ],
     "action": [
-     "addArchitecturalAttachment",
      "createArchAttachmentUpload",
      "createArchitecturalRequest",
      "decideArchitecturalRequest",
      "postArchitecturalMessage",
      "recordArchAttachment",
      "removeArchitecturalAttachment",
-     "submitArchitecturalRequest",
      "submitArchitecturalRequestOnBehalf",
      "withdrawArchitecturalRequest"
     ],
@@ -15849,7 +15825,6 @@
     ],
     "button": [],
     "data": [
-     "rpc:board_decide_architectural_request",
      "rpc:can_manage_association",
      "table:architectural_request_messages",
      "table:architectural_requests",
@@ -15865,7 +15840,6 @@
      "table:work_orders"
     ],
     "guard": [
-     "requireBoard",
      "requireOwner",
      "requireStaff"
     ],

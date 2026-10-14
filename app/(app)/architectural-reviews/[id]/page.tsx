@@ -6,6 +6,9 @@ import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Button, buttonClass } from '@/components/ui/button';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
+import { Alert } from '@/components/ui/shell';
+import { Field, Textarea } from '@/components/ui/input';
+import { decisionNotice } from '@/lib/architectural/rules';
 import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread';
 import { postArchitecturalMessage, decideArchitecturalRequest } from '@/lib/rpcs/architectural';
 import { ArcAttachments, type ArcAttachment } from '@/components/architectural/attachments';
@@ -29,23 +32,30 @@ export default async function ManagerArchitecturalDetail({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; decided?: string }>;
+  searchParams: Promise<{ error?: string; decided?: string; emailed?: string }>;
 }) {
   await requireStaff();
   const { id } = await params;
-  const { error, decided: decidedStatus } = await searchParams;
+  const { error, decided: decidedStatus, emailed } = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: req } = await db
+  const { data: req, error: reqError } = await db
     .from('architectural_requests')
     .select('id, title, description, category, status, decision_notes, decided_at, created_at, attachments, associations(name), units(unit_number), owners(full_name)')
     .eq('id', id)
     .maybeSingle();
 
+  if (reqError) {
+    return (
+      <Workspace header={<WorkspaceHeader title="Architectural request" />}>
+        <Alert tone="danger" title="Could not load this request.">{reqError.message ?? String(reqError)}</Alert>
+      </Workspace>
+    );
+  }
   if (!req) return notFound();
 
-  const { data: messages } = await db
+  const { data: messages, error: messagesError } = await db
     .from('architectural_request_messages')
     .select('id, author_name, author_role, body, created_at')
     .eq('request_id', id)
@@ -64,16 +74,11 @@ export default async function ManagerArchitecturalDetail({
           <ArrowLeft className="h-4 w-4" /> Back to queue
         </Link>
 
-        {decidedStatus && (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
-            Decision recorded: {label(decidedStatus)}.{decidedStatus !== 'under_review' ? ' The homeowner has been emailed.' : ''}
-          </div>
+        {decidedStatus && /^[a-z_]{1,20}$/.test(decidedStatus) && (
+          <Alert tone="success">{decisionNotice(decidedStatus, emailed === '1')}</Alert>
         )}
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-            <span className="font-semibold">Something went wrong:</span> {error}
-          </div>
-        )}
+        {error && <Alert tone="danger" title="Something went wrong.">{error}</Alert>}
+        {messagesError && <Alert tone="danger" title="Could not load the discussion.">{messagesError.message ?? String(messagesError)}</Alert>}
 
         <Section padded>
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -102,12 +107,13 @@ export default async function ManagerArchitecturalDetail({
         {!decided && (
           <Section title="Record a decision" padded>
             <form action={decideAction as any} className="space-y-3">
-              <textarea
-                name="decision_notes"
-                rows={3}
-                placeholder="Notes for the homeowner (conditions, reasons, next steps)…"
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
-              />
+              <Field label="Notes for the homeowner" hint="Required when denying: say why.">
+                <Textarea
+                  name="decision_notes"
+                  rows={3}
+                  placeholder="Conditions, reasons, next steps…"
+                />
+              </Field>
               <div className="flex flex-wrap gap-2">
                 <Button type="submit" name="decision" value="approve" size="sm">Approve</Button>
                 <Button type="submit" name="decision" value="deny" size="sm" variant="secondary">Deny</Button>
@@ -121,7 +127,7 @@ export default async function ManagerArchitecturalDetail({
         )}
 
         <Section title="Discussion" padded>
-          <ArcMessageThread messages={(messages ?? []) as ArcMessage[]} postAction={postAction as any} placeholder="Reply to the homeowner (the homeowner and board see every message)…" />
+          <ArcMessageThread messages={(messages ?? []) as ArcMessage[]} postAction={postAction as any} placeholder="Reply to the homeowner (they see every message)…" />
         </Section>
       </div>
     </Workspace>

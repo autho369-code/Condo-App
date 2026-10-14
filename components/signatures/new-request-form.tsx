@@ -90,7 +90,7 @@ export function NewSignatureRequestForm({
           ))}
         </div>
         {kind === 'pdf' ? (
-          <Field hint="Up to 10 MB. The exact file is fingerprinted; signing is blocked if it ever changes.">
+          <Field hint="Up to 4 MB. The exact file is fingerprinted; signing is blocked if it ever changes.">
             <input type="file" name="document" accept="application/pdf" required className="block w-full text-sm text-gray-700 file:mr-3 file:h-10 file:rounded-lg file:border-0 file:bg-gray-100 file:px-4 file:text-sm file:font-medium file:text-gray-900 hover:file:bg-gray-200" />
           </Field>
         ) : (

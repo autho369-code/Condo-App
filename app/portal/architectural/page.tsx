@@ -7,6 +7,8 @@ import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { StatusChip } from '@/components/operations/status-chip';
 import { ARC_STATUS_TONE, arcStatusLabel } from '@/components/architectural/status';
 import { date } from '@/lib/utils';
+import { Alert } from '@/components/ui/shell';
+import { loadOwnArcContext } from '@/lib/portal/arc-context';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,11 +34,19 @@ export default async function OwnerArchitecturalList({
   const { error } = await searchParams;
   const supabase = await createClient();
 
-  const { data: rows } = await (supabase as any)
-    .from('architectural_requests')
-    .select('id, title, category, status, created_at, units(unit_number)')
-    .in('owner_id', me.owner_ids) // board members can read every request; show only mine
-    .order('created_at', { ascending: false });
+  const [{ data: rows, error: rowsError }, context] = await Promise.all([
+    (supabase as any)
+      .from('architectural_requests')
+      .select('id, title, category, status, created_at, units(unit_number)')
+      .in('owner_id', me.owner_ids) // board members can read every request; show only mine
+      .order('created_at', { ascending: false })
+      .limit(500),
+    loadOwnArcContext(supabase, me.owner_ids),
+  ]);
+  // Submitting online is offered when at least one of the owner's
+  // associations takes requests online.
+  const canSubmit = context.associations.some((a) => !a.instructions.online_requests_disabled);
+  const notes = context.associations.filter((a) => a.instructions.portal_homepage_html);
 
   return (
     <div className="space-y-6">
@@ -45,14 +55,23 @@ export default async function OwnerArchitecturalList({
           <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">Architectural requests</h1>
           <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">Request approval before modifying the exterior of your home, and track the review.</p>
         </div>
-        <Link href="/portal/architectural/new" className={buttonClass('primary', 'lg')}>+ New request</Link>
+        {canSubmit && <Link href="/portal/architectural/new" className={buttonClass('primary', 'lg')}>+ New request</Link>}
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          <span className="font-semibold">Something went wrong:</span> {error}
-        </div>
+      {error && <Alert tone="danger" title="Something went wrong.">{error}</Alert>}
+      {rowsError && <Alert tone="danger" title="Could not load your requests.">{rowsError.message ?? String(rowsError)}</Alert>}
+      {context.error && <Alert tone="danger" title="Could not load your association's settings.">{context.error}</Alert>}
+      {!context.error && context.associations.length > 0 && !canSubmit && (
+        <Alert tone="info">Your association doesn&apos;t take architectural requests online. Contact your management office to submit one.</Alert>
       )}
+      {notes.map((a) => (
+        <Card key={a.id}>
+          <CardBody>
+            {notes.length > 1 && <div className="mb-1 text-[13px] font-medium text-gray-500">{a.name}</div>}
+            <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{a.instructions.portal_homepage_html}</p>
+          </CardBody>
+        </Card>
+      ))}
 
       <Card>
         <CardHeader><CardTitle>Your requests</CardTitle></CardHeader>
@@ -87,9 +106,11 @@ export default async function OwnerArchitecturalList({
           ) : (
             <div className="py-8 text-center">
               <p className="text-sm text-gray-500">You haven&apos;t submitted any architectural requests yet.</p>
-              <Link href="/portal/architectural/new" className="mt-2 inline-block text-sm font-medium text-gray-700 hover:text-gray-950 hover:underline">
-                Submit your first request →
-              </Link>
+              {canSubmit && (
+                <Link href="/portal/architectural/new" className="mt-2 inline-block text-sm font-medium text-gray-700 hover:text-gray-950 hover:underline">
+                  Submit your first request →
+                </Link>
+              )}
             </div>
           )}
         </CardBody>
