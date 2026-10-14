@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
-import { todayInZone } from '@/lib/time/zoned';
+import { todayForAssociationZone } from '@/lib/time/association-today';
 import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -15,6 +15,13 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 function s(fd: FormData, k: string): string | null {
   const v = fd.get(k);
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
+}
+
+/** A real YYYY-MM-DD calendar day (rejects e.g. 2026-13-45 or Feb 30). */
+function isCalendarDate(v: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
 }
 
 export async function changeHomeowner(formData: FormData) {
@@ -27,12 +34,12 @@ export async function changeHomeowner(formData: FormData) {
     redirect(`/owners/change?${unitId && UUID_RE.test(unitId) ? `unit=${unitId}&` : ''}error=${encodeURIComponent(message)}`);
 
   if (!unitId || !UUID_RE.test(unitId)) fail('Choose the unit that changed hands.');
-  const transferDate = s(formData, 'transfer_date') ?? todayInZone();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(transferDate)) fail('Enter a valid transfer date.');
+  const enteredDate = s(formData, 'transfer_date');
+  if (enteredDate !== null && !isCalendarDate(enteredDate)) fail('Enter a valid transfer date.');
 
   // Resolve the unit through the caller's own (RLS-scoped) session.
   const { data: unit } = await db.from('units')
-    .select('id, unit_number, buildings!inner(association_id, associations!inner(id, portfolio_id))')
+    .select('id, unit_number, buildings!inner(association_id, associations!inner(id, portfolio_id, timezone))')
     .eq('id', unitId).is('archived_at', null).maybeSingle();
   const associationId: string | undefined = unit?.buildings?.association_id;
   const portfolioId: string | undefined = unit?.buildings?.associations?.portfolio_id;
@@ -42,6 +49,12 @@ export async function changeHomeowner(formData: FormData) {
   // the caller cannot manage this association.
   const { data: canManage, error: manageErr } = await db.rpc('can_manage_association', { p_association_id: associationId });
   if (manageErr || canManage !== true) fail('You do not manage this unit\'s association.');
+  // "Today" is the association's calendar day. A sale takes effect on its
+  // closing date, so it can't be recorded before then (the database refuses
+  // it too); checked before a buyer record is created.
+  const associationToday = todayForAssociationZone(unit.buildings.associations.timezone);
+  const transferDate = enteredDate ?? associationToday;
+  if (transferDate > associationToday) fail("The transfer date can't be in the future. Record the sale on or after its closing date.");
 
   // Buyer: an existing owner record, or a new one from the form.
   const existingOwnerId = s(formData, 'existing_owner_id');

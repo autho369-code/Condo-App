@@ -24,6 +24,7 @@ import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-me
 import { loadRecordMeta } from '@/lib/records/load';
 import { mergePrivateFields } from '@/lib/private-fields';
 import { PendingSubmit } from '@/components/ui/pending-submit';
+import { ownershipWindowFilter, ownershipWindows, withinOwnershipWindow } from '@/lib/owners/ownership-window';
 
 export const dynamic = 'force-dynamic';
 
@@ -222,11 +223,19 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     financialQueries.push(Promise.resolve({ data: [] }));
   }
 
-  if (unitIds.length > 0) {
+  // YTD charges, payments and returns cover this owner's own ownership of
+  // each unit (move-in to move-out), not the unit's whole year: a buyer's
+  // figures leave out the seller's months. Every ownership period counts,
+  // so a former owner who sold this year still shows their months.
+  const windows = ownershipWindows((occs ?? []) as any[]);
+  const chargeWindow = ownershipWindowFilter(windows, 'due_date');
+  const paymentWindow = ownershipWindowFilter(windows, 'payment_date');
+
+  if (chargeWindow) {
     financialQueries.push(
       db.from('charges')
         .select('id, amount, description, due_date, charge_type, unit_id, created_at')
-        .in('unit_id', unitIds)
+        .or(chargeWindow)
         .gte('created_at', ytdStart)
         .order('created_at', { ascending: false })
         .limit(200)
@@ -235,11 +244,11 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     financialQueries.push(Promise.resolve({ data: [] }));
   }
 
-  if (unitIds.length > 0) {
+  if (paymentWindow) {
     financialQueries.push(
       db.from('payments')
         .select('id, amount, payment_date, method, reference, unit_id, created_at')
-        .in('unit_id', unitIds)
+        .or(paymentWindow)
         .neq('method', 'credit') // credits reduce the balance but are not payments
         // By the date received (as entered on the receipt), the same basis as a
         // return's effective date below.
@@ -253,11 +262,19 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   }
 
   const payUnitIds = unitIds.length > 0 ? unitIds : allOccUnitIds;
-  if (payUnitIds.length > 0) {
+  // Payment history covers this owner's own time in each unit (move-in to
+  // move-out), so a buyer's history leaves out the seller's payments. Not
+  // filtered by the ledger's owner_id: it names one (primary) owner per
+  // payment, which would hide every payment from a co-owner.
+  const historyWindow = ownershipWindowFilter(
+    ownershipWindows(((occs ?? []) as any[]).filter((o: any) => payUnitIds.includes(o.units?.id))),
+    'payment_date',
+  );
+  if (historyWindow) {
     financialQueries.push(
       db.from('receivable_payments_ledger')
         .select('*')
-        .in('unit_id', payUnitIds)
+        .or(historyWindow)
         .order('payment_date', { ascending: false })
         .limit(100)
     );
@@ -280,7 +297,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   // recognised even when the payment it undoes is from an earlier year.
   const { rows: returnedPayments, error: returnedError, truncated: returnedTruncated } = unitIds.length > 0
     ? await fetchAllRows<any>(() => db.from('payments')
-        .select('id, reversal_charge_id, reversal_charge:charges!payments_reversal_charge_id_fkey(id, amount, due_date)')
+        .select('id, unit_id, reversal_charge_id, reversal_charge:charges!payments_reversal_charge_id_fkey(id, amount, due_date)')
         .in('unit_id', unitIds)
         .not('reversal_charge_id', 'is', null)
         .order('id'))
@@ -289,6 +306,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   if (returnedTruncated) throw new Error('Too many returned payments to total; the YTD figures would be incomplete.');
   const reversalChargeIds = new Set<string>((returnedPayments ?? []).map((r: any) => r.reversal_charge_id));
   const ytdReturns = (returnedPayments ?? [])
+    .filter((r: any) => withinOwnershipWindow(windows, r.unit_id, r.reversal_charge?.due_date))
     .map((r: any) => r.reversal_charge)
     .filter((c: any) => c?.due_date && c.due_date >= ytdStart && c.due_date <= todayStr);
   const ytdCharges = (ytdChargesRaw ?? []).filter((c: any) => !reversalChargeIds.has(c.id));
@@ -310,9 +328,9 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
   // The latest payment that was not returned, queried directly so a run of
   // returned payments in the recent history can't hide an older good one.
-  const { data: lastPayment, error: lastPaymentError } = payUnitIds.length > 0
+  const { data: lastPayment, error: lastPaymentError } = historyWindow
     ? await db.from('receivable_payments_ledger').select('amount, payment_date')
-        .in('unit_id', payUnitIds).is('reversed_at', null)
+        .or(historyWindow).is('reversed_at', null)
         .order('payment_date', { ascending: false }).order('payment_id', { ascending: false })
         .limit(1).maybeSingle()
     : { data: null, error: null };

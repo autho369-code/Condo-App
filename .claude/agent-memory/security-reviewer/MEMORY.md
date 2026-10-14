@@ -48,6 +48,9 @@
 - Security patches that "skip with a notice while data depends on it" (board email-seat branch, 20261015100000): check the skip count uses the exact predicate of the branch being removed (active, board profile, same portfolio); a broader count silently leaves the hole open in prod. Prefer relinking first, then removing.
 - Vendor nested writers (depth>1 under a vendor caller) as of 20261015100000: only invitation accept (auth_user_id=used_by, portal_activated) and vfd flag sync (finance-staff-only table). RPC writes run at depth 1 and get the contact-only guard. A login with any staff role is never self-service (global is_any_staff).
 
+- `receivable_payments_ledger.owner_id` is ONE owner per payment (primary unit_owners row on the date, else occupancy): `.eq('owner_id', x)` hides co-owners' payments. Completeness bug, not a leak (owners/[id] page, 20261016010000).
+- Occupancy-end DEFINER trigger (end_owner_unit_items_when_occupancy_ends) is safe because occupancies_owner_same_association pins owner/unit/association and occupancies_self_update is `false`. Recheck if owners can update occupancies again.
+
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import
 - [Missed checks](missed-checks.md) -- domain-proof replay/relay, token minting, html_escape, storage cleanup, finance RPC scope triggers, hidden columns copied by DEFINER triggers (soft_delete_log), owner_visible_history writers
@@ -56,35 +59,11 @@
 - [Finance imports and audits](finance-imports-audits.md) -- INVOKER vs service-only GL helpers, rerun date windows, operator_write_guard
 - [Enforced nonce CSP](csp.md) -- blob print docs, prerendered pages, matcher-skipped paths
 - [RLS once-per-query rewrite](rls-hoist.md) -- my_* helpers replace can_* in policy text (2026-10-11)
+- [Messaging, email, SMS, flags](messaging-email-sms.md) -- email_queue/invite secrets, rate limits, SMS routing proofs, unsubscribe, set_config flags, race guards
 
 ## Policy roles (2026-10-12, 20261012010000)
 - Public pages/API routes all use the service client; only `tenant_branding` (DEFINER) is granted to anon; auth.users triggers + password hook are DEFINER. So moving {public}-role policies to authenticated breaks no signed-out path.
 
-## Transaction-local flag guards (2026-10-13, 20261014150000)
-- `set_config('app.x','on',true)` bypass flags (app.approval_decision, app.loan_ledger, app.inventory_movement) can't be forged via API: pg_catalog isn't exposed, no public exec/set_config wrapper, no db-pre-request. The real risk is every OTHER function patched to set the flag: check its own auth and state checks (tally_approval_vote ignores status='pending'; operator-only approval_votes_platform_all can reach it).
-
-- Webhook "undo on terminal status" fixes (AutoPay setup, 2026-10-13): check every `failAttempt`/status flip on a RETRY after a partial earlier delivery also undoes (else the undo waits on one more Stripe retry), and that an undo helper does not early-return on "nothing left to cancel" before finishing its later steps (method retire).
-
-- `if exists(...) raise` duplicate/"later schedule" guards in DEFINER RPCs (apply_assessment_update, adopt_budget, 20261014210000) race under READ COMMITTED: two calls both pass. Ask for a parent-row lock (`select ... from associations where id = .. for update`) first; form tokens only stop the same form twice.
-
-- "Creator can read" exceptions on secret rows (`sent_by = auth.uid()` on email_queue auth links, 20261014220000): staff-triggered resets queue the target's recovery link with sent_by = the requester (owners/[id]/occupancy-actions.ts owner+tenant reset, settings/page.tsx staff reset), so the requester reads it at /communication-center/emails/[id]. Grep every writer's sentBy before accepting such an exception. (Fixed in 20261014220000 §6a: no signed-in user reads them.)
-- `user_invitations.token` is SELECTable by every company staff login (user_invitations_staff_read); /invite?token= lets the holder set the new account's password before the invitee verifies. Any "hide invite links" fix must also cover this table. (Fixed in 20261014220000 §6e: token column ungranted.)
-- Statement-level AFTER triggers (rate limits with transition tables) fire once per INSERT inside a plpgsql loop (enqueue_communication_message): O(n^2) counts on big sends. (Fixed in 20261014220000 §3: one set-based insert.)
-- Rate limits that count by a client-writable column (email_queue `sent_by is not null`, 20261014220000) are bypassed by inserting that column null/forged; the guard must force it (`new.sent_by := auth.uid()`). (Fixed in 20261014220000 §8c.)
-- Definer helpers granted to authenticated so an INVOKER trigger can call them (email_queue_sender_problem, *_company_recent_count) are also public RPCs: check them as oracles for other companies' names/support emails/owner ids; gate on can_access_portfolio or drop the grant by making the trigger DEFINER. (Fixed in 20261014220000 §8a/b.)
-- Column-level revoke on user_invitations.token (20261014220000): user-client reads must name columns (no select('*'), no insert(...).select() returning token); v_pending_invitations is invoker but omits token.
-
-- Codex on #366 (missed here): a `claimSubmission` duplicate is a success only when `resultId` is set; a duplicate with no resultId is still running (or about to fail) and must not be reported as done.
-
-- Codex on #367 (missed here): the email hourly limit counted the client-set created_at (back-dated rows never counted) and ran without a lock (parallel sends each saw room). A limit counts only server-set values and locks its scope before counting (fixed in 20261014230000).
-
-- SMS reply/START routing (2026-10-13, sms-sender-routing): `sms_messages.from_number` and `sms_conversations.our_phone_number` are staff-writable via REST (sms_*_staff_all) and seeded from company-editable `portfolios.phone_number`; matching on them lets company A claim B's sender. Routing proof must be a service-only column; one platform Messaging Service + sticky sender means the To number rarely identifies a company. Watch `.limit(n)` on match queries (truncation hides the second company).
-- A "server-only" proof column on a staff-writable row is only as good as the row's other match keys: freezing provider_from_number alone let staff re-point to_number/conversation_id on their own sent message (sms_provider_sender guard, 2026-10-13). Freeze every column the routing query matches on. Also: "full page = ambiguous" caps let one company force ambiguity by creating N rows; count distinct companies instead.
-- Freeze-after-send guards keyed on provider_message_id leave the claim->send->complete window open (claim_sms_messages sets locked_at, Twilio call up to 12s, then complete sets the SID): staff can re-point to_number mid-flight. Freeze from claim (locked_at) on, or have complete verify the sent values.
-
-- Public endpoints hit by mail providers (RFC 8058 one-click POST from Gmail/Outlook servers) must not use per-IP `consumePublicRateLimit`: provider IPs are shared, so real unsubscribes get 429 and are lost. Rate-limit by token or not at all (256-bit tokens); fail open for unsubscribe (api/unsubscribe/[token], 2026-10-13). (Fixed in the unsubscribe PR: per-token consumeScopedRateLimit, allowed when the limiter is down.)
-- Suppression lists that stop "all mail" (bounce/complaint) also stop auth links that carry portfolio_id (forgot-password, invitations): a complaint only the recipient can clear locks them out of password reset. Check holds_auth_link exemptions. (Fixed: a complaint stops optional mail only; a bounce still stops all.)
-- Per-recipient failure written onto a shared parent (communication_messages for a whole mass email) marks the entire send failed; complete_email_delivery only flips it to sent when every row is sent. (Fixed: email_prepare_batch never fails the parent and marks it sent when the rest are sent; complete_email_delivery ignores suppressed rows.)
 
 - Staff free text left on owner-readable rows after 20261004200000 (private side tables moved only `notes`-style columns): `payment_plans.cancel_reason` (owner reads via payment_plans_owner_read). When checking "owners never see manager notes", list every staff-written text column on tables with an owner/board/vendor SELECT policy, not just `notes` (collections deep check 2026-10-13). Collections RPCs themselves were all scoped (can_manage_association / can_view_association_row patches 20260930132000, 20261004130000, 20261007090000, 20261007100000). (Fixed in 20261015040000: cancel_reason moved to payment_plan_private by a DEFINER BEFORE trigger; payment_plans has SELECT-only policies, so only DEFINER RPCs write it; private table FK is deferrable so the insert path works.)
 

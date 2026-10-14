@@ -166,6 +166,15 @@ Back to [[Home]].
   charges from their own ownership period plus any balance still open on
   the unit; a previous owner's paid history (paid charges, payments, work
   orders) is hidden.
+- **A sale ends what was the seller's** (2026-10-14): when an owner
+  occupancy ends (sale, move-out, nightly job, import) the database ends
+  that owner's parking on the unit, stops the assignment's linked parking
+  charge and archives their pets (a trigger, so every writer is covered);
+  dues and other recurring charges are left alone. A sale can't be dated
+  after the association's today: no future-dated transfers (the RPC and
+  the action both refuse). Statements and per-owner figures go by who owned
+  the unit in that period (occupancy overlapping it), never by who is
+  current when the job or page runs (20261016010000).
 - **Resident pages filter to their own rows, not RLS alone** (2026-10-13): a
   login can also be an owner, board member or staff, whose policies show
   more; filter by the resident's own ids in the query.

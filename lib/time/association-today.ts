@@ -1,5 +1,5 @@
 import { todayInZone } from '@/lib/time/zoned';
-import { isValidTimeZone } from '@/lib/time/display-zone';
+import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/time/display-zone';
 
 /**
  * Today's date (YYYY-MM-DD) where the association is: owners who moved out
@@ -16,4 +16,13 @@ export async function associationToday(
   if (!data) return { today: null, error: 'association not found' };
   const zone = typeof data.timezone === 'string' && isValidTimeZone(data.timezone) ? data.timezone : undefined;
   return { today: todayInZone(zone), error: null };
+}
+
+/**
+ * Today's date (YYYY-MM-DD) in an association's time zone, already loaded
+ * with the row. No or an invalid zone uses the default zone, the same
+ * fallback as the database's association_local_date().
+ */
+export function todayForAssociationZone(zone: string | null | undefined, now: Date = new Date()): string {
+  return todayInZone(typeof zone === 'string' && isValidTimeZone(zone) ? zone : DEFAULT_TIME_ZONE, now);
 }

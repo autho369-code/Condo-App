@@ -1,9 +1,82 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: #387 purchase orders deep-check fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#387 merged; open PR: #388 ownership fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #387 claude/po-projects-deep-check: deep check of purchase orders, projects,
+- #388 claude/ownership-fixes (sale and move-out, from a deep check of the
+  change-homeowner flow). Migration 20261016010000_ownership_fixes.sql
+  LIVE as 20261014102121 (final file dry-run rolled back on production by the
+  main session first: future sale refused; Sept owner statements to seller
+  and buyer; Aug monthly statement to the seller, Sept to the buyer; read
+  back: trigger, both policies, transfer check):
+  - Codex P1: a buyer can't read the seller's sale-month statement; the
+    shared-unit branch admits only current co-owners' statements
+    (20261016020000 LIVE as 20261014112304; dry-run: buyer sees the
+    co-owner's October statement, not the seller's October or September).
+  - Codex: a co-owner whose move-out date has arrived stops sharing
+    statements even before the nightly job (20261016030000 LIVE as
+    20261014112904); the owner page's YTD figures count every ownership
+    period, so a former owner who sold this year still shows their months.
+  - A sale can't be recorded before it closes: change_unit_homeowner and
+    transfer_unit_ownership refuse a transfer date after the association's
+    local today; the action checks it before creating a buyer record; the
+    form's date has max = association today (a future date used to end the
+    seller at once, make the buyer current and cancel AutoPay early).
+  - Statements go to the owner(s) of record in the period:
+    generate_owner_statements makes one per owner whose occupancy overlaps
+    it (a sale month gives both seller and buyer one);
+    generate_monthly_statements one per unit (primary owner when several
+    overlap; a seller is no longer primary). A seller's statement for the
+    sale period is as of their last day (no buyer charges or payments).
+  - Ending an owner occupancy (sale, move-out, nightly job, import) ends
+    their parking assignments on that unit, stops the assignment's linked
+    parking charge (active false, end date) and archives their pets on it
+    (trigger end_owner_unit_items_when_occupancy_ends; dues and other
+    recurring charges untouched; nothing deleted).
+  - Residents: charges_resident_read admits a charge dated in the owner's
+    ownership or still open (rls_private.resident_visible_charge_ids, one
+    id set per query); statements_resident_read the owner's own statements
+    plus their current unit's from their move-in month
+    (rls_private.resident_visible_statement_ids; co-owners keep them).
+  - Owner page: payment history, last payment, YTD charges, payments,
+    returns and monthly statements bounded to the owner's move-in/move-out
+    per unit (lib/owners/ownership-window.ts); not by the ledger's owner_id,
+    which names one owner per payment and would hide a co-owner's.
+  - Accepted, for the PR body: when a co-owner takes over the unit, the
+    departing co-owner's parking also ends; reopening an ended occupancy
+    doesn't restore parking or pets; the buyer can still read applications
+    on the seller's paid charges (pre-existing, keeps balances right); an
+    open balance at the sale shows on both the seller's final statement and
+    the buyer's.
+  - Association-local dates: endOccupancy move-out, changeHomeowner default
+    and form, end_occupancies_past_move_out, sync_unit_owners_from_occupancy.
+  - Dry-run rolled back on production (unit 303 sold 2026-10-01 to an
+    owner with a portal login): before - future sale accepted (seller past,
+    buyer current at once), seller's parking/charge/pet left active, Sep
+    statements went to the buyer, buyer saw the seller's paid charge and
+    statement (10 charges). After - future sale refused; parking ended
+    2026-10-01, charge stopped, pet archived; Sep statements to the seller;
+    buyer sees 9 charges (paid seller charge hidden, open one kept, balance
+    unchanged 969.59) and not the seller's statement; move-out and nightly
+    job end the items on the local day. Timing with 2,000 extra units and
+    20,000 charges: owner ledger 4.3 -> 3.2 ms, owner charges 8.0 -> 6.2 ms,
+    account summary 17.3 -> 9.1 ms, manager unchanged (8.7 ms). Second
+    dry-run after review fixes (sale 2026-10-10, October batch): before -
+    only the buyer got a statement (924.59) and the buyer saw the seller's
+    August statement; after - seller 899.59 (leaves out the buyer's 25.00
+    charge of 10-12), buyer 924.59, seller's August statement hidden.
+  - Reviewers: overseer at start; migration (medium: seller statement
+    totals included the buyer's activity -> cut at the seller's last day, by
+    move-out date not status; co-owners lost unit statements -> id set),
+    security (low: ledger owner_id hid co-owners' payments -> ownership
+    window; invalid calendar dates -> checked), schema (clean),
+    design (hint wording fixed), white-label (clean). Migration and
+    security re-ran on the fixes: clean. Note: the sale month's monthly
+    statement is visible to the buyer if it was filed under the seller
+    (unlikely; the seller is no longer primary).
+
+## Merged 2026-10-14
+- #387 (merged 2026-10-14) claude/po-projects-deep-check: deep check of purchase orders, projects,
   inventory and fixed assets (rolled back at 5,000 rows, every role; all
   lists under 45 ms). 20261015230000 LIVE as 20261014092828 (dry-run rolled
   back on production first; read back; guard re-checked live, rolled back):
@@ -31,8 +104,6 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: #387 purchase o
   Reviewers: migration (twice, final file), security (DELETE/re-point gaps
   fixed), design (note hint moved under the row, bill page too),
   white-label (two messages reworded). 9 business-rule questions -> TODO.
-
-## Merged 2026-10-14
 - #386 (merged 2026-10-14) work orders follow-ups:
   - Recurring work orders the nightly database generator assigns to a
     vendor now email that vendor: /api/work-orders/notify-recurring (Vercel

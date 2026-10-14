@@ -72,6 +72,8 @@
 - Child->parent status sync triggers (work_orders -> service_requests): walk EVERY transition: finish, cancel, archive, delete, move between parents, unarchive, cancelled->open. 20261015170000 final covers the first five + reopen-in-place; moving/unarchiving an open WO into a completed request leaves it completed (low); fixed by 20261015220000 (clean). Concurrency there is safe only because refresh_service_request_open_work_order (advisory lock) runs BEFORE both status branches; keep that order in any rewrite.
 - Dropping a NOT NULL column default for a BEFORE INSERT trigger to fill: grep SQL-function inserts too (recurring WO generators omit created_on); safe unless a path runs with session_replication_role=replica.
 
+- Widening "who gets a statement/notice" to past owners (period overlap, 20261016010000 generate_owner_statements): check the AMOUNTS are bounded to that owner's tenure too; unit-wide sums email the seller the buyer's total due (lib/rpcs/bulk-operations.ts sends total_due). Dropping a unit_id branch from a resident policy also drops co-owners when the generator writes one row per unit. Fix v2 capped at move_out_date-1 but only when status='past'; key tenure cutoffs on the DATE, not status (current rows can carry a future move_out_date).
+
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns

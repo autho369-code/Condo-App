@@ -7,7 +7,7 @@ import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
-import { todayInZone } from '@/lib/time/zoned';
+import { todayForAssociationZone } from '@/lib/time/association-today';
 import { changeHomeowner } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,7 @@ export default async function ChangeHomeownerPage({ searchParams }: { searchPara
 
   const [unitsRes, occupanciesRes] = await Promise.all([
     fetchAllRows<any>(() => db.from('units')
-      .select('id, unit_number, buildings!inner(association_id, associations!inner(name, archived_at))')
+      .select('id, unit_number, buildings!inner(association_id, associations!inner(name, archived_at, timezone))')
       .is('archived_at', null).is('buildings.associations.archived_at', null)
       .order('unit_number').order('id')),
     fetchAllRows<any>(() => db.from('occupancies').select('unit_id, owners(full_name)')
@@ -31,6 +31,9 @@ export default async function ChangeHomeownerPage({ searchParams }: { searchPara
   // homeowners as the buyer (a homeowner record belongs to one association).
   const selectedUnit = sp.unit ? unitsRes.rows.find((u: any) => u.id === sp.unit) ?? null : null;
   const selectedAssociationId: string | null = selectedUnit?.buildings?.association_id ?? null;
+  // A sale is recorded on or after its closing date: today in the
+  // association's time zone is the latest date offered.
+  const associationToday = todayForAssociationZone(selectedUnit?.buildings?.associations?.timezone);
   const ownersRes = selectedAssociationId
     ? await fetchAllRows<any>(() => db.from('owners').select('id, full_name, first_name, last_name, email')
       .eq('association_id', selectedAssociationId)
@@ -96,8 +99,8 @@ export default async function ChangeHomeownerPage({ searchParams }: { searchPara
             </div>
           </div>
           <div>
-            <Field label="Transfer date" htmlFor="transfer_date" required>
-              <Input id="transfer_date" name="transfer_date" type="date" required defaultValue={todayInZone()} />
+            <Field label="Transfer date" htmlFor="transfer_date" required hint="The closing date. It can't be in the future, so record a sale once it has closed.">
+              <Input id="transfer_date" name="transfer_date" type="date" required max={associationToday} defaultValue={associationToday} />
             </Field>
           </div>
         </div>
