@@ -4,6 +4,14 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-13
+- Email unsubscribe and suppression: optional mail (mass email, reminders,
+  automations) has an Unsubscribe link and one-click List-Unsubscribe headers
+  on the company's address; unsubscribed, spam-reported and bounced
+  addresses are stopped when the worker sends (kept as "Not sent" with the
+  reason); every owner and tenant gets email (Mirsad), dues reminders
+  included for owners who prefer mail; Resend permanent
+  bounces and complaints suppress the address; staff can allow a bounced
+  address again (20261015010000).
 - SMS routing (Codex on #369): replies and START reach the company that
   actually texted from the number (as Twilio reports it, not a number staff
   can type); STOP reaches every company; mass email stops if the

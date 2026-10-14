@@ -3,11 +3,13 @@ import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { StatusChip } from '@/components/operations/status-chip';
 import { buttonClass } from '@/components/ui/button';
-import { SectionTitle, Surface } from '@/components/ui/shell';
+import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { formatInZone } from '@/lib/time/zoned';
+import { clearEmailBounce } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,20 +46,42 @@ function when(value: string | null) {
 }
 
 /** One sent email: who it went to, its delivery and open history, and the message. */
-export default async function SentEmailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SentEmailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string; done?: string }>;
+}) {
   await requireStaff();
   const { id } = await params;
+  const sp = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const db = (await createClient()) as any;
 
   const [{ data: email }, { data: events }] = await Promise.all([
     db.from('email_queue')
-      .select('id, to_email, to_name, from_name, from_address, sender_address, reply_to, subject, body, status, delivery_status, error_message, attempt_count, created_at, sent_at, delivered_at, open_count, first_opened_at, last_opened_at, clicked_at, bounced_at, complained_at, associations(name)')
+      .select('id, to_email, to_name, from_name, from_address, sender_address, reply_to, subject, body, status, delivery_status, error_message, mail_class, suppressed_at, attempt_count, created_at, sent_at, delivered_at, open_count, first_opened_at, last_opened_at, clicked_at, bounced_at, complained_at, portfolio_id, associations(name, portfolio_id)')
       .eq('id', id)
       .maybeSingle(),
     db.from('email_events').select('id, event_type, occurred_at, detail').eq('email_id', id).order('occurred_at', { ascending: true }).limit(200),
   ]);
   if (!email) notFound();
+
+  // A bounce on this address stops all mail to it until staff allow it again
+  // (after fixing the address). The email's own company (its association's,
+  // else its portfolio), read through RLS.
+  const company = email.associations?.portfolio_id ?? email.portfolio_id;
+  const { data: bounce } = email.to_email && company
+    ? await db.from('email_suppressions')
+      .select('id, suppressed_at, detail')
+      .eq('portfolio_id', company)
+      .eq('email', String(email.to_email).trim().toLowerCase())
+      .eq('reason', 'bounced')
+      .is('cleared_at', null)
+      .limit(1)
+      .maybeSingle()
+    : { data: null };
 
   const facts: [string, string][] = [
     ['To', email.to_name ? `${email.to_name} <${email.to_email}>` : email.to_email],
@@ -65,6 +89,7 @@ export default async function SentEmailPage({ params }: { params: Promise<{ id: 
     // domain once verified); older rows only have the queued from_address.
     ['From', [email.from_name, (email.sender_address ?? email.from_address) ? `<${email.sender_address ?? email.from_address}>` : ''].filter(Boolean).join(' ') || '—'],
     ['Reply to', email.reply_to ?? '—'],
+    ['Kind', email.mail_class === 'optional' ? 'Optional (recipients can unsubscribe)' : 'Required notice'],
     ['Association', email.associations?.name ?? '—'],
     ['Created', when(email.created_at)],
     ['Sent', when(email.sent_at)],
@@ -82,14 +107,30 @@ export default async function SentEmailPage({ params }: { params: Promise<{ id: 
       actions={<Link href="/communication-center" className={buttonClass('secondary')}>Back to Communication Center</Link>}
     >
       <div className="space-y-4">
+        {sp.done && <Alert tone="success">{sp.done}</Alert>}
+        {sp.error && <Alert tone="danger">{sp.error}</Alert>}
+        {bounce && (
+          <Alert tone="warning">
+            <div className="space-y-3">
+              <p>Email to {email.to_email} bounced{bounce.detail ? ` (${bounce.detail})` : ''}, so no email is sent to it. Fix the address on the owner&apos;s or contact&apos;s record, or allow it again if it was a mistake.</p>
+              <form action={clearEmailBounce}>
+                <input type="hidden" name="email_id" value={email.id} />
+                <input type="hidden" name="suppression_id" value={bounce.id} />
+                <PendingSubmit variant="secondary" pendingLabel="Saving…">Allow email to this address again</PendingSubmit>
+              </form>
+            </div>
+          </Alert>
+        )}
         <Surface>
           <div className="mb-4 flex flex-wrap items-center gap-2">
             {email.bounced_at ? <StatusChip tone="danger">Bounced</StatusChip>
+              : email.suppressed_at ? <StatusChip tone="neutral">Not sent</StatusChip>
               : email.status === 'failed' || email.delivery_status === 'failed' ? <StatusChip tone="danger">Failed</StatusChip>
               : email.status === 'pending' ? <StatusChip tone="warning">Waiting to send</StatusChip>
               : email.delivered_at ? <StatusChip tone="success">Delivered</StatusChip>
               : <StatusChip tone="info">Sent</StatusChip>}
-            {(email.status === 'failed' || email.delivery_status === 'failed') && email.error_message && <span className="text-sm text-red-600">{email.error_message}</span>}
+            {email.suppressed_at && email.error_message ? <span className="text-sm text-gray-600">{email.error_message}</span>
+              : (email.status === 'failed' || email.delivery_status === 'failed') && email.error_message && <span className="text-sm text-red-600">{email.error_message}</span>}
             {email.status === 'pending' && email.attempt_count > 0 && <span className="text-sm text-gray-500">{email.attempt_count} attempt{email.attempt_count === 1 ? '' : 's'} so far</span>}
           </div>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">

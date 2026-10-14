@@ -128,6 +128,12 @@ Back to [[Home]].
   rate (20261014220000). Checks inside a trigger that reads other tables run
   in a definer helper: the caller's row-level security on every row made
   2,000 emails take ~4 s.
+- **Every queued email is required or optional, decided by the database**
+  (2026-10-13): a new producer of mass or optional mail gives its rows an
+  optional key prefix (email_queue_optional_key); a new required kind sent
+  from a signed-in session adds its prefix to email_queue_required_key, or
+  it is treated as optional. Suppressed mail is kept and marked, never
+  dropped silently.
 - **Route by what the provider reports, never by what staff can edit**
   (2026-10-13): deciding which company a reply, consent change or webhook
   belongs to uses a value only the server writes (e.g.

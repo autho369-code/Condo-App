@@ -46,4 +46,7 @@ export const PUBLIC_PATHS = [
   '/report-card',
   '/sign',
   '/vendor-upload',
+  // Email unsubscribe page and one-click endpoint (the token in the email).
+  '/unsubscribe',
+  '/api/unsubscribe',
 ] as const;

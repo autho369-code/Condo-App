@@ -143,6 +143,9 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
         replyTo: me.portfolio?.support_email || me.email || null,
         sentBy: me.auth_user_id,
         ownerId,
+        // A request the owner must answer: sent even if they unsubscribed
+        // from optional email (the key marks it required).
+        idempotencyKey: `owner-form:${crypto.randomUUID()}`,
       }]);
       if (queued.error) {
         redirect(`/owners/forms?error=${encodeURIComponent(`The request was recorded but the email could not be queued: ${queued.error}`)}`);

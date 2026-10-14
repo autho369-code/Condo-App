@@ -5,6 +5,8 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { requireCronSecret } from '@/lib/server/cron-auth';
 import { EMAIL_FROM_NAME } from '@/lib/email/queue';
 import { addressDomain, brandedFromAddress, isPlatformSenderName, isSenderDomainError, platformSenderAddress, usesPlatformSender } from '@/lib/email/sender-domains';
+import { unsubscribeFooter, unsubscribeHeaders } from '@/lib/email/unsubscribe';
+import { COMPANY_ADDRESS_COLUMNS, companyUrl } from '@/lib/tenant/host';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -40,7 +42,28 @@ export async function GET(request: NextRequest) {
   // mail to a company (billing, onboarding) says Portier369 on purpose and
   // stays on the platform domain. A failed lookup falls back to the platform
   // name and address.
-  const claimedRows = (claimed ?? []) as any[];
+  let claimedRows = (claimed ?? []) as any[];
+
+  // Checked again now: an unsubscribe or bounce since the email was queued
+  // stops it (the database marks it failed with the reason). Optional company
+  // mail gets its unsubscribe link (made once per email, so a retry sends the
+  // identical email).
+  const unsubscribeFor = new Map<string, { token: string; url: string | null }>();
+  let suppressed = 0;
+  if (claimedRows.length) {
+    const { data: prepared, error: prepareError } = await db.rpc('email_prepare_batch', { p_ids: claimedRows.map((e) => e.id) });
+    if (prepareError) {
+      // Nothing is sent unchecked; the claimed rows are retried after the claim expires.
+      return NextResponse.json({ error: `Could not check unsubscribes: ${prepareError.message}` }, { status: 500 });
+    }
+    const skip = new Set<string>();
+    for (const p of (prepared ?? []) as any[]) {
+      if (p.suppressed) skip.add(String(p.id));
+      else if (p.unsubscribe_token) unsubscribeFor.set(String(p.id), { token: String(p.unsubscribe_token), url: p.unsubscribe_url ?? null });
+    }
+    suppressed = skip.size;
+    claimedRows = claimedRows.filter((e) => !skip.has(String(e.id)));
+  }
   // The company an email belongs to comes from its association when it has
   // one (signed-in staff write queue rows, and portfolio_id alone is not
   // proof); portfolio_id is used only for mail with no association.
@@ -62,20 +85,24 @@ export async function GET(request: NextRequest) {
     if (e.association_id && !earlierAttempt(e)) e.portfolio_id = associationCompany.get(String(e.association_id)) ?? null;
   }
   const brandIds = [...new Set(claimedRows
-    .filter((e) => e.portfolio_id && !String(e.from_name ?? '').trim())
+    .filter((e) => e.portfolio_id && (!String(e.from_name ?? '').trim() || unsubscribeFor.has(String(e.id))))
     .map((e) => String(e.portfolio_id)))];
   const companyIds = [...new Set(claimedRows
     .filter((e) => e.portfolio_id && !e.sender_address && !isPlatformSenderName(e.from_name) && usesPlatformSender(e.from_address))
     .map((e) => String(e.portfolio_id)))];
   let brandsUnavailable = false;
   const brandNames = new Map<string, string>();
+  const companyAddresses = new Map<string, any>();
   if (brandIds.length) {
-    const { data: brands, error: brandError } = await db.from('portfolios').select('id, company_name').in('id', brandIds);
+    const { data: brands, error: brandError } = await db.from('portfolios').select(`id, company_name, ${COMPANY_ADDRESS_COLUMNS}`).in('id', brandIds);
     if (brandError) {
       console.error('Could not load sender branding:', brandError.message);
       brandsUnavailable = true;
     }
-    for (const b of brands ?? []) if (b.company_name) brandNames.set(String(b.id), String(b.company_name));
+    for (const b of brands ?? []) {
+      if (b.company_name) brandNames.set(String(b.id), String(b.company_name));
+      companyAddresses.set(String(b.id), b);
+    }
   }
   // A failed lookup must not silently change an email's sender: the affected
   // emails fail this run (nothing is sent) and are retried.
@@ -137,7 +164,7 @@ export async function GET(request: NextRequest) {
 
   let sent = 0;
   let failed = 0;
-  await inBatches(claimed ?? [], 4, async (email: any) => {
+  await inBatches(claimedRows, 4, async (email: any) => {
     try {
       const to = String(email.to_email ?? '').trim().toLowerCase();
       const platformAddress = platformSenderAddress(email.from_address);
@@ -171,11 +198,30 @@ export async function GET(request: NextRequest) {
         ? `email-queue-${email.id}`
         : `email-queue-${email.id}-${createHash('sha256').update(address).digest('hex').slice(0, 16)}`;
 
+      // Optional mail: an Unsubscribe link in the email and in the headers
+      // mail providers show as their own button, on the company's address.
+      let html = String(email.body ?? '');
+      let headers: Record<string, string> | undefined;
+      const link = unsubscribeFor.get(String(email.id));
+      if (link) {
+        let pageUrl = link.url;
+        if (!pageUrl) {
+          const company = companyAddresses.get(String(email.portfolio_id));
+          if (!company) throw new Error('The company address could not be loaded for the unsubscribe link; will retry.');
+          pageUrl = companyUrl(company, `/unsubscribe/${link.token}`);
+          const { error: linkError } = await db.from('email_unsubscribe_links').update({ page_url: pageUrl }).eq('queue_id', email.id);
+          if (linkError) throw new Error(`Could not record the unsubscribe link: ${linkError.message}`);
+        }
+        html += unsubscribeFooter(pageUrl, brandNames.get(String(email.portfolio_id)) ?? senderName(email));
+        headers = unsubscribeHeaders(pageUrl);
+      }
+
       const send = (fromAddress: string, idempotencyKey: string) => resend.emails.send({
         from: `${cleanHeader(senderName(email), EMAIL_FROM_NAME)} <${fromAddress}>`,
         to: email.to_name ? `${cleanHeader(email.to_name, '', 200)} <${to}>` : to,
         subject: cleanHeader(email.subject, `Message from ${senderName(email)}`, 300),
-        html: String(email.body ?? ''),
+        html,
+        ...(headers ? { headers } : {}),
         ...(email.reply_to && EMAIL_PATTERN.test(String(email.reply_to).trim())
           ? { replyTo: String(email.reply_to).trim().toLowerCase() }
           : {}),
@@ -209,5 +255,5 @@ export async function GET(request: NextRequest) {
     }
   });
 
-  return NextResponse.json({ claimed: claimed?.length ?? 0, sent, failed });
+  return NextResponse.json({ claimed: claimed?.length ?? 0, sent, failed, suppressed });
 }

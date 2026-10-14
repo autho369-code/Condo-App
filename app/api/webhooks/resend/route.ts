@@ -45,6 +45,21 @@ export async function POST(request: NextRequest) {
     p_detail: detail ? String(detail).slice(0, 500) : null,
   });
   if (error) return NextResponse.json({ error: 'Could not record event' }, { status: 500 });
+  // A permanent bounce (the address doesn't exist) or a spam complaint stops
+  // further mail to the address from this company. A temporary bounce
+  // doesn't (the mailbox may be full for a day).
+  const suppression = type === 'complained' ? 'complained'
+    : type === 'bounced' && /^(permanent|hard)$/i.test(String(event.data?.bounce?.type ?? '')) ? 'bounced'
+    : null;
+  if (suppression && matched !== false) {
+    const { error: suppressError } = await (createServiceClient() as any).rpc('email_suppress_from_event', {
+      p_provider_message_id: messageId,
+      p_reason: suppression,
+      p_detail: detail ? String(detail).slice(0, 500) : null,
+    });
+    // Resend retries; the event itself is recorded once (by its id).
+    if (suppressError) return NextResponse.json({ error: 'Could not record the bounce' }, { status: 500 });
+  }
   // An event can beat the send worker, which stores the provider id only after
   // Resend accepts the email. Ask Resend to retry recent unmatched events; older
   // ones are for mail this app did not queue (e.g. auth emails) and are dropped.

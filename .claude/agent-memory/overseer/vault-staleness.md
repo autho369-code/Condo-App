@@ -114,3 +114,8 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   drift - ask for an ACL read-back and record it in the migration or TODO.
   A by-design visibility loss (operator monitors, owner email history lose
   reset/invite rows) went only into the caller's message, not Decisions.
+- 2026-10-13 (email-unsubscribe pre-PR): one file applied live as FOUR
+  apply_migration versions, Status said "LIVE as apply_migration
+  email_unsubscribe" only. Status line 3 "next: see Next gaps" and Next gaps
+  #1 "in the open PR" again; a deferred design finding (tooltip-only reason,
+  invisible on touch) not recorded anywhere.

@@ -50,3 +50,9 @@ Rule: when a PR fixes a hole a reviewer recorded, its memory line must say "fixe
   "slug-only, needs custom domain") all written as open; 20261014233000 +
   inbox/page.tsx fixed each. Also the #367 auth.role() guard regression (found
   by Claude, not Codex) got no "missed:" line for security-reviewer.
+- Recurring 9th time (email-unsubscribe pre-PR, 2026-10-13): all five
+  reviewer memories written as open though 20261015010000 / the pages fixed
+  them (design: card const + ?done= echo on unsubscribe page; migration:
+  invoker-callee BLOCKER, claim filter, old claim_email_queue, parent message
+  stuck 'queued'; security: complaint lockout, parent failure, per-IP limit;
+  white-label: exact not-in platform check; schema: unscoped bounce lookup).
