@@ -3,6 +3,11 @@
 Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
+## 2026-10-14
+- The full test suite passes on Windows too (it had 10 failures from CRLF
+  line endings, backslash paths and slow process start; Linux CI was
+  already green). check:columns prints forward-slash paths.
+
 ## 2026-10-13
 - Managers can remove a late fee (unit page, with a reason; credited back,
   never charged again). Collections deep check: late fees, ladder and plans
