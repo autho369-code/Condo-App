@@ -1,28 +1,36 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#378 merged; open PR: #379 claude/board-vendor-fixes; fixer branches claude/insurance-inspections-fixes and claude/arc-documents-fixes in progress; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: #382 (Codex on #379-#381); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #379 claude/board-vendor-fixes: DEEP CHECK of the board and
-  vendor portals (agent, rolled back on production) + fixes, 20261015100000
-  LIVE as 20261014004501 (read back; migration, security and design
-  reviewers ran; their findings fixed: aging date inline, summary date once
-  per association, new seats link to an existing board login by trigger,
-  exact count before removing email match, CRLF-safe patches).
-  - Vendor-entered compliance dates no longer become official: the sync
-    trigger (meant to be off since 20261002131203) was ON in production;
-    disabled, plus a self-service early return; vendors_self_service_guard
-    no longer trusts trigger depth alone (live: 0 vendor claims yet).
-  - Board seats only through a linked login (email-match branch removed;
-    live: 0 seats relied on it).
-  - Board receivables, aging and meeting snapshot use the association's
-    local date/month; delinquent units = units with an overdue balance.
-  - Vendors can't read in-house labor costs (policy false).
-  - Board budget local fiscal year; cancelled future meetings listed;
-    meeting type labels; archived meetings refused; vendor profile email
-    removal; vendor dashboard counts from the database.
+- #382 claude/codex-379-380-followups: Codex on #379, #380 and #381.
+  20261015110000 LIVE as 20261014022209, 20261015120000 LIVE as
+  20261014022727 (both dry-run rolled back on production first, read back;
+  migration, security, design, schema and white-label reviewers ran; their
+  findings fixed).
+  - Portal amenities: request form and list on the shared components;
+    overnight reservations show the end date; next-day hint.
+  - Board seats that still matched a board login by email are linked to it,
+    then the email-match branch goes (#379; production: already gone).
+  - Amenity hours past midnight (e.g. 18:00-02:00) checked by the database
+    and the portal (#380).
+  - Inspections search covers every match: inspection_search in the
+    database over type, association, unit, inspector and staff notes, no
+    200-id cap; built once as sets (5,000 inspections: ~320 -> ~220 ms).
+  - E-signature request linked to an association's record is filed under
+    that association even when none is sent (was company-wide, so managers
+    of other associations could read its signers); archived association
+    refused (#381; live: 0 requests misfiled).
 
 ## Merged 2026-10-14
+- #381 architectural reviews, documents, forms, e-sign (20261015090000 LIVE
+  as 20261014011059). Codex: P1 board decision RPC (already not executable
+  by signed-in users), P2 association date for on-behalf filing (fixed
+  before merge), P1 signature request association (next PR).
+- #380 insurance, inspections, amenities (20261015080000 LIVE as
+  20261014005902). Codex follow-ups in the next PR.
+- #379 board and vendor portals (20261015100000 LIVE as 20261014004501).
+  Codex follow-up (board seats by email) in the next PR.
 - #378 tests pass on Windows (CRLF, backslash paths, slow process start;
   1,058/1,058). Codex clean.
 - #377 journal written only by database functions (20261015060000 live;

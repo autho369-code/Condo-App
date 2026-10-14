@@ -104,3 +104,9 @@
 ## Upload limits and gated content (arc-documents-fixes, 2026-10-14)
 - Upload-size changes: grep every hint/guide for the old number AND for sibling flows with their own limit (ARC is 25 MB direct-to-storage, but architectural-reviews/new:123 and guides/content.ts:127 said 10 MB). Server-action uploads die at Vercel's ~4.5 MB with a 413 before the action's `?error=` check runs.
 - New "content not available" branches on token pages: check every state that hits them (sign/[token] showed "no longer available" to a signer still waiting their turn).
+## Board/vendor portals (2026-10-14, board-vendor-fixes)
+- app/board/meetings/page.tsx is still hand-rolled (`card` const w/ own shadow, raw <table>, stat tiles); new sections copy it (Cancelled). Flag as migration debt, not blocker.
+- Shape-key changes in JSON lists (vendor emails `address` -> `email`): old saves wrote the other key, so rows edited earlier may read stale. Ask for a read fallback.
+## Overnight ranges, partial migrations (portal/amenities, 2026-10-14)
+- When end can fall on the next day (late-night amenity hours), check every range display shows the end date (portal/amenities fixed via fmtRange, 2026-10-14).
+- Partial migrations leave heading-level drift: outer hand-rolled 13px `<h2>` wrapping a 17px SectionTitle `<h2>` (portal/amenities "My reservations" > "Upcoming"). Check heading sizes/levels nest.

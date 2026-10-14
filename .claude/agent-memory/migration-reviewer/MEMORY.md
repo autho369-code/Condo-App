@@ -50,6 +50,7 @@
 - Worktree checkouts are CRLF (no .gitattributes). Multi-line anchors written as SQL literals carry \r if the file is applied from disk; normalizing only pg_get_functiondef is half the fix. Ask for `replace(anchor, chr(13), '')` or E'\n' anchors (precedent 20261015100000).
 
 - Local-date patches: `association_local_date` is a definer SQL fn (never inlined); check each call is once per association/initplan, not per row. Lateral pullup trap in sql-pitfalls.
+  A column of a pulled-up LATERAL is substituted at EVERY reference: `ua.local_today` used in 4 CASE arms = up to 4 definer calls per charge (20261015100000 aged_receivables). Ask for the inline `(now() at time zone coalesce(nullif(a.timezone,''),'America/Chicago'))::date` or a per-association CTE.
 - Text-patch migrations: run every multi-line anchor against the latest repo body with a node count script; a skipped comment line aborts the migration (20261015020000:56). See sql-pitfalls. (Fixed before apply: anchor, indexes, draft early-return, association_id, adjustment refused on any open reconciliation.)
 
 - Replacing a per-row definer helper (association_local_date(pb.association_id,..)) with an inner JOIN to the parent changes semantics: rows with a NULL/hidden FK drop (payable_bills.association_id is nullable; 20261015030000 vendor_1099_totals), and the join now evaluates parent-only expressions (free-text timezone) for parents with no rows. Check nullability + RLS parity + caller's null handling.
@@ -57,6 +58,10 @@
 - Revoking table DML from authenticated (20261015060000 journal_*): sweep latest bodies for invoker writers AND invoker `FOR UPDATE/SHARE` on the table (needs UPDATE priv), non-invoker updatable views over it, and later `grant ... on all tables` re-grants. FK cascades run as owner (safe). Node regex sweep over latest fn bodies works.
 
 - Private-notes side tables (X_private): if the policy re-encodes the parent's scope instead of `staff check and exists(select 1 from parent where id=...)` (parent RLS applies inside), it drifts: 20261015080000:36-50 dropped the parent's association_id-NULL branch. Also check the side table's views keep column order (v_upcoming_expirations did).
+- Removing an email-match access branch (current_board_association_ids, 20261015100000): a count=0 guard covers today only; check every FUTURE unlinked-seat path (owners/new inserts auth_user_id null; only signup/link_portal_user link by email).
+
+- Search RPCs called as db.rpc(..).select().eq().range() (20261015110000 inspection_search): a SET clause blocks SRF inlining, so page filters/count run over the full match set; prefer OR-ed `i.x in (select ...)` sets over per-row EXISTS into tables with per-row policies (inspection_private).
+- association_id NULL = "company-wide" (visible to every scoped manager) on signature_requests and similar: any create RPC taking a linked record must file under the record's association (Codex P1 #381, fix 20261015120000). A derived coalesce(p_x, v_derived) skips the checks done only on p_x (archived_at); ask for a read-only count of existing NULL-but-linked rows.
 
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards

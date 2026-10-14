@@ -49,20 +49,55 @@ function minutes(t: string | null | undefined): number | null {
   return Number(m[1]) * 60 + Number(m[2]);
 }
 
+function runsPastMidnight(opensAt: string | null | undefined, closesAt: string | null | undefined): boolean {
+  const open = minutes(opensAt);
+  const close = minutes(closesAt);
+  return open !== null && close !== null && open > close;
+}
+
 /**
- * Whether a same-day request (HH:MM wall times in the community's zone) falls
- * inside the amenity's hours. An end of 00:00 means midnight. Hours that run
- * past midnight (closes before opens) are not checked, like the database guard.
+ * Whether a request's end time (HH:MM) falls on the day after its start: an
+ * end of 00:00 (midnight), or, for hours that run past midnight
+ * (e.g. 18:00–02:00), an end at or before the start time.
+ */
+export function amenityEndsNextDay(start: string, end: string, opensAt: string | null | undefined, closesAt: string | null | undefined): boolean {
+  const s = minutes(start);
+  const e = minutes(end);
+  if (s === null || e === null) return false;
+  if (e === 0) return true;
+  return runsPastMidnight(opensAt, closesAt) && e <= s;
+}
+
+/**
+ * Whether a request (HH:MM wall times in the community's zone) falls inside
+ * the amenity's hours, as the database guard checks it. An end of 00:00 means
+ * midnight. Normal hours: the same day, from opening to closing. Hours that
+ * run past midnight (e.g. 18:00–02:00): inside [opens, 24:00] or
+ * [00:00, closes] on one day, or from opening to closing the next day.
  */
 export function withinAmenityHours(start: string, end: string, opensAt: string | null | undefined, closesAt: string | null | undefined): boolean {
   const s = minutes(start);
-  let e = minutes(end);
-  if (s === null || e === null) return false;
-  if (e === 0) e = 24 * 60;
+  const rawEnd = minutes(end);
+  if (s === null || rawEnd === null) return false;
   const open = minutes(opensAt);
   const close = minutes(closesAt);
-  if (open !== null && close !== null && open >= close) return true;
+  if (open !== null && close !== null && open > close) {
+    if (amenityEndsNextDay(start, end, opensAt, closesAt)) return s >= open && rawEnd <= close;
+    return s >= open || rawEnd <= close;
+  }
+  const e = rawEnd === 0 ? 24 * 60 : rawEnd;
+  if (open !== null && close !== null && open === close) return true;
   if (open !== null && s < open) return false;
   if (close !== null && e > close) return false;
   return true;
+}
+
+/** The calendar day after a YYYY-MM-DD date, or null when it is not one. */
+export function nextCalendarDate(date: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) return null;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  if (d.toISOString().slice(0, 10) !== date) return null;
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
 }
