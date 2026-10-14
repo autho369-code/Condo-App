@@ -5,7 +5,7 @@ import { firstVendorEmail, replaceFirstVendorEmail } from '@/lib/vendors/contact
 import { meetingTypeLabel, MEETING_TYPE_LABELS, splitBoardMeetings } from '@/lib/meetings/labels';
 
 const root = process.cwd();
-const read = (p: string) => readFileSync(resolve(root, p), 'utf8');
+const read = (p: string) => readFileSync(resolve(root, p), 'utf8').replace(/\r\n/g, '\n');
 const migration = read('supabase/migrations/20261015100000_board_vendor_fixes.sql');
 
 describe('20261015100000_board_vendor_fixes migration', () => {
