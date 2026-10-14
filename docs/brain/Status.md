@@ -1,9 +1,13 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: #386 work orders follow-ups; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: none (deep check of purchase orders, projects, inventory and fixed assets running); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #386 claude/work-orders-followups (the two Next gaps left by #385):
+- (none yet) claude/po-projects-deep-check: deep check of purchase orders,
+  projects, inventory and fixed assets.
+
+## Merged 2026-10-14
+- #386 (merged 2026-10-14) work orders follow-ups:
   - Recurring work orders the nightly database generator assigns to a
     vendor now email that vendor: /api/work-orders/notify-recurring (Vercel
     cron 12:00 UTC, after pg_cron's 11:30 generator) sends the same
@@ -23,8 +27,6 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: #386 work order
     Migration, security and schema reviewers ran; security's duplicate-send
     finding fixed (vendor_notified_at). Note: a request can now send the
     service_request.resolved webhook again after a reopen.
-
-## Merged 2026-10-14
 - #383 (merged 2026-10-14) a removed late fee reads "Removed", not
   "Paid", on the owner's ledger and the unit page (v_charge_balances;
   balances unchanged); only remove_late_fee can mark its credit; past due
@@ -778,6 +780,13 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: #386 work order
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- NEXT (running): DEEP CHECK of purchase orders (incl. recurring and PO ->
+  bill, board threshold), projects (budget lines vs spend), inventory and
+  fixed assets; rolled back at scale, every role, then fix.
+- BLOCKED on Mirsad: Stripe TEST-mode checkout and AutoPay run (Vercel has
+  no STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET).
+- Watching: CSP (0 blocked in 48 h on 2026-10-14; runtime errors only from
+  the 2026-10-08 Supabase outage and one refresh token on 10-12).
 - DONE (claude/work-orders-followups): recurring work orders email their
   vendor; a completed request follows open work orders moved, unarchived
   or reopened into it.
