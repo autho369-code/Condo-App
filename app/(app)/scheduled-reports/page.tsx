@@ -68,7 +68,7 @@ export default async function ScheduledReportsPage({
   return (
     <DataWorkspace
       title="Scheduled Reports"
-      description="Reports that run automatically on a schedule and are emailed to the people you choose. Each runs with the access of the person who last set its report or recipients."
+      description="Reports that run automatically on a schedule and are emailed to the staff you choose. Each runs with the access of the person who last set its report or recipients."
       actions={
         <>
           <Link href="/reports/runs" className={buttonClass('secondary')}>Report history</Link>

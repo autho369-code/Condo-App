@@ -4,9 +4,36 @@ import { isSupportedReportOutputFormat } from '@/lib/reports/formats';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin, requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 const str = (f: FormData, k: string) => { const v = f.get(k); return typeof v === 'string' && v.trim() !== '' ? v.trim() : null; };
 const req = (f: FormData, k: string) => { const v = str(f, k); if (!v) throw new Error(`${k} is required`); return v; };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The units of a bulk charge must all be current (not archived) units of the
+ * association picked on the form; ids posted from elsewhere are refused.
+ * Returns an error message, or null.
+ */
+async function bulkUnitsError(db: any, associationId: string | null, unitIds: string[]): Promise<string | null> {
+  if (!associationId || !UUID_RE.test(associationId)) return 'Choose an association.';
+  if (unitIds.some((id) => !UUID_RE.test(id))) return 'One or more selected units are not valid.';
+  if (new Set(unitIds).size !== unitIds.length) return 'A unit was selected more than once.';
+  if (unitIds.length > 5000) return 'At most 5000 units per batch.';
+  const found = new Set<string>();
+  for (let i = 0; i < unitIds.length; i += 500) {
+    const { data, error } = await db.from('units')
+      .select('id, buildings!inner(association_id)')
+      .eq('buildings.association_id', associationId)
+      .is('archived_at', null)
+      .in('id', unitIds.slice(i, i + 500));
+    if (error) return error.message;
+    for (const row of (data ?? []) as { id: string }[]) found.add(row.id);
+  }
+  if (found.size !== unitIds.length) return 'One or more selected units are not current units of this association.';
+  return null;
+}
 
 /* ================================================================
    BULK CHARGES — create charges for multiple units at once
@@ -25,6 +52,14 @@ export async function createBulkCharges(formData: FormData) {
   const amounts = formData.getAll('amounts').filter((v): v is string => typeof v === 'string');
 
   if (unitIds.length === 0) return { error: 'No units selected' };
+  const unitsError = await bulkUnitsError(db, str(formData, 'association_id'), unitIds);
+  if (unitsError) return { error: unitsError };
+
+  // A double click or a re-sent form must not charge the units twice.
+  const claim = await claimSubmission(db, formData, 'bulk_charges');
+  if (claim.status === 'error') return { error: claim.message };
+  if (claim.status === 'duplicate') return { error: 'These charges were already created. Refresh the receivables page to see them.' };
+  const token = claim.token;
 
   const charges = unitIds.map((uid, i) => ({
     unit_id: uid,
@@ -41,12 +76,16 @@ export async function createBulkCharges(formData: FormData) {
     p_gl_account_id: glAccountId,
   });
 
-  if (error) return { error: error.message };
+  if (error) { await releaseSubmission(db, token); return { error: error.message }; }
+  // A set-returning function: PostgREST hands back [{ inserted_count, charge_ids }].
+  const row = (Array.isArray(data) ? data[0] : data) as { inserted_count?: number; charge_ids?: string[] } | null;
+  const chargeIds = row?.charge_ids ?? [];
+  if (chargeIds[0]) await completeSubmission(db, token, chargeIds[0]);
 
   revalidatePath('/charges');
   revalidatePath('/charges/bulk');
   revalidatePath('/accounting');
-  return { success: true, count: (data as any)?.inserted_count ?? 0, charge_ids: (data as any)?.charge_ids ?? [] };
+  return { success: true, count: row?.inserted_count ?? chargeIds.length, charge_ids: chargeIds };
 }
 
 /* ================================================================
@@ -66,6 +105,14 @@ export async function createBulkRecurringCharges(formData: FormData) {
   const amounts = formData.getAll('amounts').filter((v): v is string => typeof v === 'string');
 
   if (unitIds.length === 0) return { error: 'No units selected' };
+  const unitsError = await bulkUnitsError(db, str(formData, 'association_id'), unitIds);
+  if (unitsError) return { error: unitsError };
+
+  // A double click or a re-sent form must not set the schedule up twice.
+  const claim = await claimSubmission(db, formData, 'bulk_recurring_charges');
+  if (claim.status === 'error') return { error: claim.message };
+  if (claim.status === 'duplicate') return { error: 'These recurring charges were already created. Refresh the receivables page to see them.' };
+  const token = claim.token;
 
   const subscriptions = unitIds.map((uid, i) => ({
     unit_id: uid,
@@ -83,11 +130,15 @@ export async function createBulkRecurringCharges(formData: FormData) {
     p_memo: memo,
   });
 
-  if (error) return { error: error.message };
+  if (error) { await releaseSubmission(db, token); return { error: error.message }; }
+  // A set-returning function: PostgREST hands back [{ inserted_count, subscription_ids }].
+  const row = (Array.isArray(data) ? data[0] : data) as { inserted_count?: number; subscription_ids?: string[] } | null;
+  const subscriptionIds = row?.subscription_ids ?? [];
+  if (subscriptionIds[0]) await completeSubmission(db, token, subscriptionIds[0]);
 
   revalidatePath('/charges');
   revalidatePath('/charges/bulk-recurring');
-  return { success: true, count: (data as any)?.inserted_count ?? 0, subscription_ids: (data as any)?.subscription_ids ?? [] };
+  return { success: true, count: row?.inserted_count ?? subscriptionIds.length, subscription_ids: subscriptionIds };
 }
 
 /* ================================================================

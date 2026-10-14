@@ -8,7 +8,7 @@ import { queueEmails, textToHtml } from '@/lib/email/queue';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 import { isUuid, managesAssociation } from '@/lib/security/association-scope';
-import { todayInZone } from '@/lib/time/zoned';
+import { associationToday } from '@/lib/time/association-today';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -82,7 +82,10 @@ export async function sendNotice(formData: FormData) {
     const seenOwner = new Set<string>();
     // A scheduled move-out that has arrived ends ownership even while the
     // occupancy still reads 'current'.
-    const today = todayInZone();
+    // ...by the association's own date, not the server's.
+    const local = await associationToday(db, notice.association_id);
+    if (local.error !== null) await failAndRelease(`Could not load the association: ${local.error}`);
+    const today = local.today as string;
     const resolved = (occs.rows as any[])
       .filter((o) => !o.move_out_date || o.move_out_date > today)
       .map((o) => o.owners)

@@ -4,6 +4,19 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Reports deep check (20261016100000 live as 20261014123933): user and sign-in reports limited to full-access staff and company admins; scheduled report emails only to active staff who can see the report, with sign-in links; downloads re-check access; schedules whose user lost access pause once; A/R aging matches Receivables; fund reports tie out per fund; association-local as-of dates; fiscal-year net income.
+- Setup records deep check (claude/setup-records-deep-check, 20261016164000 +
+  20261016164100, LIVE as 20261014122819 / 20261014122901): bulk and recurring charges
+  post once in the association's own categories and dates; owner bank details and Stripe
+  settings locked to their company; no cascading deletes; board seats, lock boxes and
+  reminders stay in their association; owners can't read parking notes; former owners
+  get no automation or calendar emails.
+- Company admin / operator deep check (claude/admin-operator-deep-check, 20261016130000 LIVE as 20261014123525): company settings and staff roles only by the company admin; a suspended company's email, texts, mail, webhooks, AutoPay, scheduled reports, management fees, late fees and automation flows are held until reactivation; webhook SSRF via IPv6 forms closed; fee and domain-verification columns frozen for direct writes; AI assistants scoped and errors kept server-side.
+- GL / close deep check (20261016200000 live as 20261014121412): no double
+  posting of lockbox checks, management fees or recurring entries; lockbox
+  posts to the current owner; used GL accounts locked; scoped managers can't
+  change company-wide GL or fee defaults; finalized year-end frozen; owners
+  can't read management agreements.
 - Ownership fixes (claude/ownership-fixes, 20261016010000): a sale can't be
   dated in the future; statements go to the owner(s) of record in the
   period; a sale or move-out ends the outgoing owner's parking, stops its

@@ -10,7 +10,7 @@ import { createBulkCharges } from '@/lib/rpcs/bulk-operations';
 import { money } from '@/lib/utils';
 
 interface Association { id: string; name: string; }
-interface Category { id: string; name: string; code: string; charge_type: string; is_assessment: boolean; default_amount: number; }
+interface Category { id: string; name: string; code: string; charge_type: string; is_assessment: boolean; default_amount: number; association_id: string | null; }
 interface UnitInfo {
   unit_id: string;
   unit_number: string;
@@ -24,10 +24,12 @@ export function BulkChargesForm({
   associations,
   categories,
   portfolioId,
+  submissionToken: initialSubmissionToken,
 }: {
   associations: Association[];
   categories: Category[];
   portfolioId: string | undefined;
+  submissionToken: string;
 }) {
   const [selectedAssoc, setSelectedAssoc] = useState<string>('');
   const [units, setUnits] = useState<UnitInfo[]>([]);
@@ -40,13 +42,18 @@ export function BulkChargesForm({
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  // One-time token (form_submissions): a double click or retry creates the
+  // batch once. A new one is made after each successful batch.
+  const [submissionToken, setSubmissionToken] = useState<string>(initialSubmissionToken);
 
-  const assessmentCategories = categories.filter((c) => c.is_assessment);
+  // The association's own categories and the company-wide ones only.
+  const assessmentCategories = categories.filter((c) => c.is_assessment && (!c.association_id || c.association_id === selectedAssoc));
 
   // Load units when association changes
   async function loadUnits(assocId: string) {
     setSelectedAssoc(assocId);
     setSelectedUnits(new Set());
+    setCategoryId('');
     if (!assocId) { setUnits([]); return; }
     setLoading(true);
     try {
@@ -80,6 +87,8 @@ export function BulkChargesForm({
     setSending(true);
     setError(null);
     const fd = new FormData();
+    fd.set('submission_token', submissionToken);
+    fd.set('association_id', selectedAssoc);
     fd.set('description', description || 'Assessment charge');
     fd.set('due_date', dueDate);
     if (categoryId) fd.set('charge_category_id', categoryId);
@@ -90,7 +99,7 @@ export function BulkChargesForm({
     try {
       const r = await createBulkCharges(fd);
       if (r.error) setError(r.error);
-      else setResult(r);
+      else { setResult(r); setSubmissionToken(crypto.randomUUID()); }
     } catch (e: any) {
       setError(e.message || 'Failed');
     }

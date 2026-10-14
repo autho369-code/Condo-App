@@ -11,6 +11,34 @@ describe('webhook URL boundary', () => {
     expect(isPublicWebhookIp('2606:4700:4700::1111')).toBe(true);
   });
 
+  it('rejects private addresses written in IPv6 forms (mapped, compatible, 6to4, NAT64, multicast)', () => {
+    for (const address of [
+      '::ffff:7f00:1', '::ffff:a9fe:a9fe', '::ffff:10.0.0.1', '::7f00:1', '::127.0.0.1', '0:0:0:0:0:0:0:1',
+      '2002:7f00:1::', '2002:a9fe:a9fe::1', '64:ff9b::a9fe:a9fe', '64:ff9b:1::1', 'ff02::1', 'fec0::1',
+      '2001:0:4136:e378::1', '2001:db8::1', '100::1', 'FD00::1', 'fe80::1%eth0', 'not-an-ip', '1::2::3',
+    ]) {
+      expect(isPublicWebhookIp(address), address).toBe(false);
+    }
+    expect(isPublicWebhookIp('::ffff:8.8.8.8')).toBe(true);
+    expect(isPublicWebhookIp('2002:808:808::1')).toBe(true);
+    expect(isPublicWebhookIp('2a00:1450:4001:80b::200e')).toBe(true);
+  });
+
+  it('rejects IPv4-translated addresses and the 6to4 relay range', () => {
+    for (const address of ['::ffff:0:a9fe:a9fe', '::ffff:0:127.0.0.1', '::ffff:0:10.0.0.1', '0:0:0:0:ffff:0:7f00:1',
+      '192.88.99.1', '::ffff:192.88.99.1', '2002:c058:6301::1']) {
+      expect(isPublicWebhookIp(address), address).toBe(false);
+    }
+    expect(isPublicWebhookIp('::ffff:0:8.8.8.8')).toBe(true);
+    expect(isPublicWebhookIp('192.88.98.1')).toBe(true);
+  });
+
+  it('rejects a literal IPv6 URL that maps to the cloud metadata address', async () => {
+    const noDns = async () => [];
+    await expect(validatedWebhookUrl('https://[::ffff:169.254.169.254]/latest', noDns)).rejects.toThrow('public internet addresses');
+    await expect(validatedWebhookUrl('https://[::ffff:127.0.0.1]/x', noDns)).rejects.toThrow('public internet addresses');
+  });
+
   it('requires HTTPS, public DNS, no credentials, and the standard port', async () => {
     const publicDns = async () => [{ address: '8.8.8.8', family: 4 }];
     await expect(validatedWebhookUrl('https://hooks.example.com/events', publicDns)).resolves.toBe('https://hooks.example.com/events');

@@ -8,6 +8,7 @@ import { Alert, Badge } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { matchLockboxItem, postLockboxBatch, rejectLockboxItem } from '@/lib/rpcs/lockbox';
 import { date, money } from '@/lib/utils';
 import { PendingSubmit } from '@/components/ui/pending-submit';
@@ -35,15 +36,18 @@ export default async function LockboxBatchPage({
   const { data: batch } = await db.from('lockbox_batches')
     .select('id, batch_date, deposit_reference, status, association_id, bank_accounts(name)').eq('id', id).maybeSingle();
   if (!batch) notFound();
-  const [{ data: items }, { data: units }] = await Promise.all([
-    db.from('lockbox_items')
+  // A batch can hold up to 2,000 checks and an association more than 1,000
+  // units: read every row (the API stops at 1,000 without an error).
+  const [itemsRes, unitsRes] = await Promise.all([
+    fetchAllRows<any>(() => db.from('lockbox_items')
       .select('id, row_no, check_number, check_amount_cents, payer_name, memo, unit_id, matched_confidence, match_reason, rejected, rejection_reason, payment_id, post_error, units(unit_number), owners(full_name)')
-      .eq('batch_id', id).order('row_no', { ascending: true }),
-    db.from('units').select('id, unit_number, buildings!inner(association_id), occupancies(status, occupancy_type, owners(full_name))')
-      .eq('buildings.association_id', batch.association_id).is('archived_at', null).order('unit_number'),
+      .eq('batch_id', id).order('row_no', { ascending: true }).order('id')),
+    fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id), occupancies(status, occupancy_type, owners(full_name))')
+      .eq('buildings.association_id', batch.association_id).is('archived_at', null).order('unit_number').order('id')),
   ]);
-  const list = (items ?? []) as any[];
-  const unitOptions = ((units ?? []) as any[]).map((u) => {
+  if (itemsRes.error || unitsRes.error) throw new Error(`Could not load the lockbox batch: ${itemsRes.error ?? unitsRes.error}`);
+  const list = itemsRes.rows;
+  const unitOptions = unitsRes.rows.map((u) => {
     const owner = (u.occupancies ?? []).find((o: any) => o.status === 'current' && o.occupancy_type === 'owner')?.owners?.full_name;
     return { id: u.id, label: `Unit ${u.unit_number}${owner ? ` · ${owner}` : ''}` };
   });

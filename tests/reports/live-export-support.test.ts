@@ -74,7 +74,7 @@ describe('audited live report exports', () => {
     expect(page).not.toContain('const classifyIS =');
   });
 
-  it('limits balance-sheet current-year earnings to the report year', () => {
+  it('limits balance-sheet current-year earnings to the fiscal year', () => {
     const page = readFileSync(
       resolve(process.cwd(), 'app/(app)/reports/[slug]/page.tsx'),
       'utf8',
@@ -83,8 +83,8 @@ describe('audited live report exports', () => {
       resolve(process.cwd(), 'lib/reports/live-export.ts'),
       'utf8',
     );
-    expect(page).toContain("const currentYearStart = \`\${period.to.slice(0, 4)}-01-01\`");
-    expect(exporter).toContain("const currentYearStart = \`\${dateTo.slice(0, 4)}-01-01\`");
+    expect(page).toContain('const currentYearStart = await fiscalYearStartFor(db, period.to, selectedAssociation || null)');
+    expect(exporter).toContain('const currentYearStart = await fiscalYearStartFor(db, dateTo, associationId, portfolioId)');
     expect(exporter).toContain('netIncome(accounts, currentYearTotals)');
   });
 

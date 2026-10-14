@@ -5,7 +5,9 @@ import { Workspace, WorkspaceHeader, Section } from '@/components/reports/worksp
 import { buttonClass } from '@/components/ui/button';
 import { cancelReportRun } from '@/lib/rpcs/reports';
 import { date } from '@/lib/utils';
+import { reportRunDownloadPath } from '@/lib/reports/run-files';
 import { PendingSubmit } from '@/components/ui/pending-submit';
+import { Alert } from '@/components/ui/shell';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -15,13 +17,31 @@ export default async function ReportRunDetail({ params, searchParams }: { params
   const sp = await searchParams;
   const supabase = await createClient();
 
-  const { data: run } = await (supabase as any)
+  const { data: run, error: runError } = await (supabase as any)
     .from('report_runs')
     .select('*, report_definitions(id, slug, name, category, description)')
     .eq('id', id)
     .maybeSingle();
 
-  if (!run) notFound();
+  const eyebrow = (
+    <>
+      <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
+      {' · '}
+      <Link href="/reports/runs" className="transition-colors hover:text-gray-700">Run history</Link>
+    </>
+  );
+
+  if (!run) {
+    if (!runError && !sp.error) notFound();
+    return (
+      <Workspace header={<WorkspaceHeader eyebrow={eyebrow} title="Report run" />}>
+        <div className="space-y-4">
+          {sp.error && <Alert tone="danger" title="Something went wrong">{sp.error}</Alert>}
+          {runError && <Alert tone="danger" title="Could not load this report run">{runError.message}</Alert>}
+        </div>
+      </Workspace>
+    );
+  }
   const def = run.report_definitions as any;
   const isInFlight = run.status === 'queued' || run.status === 'running';
 
@@ -31,18 +51,12 @@ export default async function ReportRunDetail({ params, searchParams }: { params
         <>
           {isInFlight && <meta httpEquiv="refresh" content="3" />}
           <WorkspaceHeader
-            eyebrow={
-              <>
-                <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
-                {' · '}
-                <Link href="/reports/runs" className="transition-colors hover:text-gray-700">Run history</Link>
-              </>
-            }
+            eyebrow={eyebrow}
             title={def?.name ?? 'Report run'}
             subtitle={def?.description}
             actions={
               run.status === 'succeeded' && run.output_url ? (
-                <a href={run.output_url} target="_blank" rel="noopener" className={buttonClass()}>Download {run.output_format?.toUpperCase()}</a>
+                <a href={reportRunDownloadPath(run.id)} className={buttonClass()}>Download {run.output_format?.toUpperCase()}</a>
               ) : isInFlight ? (
                 <form action={cancelReportRun.bind(null, run.id) as any}>
                   <PendingSubmit variant="secondary" size="sm" pendingLabel="Cancelling…" confirm="Cancel this report run?">Cancel run</PendingSubmit>
@@ -109,8 +123,8 @@ export default async function ReportRunDetail({ params, searchParams }: { params
       }
     >
       {sp.error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          <span className="font-semibold">Something went wrong:</span> {sp.error}
+        <div className="mb-6">
+          <Alert tone="danger" title="Something went wrong">{sp.error}</Alert>
         </div>
       )}
 

@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { todayInZone } from '@/lib/time/zoned';
+import { associationToday } from '@/lib/time/association-today';
 
 function s(fd: FormData, k: string): string | null {
   const v = fd.get(k);
@@ -59,11 +60,13 @@ export async function assignParkingSpace(formData: FormData) {
   const tenantId = s(formData, 'tenant_id');
   // The unit (and tenant) must belong to the space's association — the
   // assignment can auto-bill the unit, so never trust these form ids.
+  let unitAssociationId: string | null = null;
   if (unitId) {
     const { data: unit } = await db.from('units').select('id, buildings!inner(association_id)').eq('id', unitId).maybeSingle();
     if (!unit || (space.association_id && unit.buildings?.association_id !== space.association_id)) {
       fail('That unit is not in the same association as this parking space.');
     }
+    unitAssociationId = unit.buildings?.association_id ?? null;
   }
   if (tenantId) {
     const { data: tenant } = await db.from('tenants').select('id, association_id, unit_id').eq('id', tenantId).maybeSingle();
@@ -74,7 +77,15 @@ export async function assignParkingSpace(formData: FormData) {
   // Owner-side parking views (owner profile, owner portal vehicles) read
   // parking_assignments.owner_id. When the space goes to the unit itself (no
   // tenant), attach the unit's current owner.
-  const startDate = s(formData, 'start_date') ?? todayInZone();
+  // "Today" is the association's date, not the server's.
+  const spaceAssociationId: string | null = space.association_id ?? unitAssociationId;
+  let today = todayInZone();
+  if (spaceAssociationId) {
+    const local = await associationToday(db, spaceAssociationId);
+    if (local.error !== null) fail(`Could not load the association: ${local.error}`);
+    today = local.today;
+  }
+  const startDate = s(formData, 'start_date') ?? today;
   // The owner on the assignment's start date (a scheduled transfer or a
   // move-out that has arrived must not hand the space to the wrong owner).
   let ownerId: string | null = null;
@@ -108,7 +119,7 @@ export async function assignParkingSpace(formData: FormData) {
     monthly_fee: monthlyFee,
     deposit_amount: num(formData, 'deposit_amount') ?? space.deposit_amount,
     deposit_paid: formData.get('deposit_paid') === 'on',
-    deposit_paid_at: formData.get('deposit_paid') === 'on' ? todayInZone() : null,
+    deposit_paid_at: formData.get('deposit_paid') === 'on' ? today : null,
     vehicle_make: s(formData, 'vehicle_make'),
     vehicle_model: s(formData, 'vehicle_model'),
     vehicle_color: s(formData, 'vehicle_color'),
@@ -130,6 +141,10 @@ export async function assignParkingSpace(formData: FormData) {
   if (unitId && billToUnit && monthlyFee > 0) {
     const { data: cat } = await db.from('charge_categories')
       .select('id').eq('portfolio_id', me.portfolio?.id).eq('code', 'PARKING').eq('active', true).is('archived_at', null)
+      // The unit's association's own Parking Fee category, else the
+      // company-wide one; never another association's.
+      .or(`association_id.is.null,association_id.eq.${unitAssociationId}`)
+      .order('association_id', { ascending: true, nullsFirst: false })
       .limit(1).maybeSingle();
     if (!cat) {
       warning = 'Space assigned, but no active "Parking Fee" category exists to bill the unit. Create one under Charge categories.';
@@ -160,12 +175,23 @@ export async function releaseParkingSpace(formData: FormData) {
   await requireStaff();
   const assignmentId = formData.get('assignment_id') as string;
   const depositReturned = formData.get('deposit_returned') === 'on';
-  const today = todayInZone();
 
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: assignment } = await db.from('parking_assignments').select('recurring_charge_id').eq('id', assignmentId).maybeSingle();
+  const { data: assignment } = await db.from('parking_assignments')
+    .select('recurring_charge_id, status, parking_spaces(association_id)').eq('id', assignmentId).maybeSingle();
+  if (!assignment) fail('Assignment not found or you do not have access to it.');
+  // Releasing again would overwrite an ended assignment's history.
+  if (assignment.status !== 'active') fail('That space was already released.');
+  // The release is dated on the association's today, not the server's.
+  let today = todayInZone();
+  const releaseAssociationId: string | null = (assignment.parking_spaces as any)?.association_id ?? null;
+  if (releaseAssociationId) {
+    const local = await associationToday(db, releaseAssociationId);
+    if (local.error !== null) fail(`Could not load the association: ${local.error}`);
+    today = local.today;
+  }
 
   const { data: ended, error } = await db.from('parking_assignments').update({
     status: 'ended',
@@ -173,9 +199,9 @@ export async function releaseParkingSpace(formData: FormData) {
     deposit_returned: depositReturned,
     deposit_returned_at: depositReturned ? today : null,
     updated_at: new Date().toISOString(),
-  }).eq('id', assignmentId).select('id');
+  }).eq('id', assignmentId).eq('status', 'active').select('id');
   if (error) fail(`Could not release space: ${error.message}`);
-  if (!ended || ended.length === 0) fail('Assignment not found or you do not have access to it.');
+  if (!ended || ended.length === 0) fail('That space was already released, or you do not have access to it.');
 
   // Stop the unit's monthly parking charge that this assignment created.
   let warning: string | null = null;

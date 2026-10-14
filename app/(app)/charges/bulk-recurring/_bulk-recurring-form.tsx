@@ -10,15 +10,17 @@ import { createBulkRecurringCharges } from '@/lib/rpcs/bulk-operations';
 import { money } from '@/lib/utils';
 
 interface Association { id: string; name: string; }
-interface Category { id: string; name: string; code: string; charge_type: string; is_assessment: boolean; default_amount: number; default_frequency: string; }
+interface Category { id: string; name: string; code: string; charge_type: string; is_assessment: boolean; default_amount: number; association_id: string | null; default_frequency: string; }
 interface UnitInfo { unit_id: string; unit_number: string; owner_name: string | null; current_dues: number; }
 
 export function BulkRecurringForm({
   associations,
   categories,
+  submissionToken: initialSubmissionToken,
 }: {
   associations: Association[];
   categories: Category[];
+  submissionToken: string;
 }) {
   const [selectedAssoc, setSelectedAssoc] = useState<string>('');
   const [units, setUnits] = useState<UnitInfo[]>([]);
@@ -32,12 +34,17 @@ export function BulkRecurringForm({
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  // One-time token (form_submissions): a double click or retry creates the
+  // batch once. A new one is made after each successful batch.
+  const [submissionToken, setSubmissionToken] = useState<string>(initialSubmissionToken);
 
-  const assessmentCategories = categories.filter((c: any) => c.is_assessment);
+  // The association's own categories and the company-wide ones only.
+  const assessmentCategories = categories.filter((c) => c.is_assessment && (!c.association_id || c.association_id === selectedAssoc));
 
   async function loadUnits(assocId: string) {
     setSelectedAssoc(assocId);
     setSelectedUnits(new Set());
+    setCategoryId('');
     if (!assocId) { setUnits([]); return; }
     setLoading(true);
     try {
@@ -62,6 +69,8 @@ export function BulkRecurringForm({
     if (!categoryId) { setError('Select a charge category'); return; }
     setSending(true); setError(null);
     const fd = new FormData();
+    fd.set('submission_token', submissionToken);
+    fd.set('association_id', selectedAssoc);
     fd.set('charge_category_id', categoryId);
     fd.set('frequency', frequency);
     if (startDate) fd.set('start_date', startDate);
@@ -73,7 +82,7 @@ export function BulkRecurringForm({
     try {
       const r = await createBulkRecurringCharges(fd);
       if (r.error) setError(r.error);
-      else setResult(r);
+      else { setResult(r); setSubmissionToken(crypto.randomUUID()); }
     } catch (e: any) { setError(e.message || 'Failed'); }
     setSending(false);
   }

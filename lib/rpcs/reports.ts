@@ -133,7 +133,19 @@ export async function runScheduleNow(formData: FormData) {
     .eq('scheduled_report_id', id)
     .order('created_at', { ascending: true })
     .limit(3);
-  if (!runs || runs.length === 0) redirect(`/scheduled-reports?error=${encodeURIComponent('No run was queued for this schedule. Check its recipients and report, then try again.')}`);
+  if (!runs || runs.length === 0) {
+    // The enqueuer pauses a schedule whose user lost access and records why.
+    const { data: refused } = await svc
+      .from('report_runs')
+      .select('error_message')
+      .eq('scheduled_report_id', id)
+      .eq('status', 'failed')
+      .gte('created_at', new Date(Date.now() - 5 * 60000).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    redirect(`/scheduled-reports?error=${encodeURIComponent(refused?.error_message ?? 'No run was queued for this schedule. Check its recipients and report, then try again.')}`);
+  }
   for (const run of runs ?? []) {
     try { await processReportRun(run.id); } catch { /* run row records its own failure */ }
   }

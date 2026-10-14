@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
-import { todayInZone } from '@/lib/time/zoned';
+import { associationToday } from '@/lib/time/association-today';
 
 const BOARD_ROLES = ['president', 'vice_president', 'secretary', 'treasurer', 'director'] as const;
 
@@ -30,11 +30,27 @@ export async function addOwnerToBoard(ownerId: string, formData: FormData) {
 
   const { data: owner } = await db
     .from('owners')
-    .select('id, full_name, email, phone, auth_user_id')
+    .select('id, full_name, email, phone, auth_user_id, association_id')
     .eq('id', ownerId)
     .is('archived_at', null)
     .maybeSingle();
   if (!owner) failTo('Owner not found.');
+  // A board seat belongs to a current owner of that association: the owner
+  // record is the association's own, with a unit there today.
+  if (owner.association_id !== associationId) failTo('This owner is not a homeowner in that association.');
+  const local = await associationToday(db, associationId);
+  if (local.error !== null) failTo(`Could not check the association: ${local.error}`);
+  const { data: currentUnits, error: occError } = await db
+    .from('occupancies')
+    .select('id')
+    .eq('owner_id', ownerId)
+    .eq('association_id', associationId)
+    .eq('occupancy_type', 'owner')
+    .eq('status', 'current')
+    .or(`move_out_date.is.null,move_out_date.gt.${local.today}`)
+    .limit(1);
+  if (occError) failTo(`Could not check the owner's units: ${occError.message}`);
+  if ((currentUnits ?? []).length === 0) failTo('Only a current homeowner of that association can hold a board seat.');
 
   const { data: existing } = await db
     .from('board_members')
@@ -71,9 +87,15 @@ export async function endBoardSeat(ownerId: string, formData: FormData) {
   if (!seatId) redirect(`${back}?error=${encodeURIComponent('Missing board seat.')}`);
 
   const supabase = await createClient();
-  const { data: changed, error } = await (supabase as any)
+  const db = supabase as any;
+  const { data: seat } = await db.from('board_members').select('id, association_id').eq('id', seatId).eq('owner_id', ownerId).maybeSingle();
+  if (!seat) redirect(`${back}?error=${encodeURIComponent('Board seat was not ended: it is gone or your account cannot edit it.')}`);
+  // The seat ends on the association's today, not the server's.
+  const local = await associationToday(db, seat.association_id);
+  if (local.error !== null) redirect(`${back}?error=${encodeURIComponent(`Could not check the association: ${local.error}`)}`);
+  const { data: changed, error } = await db
     .from('board_members')
-    .update({ active: false, term_end: todayInZone() })
+    .update({ active: false, term_end: local.today })
     .eq('id', seatId)
     .eq('owner_id', ownerId)
     .select('id');

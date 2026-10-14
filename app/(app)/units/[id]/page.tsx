@@ -157,6 +157,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
           {/* Subscribe form */}
           <form action={subscribeUnitToCharge as any} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 md:grid-cols-5">
             <input type="hidden" name="unit_id" value={unitId} />
+            <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <div className="md:col-span-2">
               <Label htmlFor="charge_category_id">Add subscription</Label>
               <select id="charge_category_id" name="charge_category_id" required

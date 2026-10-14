@@ -9,7 +9,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { resolveAuthorizedOwnerUnit } from '@/lib/security/tenant-boundaries';
 import { queueOwnerPortalInvitation } from '@/lib/auth/owner-invitation';
-import { todayInZone } from '@/lib/time/zoned';
+import { associationToday } from '@/lib/time/association-today';
 import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
 
 function s(fd: FormData, k: string): string | null {
@@ -65,6 +65,33 @@ export async function createOwnerWithDetails(formData: FormData) {
     }
   }
 
+  // "Today" is the association's date, not the server's.
+  const local = await associationToday(db, assignment.associationId);
+  if (local.error !== null) {
+    redirect('/owners/new?error=' + encodeURIComponent(`Could not load the association: ${local.error}`));
+  }
+  const today = local.today;
+
+  // Every fee category must fit the unit's association before anything is
+  // created: a category limited to another association would be refused after
+  // the owner already exists, leaving them without the fee.
+  const feeCategoryIds = [...new Set((formData.getAll('fee_category_id') as string[]).map((c) => c.trim()).filter(Boolean))];
+  if (feeCategoryIds.length > 0) {
+    const { data: feeCats, error: feeCatsErr } = await db
+      .from('charge_categories')
+      .select('id, name, association_id')
+      .in('id', feeCategoryIds);
+    if (feeCatsErr) redirect('/owners/new?error=' + encodeURIComponent(`Could not check the fee categories: ${feeCatsErr.message}`));
+    const misfit = ((feeCats ?? []) as Array<{ id: string; name: string; association_id: string | null }>)
+      .find((c) => c.association_id && c.association_id !== assignment.associationId);
+    if (misfit || (feeCats ?? []).length !== feeCategoryIds.length) {
+      redirect('/owners/new?error=' + encodeURIComponent(
+        misfit
+          ? `The fee "${misfit.name}" belongs to another association. Remove it or pick a category for this unit's association.`
+          : 'A selected fee category was not found. Refresh the page and try again.'));
+    }
+  }
+
   const warnings: string[] = [];
   const activatePortal = formData.get('activate_portal') === 'on';
   const addBoardSeat = formData.get('board_member') === 'on';
@@ -100,7 +127,7 @@ export async function createOwnerWithDetails(formData: FormData) {
   }
 
   const ownerId = owner.id;
-  const moveIn = s(formData, 'move_in_date') ?? todayInZone();
+  const moveIn = s(formData, 'move_in_date') ?? today;
 
   // 3) Owner occupancy + regular monthly assessment
   let occupancyId: string | null = null;
@@ -212,7 +239,7 @@ export async function createOwnerWithDetails(formData: FormData) {
       phone: s(formData, 'phone'),
       role,
       active: true,
-      term_start: todayInZone(),
+      term_start: today,
       auth_user_id: null,
     });
     if (bmErr) {

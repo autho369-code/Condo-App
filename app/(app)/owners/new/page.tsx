@@ -19,9 +19,17 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
   const [{ data: associations }, { data: units }, { data: categories }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('units').select('id, unit_number, buildings!inner(association_id)').is('archived_at', null).order('unit_number'),
-    db.from('charge_categories').select('id, name, code, default_amount, default_frequency, charge_type')
+    db.from('charge_categories').select('id, name, code, default_amount, default_frequency, charge_type, association_id')
       .eq('portfolio_id', me.portfolio?.id).eq('active', true).is('archived_at', null).order('sort_order'),
   ]);
+
+  // A category that belongs to one association says so: it can only be used
+  // on that association's units (the database refuses it elsewhere).
+  const associationNames = new Map<string, string>(((associations ?? []) as Array<{ id: string; name: string }>).map((a) => [a.id, a.name]));
+  const feeCategories: FeeCategory[] = ((categories ?? []) as Array<FeeCategory & { code?: string | null; association_id?: string | null }>)
+    .filter((c) => (c.code ?? '').toUpperCase() !== 'DUES')
+    .filter((c) => !c.association_id || associationNames.has(c.association_id))
+    .map((c) => (c.association_id ? { ...c, name: `${c.name} (${associationNames.get(c.association_id)} only)` } : c));
 
   const inputCls = 'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
 
@@ -114,7 +122,7 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
             Parking (with space #), storage / bike locker (with locker #), internet, special assessment, move fees, and any custom fee.
             Need a fee type that isn&apos;t listed? <Link href="/charge-categories/new" className="font-medium text-gray-700 hover:text-gray-950 hover:underline">Create a custom fee type →</Link>
           </p>
-          <FeeScheduleBuilder categories={((categories ?? []) as Array<FeeCategory & { code?: string | null }>).filter((c) => (c.code ?? '').toUpperCase() !== 'DUES')} />
+          <FeeScheduleBuilder categories={feeCategories} />
         </section>
 
         {/* ── Rental / tenant ── */}

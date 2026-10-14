@@ -104,9 +104,9 @@ export function Tile({
     positive: 'text-green-700',
   };
   return (
-    <div className="rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <div className="min-w-0 rounded-2xl border border-line bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="text-[13px] font-medium text-gray-500">{label}</div>
-      <div className={'mt-1 font-display text-[24px] font-semibold tabular-nums tracking-[-0.02em] ' + toneClasses[tone]}>{value}</div>
+      <div className={'mt-1 break-words font-display text-[20px] font-semibold sm:text-[24px] tabular-nums tracking-[-0.02em] ' + toneClasses[tone]}>{value}</div>
       {sub && <div className="mt-0.5 text-[13px] text-gray-500">{sub}</div>}
     </div>
   );

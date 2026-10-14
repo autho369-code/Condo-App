@@ -13,6 +13,11 @@ Everything Claude can do alone is done; these need Mirsad (accounts, keys,
 DNS or decisions). Details for the older items are further down.
 
 **Housekeeping (quick)**
+- [ ] **Reactivated company: late fees before AutoPay?** (2026-10-14) While a
+      company is suspended, AutoPay and late fees are held. On the day it is
+      reactivated, the late-fee run (11:10 UTC) comes before the held AutoPay
+      charges (14:00 UTC), so an AutoPay owner can get a late fee. Skip late
+      fees for AutoPay units on reactivation day? [yes]
 - [ ] **Purchase orders, projects, inventory: 9 quick decisions** (deep check
       2026-10-14; built as described today, my recommendation in brackets):
       1. Staff record the board's decision on a PO, including one they

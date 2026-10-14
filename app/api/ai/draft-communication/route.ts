@@ -85,7 +85,8 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Draft communication error:', error);
     return NextResponse.json({
-      error: error?.message || 'Draft failed',
+      // Provider details stay in the server log.
+      error: 'The draft could not be written right now.',
       hint: 'Check your AI provider settings and API key.',
     }, { status: 500 });
   }

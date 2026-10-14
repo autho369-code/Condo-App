@@ -57,14 +57,15 @@ export async function GET(request: NextRequest) {
       results.push({ run: run.id, status: done?.status ?? 'unknown', error: done?.error_message ?? undefined });
     }
 
-    // Recover all still-downloadable successful runs, not just those generated
-    // above. If execution stopped after generation but before queue insertion,
-    // the next cron tick recovers delivery. Queue keys guarantee exactly one
-    // email per run and normalized recipient across every replay.
-    const recoveryCutoff = new Date(Date.now() - 30 * 86400000).toISOString();
+    // Recover recent successful runs, not just those generated above. If
+    // execution stopped after generation but before queue insertion, the next
+    // cron tick recovers delivery. Queue keys guarantee exactly one email per
+    // run and normalized recipient across every replay. Two days, like the
+    // failure notices: an older run is not news any more.
+    const recoveryCutoff = new Date(Date.now() - 2 * 86400000).toISOString();
     const { data: deliverable, error: deliveryLookupError } = await svc
       .from('report_runs')
-      .select('id, portfolio_id, output_url, finished_at, portfolios(company_name, support_email), scheduled_reports:scheduled_report_id(name, delivery_channel, delivery_targets)')
+      .select('id, portfolio_id, output_url, finished_at, portfolios(company_name, support_email, slug, custom_domain, custom_domain_verified_at), scheduled_reports:scheduled_report_id(name, delivery_channel)')
       .eq('status', 'succeeded')
       .not('scheduled_report_id', 'is', null)
       .not('output_url', 'is', null)
@@ -77,21 +78,33 @@ export async function GET(request: NextRequest) {
     for (const run of deliverable ?? []) {
       const schedule = run.scheduled_reports;
       if (schedule?.delivery_channel !== 'email') continue;
-      const targets = Array.from(new Set(
-        (Array.isArray(schedule.delivery_targets) ? schedule.delivery_targets : [])
-          .map((value: unknown) => String(value ?? '').trim().toLowerCase())
-          .filter((value: string) => EMAIL_PATTERN.test(value) && value.length <= 320),
-      )).slice(0, 100) as string[];
+      // Only the company's active staff who can see this report themselves,
+      // checked now (someone who left or lost access stops receiving it).
+      const { data: allowed, error: recipientError } = await svc.rpc('scheduled_report_delivery_recipients', { p_run_id: run.id });
+      if (recipientError) {
+        deliveries.push({ run: run.id, status: 'recipient_check_failed', error: recipientError.message });
+        continue;
+      }
+      const recipients = new Map<string, string | null>();
+      for (const r of (allowed ?? []) as Array<{ email: string; full_name: string | null }>) {
+        const to = String(r.email ?? '').trim().toLowerCase();
+        if (EMAIL_PATTERN.test(to) && to.length <= 320) recipients.set(to, r.full_name ?? null);
+      }
+      const targets = [...recipients.keys()].slice(0, 100);
       if (!targets.length) {
         deliveries.push({ run: run.id, status: 'no_valid_recipients' });
         continue;
       }
 
       const companyName = run.portfolios?.company_name ?? null;
+      // A link to the run on the company's own address: recipients sign in to
+      // download, so the file is never reachable through the email alone.
+      const runUrl = companyUrl(run.portfolios, `/reports/runs/${run.id}`);
       const { error, count } = await queueEmails(svc, targets.map((to) => ({
         to,
+        toName: recipients.get(to) ?? null,
         subject: `Scheduled report: ${schedule.name}`,
-        text: `Your scheduled report "${schedule.name}" is ready.\n\nDownload it here (link valid for 30 days):\n${run.output_url}`,
+        text: `Your scheduled report "${schedule.name}" is ready.\n\nSign in to download it:\n${runUrl}`,
         portfolioId: run.portfolio_id,
         fromName: companyName,
         replyTo: run.portfolios?.support_email ?? null,
@@ -111,7 +124,7 @@ export async function GET(request: NextRequest) {
     // idempotency key makes repeats no-ops, so older ones still get a notice.
     const { rows: failedRuns, error: failedLookupError } = await fetchAllRows<any>(() => svc
       .from('report_runs')
-      .select('id, portfolio_id, error_message, triggered_by, portfolios(company_name, slug, custom_domain, custom_domain_verified_at), scheduled_reports:scheduled_report_id(name)')
+      .select('id, portfolio_id, error_message, triggered_by, portfolios(company_name, support_email, slug, custom_domain, custom_domain_verified_at), scheduled_reports:scheduled_report_id(name)')
       .eq('status', 'failed')
       .not('scheduled_report_id', 'is', null)
       .gte('finished_at', new Date(Date.now() - 2 * 86400000).toISOString())
@@ -120,12 +133,19 @@ export async function GET(request: NextRequest) {
     if (failedLookupError) throw new Error(`failure lookup failed: ${failedLookupError}`);
     const ownerIds = [...new Set(failedRuns.map((r: any) => r.triggered_by).filter(Boolean))] as string[];
     const { data: owners } = ownerIds.length
-      ? await svc.from('profiles').select('id, email, full_name').in('id', ownerIds)
+      ? await svc.from('profiles').select('id, email, full_name, portfolio_id, hoa_role, disabled_at').in('id', ownerIds)
       : { data: [] };
     const ownerById = new Map(((owners ?? []) as any[]).map((o) => [o.id, o]));
     const failures: any[] = [];
     for (const run of failedRuns) {
       const owner = ownerById.get(run.triggered_by);
+      // Only to someone still on the company's staff (a schedule paused because
+      // its user left doesn't email them).
+      if (!owner || owner.disabled_at || owner.portfolio_id !== run.portfolio_id
+          || !['manager', 'company_admin'].includes(String(owner.hoa_role))) {
+        failures.push({ run: run.id, status: 'owner_not_active_staff' });
+        continue;
+      }
       const to = String(owner?.email ?? '').trim().toLowerCase();
       if (!EMAIL_PATTERN.test(to)) continue;
       const { error, count } = await queueEmails(svc, [{
@@ -135,6 +155,7 @@ export async function GET(request: NextRequest) {
         text: `Your scheduled report "${run.scheduled_reports?.name ?? 'report'}" could not be generated.\n\nReason: ${run.error_message ?? 'Unknown error'}\n\nDetails: ${companyUrl(run.portfolios, `/reports/runs/${run.id}`)}`,
         portfolioId: run.portfolio_id,
         fromName: run.portfolios?.company_name ?? null,
+        replyTo: run.portfolios?.support_email ?? null,
         idempotencyKey: `scheduled-report-failed:${run.id}`,
       }]);
       failures.push({ run: run.id, status: error ? 'queue_failed' : count ? 'notified' : 'already_notified', error });
