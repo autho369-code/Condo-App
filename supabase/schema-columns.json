@@ -226,6 +226,7 @@
 "provider_services":["provider_id","service_id"],
 "providers":["bio","created_at","email","id","is_active","name","title","updated_at"],
 "purchase_order_line_items":["created_at","description","gl_account_id","id","line_total","purchase_order_id","qty","sort_order","unit_price","updated_at"],
+"purchase_order_number_counters":["last_value","portfolio_id"],
 "purchase_order_private":["notes","purchase_order_id","updated_at"],
 "purchase_orders":["approval_request_id","approval_required","approval_status","approved_at","approved_by","archived_at","association_id","cancelled_at","created_at","created_by","decided_at","decision_note","description","id","needed_by","notes","number","po_billed","po_total","portfolio_id","recurring_period","recurring_purchase_order_id","status","submitted_at","updated_at","vendor_id","work_order_id"],
 "receivable_payments_ledger":["amount","application_count","applied_amount","association_id","association_name","bank_account_id","bank_account_name","bank_name","charge_id","created_at","method","notes","owner_id","owner_name","payment_date","payment_id","receipt_description","reference","reversal_date","reversal_reason","reversed_at","unapplied_amount","unit_id","unit_number"],

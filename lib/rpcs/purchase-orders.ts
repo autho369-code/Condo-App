@@ -5,6 +5,7 @@ import { requireFinanceStaff, requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { savePrivateFields } from '@/lib/private-fields';
 import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
+import { notifyVendorOfPurchaseOrderApproval } from '@/lib/notifications/purchase-order-approved';
 
 export type PurchaseOrderLineInput = {
   description: string;
@@ -62,17 +63,21 @@ export async function savePurchaseOrder(formData: FormData) {
     notes: String(formData.get('notes') ?? '').slice(0, 2000),
   });
   if (notesError) redirect(`/purchase-orders/${data}?error=${encodeURIComponent(`Saved, but the internal notes could not be saved: ${notesError.message}`)}`);
+  // Submitted and approved within the manager's authority: the vendor gets the order.
+  if (formData.get('intent') === 'submit') await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: String(data), portfolioId });
 
   revalidatePath('/purchase-orders');
   redirect(`/purchase-orders/${data}`);
 }
 
 export async function submitPurchaseOrder(formData: FormData) {
-  await requireFinanceStaff();
+  const me = await requireFinanceStaff();
   const id = formData.get('id') as string;
   const supabase = await createClient();
-  const { error } = await (supabase as any).rpc('submit_purchase_order', { p_purchase_order_id: id });
+  const { data, error } = await (supabase as any).rpc('submit_purchase_order', { p_purchase_order_id: id });
   if (error) redirect(`/purchase-orders/${id}?error=${encodeURIComponent(error.message)}`);
+  // Approved within the manager's authority: the vendor gets the order.
+  if (data === 'approved') await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: id, portfolioId: me.portfolio?.id });
   revalidatePath('/purchase-orders');
   redirect(`/purchase-orders/${id}`);
 }
@@ -83,7 +88,7 @@ export async function submitPurchaseOrder(formData: FormData) {
  * by email), as on the bill page.
  */
 export async function recordPurchaseOrderBoardDecision(formData: FormData) {
-  await requireFinanceStaff();  // in-action guard: server actions are callable endpoints
+  const me = await requireFinanceStaff();  // in-action guard: server actions are callable endpoints
   const id = String(formData.get('id') ?? '');
   const requestId = String(formData.get('approval_request_id') ?? '');
   const decision = String(formData.get('decision') ?? '');
@@ -98,6 +103,8 @@ export async function recordPurchaseOrderBoardDecision(formData: FormData) {
   // The RPC re-checks finance access and the association, and records who recorded the decision.
   const { error } = await (supabase as any).rpc('record_approval_decision', { p_request_id: requestId, p_decision: decision, p_note: note || null });
   if (error) failTo(error.message);
+  // The board approved: the vendor gets the order.
+  if (decision === 'approved') await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: id, portfolioId: me.portfolio?.id });
   revalidatePath('/purchase-orders');
   revalidatePath(`/purchase-orders/${id}`);
   redirect(`/purchase-orders/${id}`);

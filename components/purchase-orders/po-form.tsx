@@ -128,7 +128,7 @@ export function PurchaseOrderForm({
           {/* Only this association's vendors plus the management company. */}
           <VendorSelect id="vendor_id" name="vendor_id" required defaultValue={initial?.vendor_id ?? ''} vendors={vendors} associationId={associationId || null} placeholder="Select vendor" />
         </Field>
-        <Field label="PO number" htmlFor="number" hint="Optional — your internal reference.">
+        <Field label="PO number" htmlFor="number" hint="Leave blank to number automatically.">
           <Input id="number" name="number" defaultValue={initial?.number ?? ''} maxLength={40} />
         </Field>
         <Field label="Needed by" htmlFor="needed_by">

@@ -197,7 +197,7 @@ export default async function PurchaseOrderDetailPage({
                 <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
                 <div className="sm:col-span-2">
                   <div className="text-sm font-semibold text-gray-950">Bill this purchase order</div>
-                  <p className="mt-0.5 text-[13px] text-gray-500">Creates a bill for {po.vendors?.name ?? 'the vendor'} linked to this PO. Bills can never add up to more than the PO total.</p>
+                  <p className="mt-0.5 text-[13px] text-gray-500">Creates a bill for {po.vendors?.name ?? 'the vendor'} linked to this PO. Bills can never add up to more than the PO total.{po.approval_required ? ' The board already approved this PO, so its bills don\'t go to the board again.' : ''}</p>
                 </div>
                 <Field label="Invoice number">
                   <Input name="bill_number" maxLength={100} placeholder="Vendor's invoice #" />

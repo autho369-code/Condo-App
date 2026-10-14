@@ -8,8 +8,11 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); }),
   revalidatePath: vi.fn(),
   rpc: vi.fn(),
+  notify: vi.fn(async () => true),
   po: null as null | { approval_request_id: string | null },
 }));
+
+vi.mock('@/lib/notifications/purchase-order-approved', () => ({ notifyVendorOfPurchaseOrderApproval: mocks.notify }));
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }));
 vi.mock('@/lib/auth/me', () => ({ requireFinanceStaff: mocks.requireFinanceStaff, requireStaff: vi.fn() }));
@@ -39,7 +42,8 @@ async function run(fields: Record<string, string>) {
 
 describe('recordPurchaseOrderBoardDecision', () => {
   beforeEach(() => {
-    mocks.requireFinanceStaff.mockReset();
+    mocks.requireFinanceStaff.mockReset().mockResolvedValue({ portfolio: { id: 'pf-1' } });
+    mocks.notify.mockClear();
     mocks.rpc.mockReset().mockResolvedValue({ error: null });
     mocks.po = { approval_request_id: REQ };
     const q: any = {};
@@ -54,6 +58,8 @@ describe('recordPurchaseOrderBoardDecision', () => {
     expect(mocks.requireFinanceStaff).toHaveBeenCalled();
     expect(mocks.rpc).toHaveBeenCalledWith('record_approval_decision', { p_request_id: REQ, p_decision: 'approved', p_note: 'Board meeting 10/14' });
     expect(out).toBe(`REDIRECT:/purchase-orders/${PO}`);
+    // The board approved: the vendor is emailed, within the caller's company.
+    expect(mocks.notify).toHaveBeenCalledWith({ purchaseOrderId: PO, portfolioId: 'pf-1' });
   });
 
   it('refuses a request that is not the PO\'s', async () => {

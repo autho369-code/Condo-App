@@ -37,7 +37,7 @@ export default async function ProjectsPage({
   const db = (await createClient()) as any;
 
   // Every project and every project's totals (a 500-row cap left later
-  // projects showing $0 spent). Totals come from capital_project_spend_totals,
+  // projects showing $0 spent). Totals come from capital_project_cost_totals,
   // the same figures as the project page: bills are finance-only, so reading
   // them directly showed $0 to staff without a finance role.
   const [projectsRes, { data: associations }, financialsRes] = await Promise.all([
@@ -52,7 +52,7 @@ export default async function ProjectsPage({
       return query.order('updated_at', { ascending: false }).order('id');
     }),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    fetchAllRows<any>(() => db.rpc('capital_project_spend_totals').select('project_id, work_order_count, committed_spend').order('project_id')),
+    fetchAllRows<any>(() => db.rpc('capital_project_cost_totals').select('project_id, work_order_count, committed_amount, spent_amount').order('project_id')),
   ]);
   const projectRows = projectsRes.rows;
   const loadError = projectsRes.error;
@@ -68,7 +68,8 @@ export default async function ProjectsPage({
     return {
       ...project,
       work_order_count: spendComplete ? Number(totals?.work_order_count ?? 0) : null,
-      spent: spendComplete ? Number(totals?.committed_spend ?? 0) : null,
+      committed: spendComplete ? Number(totals?.committed_amount ?? 0) : null,
+      spent: spendComplete ? Number(totals?.spent_amount ?? 0) : null,
     };
   });
 
@@ -81,6 +82,7 @@ export default async function ProjectsPage({
   }
 
   const totalBudget = projects.reduce((sum: number, project: any) => sum + Number(project.approved_budget_amount ?? project.budget_amount ?? 0), 0);
+  const totalCommitted = projects.reduce((sum: number, project: any) => sum + (project.committed ?? 0), 0);
   const totalSpent = projects.reduce((sum: number, project: any) => sum + (project.spent ?? 0), 0);
 
   return (
@@ -98,8 +100,8 @@ export default async function ProjectsPage({
           { label: 'Awaiting approval', value: projects.filter((p: any) => ['board_review', 'approved'].includes(p.status)).length, sublabel: 'Governance queue' },
           { label: 'Approved budget', value: currency(totalBudget), sublabel: 'Current view' },
           spendComplete
-            ? { label: 'Committed spend', value: currency(totalSpent), sublabel: totalBudget ? `${Math.round((totalSpent / totalBudget) * 100)}% of budget` : 'No budget set' }
-            : { label: 'Committed spend', value: '—', sublabel: 'Could not load every project total' },
+            ? { label: 'Committed and spent', value: currency(totalCommitted + totalSpent), sublabel: `${currency(totalSpent)} spent${totalBudget ? ` · ${Math.round(((totalCommitted + totalSpent) / totalBudget) * 100)}% of budget` : ''}` }
+            : { label: 'Committed and spent', value: '—', sublabel: 'Could not load every project total' },
         ]} />
 
         <FilterBar action="/projects" searchDefault={q} searchPlaceholder="Search projects and associations">
@@ -115,7 +117,7 @@ export default async function ProjectsPage({
 
         {projects.length ? (
           <Table>
-            <THead><TR><TH>Project</TH><TH>Association</TH><TH>Status</TH><TH>Timeline</TH><TH className="text-right">Budget</TH><TH className="text-right">Spent</TH></TR></THead>
+            <THead><TR><TH>Project</TH><TH>Association</TH><TH>Status</TH><TH>Timeline</TH><TH className="text-right">Budget</TH><TH className="text-right">Committed</TH><TH className="text-right">Spent</TH></TR></THead>
             <tbody>
               {projects.map((project: any) => (
                 <TR key={project.id}>
@@ -129,6 +131,7 @@ export default async function ProjectsPage({
                   <TD><StatusChip tone={projectTone(project.status)}>{project.status.replace(/_/g, ' ')}</StatusChip></TD>
                   <TD className="whitespace-nowrap text-sm text-gray-600">{date(project.start_date)} – {date(project.target_end_date)}</TD>
                   <TD className="text-right tabular-nums">{currency(Number(project.approved_budget_amount ?? project.budget_amount ?? 0))}</TD>
+                  <TD className="text-right tabular-nums">{project.committed === null ? '—' : currency(project.committed)}</TD>
                   <TD className="text-right tabular-nums">{project.spent === null ? '—' : currency(project.spent)}</TD>
                 </TR>
               ))}

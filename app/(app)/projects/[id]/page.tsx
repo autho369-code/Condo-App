@@ -49,7 +49,7 @@ export default async function ProjectDetailPage({
   const linkedIds = new Set((links ?? []).map((link: any) => link.work_order_id));
   const availableWorkOrders = (allWorkOrders ?? []).filter((wo: any) => wo.association_id === project.association_id && !linkedIds.has(wo.id));
   const [{ data: costLines, error: costError }, { data: costGls }] = await Promise.all([
-    db.rpc('project_budget_vs_actual', { p_project_id: id }),
+    db.rpc('project_cost_by_category', { p_project_id: id }),
     me.is_finance_staff || me.is_platform_operator
       ? db.from('gl_accounts').select('id, number, name, association_id').eq('portfolio_id', project.portfolio_id).eq('active', true)
           .in('account_type', ['expense', 'other_expense', 'cost_of_goods_sold', 'fixed_asset', 'asset']).order('number')
@@ -59,13 +59,16 @@ export default async function ProjectDetailPage({
   const categoryGls = ((costGls ?? []) as any[]).filter((g) => !g.association_id || g.association_id === project.association_id);
   const canEditCosts = Boolean((me.is_finance_staff || me.is_platform_operator) && !project.archived_at);
   const categoryBudget = categories.reduce((s, c) => s + Number(c.budget_amount ?? 0), 0);
-  const categoryActual = categories.reduce((s, c) => s + Number(c.actual_amount ?? 0), 0);
+  const categoryCommitted = categories.reduce((s, c) => s + Number(c.committed_amount ?? 0), 0);
+  const categorySpent = categories.reduce((s, c) => s + Number(c.spent_amount ?? 0), 0);
   // The RPC refuses projects outside the caller's association scope: treat as not found.
   if (costError?.code === '42501') notFound();
   if (costError) throw new Error(`Could not load project spend: ${costError.message}`);
-  // Committed spend = approved + paid bills on the linked work orders, from the same authorized
-  // aggregate as the category table (categorized + Other), so the two always reconcile.
-  const spent = categoryActual;
+  // Committed = open balances of approved purchase orders + unpaid bills on the linked
+  // work orders; Spent = paid bills. Both come from the same authorized aggregate as the
+  // category table (categorized + Other), so the two always reconcile.
+  const committed = categoryCommitted;
+  const spent = categorySpent;
   const budget = Number(project.approved_budget_amount ?? project.budget_amount ?? 0);
 
   async function updateProject(formData: FormData) {
@@ -180,10 +183,11 @@ export default async function ProjectDetailPage({
       {sp.error && <Alert className="mb-5" title="Could not update project">{sp.error}</Alert>}
       {sp.saved && <Alert className="mb-5" tone="success">{sp.saved}</Alert>}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Approved budget</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget)}</div></div>
-        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Committed spend</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(spent)}</div></div>
-        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Remaining</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget - spent)}</div></div>
+        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Committed</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(committed)}</div></div>
+        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Spent</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(spent)}</div></div>
+        <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Remaining</div><div className="mt-1 text-xl font-semibold tabular-nums">{currency(budget - committed - spent)}</div></div>
         <div className="rounded-2xl border border-line bg-white p-4"><div className="text-[13px] text-gray-500">Milestones</div><div className="mt-1 text-xl font-semibold tabular-nums">{(milestones ?? []).filter((m: any) => m.status === 'completed').length}/{(milestones ?? []).length}</div></div>
       </div>
 
@@ -203,20 +207,21 @@ export default async function ProjectDetailPage({
             </form>
           </Section>
 
-          <Section title="Budget by cost category" subtitle="Each category is tied to a GL account. Actual = approved and paid bills on the linked work orders coded to that account.">
+          <Section title="Budget by cost category" subtitle="Each category is tied to a GL account. Committed = open approved purchase orders and unpaid bills on the linked work orders; Spent = paid bills.">
             {categories.length ? (
               <Table>
-                <THead><TR><TH>Category</TH><TH>Account</TH><TH className="text-right">Budget</TH><TH className="text-right">Actual</TH><TH className="text-right">Remaining</TH>{canEditCosts && <TH className="w-20"><span className="sr-only">Actions</span></TH>}</TR></THead>
+                <THead><TR><TH>Category</TH><TH>Account</TH><TH className="text-right">Budget</TH><TH className="text-right">Committed</TH><TH className="text-right">Spent</TH><TH className="text-right">Remaining</TH>{canEditCosts && <TH className="w-20"><span className="sr-only">Actions</span></TH>}</TR></THead>
                 <tbody>
                   {categories.map((c) => {
-                    const remaining = Number(c.budget_amount ?? 0) - Number(c.actual_amount ?? 0);
+                    const remaining = Number(c.budget_amount ?? 0) - Number(c.committed_amount ?? 0) - Number(c.spent_amount ?? 0);
                     const hasBudget = Boolean(c.line_id) || c.category === 'Restricted accounts';
                     return (
                       <TR key={c.line_id ?? c.category}>
                         <TD className="font-medium text-gray-900">{c.category}{!c.line_id && <span className="block text-xs font-normal text-gray-500">{c.category === 'Other' ? 'Spend on accounts with no category' : 'Accounts your role cannot view'}</span>}</TD>
                         <TD className="text-gray-600">{c.gl_label ?? '—'}</TD>
                         <TD className="text-right tabular-nums">{hasBudget ? currency(c.budget_amount) : '—'}</TD>
-                        <TD className="text-right tabular-nums">{currency(c.actual_amount)}</TD>
+                        <TD className="text-right tabular-nums">{currency(c.committed_amount)}</TD>
+                        <TD className="text-right tabular-nums">{currency(c.spent_amount)}</TD>
                         <TD className={`text-right tabular-nums ${remaining < 0 ? 'font-medium text-red-700' : ''}`}>{hasBudget ? currency(remaining) : '—'}</TD>
                         {canEditCosts && (
                           <TD>
@@ -236,8 +241,9 @@ export default async function ProjectDetailPage({
                     <TD className="font-semibold text-gray-950">Total</TD>
                     <TD />
                     <TD className="text-right font-semibold tabular-nums">{currency(categoryBudget)}</TD>
-                    <TD className="text-right font-semibold tabular-nums">{currency(categoryActual)}</TD>
-                    <TD className="text-right font-semibold tabular-nums">{currency(categoryBudget - categoryActual)}</TD>
+                    <TD className="text-right font-semibold tabular-nums">{currency(categoryCommitted)}</TD>
+                    <TD className="text-right font-semibold tabular-nums">{currency(categorySpent)}</TD>
+                    <TD className="text-right font-semibold tabular-nums">{currency(categoryBudget - categoryCommitted - categorySpent)}</TD>
                     {canEditCosts && <TD />}
                   </TR>
                 </tbody>
@@ -259,7 +265,7 @@ export default async function ProjectDetailPage({
             )}
           </Section>
 
-          <Section title="Linked work orders" subtitle="Project spend is derived from approved and paid bills on these work orders." padded>
+          <Section title="Linked work orders" subtitle="Project cost comes from approved purchase orders and bills on these work orders." padded>
             {(links ?? []).length ? <Table><THead><TR><TH>Work order</TH><TH>Status</TH><TH>Priority</TH><TH className="w-24"></TH></TR></THead><tbody>{(links ?? []).map((link: any) => {
               const wo = Array.isArray(link.work_orders) ? link.work_orders[0] : link.work_orders;
               return <TR key={link.work_order_id}><TD><Link href={`/work-orders/${link.work_order_id}`} className="font-medium text-gray-900 hover:text-blue-700">#{wo?.number ?? link.work_order_id.slice(0, 8)} · {wo?.title}</Link></TD><TD><Badge status={wo?.status} /></TD><TD className="capitalize">{wo?.priority ?? '—'}</TD><TD><form action={unlinkWorkOrder}><input type="hidden" name="project_id" value={id} /><input type="hidden" name="work_order_id" value={link.work_order_id} /><Button type="submit" variant="ghost">Unlink</Button></form></TD></TR>;
