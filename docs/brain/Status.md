@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#368 merged; open PR: claude/comms-followups; next: email unsubscribe and suppression; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#368 merged; open PR: #369 claude/comms-followups; next: email unsubscribe and suppression; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (number on open) claude/comms-followups: communications follow-ups.
+- #369 claude/comms-followups: communications follow-ups.
   20261014233000 (LIVE):
   - REGRESSION FIX from #367: the email worker-columns guard checked
     auth.role(), still 'authenticated' inside definer functions an owner's
