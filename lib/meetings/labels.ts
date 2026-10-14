@@ -16,14 +16,14 @@ export function meetingTypeLabel(type: string | null | undefined): string {
 type ListedMeeting = { start_time: string | null; status: string | null }
 
 /**
- * Splits the board's meeting list. Upcoming: not cancelled, start time still
- * ahead. Cancelled: every cancelled meeting, past or future. Past: everything
- * else (started, or with no start time).
+ * Splits the board's meeting list. Upcoming: not cancelled or completed, start
+ * time still ahead. Cancelled: every cancelled meeting, past or future. Past:
+ * everything else (started, completed, or with no start time).
  */
 export function splitBoardMeetings<T extends ListedMeeting>(all: T[], now: Date = new Date()) {
   const ahead = (m: T) => !!m.start_time && new Date(m.start_time) >= now
-  const upcoming = all.filter((m) => m.status !== 'cancelled' && ahead(m))
+  const upcoming = all.filter((m) => m.status !== 'cancelled' && m.status !== 'completed' && ahead(m))
   const cancelled = all.filter((m) => m.status === 'cancelled')
-  const past = all.filter((m) => m.status !== 'cancelled' && !ahead(m))
+  const past = all.filter((m) => m.status !== 'cancelled' && (m.status === 'completed' || !ahead(m)))
   return { upcoming, past, cancelled }
 }

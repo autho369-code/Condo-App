@@ -1,15 +1,22 @@
 // Vendor email lists are stored as plain strings (["ap@acme.com"]); older
-// imports used objects ({ email, type: 'work' }). Read both shapes.
+// imports used objects ({ email, type: 'work' }); an older profile form wrote
+// { address }. Read every shape.
 
-type EmailEntry = string | { email?: unknown; type?: unknown; label?: unknown } | null | undefined;
+type EmailEntry = string | { email?: unknown; address?: unknown; type?: unknown; label?: unknown } | null | undefined;
+
+function entryEmail(e: EmailEntry): string {
+  if (typeof e === 'string') return e;
+  if (!e || typeof e !== 'object') return '';
+  if (typeof e.email === 'string' && e.email.trim()) return e.email;
+  return typeof e.address === 'string' ? e.address : '';
+}
 
 /** Every usable email on a vendor, in stored order, trimmed. */
 export function vendorEmails(emails: unknown): string[] {
   if (!Array.isArray(emails)) return [];
   const out: string[] = [];
   for (const e of emails as EmailEntry[]) {
-    const raw = typeof e === 'string' ? e : e && typeof e === 'object' && typeof e.email === 'string' ? e.email : '';
-    const v = raw.trim();
+    const v = entryEmail(e).trim();
     if (v.includes('@')) out.push(v);
   }
   return out;
@@ -26,9 +33,7 @@ export function primaryVendorEmail(emails: unknown): string | null {
 /** The email held by the first stored entry, or '' when there is none. */
 export function firstVendorEmail(emails: unknown): string {
   if (!Array.isArray(emails) || !emails.length) return '';
-  const e = emails[0] as EmailEntry;
-  const raw = typeof e === 'string' ? e : e && typeof e === 'object' && typeof e.email === 'string' ? e.email : '';
-  return raw.trim();
+  return entryEmail(emails[0] as EmailEntry).trim();
 }
 
 /**
@@ -44,7 +49,12 @@ export function replaceFirstVendorEmail(list: unknown, value: string): unknown[]
     return emails.length === 0 ? null : emails;
   }
   const first = emails[0] as EmailEntry;
-  emails[0] = first && typeof first === 'object' ? { ...first, email: v } : v;
+  if (first && typeof first === 'object') {
+    const { address: _address, ...rest } = first as Record<string, unknown>;
+    emails[0] = { ...rest, email: v };
+  } else {
+    emails[0] = v;
+  }
   return emails;
 }
 
