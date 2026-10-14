@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PR: #383 (removed late fee status); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#382 and #385 merged; open PRs: #383 removed late fee status, #384 owner portal fixes; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
 - #383 claude/removed-late-fee-status: a removed late fee reads "Removed", not
@@ -28,11 +28,38 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PR: #383 (removed l
   applications, reverse_homeowner_payment, already refuses credits
   (dry-run rolled back on production first: manager and owner see removed,
   unremoved fee outstanding, due-today not past due, marker guard blocks
-  setting, changing or re-typing it; read back). Migration, security and
-  design reviewers ran; their suggestions done (method locked, UTC
+  setting, changing or re-typing it; read back). Round 1: migration, security and
+  design reviewers ran; rounds 2-5 re-reviewed before 20261015210000; their suggestions done (method locked, UTC
   fallback date, past-due badge stays red on the unit page).
 
 ## Merged 2026-10-14
+- #385 work orders and service requests (merged 2026-10-14).
+  20261015170000 LIVE as 20261014034204 (dry-run rolled back on production
+  first as the manager, vendor and owner logins; read back: 11 patched
+  functions, created_on default null, message policy). Migration and
+  security reviewers ran twice, design, schema and white-label once; their
+  findings fixed.
+  - One work order per request: a request with a finished work order is not
+    triaged again. The request follows its work orders: completed when the
+    last open one finishes, is cancelled, archived or deleted while another
+    is finished (resolved_at kept even when a vendor finishes it); back to
+    waiting when a finished one is reopened (cancelled requests stay). No
+    backfill (it would fire the resolved webhook for old requests).
+  - Work order status emails go to the request's submitter (intentional);
+    a unit work order opened before the current owner moved in emails
+    nobody.
+  - Permission to enter on the staff work order page and, through
+    vendor_work_order_permission_to_enter, to the assigned vendor.
+  - Assigned vendors get a white-labeled email (new work order, single and
+    bulk, one email per bulk run); bulk messages name every selected job; bulk status skips
+    rows already at that status ("No changes" notice).
+  - Service request search runs in the database (full names, 200-id caps)
+    with the 500-row notice on an exact count.
+  - Request date, resident tenure, resident associations and tenant work
+    orders use the association's local date; an explicit staff request date
+    is kept. Residents post messages only as themselves on unarchived work
+    orders they can see. Resident service requests and payment plans read
+    through once-per-query id sets (same rows as before in the dry run).
 - #382 Codex follow-ups on #379-#381 (20261015110000 LIVE as
   20261014022209, 20261015120000 LIVE as 20261014022727). Codex clean.
 - #381 architectural reviews, documents, forms, e-sign (20261015090000 LIVE
@@ -734,6 +761,14 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#382 merged; open PR: #383 (removed l
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- Recurring work orders created by the database generators
+  (20261005050000, 20261005051000) set the vendor but send no assignment
+  email (manual, bulk and new-work-order assignment do since
+  claude/work-orders-fixes). Needs a queued email from the generator.
+- A completed service request stays completed when an open work order is
+  moved or unarchived into it, or a cancelled one reopened (only "reopened
+  in place" sets it back to waiting); reopen clears resolved_at but keeps
+  resolved_by and resolution_note (migration review, 20261015170000).
 - DONE in the journal-source-guard PR (20261015060000): direct journal writes
   revoked from signed-in users.
 - DONE 2026-10-14 (20261015130000): a removed late fee reads "removed" on

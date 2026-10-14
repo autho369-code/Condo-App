@@ -11,6 +11,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
+import { notifyVendorOfAssignment } from '@/lib/notifications/vendor-assignment';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STATUSES = new Set(['new', 'assigned', 'scheduled', 'in_progress', 'done', 'completed', 'billed', 'closed', 'cancelled']);
@@ -34,6 +35,8 @@ export async function bulkWorkOrderAction(formData: FormData) {
   let note = '';
 
   let vendorPortfolio: string | null = null;
+  let assignVendorId: string | null = null;
+  let targetStatus: string | null = null;
 
   if (op === 'assign') {
     const vendorId = String(formData.get('vendor_id') ?? '');
@@ -51,6 +54,7 @@ export async function bulkWorkOrderAction(formData: FormData) {
       }
     }
     patch = { vendor_id: vendor.id };
+    assignVendorId = vendor.id;
     note = `Assigned to vendor: ${vendor.name} (bulk)`;
   } else if (op === 'status') {
     const status = String(formData.get('status') ?? '');
@@ -59,6 +63,7 @@ export async function bulkWorkOrderAction(formData: FormData) {
     // completed_date is stamped per work order by the database trigger in
     // each association's own time zone.
     patch = { status };
+    targetStatus = status;
     note = `Status changed to ${status.replace(/_/g, ' ')} (bulk)`;
   } else if (op === 'priority') {
     const priority = String(formData.get('priority') ?? '');
@@ -70,20 +75,38 @@ export async function bulkWorkOrderAction(formData: FormData) {
   }
 
   let done = 0;
+  let unchanged = 0;
   const failures: string[] = [];
+  // Work orders newly given to the vendor: one email lists them all.
+  const newlyAssigned: string[] = [];
   for (const id of ids) {
     const rowPatch: Record<string, unknown> = { ...patch };
+    let newVendor = false;
     if (op === 'assign') {
       // Only assign within the vendor's own company; move brand-new orders to "assigned".
-      const { data: current } = await db.from('work_orders').select('id, status, portfolio_id').eq('id', id).maybeSingle();
+      const { data: current } = await db.from('work_orders').select('id, status, portfolio_id, vendor_id').eq('id', id).maybeSingle();
       if (!current) { failures.push('Work order not found'); continue; }
       if (current.portfolio_id !== vendorPortfolio) { failures.push('Vendor is from a different company'); continue; }
       if (current.status === 'new') rowPatch.status = 'assigned';
+      newVendor = current.vendor_id !== assignVendorId;
     }
     let query = db.from('work_orders').update(rowPatch).eq('id', id).is('archived_at', null);
     if (op === 'assign') query = query.eq('portfolio_id', vendorPortfolio);
+    // Rows already at the target status are left alone: no second log entry
+    // or owner email.
+    if (targetStatus) query = query.neq('status', targetStatus);
     const { data: updated, error } = await query.select('id, status').maybeSingle();
-    if (error || !updated) { failures.push(error?.message ?? 'Work order not found'); continue; }
+    if (error) { failures.push(error.message); continue; }
+    if (!updated) {
+      if (targetStatus) {
+        // Already at that status, or not visible: tell which.
+        const { data: same } = await db.from('work_orders').select('id').eq('id', id).eq('status', targetStatus).is('archived_at', null).maybeSingle();
+        if (same) { unchanged += 1; continue; }
+      }
+      failures.push('Work order not found');
+      continue;
+    }
+    if (newVendor) newlyAssigned.push(id);
     const statusChanged = rowPatch.status as string | undefined;
     const { error: logError } = await db.from('work_order_updates').insert({
       work_order_id: id,
@@ -95,7 +118,12 @@ export async function bulkWorkOrderAction(formData: FormData) {
     done += 1;
   }
 
+  if (assignVendorId && newlyAssigned.length) {
+    await notifyVendorOfAssignment({ vendorId: assignVendorId, workOrderIds: newlyAssigned });
+  }
+
   revalidatePath('/work-orders');
   const reasons = [...new Set(failures)].slice(0, 3).join('; ');
-  redirect(`${safeBack}${sep}bulk=${op}&done=${done}${failures.length ? `&failed=${failures.length}&reason=${encodeURIComponent(reasons)}` : ''}`);
+  const skipped = unchanged ? `&unchanged=${unchanged}` : '';
+  redirect(`${safeBack}${sep}bulk=${op}&done=${done}${failures.length ? `&failed=${failures.length}&reason=${encodeURIComponent(reasons)}` : ''}${skipped}`);
 }

@@ -51,7 +51,7 @@ export default async function VendorWorkOrderDetail({
   if (woError) throw new Error(`Could not load the work order: ${woError.message}`);
   if (!wo) notFound();
 
-  const [instructionsResult, updatesResult, messagesResult] = await Promise.all([
+  const [instructionsResult, updatesResult, messagesResult, permissionResult] = await Promise.all([
     // Instructions for the vendor are not on the work order row (owners and
     // board read it); RLS lets the assigned vendor read them here.
     db.from('work_order_vendor_private')
@@ -67,15 +67,22 @@ export default async function VendorWorkOrderDetail({
       .select('id, author_name, author_role, body, created_at')
       .eq('work_order_id', id)
       .order('created_at', { ascending: true }),
+    // The resident's permission to enter, from the request this job came
+    // from; the database checks this vendor is the one assigned.
+    wo.service_request_id
+      ? db.rpc('vendor_work_order_permission_to_enter', { p_work_order_id: id })
+      : Promise.resolve({ data: null, error: null }),
   ]);
   const loadErrors = [
     instructionsResult.error && `instructions (${instructionsResult.error.message})`,
     updatesResult.error && `activity (${updatesResult.error.message})`,
     messagesResult.error && `messages (${messagesResult.error.message})`,
+    permissionResult.error && `permission to enter (${permissionResult.error.message})`,
   ].filter(Boolean) as string[];
   const vendorInstructions: string | null = instructionsResult.data?.vendor_instructions ?? null;
   const updates = updatesResult.data ?? [];
   const messages = messagesResult.data ?? [];
+  const permissionToEnter: boolean | null = typeof permissionResult.data === 'boolean' ? permissionResult.data : null;
 
   const attachments = await loadMaintenanceAttachments({ workOrderId: wo.id, serviceRequestId: wo.service_request_id });
 
@@ -180,6 +187,12 @@ export default async function VendorWorkOrderDetail({
                 <div>
                   <dt className="font-medium text-gray-500">Instructions for you</dt>
                   <dd className="mt-0.5 whitespace-pre-wrap text-gray-800">{vendorInstructions}</dd>
+                </div>
+              )}
+              {permissionToEnter !== null && (
+                <div>
+                  <dt className="font-medium text-gray-500">Permission to enter</dt>
+                  <dd className="mt-0.5 text-gray-800">{permissionToEnter ? 'Yes' : 'No. Arrange access through the management team.'}</dd>
                 </div>
               )}
               {addressLine && (

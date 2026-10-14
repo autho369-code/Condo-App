@@ -86,6 +86,8 @@ export default async function ServiceRequestDetail({
   const isOpen = sr.status === 'open' || sr.status === 'waiting';
   const workOrders = ((Array.isArray(sr.work_orders) ? sr.work_orders : sr.work_orders ? [sr.work_orders] : []) as any[]);
   const openWorkOrder = workOrders.find((w) => !['done', 'completed', 'billed', 'closed', 'cancelled'].includes(w.status));
+  // A finished work order is not replaced by a new one.
+  const finishedWorkOrder = openWorkOrder ? null : workOrders.find((w) => w.status !== 'cancelled');
   const response = responseState(sr);
   const showDuplicate = isOpen && original && !sr.duplicate_reviewed && ['open', 'waiting'].includes(original.status);
   const firstLine = String(sr.description ?? '').split('\n')[0];
@@ -120,6 +122,8 @@ export default async function ServiceRequestDetail({
             <div className="space-y-2">
               {openWorkOrder ? (
                 <Link href={`/work-orders/${openWorkOrder.id}`} className={buttonClass('secondary', 'md', 'w-full')}>Open work order #{openWorkOrder.number ?? ''} <ArrowUpRight className="h-3.5 w-3.5" /></Link>
+              ) : finishedWorkOrder ? (
+                <Link href={`/work-orders/${finishedWorkOrder.id}`} className={buttonClass('secondary', 'md', 'w-full')}>View work order #{finishedWorkOrder.number ?? ''} <ArrowUpRight className="h-3.5 w-3.5" /></Link>
               ) : isOpen && sr.request_kind === 'maintenance' ? (
                 <form action={triageServiceRequest.bind(null, sr.id)}>
                   <Button type="submit" className="w-full"><Wrench className="h-3.5 w-3.5" /> Create work order</Button>

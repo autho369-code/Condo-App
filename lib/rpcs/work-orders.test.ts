@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn(),
   revalidatePath: vi.fn(),
   notify: vi.fn(),
+  notifyVendor: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }));
@@ -13,6 +14,7 @@ vi.mock('@/lib/auth/me', () => ({ requireStaff: mocks.requireStaff }));
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock('@/lib/notifications/status-change', () => ({ notifyOwnerOfStatusChange: mocks.notify }));
+vi.mock('@/lib/notifications/vendor-assignment', () => ({ notifyVendorOfAssignment: mocks.notifyVendor }));
 
 import { assignVendor, updateWorkOrderStatus } from '@/lib/rpcs/work-orders';
 
@@ -71,5 +73,33 @@ describe('work-order mutation boundaries', () => {
     expect(workOrders.update).not.toHaveBeenCalled();
     expect(activityInsert).not.toHaveBeenCalled();
     expect(mocks.notify).not.toHaveBeenCalled();
+    expect(mocks.notifyVendor).not.toHaveBeenCalled();
+  });
+
+  it('emails a newly assigned vendor, and not one re-saved on the same work order', async () => {
+    const run = async (currentVendor: string | null) => {
+      const workOrders = readableRow({ id: 'wo-1', portfolio_id: 'portfolio-a', vendor_id: currentVendor });
+      workOrders.maybeSingle
+        .mockResolvedValueOnce({ data: { id: 'wo-1', portfolio_id: 'portfolio-a', vendor_id: currentVendor }, error: null })
+        .mockResolvedValueOnce({ data: { id: 'wo-1' }, error: null });
+      const vendors = readableRow({ id: 'vendor-1', name: 'Acme Plumbing', portfolio_id: 'portfolio-a' });
+      const db = {
+        from: vi.fn((table: string) => {
+          if (table === 'work_orders') return workOrders;
+          if (table === 'vendors') return vendors;
+          return { insert: vi.fn().mockResolvedValue({ error: null }) };
+        }),
+      };
+      mocks.createClient.mockResolvedValue(db);
+      const form = new FormData();
+      form.set('vendor_id', 'vendor-1');
+      await assignVendor('wo-1', form);
+    };
+
+    await run(null);
+    expect(mocks.notifyVendor).toHaveBeenCalledWith({ vendorId: 'vendor-1', workOrderIds: ['wo-1'] });
+    mocks.notifyVendor.mockClear();
+    await run('vendor-1');
+    expect(mocks.notifyVendor).not.toHaveBeenCalled();
   });
 });

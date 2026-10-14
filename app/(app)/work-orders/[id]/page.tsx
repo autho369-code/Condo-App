@@ -86,7 +86,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
       *, vendors(id, name, trade, phone_numbers, emails),
       associations(name, portfolio_id),
       units(unit_number, buildings(association_id, associations(name, portfolio_id))),
-      service_requests(id, number, description, priority, source, status, homeowner_id, owners:homeowner_id(full_name, email, phone))
+      service_requests(id, number, description, priority, source, status, permission_to_enter, homeowner_id, owners:homeowner_id(full_name, email, phone))
     `).eq('id', id).maybeSingle(),
     (supabase as any).from('work_order_updates').select('id, note, new_status, created_at, created_by').eq('work_order_id', id).order('created_at', { ascending: false }),
     (supabase as any).from('work_order_labor_entries').select('id, tech_name, date_worked, hours, hourly_rate, labor_cost, description').eq('work_order_id', id).order('date_worked', { ascending: false }),
@@ -294,6 +294,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
               <div><dt className="text-gray-500">Priority</dt><dd className="capitalize">{sr.priority}</dd></div>
               <div><dt className="text-gray-500">Source</dt><dd className="capitalize">{sr.source}</dd></div>
               <div><dt className="text-gray-500">Status</dt><dd className="capitalize">{sr.status}</dd></div>
+              <div><dt className="text-gray-500">Permission to enter</dt><dd>{sr.permission_to_enter ? 'Yes' : 'No'}</dd></div>
               {(sr.owners as any)?.full_name && <div><dt className="text-gray-500">Submitted by</dt><dd>{(sr.owners as any).full_name} ({(sr.owners as any).email})</dd></div>}
             </dl>
           </div>
@@ -459,7 +460,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
           <ArcMessageThread
             messages={(messages ?? []) as ArcMessage[]}
             postAction={postWorkOrderMessage.bind(null, id, '/work-orders') as any}
-            placeholder="Message the homeowner, board, or vendor…"
+            placeholder="Message the homeowner or vendor…"
           />
         </div>
       </Section>
