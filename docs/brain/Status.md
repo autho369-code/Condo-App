@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#372 merged; open PR: claude/reconciliation-statement-balance (Codex on #372); next: Payables follow-ups (Next gaps); waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#372 merged; open PR: #373 claude/reconciliation-statement-balance (Codex on #372); next: Payables follow-ups (Next gaps); waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/reconciliation-statement-balance: Codex on #372 (P1). A reconciliation
+- #373 claude/reconciliation-statement-balance: Codex on #372 (P1). A reconciliation
   in progress can have its statement ending balance corrected on the
   reconcile page (a reopened one could not: the balance was read-only and
   discard is refused for it, so it could never be completed). App only; the
