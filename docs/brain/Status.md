@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#374 merged; open PR: claude/collections-deep-check (PR not opened yet); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#374 merged; open PR: #375 claude/collections-deep-check; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- (PR not opened yet) claude/collections-deep-check: DEEP CHECK of delinquencies
+- #375 claude/collections-deep-check: DEEP CHECK of delinquencies
   and collections (rolled back on production at 2,000 units) + Mirsad's
   "THE MANAGER SHOULD BE ABLE TO REMOVE LATE FEES". 20261015040000 LIVE as
   20261013232520 (dry runs passed; all 13 patched functions read back).
