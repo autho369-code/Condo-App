@@ -152,3 +152,6 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
   branch entry was appended under it. Also a reviewer-memory-only leftover
   (migration-reviewer: moving/unarchiving an open WO into a completed
   request leaves it completed) was not in Next gaps.
+- 9th (2026-10-14 start, after #383 merged 13:26Z): Status line 3 + Open PR
+  still "#383 open", TODO "Merge #383" box open, and #383 missing from
+  Shipped.md entirely. Check Shipped.md has every merged PR, not only Status.

@@ -1,9 +1,28 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: #383 removed late fee status; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: work orders follow-ups; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #383 claude/removed-late-fee-status: a removed late fee reads "Removed", not
+- claude/work-orders-followups (the two Next gaps left by #385):
+  - Recurring work orders the nightly database generator assigns to a
+    vendor now email that vendor: /api/work-orders/notify-recurring (Vercel
+    cron 12:00 UTC, after pg_cron's 11:30 generator) sends the same
+    white-labeled assignment email staff assignment sends, per vendor,
+    each job once (work_orders.vendor_notified_at, stamped after queueing;
+    a 7-day catch-up window). "Generate now" emails the vendor right away.
+  - 20261015220000: a completed request goes back to waiting whenever an
+    open work order appears in it (moved in, unarchived, reopened from
+    cancelled, added open); reopening clears resolved_at and resolved_by,
+    keeps the resolution note; service_request_guard_update keeps the
+    trigger's resolved_by. LIVE as 20261014083421 (dry-run rolled back on
+    production first: moved in, unarchived, reopened from cancelled and
+    added open all set waiting, note kept, cancelled stays; read back).
+    Migration, security and schema reviewers ran; security's duplicate-send
+    finding fixed (vendor_notified_at). Note: a request can now send the
+    service_request.resolved webhook again after a reopen.
+
+## Merged 2026-10-14
+- #383 (merged 2026-10-14) a removed late fee reads "Removed", not
   "Paid", on the owner's ledger and the unit page (v_charge_balances;
   balances unchanged); only remove_late_fee can mark its credit; past due
   by the association's local date. 20261015130000 LIVE as 20261014024847,
@@ -31,8 +50,6 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: #383 removed la
   setting, changing or re-typing it; read back). Round 1: migration, security and
   design reviewers ran; rounds 2-5 re-reviewed before 20261015210000; their suggestions done (method locked, UTC
   fallback date, past-due badge stays red on the unit page).
-
-## Merged 2026-10-14
 - #384 owner portal fixes (merged 2026-10-14), app
   code only (no migrations).
   - Ledger: a previous owner's paid charges are hidden; charges still open
@@ -758,14 +775,9 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: #383 removed la
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- Recurring work orders created by the database generators
-  (20261005050000, 20261005051000) set the vendor but send no assignment
-  email (manual, bulk and new-work-order assignment do since
-  claude/work-orders-fixes). Needs a queued email from the generator.
-- A completed service request stays completed when an open work order is
-  moved or unarchived into it, or a cancelled one reopened (only "reopened
-  in place" sets it back to waiting); reopen clears resolved_at but keeps
-  resolved_by and resolution_note (migration review, 20261015170000).
+- DONE (claude/work-orders-followups): recurring work orders email their
+  vendor; a completed request follows open work orders moved, unarchived
+  or reopened into it.
 - DONE in the journal-source-guard PR (20261015060000): direct journal writes
   revoked from signed-in users.
 - DONE 2026-10-14 (20261015130000): a removed late fee reads "removed" on

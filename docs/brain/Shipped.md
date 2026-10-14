@@ -4,6 +4,10 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Work orders follow-ups (20261015220000 live as 20261014083421): vendors
+  are emailed about recurring jobs (nightly and "Generate now"), once each;
+  a completed request goes back to waiting when an open work order is
+  moved, unarchived, reopened or added into it.
 - A removed late fee reads "Removed" instead of "Paid" on the owner's
   ledger and the unit page; past-due charges use the association's own date
   (20261015130000). A removal credit is locked: signed-in users can't change

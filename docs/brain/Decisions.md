@@ -283,3 +283,18 @@ email and **staff record the decision** on the bill page
 kept in approval_decisions). Nothing else can mark a request approved
 (trigger approval_requests_approve_guard). Vendors never choose expense
 accounts: a vendor-portal invoice arrives without one and staff set it.
+
+## Work orders follow-ups (2026-10-14)
+- **Reopened request keeps its resolution note.** When an open work order
+  returns to a completed request, the request is waiting again and
+  resolved_at / resolved_by are cleared; the note staff wrote stays (nothing
+  they wrote is lost). Ask Mirsad before clearing notes.
+- **Nightly recurring jobs are emailed by an app cron, not SQL.** The pg_cron
+  generator can't run the app's email code, so
+  /api/work-orders/notify-recurring (12:00 UTC) emails vendors their new
+  recurring jobs with lib/notifications/vendor-assignment.ts: one template,
+  one white-label link builder, no SQL copy to drift.
+- **Imported history sends no vendor email.** Work orders brought over from
+  a previous system keep their vendor without emailing it; they are past
+  jobs, not new assignments.
+

@@ -22,6 +22,7 @@ export const PUBLIC_PATHS = [
   '/api/ai/analyze-violation-photo',
   '/api/piper',
   '/api/maintenance/send-reminders',
+  '/api/work-orders/notify-recurring',
   '/api/insurance/send-reminders',
   '/api/calendar/send-reminders',
   '/api/payments/reconcile',
