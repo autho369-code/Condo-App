@@ -139,3 +139,13 @@ describe('20261015233000_purchase_orders_resubmit migration', () => {
     expect(m).not.toMatch(/drop\s+(table|column|view|function|policy)/i);
   });
 });
+
+describe('20261015234500_approval_request_decided_context migration', () => {
+  it('freezes what the board decided on once a request is decided', () => {
+    const m = read('supabase/migrations/20261015234500_approval_request_decided_context.sql');
+    for (const col of ['notes', 'title', 'description', 'due_date', 'attachments', 'requested_by_name', 'requested_by_email', 'requested_at']) {
+      expect(m).toContain(`new.${col} is distinct from old.${col}`);
+    }
+    expect(m).toContain("old.status is distinct from 'pending'::public.approval_request_status");
+  });
+});
