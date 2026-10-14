@@ -7,10 +7,11 @@
 -- request stays cancelled.
 --
 -- Recurring jobs the nightly generator assigns are emailed to their vendor
--- by /api/work-orders/notify-recurring, which stamps vendor_notified_at so
--- each job is emailed once (a time window alone re-sent yesterday's jobs).
--- Only that cron (service role) sets it; a staff edit can at most skip
--- the email for its own company's vendor.
+-- by /api/work-orders/notify-recurring. Every vendor assignment email
+-- (lib/notifications/vendor-assignment.ts, service role) stamps
+-- vendor_notified_at, so the cron skips jobs already emailed (a time window
+-- alone re-sent yesterday's jobs). Vendors can't set it (vendor guard); a
+-- staff edit can at most skip the email for its own company's vendor.
 alter table public.work_orders add column if not exists vendor_notified_at timestamptz;
 
 create index if not exists work_orders_recurring_unnotified_idx

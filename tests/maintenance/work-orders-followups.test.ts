@@ -7,9 +7,6 @@ const mocks = vi.hoisted(() => ({
   notifyVendor: vi.fn(),
   rows: [] as unknown[],
   error: null as null | { message: string },
-  // Ids a claim returns; null claims everything it was asked for.
-  claimable: null as null | string[],
-  claimError: null as null | { message: string },
 }));
 
 vi.mock('@/lib/supabase/server', () => ({ createServiceClient: mocks.createServiceClient }));
@@ -29,42 +26,15 @@ function query() {
   return q;
 }
 
-/** update(...).in('id', ids)[.is(...).select('id')] — a claim or a release. */
-function updates(log: Array<{ values: any; ids: string[]; claim: boolean }>) {
-  return () => {
-    const entry = { values: null as any, ids: [] as string[], claim: false };
-    const u: any = {};
-    u.update = vi.fn((values: any) => { entry.values = values; log.push(entry); return u; });
-    u.in = vi.fn((_col: string, ids: string[]) => { entry.ids = ids; return u; });
-    u.is = vi.fn(() => { entry.claim = true; return u; });
-    u.select = vi.fn(async () => mocks.claimError
-      ? { data: null, error: mocks.claimError }
-      : { data: entry.ids.filter((id) => !mocks.claimable || mocks.claimable.includes(id)).map((id) => ({ id })), error: null });
-    u.then = (resolve: (v: unknown) => void) => resolve({ error: null });
-    return u;
-  };
-}
-
 describe('/api/work-orders/notify-recurring', () => {
   let q: any;
-  let writes: Array<{ values: any; ids: string[]; claim: boolean }>;
   beforeEach(() => {
     vi.stubEnv('CRON_SECRET', SECRET);
     mocks.rows = [];
     mocks.error = null;
-    mocks.claimable = null;
-    mocks.claimError = null;
     mocks.notifyVendor.mockReset().mockResolvedValue(true);
     q = query();
-    writes = [];
-    const update = updates(writes);
-    let first = true;
-    mocks.createServiceClient.mockReturnValue({
-      from: vi.fn(() => {
-        if (first) { first = false; return q; }
-        return update();
-      }),
-    });
+    mocks.createServiceClient.mockReturnValue({ from: vi.fn(() => q) });
   });
 
   it('refuses without the cron secret', async () => {
@@ -73,55 +43,19 @@ describe('/api/work-orders/notify-recurring', () => {
     expect(mocks.notifyVendor).not.toHaveBeenCalled();
   });
 
-  it('emails each vendor once with all its new recurring jobs', async () => {
+  it('emails each new recurring job under its own fixed key', async () => {
     mocks.rows = [
       { id: 'w1', vendor_id: 'v1' },
       { id: 'w2', vendor_id: 'v2' },
-      { id: 'w3', vendor_id: 'v1' },
     ];
+    mocks.notifyVendor.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
     const res = await GET(req());
-    expect(await res.json()).toEqual({ workOrders: 3, vendors: 2, emailed: 2, failed: 0 });
-    expect(mocks.notifyVendor).toHaveBeenCalledWith({ vendorId: 'v1', workOrderIds: ['w1', 'w3'] });
-    expect(mocks.notifyVendor).toHaveBeenCalledWith({ vendorId: 'v2', workOrderIds: ['w2'] });
-    // Claimed (stamped where still empty) before sending, never released.
-    expect(writes).toEqual([
-      { values: { vendor_notified_at: expect.any(String) }, ids: ['w1', 'w3'], claim: true },
-      { values: { vendor_notified_at: expect.any(String) }, ids: ['w2'], claim: true },
-    ]);
+    expect(await res.json()).toEqual({ workOrders: 2, emailed: 1 });
+    expect(mocks.notifyVendor).toHaveBeenCalledWith({ vendorId: 'v1', workOrderIds: ['w1'], idempotencyKey: 'wo-vendor-assign:recurring:w1' });
+    expect(mocks.notifyVendor).toHaveBeenCalledWith({ vendorId: 'v2', workOrderIds: ['w2'], idempotencyKey: 'wo-vendor-assign:recurring:w2' });
   });
 
-  it('emails only the jobs it claimed (another run took the rest)', async () => {
-    mocks.rows = [{ id: 'w1', vendor_id: 'v1' }, { id: 'w2', vendor_id: 'v1' }];
-    mocks.claimable = ['w2'];
-    await GET(req());
-    expect(mocks.notifyVendor).toHaveBeenCalledWith({ vendorId: 'v1', workOrderIds: ['w2'] });
-  });
-
-  it('sends nothing when another run claimed every job', async () => {
-    mocks.rows = [{ id: 'w1', vendor_id: 'v1' }];
-    mocks.claimable = [];
-    const res = await GET(req());
-    expect(await res.json()).toEqual({ workOrders: 1, vendors: 1, emailed: 0, failed: 0 });
-    expect(mocks.notifyVendor).not.toHaveBeenCalled();
-  });
-
-  it('releases the claim when no email was queued, so the next run retries', async () => {
-    mocks.rows = [{ id: 'w1', vendor_id: 'v1' }];
-    mocks.notifyVendor.mockResolvedValue(false);
-    const res = await GET(req());
-    expect(await res.json()).toEqual({ workOrders: 1, vendors: 1, emailed: 0, failed: 0 });
-    expect(writes[1]).toEqual({ values: { vendor_notified_at: null }, ids: ['w1'], claim: false });
-  });
-
-  it('fails loudly and sends nothing when a claim fails', async () => {
-    mocks.rows = [{ id: 'w1', vendor_id: 'v1' }];
-    mocks.claimError = { message: 'boom' };
-    const res = await GET(req());
-    expect(res.status).toBe(500);
-    expect(mocks.notifyVendor).not.toHaveBeenCalled();
-  });
-
-  it('reads only open nightly-generated jobs with a vendor', async () => {
+  it('reads only active, not yet emailed nightly jobs with a vendor', async () => {
     await GET(req());
     expect(q.select).toHaveBeenCalledWith('id, vendor_id, service_requests!inner(source)');
     expect(q.eq).toHaveBeenCalledWith('service_requests.source', 'recurring');
@@ -136,6 +70,15 @@ describe('/api/work-orders/notify-recurring', () => {
     const res = await GET(req());
     expect(res.status).toBe(500);
     expect(mocks.notifyVendor).not.toHaveBeenCalled();
+  });
+});
+
+describe('vendor assignment email marks jobs emailed', () => {
+  it('stamps vendor_notified_at after queueing, with an optional fixed key', () => {
+    const helper = read('lib/notifications/vendor-assignment.ts');
+    expect(helper).toContain('idempotencyKey: idempotencyKey ?? `wo-vendor-assign:${vendorId}:${stamp}`,');
+    expect(helper).toContain(".update({ vendor_notified_at: new Date().toISOString() })");
+    expect(helper.indexOf('queueEmails(svc')).toBeLessThan(helper.indexOf('vendor_notified_at: new Date()'));
   });
 });
 

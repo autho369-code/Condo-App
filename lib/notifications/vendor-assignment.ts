@@ -69,14 +69,20 @@ export function vendorAssignmentEmail({
 
 /**
  * Email the vendor about work orders just assigned to it. Resolves true only
- * when an email was queued; skips when the vendor has no email on file.
+ * when an email was queued (or was already queued under the same key); skips
+ * when the vendor has no email on file. Queued jobs get vendor_notified_at,
+ * so the nightly recurring cron (/api/work-orders/notify-recurring) doesn't
+ * email them again. `idempotencyKey` replaces the default key (the cron uses
+ * one per job so a retried run queues nothing twice).
  */
 export async function notifyVendorOfAssignment({
   vendorId,
   workOrderIds,
+  idempotencyKey,
 }: {
   vendorId: string;
   workOrderIds: string[];
+  idempotencyKey?: string;
 }): Promise<boolean> {
   try {
     const ids = [...new Set(workOrderIds)].filter(Boolean);
@@ -138,12 +144,17 @@ export async function notifyVendorOfAssignment({
       portfolioId: vendor.portfolio_id,
       // The message belongs to the jobs' association when they share one.
       associationId: associations.size === 1 ? [...associations][0] : (vendor.association_id ?? null),
-      idempotencyKey: `wo-vendor-assign:${vendorId}:${stamp}`,
+      idempotencyKey: idempotencyKey ?? `wo-vendor-assign:${vendorId}:${stamp}`,
     }]);
     if (error) {
       console.error('[vendor-assignment] failed to queue email:', vendorId, error);
       return false;
     }
+    const { error: stampError } = await svc
+      .from('work_orders')
+      .update({ vendor_notified_at: new Date().toISOString() })
+      .in('id', jobsRows.map((w) => w.id));
+    if (stampError) console.error('[vendor-assignment] failed to mark jobs emailed:', vendorId, stampError.message);
     return true;
   } catch (e) {
     console.error('[vendor-assignment] notifyVendorOfAssignment failed:', vendorId, e);
