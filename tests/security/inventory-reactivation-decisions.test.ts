@@ -74,15 +74,25 @@ describe('20261016230000: late fees on the reactivation day', () => {
     expect(columns.portfolios).toContain('reactivated_at');
   });
 
-  it('skips due AutoPay units for 24 hours after reactivation, in-flight payments since it, and still holds suspended companies', () => {
+  it('skips due AutoPay units for 24 hours after reactivation, units with money in flight, and still holds suspended companies', () => {
     const job = fn('cron_assess_late_fees');
     expect(job).toContain("pf.reactivated_at > now() - interval '24 hours'");
     expect(job).toMatch(/if \(a\.just_reactivated and exists \(\s+select 1 from public\.autopay_mandates am\s+where am\.unit_id = c\.unit_id\s+and am\.status = 'active'/);
     // Only mandates actually due today (the AutoPay run's own skip rule).
     expect(job).toContain('and am.next_run_date <= a.today');
     expect(job).toContain('and (am.skip_until is null or am.skip_until < a.today)');
-    // A Stripe payment still clearing (ACH) since the reactivation holds the fee.
-    expect(job).toMatch(/or \(a\.reactivated_at is not null and exists \(\s+select 1 from public\.payment_intents pi\s+where pi\.unit_id = c\.unit_id\s+and pi\.status in \('pending', 'processing'\)\s+and pi\.created_at >= a\.reactivated_at\)\) then\s+v_autopay_held := v_autopay_held \+ 1;/);
+    // Money in flight holds the fee in every company (not tied to a
+    // reactivation): processing under 14 days, or an AutoPay intent pending
+    // under a day. An unpaid portal checkout is not money in flight.
+    expect(job).not.toContain('a.reactivated_at');
+    expect(job).not.toContain('created_at >= ');
+    const holdStart = job.search(/or exists \(\s+select 1 from public\.payment_intents pi/);
+    expect(holdStart).toBeGreaterThan(-1);
+    const hold = job.slice(holdStart, job.indexOf('v_autopay_held := v_autopay_held + 1;'));
+    expect(hold).toContain('where pi.unit_id = c.unit_id');
+    expect(hold).toContain("(pi.status = 'processing' and pi.created_at > now() - interval '14 days')");
+    expect(hold).toMatch(/pi\.status = 'pending' and pi\.created_at > now\(\) - interval '1 day'[\s\S]*and exists \(select 1 from public\.stripe_autopay_runs r where r\.id = pi\.id\)/);
+    expect(migration).toContain("create index if not exists payment_intents_unit_inflight_idx\n  on public.payment_intents (unit_id) where status in ('pending', 'processing');");
     expect(job).toContain('pf.suspended_at is not null');
     expect(job).toContain("'autopay_held', v_autopay_held");
   });
