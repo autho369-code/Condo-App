@@ -84,6 +84,9 @@
 - Hardening added after a reviewer's pass (security pin added to a definer RPC
   after migration-reviewer's "clean"): ask whether migration-reviewer saw the
   FINAL file; its memory note should mention the change.
+  2nd: work-orders-followups 2026-10-14 (vendor_notified_at column + index
+  added after security's finding; migration-reviewer memory silent on it).
+  Also confirm the single live version holds the late addition.
 - Status said "Claude applies once Codex is clean" — PR Rules say apply the
   additive migration as soon as the SQL is settled and put "do not merge
   until the migration is live" in the PR body. Check the wording.

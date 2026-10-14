@@ -294,6 +294,9 @@ accounts: a vendor-portal invoice arrives without one and staff set it.
   /api/work-orders/notify-recurring (12:00 UTC) emails vendors their new
   recurring jobs with lib/notifications/vendor-assignment.ts: one template,
   one white-label link builder, no SQL copy to drift.
+- **A reopened request can send `service_request.resolved` again.** When it
+  completes a second time, the customer webhook fires again (each completion
+  is real). Integrations should treat it as "resolved as of now".
 - **Imported history sends no vendor email.** Work orders brought over from
   a previous system keep their vendor without emailing it; they are past
   jobs, not new assignments.
