@@ -18,6 +18,8 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: #387 purchase o
   - A fixed asset can't move away from a reserve component that links it;
     an asset with no association can't be linked.
   - Editing a PO keeps its work order; PO dates use the association's day.
+  - Codex: an auto-approved resubmission drops its old rejected request
+    (20261015233000 LIVE as 20261014094012; dry-run rolled back first).
   Reviewers: migration (twice, final file), security (DELETE/re-point gaps
   fixed), design (note hint moved under the row, bill page too),
   white-label (two messages reworded). 9 business-rule questions -> TODO.

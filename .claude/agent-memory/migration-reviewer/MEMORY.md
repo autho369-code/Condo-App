@@ -8,7 +8,7 @@
 - Migrations must pass `node scripts/check-supabase-migrations.mjs`.
 - `payment_processor` enum value 'stripe' is LIVE (`app/api/stripe/webhook/route.ts:358` inserts payment_methods with processor 'stripe'; `select_payment_processor()` falls back to 'stripe', baseline :7794). Flag any migration that drops/recreates the enum without 'stripe' as breaking online payments, despite the old docs/TODO.md note calling it unused.
 
-- Migration version must be a REAL UTC timestamp: `20261013240000` (hour 24) fails the checker as an invalid filename. After ...230000 use ...233000 or the next day's 000000. RECURRING (again 20261014240000_comms_followups, already applied live): if applied, check the live schema_migrations row first: apply_migration records its own real-time version (comms_followups is 20261013192146 live), so a file rename usually needs no history fix.
+- Migration version must be a REAL UTC timestamp: `20261013240000` (hour 24) fails the checker as an invalid filename. After ...230000 use ...233000 or the next day's 000000. RECURRING (again 20261014240000_comms_followups, already applied live): if applied, check the live schema_migrations row first: apply_migration records its own real-time version (comms_followups is 20261013192146 live), so a file rename usually needs no history fix. 3rd time: 20261015240000_purchase_orders_resubmit (caller's brief didn't mention it; always run the checker first).
 - In-place patches of trigger guards: `current_user` only works if the guard is NOT security definer (email_queue_guard_worker_columns isn't); check before accepting an auth.role() -> current_user swap.
 
 ## False alarms to skip

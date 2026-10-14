@@ -130,3 +130,12 @@ describe('20261015230000_purchase_orders_fixes migration', () => {
     expect(m).not.toMatch(/\bdelete\s+from\b/i);
   });
 });
+
+describe('20261015233000_purchase_orders_resubmit migration', () => {
+  it('an auto-approved resubmission drops its old board request', () => {
+    const m = read('supabase/migrations/20261015233000_purchase_orders_resubmit.sql');
+    expect(m).toContain("decision_note = 'Approved within manager spending authority',");
+    expect(m).toContain('approval_request_id = null,');
+    expect(m).not.toMatch(/drop\s+(table|column|view|function|policy)/i);
+  });
+});
