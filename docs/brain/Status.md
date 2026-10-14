@@ -13,6 +13,10 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#387 merged; open PR: #388 ownership 
     shared-unit branch admits only current co-owners' statements
     (20261016020000 LIVE as 20261014112304; dry-run: buyer sees the
     co-owner's October statement, not the seller's October or September).
+  - Codex: a co-owner whose move-out date has arrived stops sharing
+    statements even before the nightly job (20261016030000 LIVE as
+    20261014112904); the owner page's YTD figures count every ownership
+    period, so a former owner who sold this year still shows their months.
   - A sale can't be recorded before it closes: change_unit_homeowner and
     transfer_unit_ownership refuse a transfer date after the association's
     local today; the action checks it before creating a buyer record; the

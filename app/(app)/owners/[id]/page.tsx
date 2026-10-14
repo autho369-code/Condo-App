@@ -225,8 +225,9 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
   // YTD charges, payments and returns cover this owner's own ownership of
   // each unit (move-in to move-out), not the unit's whole year: a buyer's
-  // figures leave out the seller's months.
-  const windows = ownershipWindows(currentOccs);
+  // figures leave out the seller's months. Every ownership period counts,
+  // so a former owner who sold this year still shows their months.
+  const windows = ownershipWindows((occs ?? []) as any[]);
   const chargeWindow = ownershipWindowFilter(windows, 'due_date');
   const paymentWindow = ownershipWindowFilter(windows, 'payment_date');
 

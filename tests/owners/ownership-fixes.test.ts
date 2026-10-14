@@ -198,7 +198,7 @@ describe('ownership window helpers', () => {
 
   it('the homeowner page bounds YTD figures and payment history to this owner', () => {
     const page = read('app/(app)/owners/[id]/page.tsx');
-    expect(page).toContain('const windows = ownershipWindows(currentOccs);');
+    expect(page).toContain('const windows = ownershipWindows((occs ?? []) as any[]);');
     expect(page).toContain(".or(chargeWindow)");
     expect(page).toContain(".or(paymentWindow)");
     // History and last payment: this owner's window per unit, not the ledger's
@@ -300,5 +300,12 @@ describe('20261016020000_statement_visibility_co_owners migration', () => {
     expect(m).toContain('and o.owner_id = s.owner_id');
     expect(m).toContain("and o.status = 'current'");
     expect(m).toContain('where s.owner_id in (select public.current_owner_ids())');
+  });
+});
+
+describe('20261016030000_statement_visibility_move_out migration', () => {
+  it('a co-owner whose move-out date has arrived no longer shares statements', () => {
+    const m = read('supabase/migrations/20261016030000_statement_visibility_move_out.sql');
+    expect(m).toContain('or o.move_out_date > public.association_local_date(o.association_id)');
   });
 });
