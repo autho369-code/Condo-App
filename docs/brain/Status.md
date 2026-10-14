@@ -1,9 +1,22 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#374 merged; open PR: #375 claude/collections-deep-check; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#375 merged; open PR: claude/collections-codex-fixes (PR not opened yet); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #375 claude/collections-deep-check: DEEP CHECK of delinquencies
+- (PR not opened yet) claude/collections-codex-fixes: Codex on #375 (two P1s).
+  20261015050000.
+  - remove_late_fee debits the income account the fee's own posting
+    credited (from its posted charge journal entry), not today's mapping;
+    the mapping is a fallback; an inactive account gives a clear error.
+    Rolled back: fee posted to A, category remapped to B -> credit to A.
+  - Payment plan window in the association's time zone (created, cancelled,
+    completed): a plan made on a US evening left out that local day's
+    charges. New plans' start_date is the local date; the plans report's
+    "Behind" uses the local date. Plans rechecked. Rolled back (Etc/GMT+12):
+    paid 500 - 300 due that local day = 200; start_date local.
+
+## Merged 2026-10-13
+- #375 claude/collections-deep-check: Codex P1 x2 (fixed in the next PR). DEEP CHECK of delinquencies
   and collections (rolled back on production at 2,000 units) + Mirsad's
   "THE MANAGER SHOULD BE ABLE TO REMOVE LATE FEES". 20261015040000 LIVE as
   20261013232520 (dry runs passed; all 13 patched functions read back).
@@ -36,7 +49,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#374 merged; open PR: #375 claude/col
     (sync on the Delinquencies page, Advance per case; no cron), by design:
     steps can need human approval.
 
-## Merged 2026-10-13
 - #374 payables follow-ups (Next gaps). Codex clean.
   - 1099 totals (vendor_1099_totals, assemble_vendor_1099_data): the tax
     year is a range on paid_at in the time zone of the association
