@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { emailQueueRow } from '../../lib/email/queue';
 
 const read = (p: string) => readFileSync(resolve(p), 'utf8').replace(/\r\n/g, '\n');
-const migration = read('supabase/migrations/20261016180000_email_platform_mail_flag.sql');
+const migration = read('supabase/migrations/20261016210000_email_platform_mail_flag.sql');
 const fn = (name: string) => {
   const start = migration.indexOf(`create or replace function public.${name}(`);
   expect(start, name).toBeGreaterThan(-1);
