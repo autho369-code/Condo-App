@@ -1,10 +1,15 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: #371 claude/email-unsubscribe; next: Banking follow-ups (Next gaps); waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#371 merged; open PR: claude/banking-followups; next: Banking follow-ups (Next gaps); waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #371 claude/email-unsubscribe: email unsubscribe and suppression (Mirsad's
-  recommended defaults from TODO). 20261015010000 LIVE as four versions:
+- claude/banking-followups: Banking Next gap (in progress).
+
+## Merged 2026-10-13
+- #371 email unsubscribe and suppression (Mirsad's
+  recommended defaults from TODO). Codex: one P2 on an older commit (dues
+  reminders skipped mail-preferring owners), already fixed by the
+  all-owners commit before merge. 20261015010000 LIVE as four versions:
   20261013203100 email_unsubscribe, 20261013203437
   email_prepare_batch_platform_name, 20261013203802
   email_unsubscribe_security_fixes, 20261013203849
@@ -43,8 +48,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: #371 claude/ema
     claim_email_queue_snapshot skips suppressed mail; the unused
     claim_email_queue(integer) is revoked from everyone (drop on TODO);
     complete_email_delivery counts suppressed recipients as done.
-
-## Merged 2026-10-13
 - #370 SMS routing (Codex on #369). Codex clean. 20261014234500 (LIVE, applied as
   three live versions: 20261013195620 sms_provider_sender, 20261013200049
   sms_reply_routing_rpcs, 20261013200334 sms_messages_freeze_routing_columns;
