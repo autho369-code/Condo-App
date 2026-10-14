@@ -1,9 +1,44 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: claude/email-unsubscribe; next: email unsubscribe and suppression; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: claude/email-unsubscribe; next: Banking follow-ups (Next gaps); waiting on Mirsad: email opt-out defaults (TODO), NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/email-unsubscribe: email unsubscribe and suppression (in progress).
+- claude/email-unsubscribe: email unsubscribe and suppression (Mirsad's
+  recommended defaults from TODO). 20261015010000 LIVE as four versions:
+  20261013203100 email_unsubscribe, 20261013203437
+  email_prepare_batch_platform_name, 20261013203802
+  email_unsubscribe_security_fixes, 20261013203849
+  email_prepare_batch_message_alias; the file is the final, re-runnable
+  state (read back live: email_prepare_batch, complete_email_delivery,
+  policies). Rolled-back production tests passed.
+  - email_queue.mail_class (required | optional) decided in the database
+    from the email's key (mass-email, communication, dues/insurance/calendar
+    reminders, automation, vendor-bulk are optional); a signed-in user's
+    mail is optional unless its key is a known required kind or it holds a
+    sign-in link, so staff can't mark mass mail required.
+  - email_suppressions per company and address (unsubscribed | bounced |
+    complained) + email_suppression_events; only server functions write.
+    A bounce stops all mail; an unsubscribe or spam report stops optional
+    mail only. Association-scoped managers don't see or clear them.
+    A suppressed email is kept, failed with suppressed_at and the reason
+    (shown as "Not sent" in the Communication Center). Checked when the
+    worker sends (email_prepare_batch), not at insert (no per-row cost); a
+    Communication Center message counts stopped recipients as done. Optional mail to an owner
+    whose preferred contact is mail is not sent.
+  - Optional company mail gets an Unsubscribe footer and List-Unsubscribe /
+    List-Unsubscribe-Post headers on the company's address
+    (/unsubscribe/<token> page; /api/unsubscribe/<token> one-click POST;
+    tokens server-only in email_unsubscribe_links, one per email; rate
+    limited per link, not per address: providers send one-clicks from shared
+    servers).
+  - Resend permanent bounces and complaints suppress the address for that
+    company; staff can allow a bounced address again from the email's page
+    (the lookup is the email's own company).
+  - Also: owner form requests carry an owner-form: key (required);
+    existing mass and reminder rows (any status) were classified optional;
+    claim_email_queue_snapshot skips suppressed mail; the unused
+    claim_email_queue(integer) is revoked from everyone (drop on TODO);
+    complete_email_delivery counts suppressed recipients as done.
 
 ## Merged 2026-10-13
 - #370 SMS routing (Codex on #369). Codex clean. 20261014234500 (LIVE, applied as
@@ -543,15 +578,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#370 merged; open PR: claude/email-un
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
-- NEXT PR: email unsubscribe and suppression (communications deep check
-  2026-10-13): no unsubscribe link or List-Unsubscribe header; bounced and
-  complained addresses (email_queue.bounced_at/complained_at) are never
-  suppressed; mass email ignores preferred_comm / electronic_consent.
-  Enforce at email_queue (many SQL functions insert directly), shape like
-  sms_opt_ins + sms_consent_events (not the legacy owner_notification_prefs).
-  Needs Mirsad: which mail ignores opt-out (recommended: sign-in, receipts,
-  statements, violation/hearing, meeting and collection notices), legal
-  notices by letter for preferred_comm='mail', staff can't clear an opt-out.
 - Banking, not changed (from the deep check): a completed reconciliation
   has no undo (only the service role); year-end close is a snapshot
   package and does not lock months; a bank adjustment already cleared can

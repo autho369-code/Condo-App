@@ -114,7 +114,7 @@ export default async function CommunicationCenterPage({
 
   if (tab === 'emails') {
     let query = db.from('email_queue')
-      .select('id, to_email, to_name, subject, status, delivery_status, error_message, created_at, sent_at, delivered_at, open_count, first_opened_at, bounced_at, associations(name)', { count: 'exact' });
+      .select('id, to_email, to_name, subject, status, delivery_status, error_message, suppressed_at, created_at, sent_at, delivered_at, open_count, first_opened_at, bounced_at, associations(name)', { count: 'exact' });
     if (association) query = query.eq('association_id', association);
     // A provider can report a failure after accepting an email: the queue row
     // stays 'sent' and delivery_status becomes 'failed'.
@@ -256,6 +256,14 @@ export default async function CommunicationCenterPage({
                   <TD className="text-sm text-gray-600">{m.associations?.name ?? '—'}</TD>
                   <TD>
                     {m.bounced_at ? <StatusChip tone="danger">Bounced</StatusChip>
+                      // Not sent on purpose: unsubscribed, bounced earlier, or prefers
+                      // mail. The reason is shown as text (a tooltip never shows on touch).
+                      : m.suppressed_at ? (
+                        <div className="space-y-1">
+                          <StatusChip tone="neutral">Not sent</StatusChip>
+                          {m.error_message && <div className="max-w-[16rem] text-[12px] leading-snug text-gray-500">{String(m.error_message).replace(/^Not sent: /, '')}</div>}
+                        </div>
+                      )
                       : m.status === 'failed' || m.delivery_status === 'failed' ? <StatusChip tone="danger">Failed</StatusChip>
                       : m.status === 'pending' ? <StatusChip tone="warning">Waiting to send</StatusChip>
                       : m.delivered_at ? <StatusChip tone="success">Delivered</StatusChip>

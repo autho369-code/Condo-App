@@ -45,6 +45,8 @@
 
 - Column-freeze triggers keyed on `current_user in ('authenticated','anon')` are bypassed by every DEFINER writer (runs as owner): sweep `update/insert public.<t>` in ALL migrations + app `.from('<t>').update/insert` and confirm each definer is service_role-gated (auth.role() check + revoke/grant) and each app writer of frozen cols uses createServiceClient (20261014234500 sms_messages: clean).
 
+- INVOKER triggers run their callees as the caller: every helper an invoker trigger calls needs EXECUTE for authenticated (first draft of 20261015010000 revoked them -> all staff sends broken; FIXED: key helpers granted :77-78, suppression moved to definer email_prepare_batch). Details in sql-pitfalls "Email suppression".
+
 ## Topic files
 - [SQL pitfalls](sql-pitfalls.md) — ACLs, inlining, regex/locale, re-runnability, checker false alarms, RLS hoist forms, revoke-unused-function checks, definer scope sweeps + twin drift, queue insert guards
 - [Triggers and scope](triggers-and-scope.md) — trigger order on portfolios/associations/auth.users, association-scope patterns

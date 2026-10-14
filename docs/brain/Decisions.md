@@ -2,6 +2,27 @@
 
 Back to [[Home]]. Don't redo these.
 
+- **Email opt-out follows the recommended defaults** (2026-10-13, Mirsad
+  hadn't answered; TODO keeps the question open): an unsubscribe stops
+  optional mail only (mass email, announcements, dues, insurance and
+  calendar reminders, automations, vendor bulk mail); sign-in links,
+  receipts, statements, notices, letters, form and signing requests and
+  replies are always sent. A bounced address gets nothing; a spam report
+  stops optional mail only (like an unsubscribe), so sign-in links and legal
+  notices still reach the owner (security review).
+  Suppressions are per company (white label; Resend already stops hard
+  bounces account-wide). Only the recipient undoes an unsubscribe or spam
+  report (from the link); staff can allow a bounced address again. Managers
+  limited to some associations don't see or clear suppressions (they are by
+  company, not association). Owners
+  who prefer mail get no optional email. electronic_consent is not
+  enforced (nearly every owner has it false; Mirsad's call). Platform mail
+  sent as Portier369 has no company unsubscribe link (account mail).
+  Accepted: staff who queue mail directly with a required kind's key (e.g.
+  notice:) send it as required; that is a deliberate act, like emailing
+  from their own mailbox. Suppression is checked when the worker sends, not
+  when mail is queued (no per-row cost; covers mail queued earlier).
+
 - **A reply belongs to the company that texted from that number**
   (2026-10-13, Codex on #369): when several companies know a sender, a text
   reply or START goes to the company with a text we sent the sender from

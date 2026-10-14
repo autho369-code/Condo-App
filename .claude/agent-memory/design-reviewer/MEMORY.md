@@ -89,3 +89,7 @@
 
 ## Newer/Older pagers (inbox, 2026-10-13)
 - Precedent: communication-center/page.tsx:215 renders the count+pager line OUTSIDE the empty branch. Copies that put it inside the non-empty branch leave a stale `?page=N` past the end on an EmptyState with no way back (inbox:115). Also check the page's 2nd query (sms) surfaces its error. Pager text links were ~20px tall (shared debt). (All fixed in the comms-followups PR: pager outside the empty branch, redirect past the end, sms Alert, min-h-10 links in inbox and Communication Center.)
+
+## Public token pages, cont. (unsubscribe, 2026-10-13)
+- app/(public) token pages copy vendor-upload's hand-rolled `card` const (rounded-2xl + own shadow) instead of `Surface`; flag as nit on each new copy (unsubscribe/[token]/page.tsx:20). Also `?done=` echoed verbatim into a success Alert lets anyone craft a message on the company's domain: prefer a key -> message map. (Fixed on unsubscribe: Surface + fixed wording by ?done/?error code. vendor-upload still has both.)
+- New "kind/class" facts on detail pages: check the column default/backfill for old rows (email_queue.mail_class defaults 'required', backfill only pending/failed, so old optional sent mail reads "Required notice"). (Fixed: the 20261015010000 backfill covers every status.)

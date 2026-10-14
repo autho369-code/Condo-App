@@ -12,6 +12,11 @@ import {
 } from '../../lib/email/sender-domains';
 
 const sent: Array<{ from: string; key: string }> = [];
+// Each sent email's body and headers (sent keeps from and key only).
+const payloads: Array<{ html: string; headers?: Record<string, string> }> = [];
+// email_prepare_batch results by email id (default: send, no unsubscribe link).
+let prepared: Record<string, any> = {};
+const linkUrls: Array<{ id: string; page_url: string }> = [];
 let refuseBranded = false;
 let queued: any[] = [];
 let domains: any[] = [];
@@ -25,6 +30,7 @@ vi.mock('resend', () => ({
     emails = {
       send: async (payload: any, options: any) => {
         sent.push({ from: payload.from, key: options.idempotencyKey });
+        payloads.push({ html: payload.html, headers: payload.headers });
         if (refuseBranded && payload.from.includes('stellarpropertygroup.com')) {
           return { data: null, error: { message: 'The stellarpropertygroup.com domain is not verified.' } };
         }
@@ -38,11 +44,15 @@ vi.mock('@/lib/server/cron-auth', () => ({ requireCronSecret: () => null }));
 
 vi.mock('@/lib/supabase/server', () => ({
   createServiceClient: () => ({
-    rpc: async (name: string) => (name === 'claim_email_queue_snapshot' ? { data: queued, error: null } : { data: true, error: null }),
+    rpc: async (name: string) => (name === 'claim_email_queue_snapshot' ? { data: queued, error: null }
+      : name === 'email_prepare_batch'
+        ? { data: queued.map((e) => prepared[e.id] ?? { id: e.id, suppressed: false, unsubscribe_token: null, unsubscribe_url: null }), error: null }
+        : { data: true, error: null }),
     from: (table: string) => ({
       update: (values: any) => ({
         eq: async (_col: string, id: string) => {
-          snapshots.push({ id, sender_address: values.sender_address });
+          if (table === 'email_unsubscribe_links') linkUrls.push({ id, page_url: values.page_url });
+          else snapshots.push({ id, sender_address: values.sender_address });
           return { error: null };
         },
       }),
@@ -50,7 +60,7 @@ vi.mock('@/lib/supabase/server', () => ({
         in: async () => (table === failingTable
           ? { data: null, error: { message: 'connection reset' } }
           : table === 'portfolios'
-          ? { data: [{ id: 'p1', company_name: 'Stellar Property Group' }], error: null }
+          ? { data: [{ id: 'p1', company_name: 'Stellar Property Group', slug: 'stellar', custom_domain: null, custom_domain_verified_at: null }], error: null }
           : table === 'email_sender_domain_owners'
             ? { data: owners, error: null }
             : table === 'associations'
@@ -124,11 +134,49 @@ describe('email worker sender selection', () => {
   beforeEach(() => {
     sent.length = 0;
     snapshots.length = 0;
+    linkUrls.length = 0;
+    payloads.length = 0;
+    prepared = {};
     refuseBranded = false;
     owners = [{ portfolio_id: 'p1', domain: 'stellarpropertygroup.com' }];
     failingTable = null;
     associations = [{ id: 'a1', portfolio_id: 'p1' }, { id: 'a2', portfolio_id: 'p2' }];
     vi.resetModules();
+  });
+
+  it('does not send mail the database stopped (unsubscribed or bounced address)', async () => {
+    queued = [email()];
+    domains = [];
+    prepared = { e1: { id: 'e1', suppressed: true, unsubscribe_token: null, unsubscribe_url: null } };
+    await expect(runWorker()).resolves.toMatchObject({ sent: 0, suppressed: 1 });
+    expect(sent).toHaveLength(0);
+  });
+
+  it("adds the Unsubscribe link and headers to optional mail, on the company's address", async () => {
+    const token = 'b'.repeat(64);
+    queued = [email()];
+    domains = [];
+    prepared = { e1: { id: 'e1', suppressed: false, unsubscribe_token: token, unsubscribe_url: null } };
+    await expect(runWorker()).resolves.toMatchObject({ sent: 1 });
+    const page = linkUrls[0]?.page_url;
+    expect(page).toMatch(new RegExp(`^https?://stellar\\.[^/]+/unsubscribe/${token}$`));
+    expect(payloads[0].html).toContain(`href="${page}"`);
+    expect(payloads[0].html).toContain('optional email from Stellar Property Group');
+    expect(payloads[0].headers).toEqual({
+      'List-Unsubscribe': `<${page!.replace('/unsubscribe/', '/api/unsubscribe/')}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    });
+  });
+
+  it('replays a retry with the unsubscribe link chosen on the first attempt', async () => {
+    const token = 'c'.repeat(64);
+    const saved = `https://stellar.example.test/unsubscribe/${token}`;
+    queued = [email()];
+    domains = [];
+    prepared = { e1: { id: 'e1', suppressed: false, unsubscribe_token: token, unsubscribe_url: saved } };
+    await runWorker();
+    expect(linkUrls).toHaveLength(0);
+    expect(payloads[0].html).toContain(`href="${saved}"`);
   });
 
   it("sends company mail from the company's verified domain", async () => {

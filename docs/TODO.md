@@ -14,8 +14,11 @@ DNS or decisions). Details for the older items are further down.
 
 **Housekeeping (quick)**
 - [ ] **Email opt-out: three decisions** (for the unsubscribe/suppression
-      change, 2026-10-13). Recommended defaults, built that way unless you say
-      otherwise:
+      change, 2026-10-13). Built with these recommended defaults; say if any
+      should change. Also open: should owners without electronic consent
+      (16 of 17 today) get no email? Not enforced now. And should legal
+      notices go by letter to owners whose preferred contact is mail (state
+      rules differ)? Recommended defaults:
       1. Unsubscribing stops mass email, announcements and optional
          reminders, but not sign-in links, receipts, statements,
          violation/hearing, meeting or collection notices. Bounced or
@@ -25,6 +28,10 @@ DNS or decisions). Details for the older items are further down.
          rules differ).
       3. Staff can't clear an owner's unsubscribe (only the owner, from the
          link); staff can clear a bounce after the address is fixed.
+- [ ] **Optional SQL (unused function):** `drop function public.claim_email_queue(integer);`
+      The email worker uses claim_email_queue_snapshot; the old one is no
+      longer callable by anyone (20261015010000) and doesn't skip
+      unsubscribed addresses.
 - [ ] **Delete the test conversation** "Inbox test (please ignore)" in the
       Inbox (Randolph Station, Alexandra Podkanska).
 - [ ] **Delete the old Resend API key** that was pasted in chat (Resend →
