@@ -57,16 +57,21 @@ export async function savePurchaseOrder(formData: FormData) {
     p_submit: formData.get('intent') === 'submit',
   });
   if (error) failTo(error.message);
+  // Submitted and approved within the manager's authority: the vendor gets the
+  // order. Queued before the notes are written: the approval is already
+  // committed, so a notes failure must not lose the vendor's email.
+  const emailed = formData.get('intent') === 'submit'
+    ? await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: String(data), portfolioId })
+    : null;
   // Internal notes are staff-only (purchase_order_private). Written here so
   // clearing them works: the RPC's NULL would leave the stored note.
   const notesError = await savePrivateFields(supabase, 'purchase_order_private', 'purchase_order_id', String(data), {
     notes: String(formData.get('notes') ?? '').slice(0, 2000),
   });
-  if (notesError) redirect(`/purchase-orders/${data}?error=${encodeURIComponent(`Saved, but the internal notes could not be saved: ${notesError.message}`)}`);
-  // Submitted and approved within the manager's authority: the vendor gets the order.
-  const emailed = formData.get('intent') === 'submit'
-    ? await notifyVendorOfPurchaseOrderApproval({ purchaseOrderId: String(data), portfolioId })
-    : null;
+  if (notesError) {
+    const vendorNote = emailed?.reason ? ` The vendor was not emailed: ${emailed.reason}.` : '';
+    redirect(`/purchase-orders/${data}?error=${encodeURIComponent(`Saved, but the internal notes could not be saved: ${notesError.message}.${vendorNote}`)}`);
+  }
 
   revalidatePath('/purchase-orders');
   redirect(purchaseOrderPageAfterApproval(String(data), emailed));

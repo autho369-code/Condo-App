@@ -123,3 +123,26 @@ describe('purchase order approval email', () => {
     expect(text).not.toMatch(/portier369/i);
   });
 });
+
+describe('20261016235000_po_cost_by_billed_gl (Codex on #397)', () => {
+  const fix = read('supabase/migrations/20261016235000_po_cost_by_billed_gl.sql');
+
+  it('uses up PO lines by the bill GL account first, then the rest in order', () => {
+    expect(fix).toContain('create or replace function public.project_cost_by_category(p_project_id uuid)');
+    expect(fix).toContain('left join po_bill_gl pb on pb.po_id = g.po_id and pb.gl is not distinct from g.gl');
+    expect(fix).toContain('sum(greatest(pb.billed - coalesce(g.lines, 0), 0)) as extra');
+    expect(fix).toContain('greatest(least(o.open_gl, o.running - coalesce(e.extra, 0)), 0)');
+    // Finance-only PO amounts are kept.
+    expect(fix).toContain('where v_fin');
+    expect(fix).toContain('revoke all on function public.project_cost_by_category(uuid) from public, anon;');
+  });
+});
+
+describe('savePurchaseOrder queues the vendor email before the notes write (Codex on #397)', () => {
+  it('notifies the vendor before saving private notes', () => {
+    const save = actions.slice(actions.indexOf('export async function savePurchaseOrder'), actions.indexOf('export async function submitPurchaseOrder'));
+    expect(save.indexOf('notifyVendorOfPurchaseOrderApproval')).toBeGreaterThan(-1);
+    expect(save.indexOf('notifyVendorOfPurchaseOrderApproval')).toBeLessThan(save.indexOf('savePrivateFields'));
+    expect(save).toContain('The vendor was not emailed:');
+  });
+});
