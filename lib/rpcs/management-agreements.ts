@@ -40,6 +40,12 @@ export async function updateManagementAgreement(formData: FormData) {
   if (associationId) {
     const { data: assoc } = await db.from('associations').select('id').eq('id', associationId).eq('portfolio_id', portfolioId).maybeSingle();
     if (!assoc || !(await managesAssociation(db, associationId))) back(id, 'error', 'Association is outside your access.');
+  } else {
+    // A company-wide agreement is visible to every manager: only staff not
+    // limited to specific associations may leave the association blank.
+    const { data: scoped, error: scopedError } = await db.rpc('manager_is_scoped');
+    if (scopedError) back(id, 'error', 'Could not check your access. Try again.');
+    if (scoped === true) back(id, 'error', 'Choose one of your associations for this agreement.');
   }
   // The agreement's owner must stay in the chosen association (or, with none,
   // in one the caller manages).
@@ -86,8 +92,12 @@ export async function recordAgreementSignatures(formData: FormData) {
   if (!signedOn) back(id, 'error', 'Enter the date the agreement was signed.');
   const at = new Date(`${signedOn}T12:00:00`).toISOString();
   const db = (await createClient()) as any;
-  const { data: existing } = await db.from('management_agreements').select('status').eq('id', id).maybeSingle();
+  const { data: existing } = await db.from('management_agreements').select('status, association_id').eq('id', id).maybeSingle();
   if (!existing) back(id, 'error', 'Agreement not found.');
+  // Only staff who manage the agreement's association record its signatures.
+  if (existing.association_id && !(await managesAssociation(db, existing.association_id))) {
+    back(id, 'error', 'This agreement belongs to an association outside your access.');
+  }
 
   const { data: changed, error } = await db
     .from('management_agreements')
