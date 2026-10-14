@@ -1,6 +1,6 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#385 merged; open PR: none (deep check of purchase orders, projects, inventory and fixed assets running); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-14 (#279-#386 merged; open PR: none (deep check of purchase orders, projects, inventory and fixed assets running); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
 - (none yet) claude/po-projects-deep-check: deep check of purchase orders,
