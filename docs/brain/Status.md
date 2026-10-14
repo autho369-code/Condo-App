@@ -1,9 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-13 (#279-#373 merged; open PR: #374 claude/payables-followups; next: Stripe TEST-mode checkout and AutoPay run (Next gaps; needs Mirsad's Stripe test keys), else a new gap from the AppFolio gap analysis; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-13 (#279-#374 merged; open PR: claude/collections-deep-check (PR not opened yet); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; otherwise deep checks of modules not yet checked; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #374 claude/payables-followups: Payables follow-ups (Next gaps).
+- (PR not opened yet) claude/collections-deep-check: deep check of delinquencies and collections at scale.
+
+## Merged 2026-10-13
+- #374 payables follow-ups (Next gaps). Codex clean.
   - 1099 totals (vendor_1099_totals, assemble_vendor_1099_data): the tax
     year is a range on paid_at in the time zone of the association
     of each bill, instead of association_local_date per bill; starts from
@@ -23,8 +26,6 @@ Back to [[Home]]. Updated 2026-10-13 (#279-#373 merged; open PR: #374 claude/pay
     number and no payment, so the duplicate-invoice and payment-date rules
     don't apply (by design, no change). Purchase-order bills go through
     create_payable_bill (checked in #360); pay_owner_payable checks dates.
-
-## Merged 2026-10-13
 - #373 reconciliation statement balance (Codex on #372, P1): a reconciliation
   in progress can have its statement ending balance corrected on the
   reconcile page (a reopened one was stuck). App only. Codex: no findings.
