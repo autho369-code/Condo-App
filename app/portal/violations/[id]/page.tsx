@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/input'
 import { requestViolationHearing } from '@/lib/rpcs/violations'
 import { money, date } from '@/lib/utils'
 import Link from 'next/link'
+import { associationZone } from '../../_lib/tenure'
 import { ArrowLeft, Image as ImageIcon } from 'lucide-react'
 import { ViolationLettersList } from '@/components/violations/letters-list'
 import { signLetterLinks, VIOLATION_LETTER_COLUMNS, type ViolationLetterRow } from '@/lib/violations/letter-links'
@@ -31,7 +32,7 @@ export default async function OwnerViolationDetail({
   const sp = await searchParams
 
   const { data: v } = await db.from('violations')
-    .select('id, title, description, violation_type, status, date_observed, hearing_date, hearing_at, hearing_required, hearing_requested_at, hearing_request_note, fine_amount, fines_total, fine_assessed_at, notice_sent_at, board_decision, attachments, owner_visible_history, governing_document_reference, units!inner(unit_number)')
+    .select('id, title, description, violation_type, status, date_observed, hearing_date, hearing_at, hearing_required, hearing_requested_at, hearing_request_note, fine_amount, fines_total, fine_assessed_at, notice_sent_at, board_decision, attachments, owner_visible_history, governing_document_reference, units!inner(unit_number), associations(timezone)')
     .eq('id', id).in('owner_id', me.owner_ids).maybeSingle()
 
   if (!v) return notFound()
@@ -83,6 +84,8 @@ export default async function OwnerViolationDetail({
   // older scheduled date. A date-only day has passed once the association's
   // calendar is past it; a timestamp once that moment is past.
   const hearingOn = v.hearing_at ?? v.hearing_date
+  // Hearing dates show in the association's own time zone.
+  const zone = associationZone(v.associations?.timezone)
   const hearingHeld = Boolean(v.board_decision) || (v.hearing_at
     ? new Date(v.hearing_at).getTime() < Date.now()
     : Boolean(v.hearing_date && today && today > v.hearing_date))
@@ -115,7 +118,7 @@ export default async function OwnerViolationDetail({
         <div className="grid grid-cols-2 gap-4 text-sm mb-4">
           <div><span className="text-gray-500">Date Observed:</span> <span className="text-gray-900">{date(v.date_observed)}</span></div>
           <div><span className="text-gray-500">Fine:</span> <span className="text-gray-900 font-medium">{fines > 0 ? money(fines) : 'None'}</span></div>
-          <div><span className="text-gray-500">Hearing Date:</span> <span className="text-gray-900">{hearingOn ? date(hearingOn) : 'Not scheduled'}</span></div>
+          <div><span className="text-gray-500">Hearing Date:</span> <span className="text-gray-900">{hearingOn ? date(hearingOn, 'short', zone) : 'Not scheduled'}</span></div>
           <div><span className="text-gray-500">Notice Sent:</span> <span className="text-gray-900">{v.notice_sent_at ? date(v.notice_sent_at) : '—'}</span></div>
           <div><span className="text-gray-500">Board Decision:</span> <span className="text-gray-900 capitalize">{v.board_decision ?? 'Pending'}</span></div>
           {v.governing_document_reference && <div className="col-span-2"><span className="text-gray-500">Governing Doc:</span> <span className="text-gray-900">{v.governing_document_reference}</span></div>}
@@ -177,9 +180,9 @@ export default async function OwnerViolationDetail({
 
       <Surface>
         {hearingOn && hearingHeld ? (
-          <div><h2 className="text-base font-semibold text-gray-950">{v.board_decision ? 'Hearing held' : 'Hearing date passed'}</h2><p className="mt-1 text-sm text-gray-500">{v.board_decision ? <>Your hearing was held on {date(hearingOn)}. Decision: violation {v.board_decision}.</> : <>The hearing date ({date(hearingOn)}) has passed. The decision will be posted here.</>}</p></div>
+          <div><h2 className="text-base font-semibold text-gray-950">{v.board_decision ? 'Hearing held' : 'Hearing date passed'}</h2><p className="mt-1 text-sm text-gray-500">{v.board_decision ? <>Your hearing was held on {date(hearingOn, 'short', zone)}. Decision: violation {v.board_decision}.</> : <>The hearing date ({date(hearingOn, 'short', zone)}) has passed. The decision will be posted here.</>}</p></div>
         ) : hearingOn ? (
-          <div><h2 className="text-base font-semibold text-gray-950">Hearing scheduled</h2><p className="mt-1 text-sm text-gray-500">Your hearing is scheduled for {date(hearingOn)}.</p></div>
+          <div><h2 className="text-base font-semibold text-gray-950">Hearing scheduled</h2><p className="mt-1 text-sm text-gray-500">Your hearing is scheduled for {date(hearingOn, 'short', zone)}.</p></div>
         ) : v.hearing_requested_at ? (
           <div>
             <h2 className="text-base font-semibold text-gray-950">Hearing requested</h2>

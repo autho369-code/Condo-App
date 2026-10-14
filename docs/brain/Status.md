@@ -3,6 +3,26 @@
 Back to [[Home]]. Updated 2026-10-14 (#279-#381 merged; open PR: #382 (Codex on #379-#381); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
+- claude/owner-portal-fixes (no PR number yet): owner portal fixes, app
+  code only (no migrations).
+  - Ledger: a previous owner's paid charges are hidden; charges still open
+    stay (screen and export). Unit column on charges and payments; the
+    export has one header per association.
+  - AutoPay: an account with online payments switched off can't be set up,
+    isn't offered, and existing enrollments show as paused.
+  - Hearings: the recorded hearing time wins over the old scheduled date,
+    accumulated fines over the base fine; hearing dates show in the
+    association's own time zone (hearings list and violation page).
+  - Work orders show errors sent back by the message form.
+  - Work orders and violations are paged (50 a page); violation totals
+    count every violation, not just the first 100.
+  - A failed read shows an error instead of an empty page (ownership dates,
+    My Home, hearings, meetings, vehicles, amenities, AutoPay, messages;
+    messages no longer opens "new message" when the list failed to load).
+  - A failed or canceled online payment says so and links back to Pay.
+  - Communications uses the shared text box.
+  - A removed late fee reads "Late fee removed", never as a payment
+    received (ledger, dashboard, timeline, owner assistant).
 - #382 claude/codex-379-380-followups: Codex on #379, #380 and #381.
   20261015110000 LIVE as 20261014022209, 20261015120000 LIVE as
   20261014022727 (both dry-run rolled back on production first, read back;

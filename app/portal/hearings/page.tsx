@@ -3,6 +3,7 @@ import { requireOwner } from '@/lib/auth/me'
 import { Badge, Alert } from '@/components/ui/shell'
 import { money, date } from '@/lib/utils'
 import Link from 'next/link'
+import { associationZone } from '../_lib/tenure'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +13,7 @@ export default async function OwnerHearingsPage({ searchParams }: { searchParams
   const db = supabase as any
 
   const { data: viols, error: violsError } = await db.from('violations')
-    .select('id, title, violation_type, status, date_observed, hearing_date, hearing_required, hearing_at, board_decision, fine_amount, fines_total')
+    .select('id, title, violation_type, status, date_observed, hearing_date, hearing_required, hearing_at, board_decision, fine_amount, fines_total, associations(timezone)')
     .in('owner_id', me.owner_ids).is('archived_at', null)
     // hearing_pending = a hearing was requested/granted but not yet scheduled.
     .or('hearing_required.eq.true,hearing_date.not.is.null,hearing_at.not.is.null,status.eq.hearing_pending')
@@ -41,6 +42,9 @@ export default async function OwnerHearingsPage({ searchParams }: { searchParams
             // the older scheduled day. Fines: the accumulated total when
             // recorded, else the base fine (same rule as the violation page).
             const hearingOn = v.hearing_at ?? v.hearing_date
+            // Shown in the association's own time zone (a hearing_at instant
+            // near midnight is a different day elsewhere).
+            const zone = associationZone(v.associations?.timezone)
             const fine = Number(v.fines_total) > 0 ? v.fines_total : v.fine_amount
             return (
             <div key={v.id} className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -52,7 +56,7 @@ export default async function OwnerHearingsPage({ searchParams }: { searchParams
                 <Badge status={v.status} />
               </div>
               <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-gray-500">Hearing Date:</span> <span className="text-gray-900 font-medium">{hearingOn ? date(hearingOn) : 'Not scheduled'}</span></div>
+                <div><span className="text-gray-500">Hearing Date:</span> <span className="text-gray-900 font-medium">{hearingOn ? date(hearingOn, 'short', zone) : 'Not scheduled'}</span></div>
                 <div><span className="text-gray-500">Fine:</span> <span className="text-gray-900 font-medium">{Number(fine) > 0 ? money(fine) : 'None'}</span></div>
                 <div><span className="text-gray-500">Board Decision:</span> <span className="text-gray-900 font-medium capitalize">{v.board_decision ?? 'Pending'}</span></div>
                 <div><span className="text-gray-500">Hearing Required:</span> <span className="text-gray-900 font-medium">{v.hearing_required ? 'Yes' : 'No'}</span></div>

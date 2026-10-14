@@ -229,3 +229,20 @@ describe('communications uses the shared Textarea', () => {
     expect(page).not.toContain('<textarea');
   });
 });
+
+describe('hearing dates in the association time zone', () => {
+  it('the hearings list formats with the association zone', () => {
+    const page = read('app/portal/hearings/page.tsx');
+    expect(page).toContain('fines_total, associations(timezone)');
+    expect(page).toContain('const zone = associationZone(v.associations?.timezone)');
+    expect(page).toContain("date(hearingOn, 'short', zone)");
+  });
+
+  it('the violation detail page formats every hearing date with it', () => {
+    const page = read('app/portal/violations/[id]/page.tsx');
+    expect(page).toContain('units!inner(unit_number), associations(timezone)');
+    expect(page).toContain('const zone = associationZone(v.associations?.timezone)');
+    expect(page).not.toContain('date(hearingOn)');
+    expect(page.match(/date\(hearingOn, 'short', zone\)/g)?.length).toBe(4);
+  });
+});

@@ -4,6 +4,14 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Owner portal fixes (claude/owner-portal-fixes, app code only): previous
+  owner's paid charges hidden on the ledger (open ones stay); Unit column
+  and per-association export; AutoPay respects "online payments off";
+  hearing time, fines and the association's time zone on hearings; work
+  order errors shown; work orders and violations paged with full totals;
+  failed reads shown as errors across the portal; failed/canceled payments
+  say so; shared text box on Communications; removed late fees read
+  "Late fee removed", not as payments.
 - Codex follow-ups on #379-#381 (20261015110000 live as 20261014022209,
   20261015120000 live as 20261014022727): board seats linked to their login
   before email matching is removed; amenity hours past midnight enforced;

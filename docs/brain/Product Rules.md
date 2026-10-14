@@ -162,6 +162,10 @@ Back to [[Home]].
   set function once (`id in (select rls_private.resident_visible_..._ids())`);
   hiding the seller's payments must not hide what they paid off (charge
   balances use the unit's applications).
+- **Owners see their own ownership period** (2026-10-14): an owner sees
+  charges from their own ownership period plus any balance still open on
+  the unit; a previous owner's paid history (paid charges, payments, work
+  orders) is hidden.
 - **Resident pages filter to their own rows, not RLS alone** (2026-10-13): a
   login can also be an owner, board member or staff, whose policies show
   more; filter by the resident's own ids in the query.
