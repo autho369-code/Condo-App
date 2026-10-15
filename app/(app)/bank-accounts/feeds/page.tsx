@@ -24,6 +24,9 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
+// suggest_bank_transaction_payments accepts at most 100 lines per call.
+const SUGGEST_BATCH = 100;
+
 export default async function BankFeedsPage({
   searchParams,
 }: {
@@ -167,16 +170,22 @@ export default async function BankFeedsPage({
   // Money in that may be an owner payment (Zelle, ACH): the database suggests
   // the unit (remembered sender, unit number in the memo, owner name, amount)
   // and staff confirm. Only units of the bank account's association(s).
-  const receivable = inflows.filter((t: any) => t.bank_accounts?.gl_account_id).slice(0, 50);
+  // Every open inflow on the page gets suggestions and the receive form.
+  const receivable = inflows.filter((t: any) => t.bank_accounts?.gl_account_id);
   const suggestionsByTxn = new Map<string, any[]>();
   const assocsByBank = new Map<string, string[]>();
   const unitsByAssoc = new Map<string, { id: string; unit_number: string }[]>();
   if (receivable.length) {
-    // One call for every line (the database checks access to each one).
-    const { data: suggested, error: suggestError } = await db.rpc('suggest_bank_transaction_payments', { p_ids: receivable.map((t: any) => t.id) });
-    if (suggestError) loadErrors.push(`Owner payment suggestions: ${suggestError.message}`);
+    // One call per 100 lines, the batch limit (the database checks access to each one).
+    const ids: string[] = receivable.map((t: any) => t.id);
+    const chunks: string[][] = [];
+    for (let i = 0; i < ids.length; i += SUGGEST_BATCH) chunks.push(ids.slice(i, i + SUGGEST_BATCH));
+    const results = await Promise.all(chunks.map((p_ids) => db.rpc('suggest_bank_transaction_payments', { p_ids })));
     for (const t of receivable) suggestionsByTxn.set(t.id, []);
-    for (const sg of (suggested ?? []) as any[]) suggestionsByTxn.get(sg.transaction_id)?.push(sg);
+    for (const { data: suggested, error: suggestError } of results) {
+      if (suggestError) loadErrors.push(`Owner payment suggestions: ${suggestError.message}`);
+      for (const sg of (suggested ?? []) as any[]) suggestionsByTxn.get(sg.transaction_id)?.push(sg);
+    }
     for (const t of receivable) {
       if (t.bank_accounts?.association_id) assocsByBank.set(t.bank_account_id, [t.bank_accounts.association_id]);
     }
@@ -301,7 +310,8 @@ export default async function BankFeedsPage({
                 const depositCandidates = depositsByTxn.get(txn.id) ?? [];
                 const suggestions = suggestionsByTxn.get(txn.id) ?? [];
                 const top = suggestions[0];
-                const unitOptions = Number(txn.amount) < 0 && suggestionsByTxn.has(txn.id) ? unitsForBank(txn.bank_account_id) : [];
+                // Units of the bank account's association(s), for a manual choice even with no suggestion.
+                const unitOptions = Number(txn.amount) < 0 ? unitsForBank(txn.bank_account_id) : [];
                 return (
                   <TR key={txn.id}>
                     <TD className="whitespace-nowrap align-top">{date(txn.date)}</TD>
@@ -332,7 +342,7 @@ export default async function BankFeedsPage({
                         <span className="text-sm text-amber-700">Link the bank account to a GL account first</span>
                       ) : (
                         <div className="space-y-2">
-                          {unitOptions.length > 0 && (
+                          {(unitOptions.length > 0 || suggestions.length > 0) && (
                             <form action={bankFeedAction} className="space-y-2 rounded-xl border border-gray-200 bg-gray-50/70 p-3">
                               <input type="hidden" name="id" value={txn.id} />
                               <input type="hidden" name="op" value="receive" />

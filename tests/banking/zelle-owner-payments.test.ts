@@ -17,6 +17,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({ rpc }) })
 import { bankFeedAction } from '@/lib/rpcs/bank-feed';
 import { formatZelleRecipient, normalizeZelleRecipient } from '@/lib/payments/zelle';
 import { RECEIPT_METHODS } from '@/lib/payments/methods';
+import { saveBankDetails } from '@/lib/plaid/bank-details';
 
 const root = process.cwd();
 const read = (p: string) => readFileSync(resolve(root, p), 'utf8').replace(/\r\n/g, '\n');
@@ -213,5 +214,78 @@ describe('bank feed: receive as owner payment', () => {
     rpc.mockResolvedValue({ data: 'payment-id', error: null });
     const to = await run({ id: TXN, op: 'receive', unit_id: UNIT, back: 'https://evil.example/' });
     expect(to.startsWith('/bank-accounts/feeds')).toBe(true);
+  });
+});
+
+describe('20261017020000_zelle_owner_payments_fixes migration', () => {
+  const fixes = read('supabase/migrations/20261017020000_zelle_owner_payments_fixes.sql');
+  const validate = fixes.slice(fixes.indexOf('create or replace function public.validate_payment_accounts()'));
+
+  it('accepts a company-wide bank account only when the unit association uses it', () => {
+    expect(validate).toContain("not (v_assoc = any (public.app_bank_account_association_ids(new.bank_account_id)))");
+    // Only on insert or when the unit or bank account changes, so older payments stay editable.
+    expect(validate).toMatch(/tg_op = 'INSERT'\s+or new\.bank_account_id is distinct from old\.bank_account_id\s+or new\.unit_id is distinct from old\.unit_id/);
+    // An association-owned bank still has to be the unit's association.
+    expect(validate).toContain('(v_bank_assoc is not null and v_bank_assoc <> v_assoc)');
+    // Earlier rules kept.
+    expect(validate).toContain("raise exception 'A credit does not go to a bank account'");
+    expect(validate).toContain('The credit (%) is more than the open balance on that charge (%)');
+    expect(validate).toContain("g.account_type::text in ('income', 'other_income', 'expense', 'other_expense')");
+  });
+
+  it('is a CREATE OR REPLACE only: no DELETE, no DROP, no grant to browser roles', () => {
+    expect(fixes).not.toMatch(/\bdelete\s+from\b/i);
+    expect(fixes).not.toMatch(/\bdrop\s+/i);
+    expect(fixes).toContain('revoke all on function public.validate_payment_accounts() from public, anon, authenticated;');
+    expect(fixes).not.toMatch(/grant\s+execute/i);
+  });
+});
+
+describe('bank feed page: every inflow can be received', () => {
+  const page = read('app/(app)/bank-accounts/feeds/page.tsx');
+
+  it('asks for suggestions for every open inflow, 100 per call', () => {
+    expect(page).not.toMatch(/\.slice\(0, 50\)/);
+    expect(page).toContain('const SUGGEST_BATCH = 100;');
+    expect(page).toContain("db.rpc('suggest_bank_transaction_payments', { p_ids })");
+  });
+
+  it('shows the receive form with a manual unit choice even with no suggestion', () => {
+    expect(page).toContain("const unitOptions = Number(txn.amount) < 0 ? unitsForBank(txn.bank_account_id) : [];");
+    expect(page).toContain('{(unitOptions.length > 0 || suggestions.length > 0) && (');
+  });
+});
+
+describe('Plaid sync: bank details', () => {
+  const item = { id: 'item-1', portfolio_id: 'pf-1' };
+  function service() {
+    const calls: { update?: unknown; eq: [string, unknown][] } = { eq: [] };
+    const chain: any = {
+      from: vi.fn(() => chain),
+      update: vi.fn((v: unknown) => { calls.update = v; return chain; }),
+      eq: vi.fn((k: string, v: unknown) => { calls.eq.push([k, v]); return calls.eq.length === 3 ? Promise.resolve({ error: null }) : chain; }),
+    };
+    return { chain, calls };
+  }
+
+  it('clears details the bank removed from a modified transaction', async () => {
+    const { chain, calls } = service();
+    await saveBankDetails(chain, item, { transaction_id: 'tx-1', original_description: '  ', payment_meta: { payer: null, reason: null } }, true);
+    expect(calls.update).toEqual({ original_description: null, payer_name: null, payment_reason: null });
+    expect(calls.eq).toEqual([['plaid_item_id', 'item-1'], ['portfolio_id', 'pf-1'], ['plaid_transaction_id', 'tx-1']]);
+  });
+
+  it('skips a new transaction with no details and saves one that has them', async () => {
+    const empty = service();
+    await saveBankDetails(empty.chain, item, { transaction_id: 'tx-2', original_description: null, payment_meta: null });
+    expect(empty.chain.update).not.toHaveBeenCalled();
+    const full = service();
+    await saveBankDetails(full.chain, item, { transaction_id: 'tx-3', original_description: 'ZELLE FROM JANE ROE', payment_meta: { payer: 'Jane Roe', reason: 'Unit 4B' } });
+    expect(full.calls.update).toEqual({ original_description: 'ZELLE FROM JANE ROE', payer_name: 'Jane Roe', payment_reason: 'Unit 4B' });
+  });
+
+  it('the sync route writes the details of modified transactions as existing rows', () => {
+    const route = read('app/api/plaid/transactions/sync/route.ts');
+    expect(route).toContain('await saveBankDetails(service, plaidItem, tx, true);');
   });
 });
