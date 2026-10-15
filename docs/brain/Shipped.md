@@ -4,6 +4,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Production health check (no errors, no failed jobs); portfolio_id indexes on email_suppression_events / email_unsubscribe_links (20261017030000 live as 20261014221507).
 - Zelle owner payments (branch claude/zelle-owner-payments, migration
   20261017010000 live as 20261014193445): Plaid original_description/payer/memo stored
   server-side; bank feed "Receive as owner payment" with suggested unit and
