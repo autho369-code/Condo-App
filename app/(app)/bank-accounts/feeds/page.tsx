@@ -19,6 +19,8 @@ import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 import { RefreshButton } from './sync-button';
 import { isPlaidConfigured } from '@/lib/plaid/client';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,7 +54,7 @@ export default async function BankFeedsPage({
   let query = db
     .from('bank_transactions')
     .select(
-      'id, amount, date, name, merchant_name, category, pending, reviewed, gl_account_id, match_confidence, match_method, matched_at, matched_journal_line_id, matched_bank_deposit_id, ignored_at, bank_account_id, bank_accounts(name, gl_account_id, association_id), gl_accounts(number, name)'
+      'id, amount, date, name, merchant_name, original_description, category, pending, reviewed, gl_account_id, match_confidence, match_method, matched_at, matched_journal_line_id, matched_bank_deposit_id, ignored_at, bank_account_id, bank_accounts(name, gl_account_id, association_id), gl_accounts(number, name)'
     )
     .order('date', { ascending: false })
     .limit(100);
@@ -162,9 +164,61 @@ export default async function BankFeedsPage({
     }
     for (const [id, list] of raw) depositsByTxn.set(id, list.filter((d: any) => !taken.has(d.id)));
   }
+  // Money in that may be an owner payment (Zelle, ACH): the database suggests
+  // the unit (remembered sender, unit number in the memo, owner name, amount)
+  // and staff confirm. Only units of the bank account's association(s).
+  const receivable = inflows.filter((t: any) => t.bank_accounts?.gl_account_id).slice(0, 50);
+  const suggestionsByTxn = new Map<string, any[]>();
+  const assocsByBank = new Map<string, string[]>();
+  const unitsByAssoc = new Map<string, { id: string; unit_number: string }[]>();
+  if (receivable.length) {
+    // One call for every line (the database checks access to each one).
+    const { data: suggested, error: suggestError } = await db.rpc('suggest_bank_transaction_payments', { p_ids: receivable.map((t: any) => t.id) });
+    if (suggestError) loadErrors.push(`Owner payment suggestions: ${suggestError.message}`);
+    for (const t of receivable) suggestionsByTxn.set(t.id, []);
+    for (const sg of (suggested ?? []) as any[]) suggestionsByTxn.get(sg.transaction_id)?.push(sg);
+    for (const t of receivable) {
+      if (t.bank_accounts?.association_id) assocsByBank.set(t.bank_account_id, [t.bank_accounts.association_id]);
+    }
+    // A company-wide account serves the associations that name it as their bank.
+    const companyWide: string[] = [...new Set<string>(receivable.map((t: any) => String(t.bank_account_id)))].filter((id) => !assocsByBank.has(id));
+    if (companyWide.length) {
+      const list = companyWide.join(',');
+      const { data: linked, error: linkedError } = await db.from('associations')
+        .select('id, operating_bank_account_id, reserve_bank_account_id, primary_bank_account_id')
+        .is('archived_at', null)
+        .or(`operating_bank_account_id.in.(${list}),reserve_bank_account_id.in.(${list}),primary_bank_account_id.in.(${list})`)
+        .order('id')
+        .limit(1000);
+      if (linkedError) loadErrors.push(`Associations of company bank accounts: ${linkedError.message}`);
+      for (const a of linked ?? []) {
+        for (const bankId of companyWide) {
+          if ([a.operating_bank_account_id, a.reserve_bank_account_id, a.primary_bank_account_id].includes(bankId)) {
+            assocsByBank.set(bankId, [...(assocsByBank.get(bankId) ?? []), a.id]);
+          }
+        }
+      }
+    }
+    const assocIds = [...new Set([...assocsByBank.values()].flat())];
+    if (assocIds.length) {
+      const unitRes = await fetchAllRows(() => db.from('units')
+        .select('id, unit_number, buildings!inner(association_id)')
+        .in('buildings.association_id', assocIds)
+        .is('archived_at', null)
+        .order('unit_number')
+        .order('id'), { maxRows: 10000 });
+      if (unitRes.error) loadErrors.push(`Units: ${unitRes.error}`);
+      for (const u of unitRes.rows as any[]) {
+        const assoc = u.buildings?.association_id;
+        if (!assoc) continue;
+        unitsByAssoc.set(assoc, [...(unitsByAssoc.get(assoc) ?? []), { id: u.id, unit_number: u.unit_number }]);
+      }
+    }
+  }
+  const unitsForBank = (bankId: string) => (assocsByBank.get(bankId) ?? []).flatMap((a) => unitsByAssoc.get(a) ?? []);
   const { data: glOptions } = await db.from('gl_accounts').select('id, number, name').eq('active', true).order('number');
   const back = `/bank-accounts/feeds?${new URLSearchParams({ ...(filter ? { filter } : {}), ...(q ? { q } : {}), ...(bank_account_id ? { bank_account_id } : {}) }).toString()}`;
-  const DONE: Record<string, string> = { match: 'Matched to the ledger', match_deposit: 'Matched to the bank deposit', post: 'Posted to the ledger', ignore: 'Transaction ignored', restore: 'Transaction back in review' };
+  const DONE: Record<string, string> = { match: 'Matched to the ledger', match_deposit: 'Matched to the bank deposit', post: 'Posted to the ledger', ignore: 'Transaction ignored', restore: 'Transaction back in review', receive: 'Received as an owner payment and matched to its bank deposit' };
   const pendingCount = txns.filter((t: any) => t.pending).length;
 
   return (
@@ -245,12 +299,18 @@ export default async function BankFeedsPage({
               {txns.map((txn: any) => {
                 const candidates = candidatesByTxn.get(txn.id) ?? [];
                 const depositCandidates = depositsByTxn.get(txn.id) ?? [];
+                const suggestions = suggestionsByTxn.get(txn.id) ?? [];
+                const top = suggestions[0];
+                const unitOptions = Number(txn.amount) < 0 && suggestionsByTxn.has(txn.id) ? unitsForBank(txn.bank_account_id) : [];
                 return (
                   <TR key={txn.id}>
                     <TD className="whitespace-nowrap align-top">{date(txn.date)}</TD>
                     <TD className="align-top">
                       <div className="font-medium text-gray-900">{txn.name}</div>
                       {txn.merchant_name && <div className="text-[13px] text-gray-500">{txn.merchant_name}</div>}
+                      {txn.original_description && txn.original_description !== txn.name && (
+                        <div className="break-words text-[13px] text-gray-500">{txn.original_description}</div>
+                      )}
                       <div className="text-[13px] text-gray-500">{txn.bank_accounts?.name}</div>
                     </TD>
                     <TD className="text-right tabular-nums align-top">{Number(txn.amount) > 0 ? money(Number(txn.amount)) : ''}</TD>
@@ -259,7 +319,7 @@ export default async function BankFeedsPage({
                       {txn.pending ? (
                         <StatusChip tone="warning">Pending at the bank</StatusChip>
                       ) : isMatched(txn) ? (
-                        <StatusChip tone="success">{txn.match_method === 'posted' ? 'Posted' : txn.match_method === 'deposit' ? 'Matched to deposit' : txn.matched_journal_line_id ? 'Matched' : 'Matched to payout'}</StatusChip>
+                        <StatusChip tone="success">{txn.match_method === 'posted' ? 'Posted' : txn.match_method === 'owner_payment' ? 'Owner payment' : txn.match_method === 'deposit' ? 'Matched to deposit' : txn.matched_journal_line_id ? 'Matched' : 'Matched to payout'}</StatusChip>
                       ) : txn.ignored_at ? (
                         <form action={bankFeedAction} className="flex items-center gap-2">
                           <input type="hidden" name="id" value={txn.id} />
@@ -272,6 +332,41 @@ export default async function BankFeedsPage({
                         <span className="text-sm text-amber-700">Link the bank account to a GL account first</span>
                       ) : (
                         <div className="space-y-2">
+                          {unitOptions.length > 0 && (
+                            <form action={bankFeedAction} className="space-y-2 rounded-xl border border-gray-200 bg-gray-50/70 p-3">
+                              <input type="hidden" name="id" value={txn.id} />
+                              <input type="hidden" name="op" value="receive" />
+                              <input type="hidden" name="back" value={back} />
+                              <div className="text-[13px] font-medium text-gray-900">Receive as owner payment</div>
+                              <p className="text-[13px] text-gray-500">
+                                {top
+                                  ? <>Suggested: {top.unit_label}{top.owner_name ? ` · ${top.owner_name}` : ''}. {top.reason} ({Math.round(Number(top.confidence) * 100)}% sure)</>
+                                  : 'No unit found from the sender, memo or amount. Choose the unit that paid.'}
+                              </p>
+                              <div className="flex flex-wrap items-end gap-2">
+                                <Select name="unit_id" aria-label="Unit that paid" defaultValue={top?.unit_id ?? ''} required className="min-w-56">
+                                  <option value="">Choose the unit…</option>
+                                  {suggestions.length > 0 && (
+                                    <optgroup label="Suggested">
+                                      {suggestions.map((sg: any) => (
+                                        <option key={`s-${sg.unit_id}`} value={sg.unit_id}>{sg.unit_label}{sg.owner_name ? ` · ${sg.owner_name}` : ''}</option>
+                                      ))}
+                                    </optgroup>
+                                  )}
+                                  <optgroup label="All units">
+                                    {unitOptions.filter((u) => !suggestions.some((sg: any) => sg.unit_id === u.id)).map((u) => (
+                                      <option key={u.id} value={u.id}>Unit {u.unit_number}</option>
+                                    ))}
+                                  </optgroup>
+                                </Select>
+                                <PendingSubmit size="sm" pendingLabel="Receiving…">Receive</PendingSubmit>
+                              </div>
+                              <label className="flex min-h-10 items-center gap-2 text-[13px] text-gray-600">
+                                <input type="checkbox" name="remember_sender" defaultChecked className="h-4 w-4 rounded border-gray-300" />
+                                Remember this sender for this unit
+                              </label>
+                            </form>
+                          )}
                           {depositCandidates.length > 0 && (
                             <form action={bankFeedAction} className="flex flex-wrap items-end gap-2">
                               <input type="hidden" name="id" value={txn.id} />

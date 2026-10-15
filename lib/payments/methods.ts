@@ -6,6 +6,7 @@ export const RECEIPT_METHODS = [
   { value: 'money_order', label: 'Money order' },
   { value: 'cashiers_check', label: 'Cashier’s check' },
   { value: 'ach', label: 'ACH / bank transfer' },
+  { value: 'zelle', label: 'Zelle' },
   { value: 'wire', label: 'Wire' },
   { value: 'card', label: 'Card' },
   { value: 'online', label: 'Online portal' },

@@ -56,3 +56,6 @@ metadata:
 ## Admin/operator deep check (Oct 2026, 20261016130000)
 - Neutral wording for "only the platform can fix this" in client-visible text = "platform support" (portfolios_guard_platform_columns raise, MFA self-reset, Stripe id errors). Older copies said "Portier369 support"; flag new ones. lib/auth/login-errors.ts workspace_not_found still says "Portier369 support" (unknown-host login only, arguably platform context).
 - Suspended-company email hold lets platform mail through via `lower(btrim(from_name)) like 'portier369%'`: matches isPlatformSenderName. Operator-only text ("Tell engineering") is allowed.
+
+## Zelle owner payments (claude/zelle-owner-payments, Oct 2026, 20261017010000)
+- Portal "Pay by Zelle" panel, association Zelle settings, bank-feed "Receive as owner payment" form and its raises: clean. Recipient and name are association data; placeholders neutral. lib/rpcs/bank-feed.ts fail(result.error.message) passes raises raw; mixed trailing periods are a nit only.

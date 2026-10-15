@@ -329,3 +329,13 @@ Mirsad: "go with your recommendations on all 10 decisions".
 10. No late fee for 24h after a company is reactivated on units whose AutoPay
     is due; and in every company, none while the unit has money in flight
     (processing payment under 14 days old, or AutoPay pending under 1 day).
+
+## Zelle owner payments (2026-10-14)
+Zelle owner payments: identified by remembered sender, memo unit number, owner
+name, amount; staff confirm; Plaid original_description required.
+- No auto-posting: the bank feed suggests the unit with its reason and
+  confidence, staff choose and click Receive.
+- Search only units in the bank account's association(s); the remembered
+  sender is per association and is downgraded when the unit has a new owner.
+- Where owners send Zelle (association recipient) is a finance decision, like
+  the allocation order (#391).
