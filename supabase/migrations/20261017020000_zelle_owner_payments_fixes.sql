@@ -18,6 +18,9 @@
 -- accounts exist today, so no existing payment is affected.
 --
 -- CREATE OR REPLACE of validate_payment_accounts only (live body + the change).
+-- The charge_id block is live (production migration 20260930035408
+-- homeowner_credits_review_fixes_2, which has no file in this repo); it is
+-- carried over unchanged, not a new rule.
 -- No DELETE, no DROP.
 
 create or replace function public.validate_payment_accounts()
