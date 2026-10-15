@@ -82,6 +82,12 @@
 - New table with an FK: check schema-foreign-keys.json too, not only schema-columns.json (20261016220000 counters refreshed columns only).
 
 - Schedulers, local dates, pauses, recurring catch-up: see [schedulers-and-dates](schedulers-and-dates.md).
+- Suggest/match RPCs: grep the page caller. feeds/page.tsx calls suggest_bank_transaction_payment per line via Promise.all (up to 50); per-call scans (plpgsql name matcher per occupancy, lockbox amount step over ALL association charges) x 50 (20261017010000). Ask for a batched or on-demand RPC.
+- New side tables: house FKs to units/associations are `on delete cascade`; a bare `references` (NO ACTION) blocks unit/association purge (payment_sender_aliases 20261017010000:154-156). Still check operator_write_guard.
+- Widening a CHECK by drop + re-add superset (payments_method_check) has precedent (20260930100000:12); not data-destructive, but under the literal "DROP goes to Mirsad" rule say so and let the caller decide.
+
+- "Live body + change" CREATE OR REPLACE: grep the repo for the body's distinctive raise strings to spot live drift. validate_payment_accounts' charge_id/amount branch + trigger column list (charge_id, amount) exist live but in NO repo migration (20261017020000 brings the body in, not the trigger). No live DB tool: hand over pg_get_functiondef/pg_trigger SQL.
+- payments.bank_account_id writers (2026-10-14): manual receipt/charges UI require bank.association_id = unit's (stricter than trigger); Stripe inserts no bank; lockbox needs unit in batch association (company-wide bank already fails); nothing UPDATEs bank_account_id/unit_id.
 
 ## Topic files
 - [Review lessons](review-lessons.md) — more misses: definer->join swaps, DML revokes, side tables, status sync, tenure scope, scheduler holds, freeze guards, AutoPay late-fee holds

@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-14
+- Zelle owner payments (branch claude/zelle-owner-payments, migration
+  20261017010000 live as 20261014193445): Plaid original_description/payer/memo stored
+  server-side; bank feed "Receive as owner payment" with suggested unit and
+  reason; remembered senders per association; association Zelle recipient;
+  owner portal "Pay by Zelle" panel; 'zelle' payment method.
 - Inventory and reactivation decisions (20261016230000 live as
   20261014181309): company admins use inventory; work order # matched within
   the company; no late fee on due-AutoPay units the day a company is

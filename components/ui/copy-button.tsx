@@ -7,7 +7,7 @@ import { Button } from './button';
  * Copies `value` to the clipboard and says so ("Copied" for two seconds), or
  * says it couldn't (no clipboard access) so the person selects it by hand.
  */
-export function CopyButton({ value, label = 'Copy link' }: { value: string; label?: string }) {
+export function CopyButton({ value, label = 'Copy link', noun = 'link' }: { value: string; label?: string; noun?: string }) {
   const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
   async function copy() {
     try {
@@ -22,10 +22,10 @@ export function CopyButton({ value, label = 'Copy link' }: { value: string; labe
     <>
       <Button type="button" variant="secondary" onClick={copy}>
         {state === 'copied' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-        {state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed: select the link' : label}
+        {state === 'copied' ? 'Copied' : state === 'failed' ? `Copy failed: select the ${noun}` : label}
       </Button>
       <span className="sr-only" aria-live="polite">
-        {state === 'copied' ? 'Link copied' : state === 'failed' ? 'Copy failed. Select the link to copy it.' : ''}
+        {state === 'copied' ? `${noun.charAt(0).toUpperCase()}${noun.slice(1)} copied` : state === 'failed' ? `Copy failed. Select the ${noun} to copy it.` : ''}
       </span>
     </>
   );

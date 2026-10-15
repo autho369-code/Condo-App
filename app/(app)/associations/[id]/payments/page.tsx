@@ -10,6 +10,9 @@ import { date } from '@/lib/utils';
 import { CreditCard, ExternalLink, RefreshCcw } from 'lucide-react';
 import { isStripeAccountId } from '@/lib/payments/guards';
 import { sameHostCompanyUrl } from '@/lib/tenant/request-url';
+import { Field, Input } from '@/components/ui/input';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { formatZelleRecipient, normalizeZelleRecipient } from '@/lib/payments/zelle';
 
 export const dynamic = 'force-dynamic';
 
@@ -131,6 +134,39 @@ async function saveAllocationOrder(formData: FormData) {
   redirect(`${back}?allocation_saved=1`);
 }
 
+async function saveZelleRecipient(formData: FormData) {
+  'use server';
+  // Where owners send Zelle money is a finance decision, like the allocation
+  // order (the database refuses other roles too).
+  const { requireFinanceOrPortfolioAdmin: req } = await import('@/lib/auth/me');
+  const me = await req();
+  const associationId = String(formData.get('association_id') ?? '');
+  let back = `/associations/${encodeURIComponent(associationId)}/payments`;
+  const fail = (msg: string): never => redirect(`${back}?zelle_error=${encodeURIComponent(msg)}#zelle`);
+  const recipient = normalizeZelleRecipient(String(formData.get('zelle_recipient') ?? ''));
+  if (!recipient.ok) fail(recipient.error);
+  const name = String(formData.get('zelle_recipient_name') ?? '').trim().slice(0, 120) || null;
+  const value = recipient.ok ? recipient.value : null;
+  if (value && !name) fail('Enter the name owners will see in their banking app for this Zelle recipient.');
+
+  const { createClient: cc } = await import('@/lib/supabase/server');
+  const db = (await cc()) as any;
+  const { data: assoc } = await db.from('associations').select('id, slug, portfolio_id').eq('id', associationId).maybeSingle();
+  if (!assoc) fail('Association not found.');
+  back = `/associations/${encodeURIComponent(assoc.slug ?? assoc.id)}/payments`;
+  if (!me.is_platform_operator && (!me.portfolio?.id || assoc.portfolio_id !== me.portfolio.id)) {
+    fail('That association is not in your portfolio.');
+  }
+  const { data: saved, error } = await db
+    .from('associations')
+    .update({ zelle_recipient: value, zelle_recipient_name: value ? name : null })
+    .eq('id', assoc.id)
+    .select('id');
+  if (error) fail(error.message);
+  if (!saved || saved.length === 0) fail('Association not found or you do not have access to change it.');
+  redirect(`${back}?zelle_saved=1#zelle`);
+}
+
 async function refreshStripeStatus(formData: FormData) {
   'use server';
   const { requireStaff: req } = await import('@/lib/auth/me');
@@ -191,7 +227,7 @@ export default async function AssociationPaymentsTab({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; returned?: string; refreshed?: string; refresh?: string; allocation_saved?: string }>;
+  searchParams: Promise<{ error?: string; returned?: string; refreshed?: string; refresh?: string; allocation_saved?: string; zelle_saved?: string; zelle_error?: string }>;
 }) {
   const me = await requireStaff();
   const { id: assocParam } = await params;
@@ -204,7 +240,7 @@ export default async function AssociationPaymentsTab({
 
   const { data: assoc } = await db
     .from('associations')
-    .select('id, name, slug, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_details_submitted, stripe_disabled_reason, stripe_last_status_at, stripe_deauthorized_at, stripe_onboarded_at, remit_payee, remit_address, payment_instructions, payment_allocation_order')
+    .select('id, name, slug, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_details_submitted, stripe_disabled_reason, stripe_last_status_at, stripe_deauthorized_at, stripe_onboarded_at, remit_payee, remit_address, payment_instructions, payment_allocation_order, zelle_recipient, zelle_recipient_name')
     .eq('id', id)
     .maybeSingle();
   if (!assoc) notFound();
@@ -357,6 +393,43 @@ export default async function AssociationPaymentsTab({
                 : <p className="text-[12px] text-gray-500">Only finance staff or company admins can change the allocation order.</p>}
             </div>
           </form>
+        </div>
+
+        <div id="zelle" className={card}>
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Zelle</h2>
+          {sp.zelle_saved && <div className="mt-3"><Alert tone="success" title="Zelle details saved">Owners see them on their How to Pay page.</Alert></div>}
+          {sp.zelle_error && <div className="mt-3"><Alert tone="danger" title="Zelle details not saved">{sp.zelle_error}</Alert></div>}
+          <p className="mt-1 max-w-lg text-[13px] leading-5 text-gray-500">
+            The email or US mobile number enrolled in Zelle on this association&apos;s own bank account. Owners see it on
+            their How to Pay page and are asked to put their unit number in the memo. Zelle payments arrive in the bank
+            feed, where you receive each one as an owner payment.
+          </p>
+          {canManageStripe ? (
+            <form action={saveZelleRecipient as any} className="mt-4 space-y-4">
+              <input type="hidden" name="association_id" value={assoc.id} />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Zelle email or mobile number" hint="Leave blank to stop showing Zelle to owners.">
+                  <Input name="zelle_recipient" defaultValue={assoc.zelle_recipient ? formatZelleRecipient(assoc.zelle_recipient) : ''} placeholder="payments@association.com" maxLength={254} />
+                </Field>
+                <Field label="Name owners will see" hint="The account name the bank shows when owners add the recipient.">
+                  <Input name="zelle_recipient_name" defaultValue={assoc.zelle_recipient_name ?? ''} placeholder={assoc.name} maxLength={120} />
+                </Field>
+              </div>
+              <PendingSubmit pendingLabel="Saving…">Save Zelle details</PendingSubmit>
+            </form>
+          ) : (
+            <dl className="mt-4 space-y-3 text-sm">
+              <div>
+                <dt className="text-[13px] font-medium text-gray-500">Send Zelle to</dt>
+                <dd className="mt-0.5 text-gray-900">{assoc.zelle_recipient ? formatZelleRecipient(assoc.zelle_recipient) : '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-[13px] font-medium text-gray-500">Recipient name</dt>
+                <dd className="mt-0.5 text-gray-900">{assoc.zelle_recipient_name ?? '—'}</dd>
+              </div>
+            </dl>
+          )}
+          {!canManageStripe && <p className="mt-3 text-[12px] text-gray-500">Only finance staff or company admins can change the Zelle details.</p>}
         </div>
 
         <div className={card}>

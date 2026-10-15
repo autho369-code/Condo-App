@@ -7,8 +7,11 @@ const fn = (name: string) => sql.split(`create or replace function public.${name
 
 describe('receipt methods', () => {
   it('match the payments_method_check constraint exactly', () => {
-    const allowed = sql.match(/payments_method_check check \(method = any \(array\[([\s\S]*?)\]\)\)/)?.[1] ?? '';
-    const dbValues = [...allowed.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort();
+    // The latest definition (20261017010000 added zelle). 'credit' is a
+    // homeowner credit (20260930100000), not a receipt method staff pick.
+    const latest = readFileSync('supabase/migrations/20261017010000_zelle_owner_payments.sql', 'utf8');
+    const allowed = latest.match(/payments_method_check\s+check \(method = any \(array\[([\s\S]*?)\]\)\)/)?.[1] ?? '';
+    const dbValues = [...allowed.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).filter((v) => v !== 'credit').sort();
     expect(RECEIPT_METHODS.map((m) => m.value).sort()).toEqual(dbValues);
   });
 

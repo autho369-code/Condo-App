@@ -7,6 +7,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { autoMatchTransaction } from '@/lib/plaid/auto-match';
 import { plaidErrorSummary, plaidPublicMessage } from '@/lib/plaid/errors';
+import { saveBankDetails } from '@/lib/plaid/bank-details';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -84,6 +85,9 @@ export async function POST(request: NextRequest) {
         access_token: plaidItem.plaid_access_token,
         cursor: cursor as string,
         count: 500,
+        // The bank's own description keeps the sender name and memo (Zelle,
+        // ACH) that the cleaned-up name may drop.
+        options: { include_original_description: true },
       });
 
       const { added, modified, removed, has_more, next_cursor } = syncResponse.data;
@@ -127,6 +131,7 @@ export async function POST(request: NextRequest) {
         // A failed save must stop the sync before the cursor moves past it,
         // or the transaction is never imported.
         if (upsertError) throw new Error(`Could not save transaction ${tx.transaction_id}: ${upsertError.message}`);
+        await saveBankDetails(service, plaidItem, tx);
         addedCount++;
       }
 
@@ -144,6 +149,7 @@ export async function POST(request: NextRequest) {
           .eq('plaid_transaction_id', tx.transaction_id)
           .eq('plaid_item_id', plaidItem.id);
         if (modError) throw new Error(`Could not update transaction ${tx.transaction_id}: ${modError.message}`);
+        await saveBankDetails(service, plaidItem, tx, true);
         modifiedCount++;
       }
 

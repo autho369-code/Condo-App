@@ -10,6 +10,8 @@ import { CreditCard } from 'lucide-react';
 import { isStripeConfigured } from '@/lib/payments/stripe';
 import { associationCanAcceptStripePayments } from '@/lib/payments/guards';
 import { startOnlinePayment } from './actions';
+import { CopyButton } from '@/components/ui/copy-button';
+import { formatZelleRecipient } from '@/lib/payments/zelle';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +29,8 @@ type AssociationRemit = {
   remit_payee: string | null;
   remit_address: string | null;
   payment_instructions: string | null;
+  zelle_recipient: string | null;
+  zelle_recipient_name: string | null;
   stripe_account_id: string | null;
   stripe_charges_enabled: boolean | null;
   stripe_payouts_enabled: boolean | null;
@@ -60,7 +64,7 @@ export default async function PayPage({
   const { data: associations, error: associationsError } = associationIds.length
     ? await (supabase as any)
         .from('associations')
-        .select('id, name, remit_payee, remit_address, payment_instructions, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at')
+        .select('id, name, remit_payee, remit_address, payment_instructions, zelle_recipient, zelle_recipient_name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at')
         .in('id', associationIds)
     : { data: [], error: null };
   // Payments already on their way (ACH clearing, card awaiting confirmation)
@@ -143,7 +147,8 @@ export default async function PayPage({
         // file (pre-filling the gross amount asked them to overpay).
         const pending = unit.unit_id ? pendingByUnit.get(unit.unit_id) ?? 0 : 0;
         const balance = Math.max(0, Math.round((outstanding - credit - pending) * 100) / 100);
-        const hasInstructions = !!(assoc?.remit_payee || assoc?.remit_address || assoc?.payment_instructions);
+        const hasInstructions = !!(assoc?.remit_payee || assoc?.remit_address || assoc?.payment_instructions || assoc?.zelle_recipient);
+        const zelleTo = assoc?.zelle_recipient ? formatZelleRecipient(assoc.zelle_recipient) : null;
         return (
           <Card key={unit.unit_id ?? Math.random()}>
             <CardHeader>
@@ -187,6 +192,34 @@ export default async function PayPage({
                   </form>
                   <p className="mt-2 text-[12.5px] leading-4 text-gray-500">
                     Card payments apply instantly; bank (ACH) payments post to your ledger when they clear (3–5 business days). Processed securely by Stripe.
+                  </p>
+                </div>
+              )}
+              {zelleTo && (
+                <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50/70 p-4">
+                  <div className="text-sm font-semibold text-gray-950">Pay by Zelle</div>
+                  <p className="mt-1 text-[13px] leading-5 text-gray-600">
+                    Send the payment from your bank&apos;s app to this Zelle recipient. Check the name your bank shows before you send.
+                  </p>
+                  <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-[13px] font-medium text-gray-500">Send to</dt>
+                      <dd className="mt-0.5 flex flex-wrap items-center gap-2 text-sm font-medium text-gray-900">
+                        <span className="select-all break-all">{zelleTo}</span>
+                        <CopyButton value={zelleTo} label="Copy" noun="Zelle recipient" />
+                      </dd>
+                    </div>
+                    {assoc?.zelle_recipient_name && (
+                      <div>
+                        <dt className="text-[13px] font-medium text-gray-500">Recipient name</dt>
+                        <dd className="mt-0.5 text-sm font-medium text-gray-900">{assoc.zelle_recipient_name}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  <p className="mt-3 text-[13px] text-gray-700">
+                    {unit.unit_number
+                      ? <>Put <span className="font-medium text-gray-900">Unit {unit.unit_number}</span> in the memo so your payment is applied to your account.</>
+                      : 'Put your unit number in the memo so your payment is applied to your account.'}
                   </p>
                 </div>
               )}

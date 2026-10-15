@@ -1,5 +1,10 @@
 # overseer memory
 
+- Adding a payments.method value (zelle, 2026-10-14) means DROP + ADD of
+  payments_method_check: DROP SQL goes to Mirsad. Also update
+  lib/payments/methods.ts and every method switch (GL posting, deposits,
+  receipts register, reports).
+
 - Re-check Status → Next gaps against the final diff: a gap written before a
   fix in the same PR can already be done by it (2026-10-07, #238).
 - Check the vault (docs/brain/) is committed in the same commit as the work —

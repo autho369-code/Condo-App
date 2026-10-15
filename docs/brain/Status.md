@@ -3,7 +3,19 @@
 Back to [[Home]]. Updated 2026-10-14 (#279-#398 merged; no open PR; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- none
+- claude/zelle-owner-payments: Zelle owner payments. Owners send
+  Zelle to the association's own bank; the credit arrives in the bank feed and
+  staff click "Receive as owner payment" (unit suggested by remembered sender,
+  unit number in the memo, owner name, amount; staff always confirm). Payment
+  posts through the normal receipt path, goes into a bank deposit and the feed
+  line is matched to it. Zelle recipient on the association Payments tab
+  (finance only); "Pay by Zelle" panel on the owner pay page. Migration
+  20261017010000 LIVE as 20261014193445 (dry-run on production
+  first, rolled back; read back). payments_method_check replaced with a
+  superset (adds zelle; no data change). Live bank feed (Plaid) needed
+  for automatic import. Codex round: 20261017020000 LIVE as 20261014195036
+  (a payment to a company-wide bank only when the unit's association uses
+  it); every open inflow gets the receive form; cleared Plaid details cleared.
 
 ## Merged 2026-10-14
 - #397 decisions 1-7: PO bills within a board-approved PO skip the board, vendor emailed on approval, recurring POs current period only, project committed vs spent, automatic PO numbers, POs finance-only (20261014181833 + 20261014182846). All 10 decisions done; nothing left for Claude until Mirsad sets Stripe test keys.
