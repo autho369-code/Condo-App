@@ -5,7 +5,7 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 
 ## 2026-10-14
 - Zelle owner payments (branch claude/zelle-owner-payments, migration
-  20261017010000 not yet live): Plaid original_description/payer/memo stored
+  20261017010000 live as 20261014193445): Plaid original_description/payer/memo stored
   server-side; bank feed "Receive as owner payment" with suggested unit and
   reason; remembered senders per association; association Zelle recipient;
   owner portal "Pay by Zelle" panel; 'zelle' payment method.
