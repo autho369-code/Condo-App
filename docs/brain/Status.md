@@ -909,6 +909,14 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#400 merged; no open PR; next: Stripe
 - #238 merged (b7ec661); migration `20261007030000` applied and verified.
 
 ## Next gaps (pick up here, top first)
+- WAITING ON MIRSAD, in order (also at the top of docs/TODO.md):
+  1. Stripe test keys in Vercel (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET)
+     -> Claude runs online payments + AutoPay end to end.
+  2. Plaid approval -> live bank feed; Zelle deposits matched automatically (#400).
+  3. Twilio business verification (KYC + 10DLC) -> two-way texting.
+  4. Lob billing address -> physical / certified mail.
+  5. Legal sign-off on /legal/*.
+  6. Decisions: platform remittance, tenant portal in/out, pilot company.
 - NOTHING LEFT FOR CLAUDE (2026-10-14): every area deep-checked, all 10
   PO/project/inventory/reactivation decisions built (#396, #397), ownership
   done (#388). Do not start new deep checks. Next work starts when Mirsad
