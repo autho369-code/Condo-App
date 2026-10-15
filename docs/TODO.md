@@ -1,7 +1,7 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-10-14.
+Last updated: 2026-10-14 (priorities added).
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
 
@@ -11,6 +11,19 @@ Last updated: 2026-10-14.
 
 Everything Claude can do alone is done; these need Mirsad (accounts, keys,
 DNS or decisions). Details for the older items are further down.
+
+**⭐ Do these first (2026-10-14, in order — each unlocks the next work for Claude)**
+1. [ ] **Stripe test keys** — Vercel → condo-app → Environment Variables:
+   `STRIPE_SECRET_KEY` (sk_test_…) and `STRIPE_WEBHOOK_SECRET` (whsec_…),
+   then redeploy. Unlocks: Claude runs online payments + AutoPay end to end.
+2. [ ] **Plaid approval** (sandbox, then production) — unlocks the live bank
+   feed, so Zelle and other deposits arrive automatically and are matched to
+   units (#400). Until then staff record Zelle payments by hand.
+3. [ ] **Twilio business verification** (Trust Hub KYC + US 10DLC) — two-way texting.
+4. [ ] **Lob billing address** — physical and certified mail.
+5. [ ] **Legal sign-off** on `/legal/*` by counsel.
+6. [ ] **Business decisions:** how management companies pay Portier369;
+   tenant portal in or out; which pilot company to onboard first.
 
 **Housekeeping (quick)**
 - [ ] **Email opt-out: two defaults to confirm** (2026-10-13). Answered:
