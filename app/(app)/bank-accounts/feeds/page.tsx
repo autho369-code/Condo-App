@@ -174,7 +174,7 @@ export default async function BankFeedsPage({
   const receivable = inflows.filter((t: any) => t.bank_accounts?.gl_account_id);
   const suggestionsByTxn = new Map<string, any[]>();
   const assocsByBank = new Map<string, string[]>();
-  const unitsByAssoc = new Map<string, { id: string; unit_number: string }[]>();
+  const unitsByAssoc = new Map<string, { id: string; unit_number: string; association_name: string }[]>();
   if (receivable.length) {
     // One call per 100 lines, the batch limit (the database checks access to each one).
     const ids: string[] = receivable.map((t: any) => t.id);
@@ -211,7 +211,7 @@ export default async function BankFeedsPage({
     const assocIds = [...new Set([...assocsByBank.values()].flat())];
     if (assocIds.length) {
       const unitRes = await fetchAllRows(() => db.from('units')
-        .select('id, unit_number, buildings!inner(association_id)')
+        .select('id, unit_number, buildings!inner(association_id, associations(name))')
         .in('buildings.association_id', assocIds)
         .is('archived_at', null)
         .order('unit_number')
@@ -220,7 +220,7 @@ export default async function BankFeedsPage({
       for (const u of unitRes.rows as any[]) {
         const assoc = u.buildings?.association_id;
         if (!assoc) continue;
-        unitsByAssoc.set(assoc, [...(unitsByAssoc.get(assoc) ?? []), { id: u.id, unit_number: u.unit_number }]);
+        unitsByAssoc.set(assoc, [...(unitsByAssoc.get(assoc) ?? []), { id: u.id, unit_number: u.unit_number, association_name: u.buildings?.associations?.name ?? '' }]);
       }
     }
   }
@@ -365,7 +365,12 @@ export default async function BankFeedsPage({
                                   )}
                                   <optgroup label="All units">
                                     {unitOptions.filter((u) => !suggestions.some((sg: any) => sg.unit_id === u.id)).map((u) => (
-                                      <option key={u.id} value={u.id}>Unit {u.unit_number}</option>
+                                      <option key={u.id} value={u.id}>
+                                        {/* A company-wide bank can serve associations that reuse unit numbers. */}
+                                        {(assocsByBank.get(txn.bank_account_id)?.length ?? 0) > 1 && u.association_name
+                                          ? `Unit ${u.unit_number} · ${u.association_name}`
+                                          : `Unit ${u.unit_number}`}
+                                      </option>
                                     ))}
                                   </optgroup>
                                 </Select>
