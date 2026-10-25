@@ -3,6 +3,13 @@
 Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
+## 2026-10-24
+- Grok review follow-up (claude/grok-review-followup): review saved with a
+  point-by-point check against the live state; stale 2026-08-01 root audits
+  marked HISTORICAL; platform_health_summary + System Monitor scheduled-job
+  failures + daily operator alert email when anything failed; 7 hand-styled
+  dark buttons on board / company-admin pages moved to the shared Button.
+
 ## 2026-10-14
 - Production health check (no errors, no failed jobs); portfolio_id indexes on email_suppression_events / email_unsubscribe_links (20261017030000 live as 20261014221507).
 - Zelle owner payments (branch claude/zelle-owner-payments, migration

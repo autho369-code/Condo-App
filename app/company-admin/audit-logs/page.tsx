@@ -4,6 +4,7 @@ import { ScrollText, User } from 'lucide-react'
 import { Alert } from '@/components/ui/shell'
 import { displayTimeZone } from '@/lib/time/display-zone'
 import { formatInZone, zonedWallTimeToUtc } from '@/lib/time/zoned'
+import { Button } from '@/components/ui/button'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,12 +74,7 @@ export default async function AuditLogsPage({
             <span className="text-[13px] font-medium text-gray-500">To</span>
             <input type="date" name="to" defaultValue={sp.to ?? ''} className={inputCls} />
           </label>
-          <button
-            type="submit"
-            className="h-10 rounded-xl bg-gray-950 px-4 text-sm font-medium text-white transition hover:bg-gray-800"
-          >
-            Filter
-          </button>
+          <Button type="submit">Filter</Button>
           {(sp.from || sp.to) && (
             <a
               href="/company-admin/audit-logs"

@@ -169,14 +169,10 @@ export default function PlatformRequestsPage() {
                 className={`${inputCls} h-auto resize-y py-2`}
               />
             </label>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
-            >
+            <Button type="submit" disabled={submitting}>
               <Send className="h-4 w-4" />
               {submitting ? 'Submitting...' : 'Submit Request'}
-            </button>
+            </Button>
           </form>
         </div>
       )}

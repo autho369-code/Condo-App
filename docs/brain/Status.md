@@ -1,9 +1,13 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-14 (#279-#400 merged; no open PR; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-24 (#279-#404 merged; open PR: #405 claude/grok-review-followup; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- none
+- #405 claude/grok-review-followup (2026-10-24): Grok's outside review saved and checked point by point (docs/reviews/2026-10-24-grok-review.md; most points came from the stale 2026-08-01 root audits, now bannered HISTORICAL). Adds platform_health_summary (20261024010000 LIVE as 20261024224135 + 20261024224633 failure-time fix + 20261024230049 partial automations, both after Codex P2s; dry-run rolled back on production first, read back: definer, pinned path, anon no execute), System Monitor scheduled-job failures, daily operator alert email /api/platform/health-alert (14:30 UTC, only when something failed), 7 dark buttons -> shared Button. Security: Next.js 15.5.26 -> 15.5.28 (new advisories 2026-10: image-optimizer RCE with SVG, SSG/ISR cache poisoning, server-action DoS), DOMPurify 3.4.17, follow-redirects 1.16.1 (CI npm audit failed on them). The check found 12 pg_cron runs that failed unnoticed 2026-09-30..10-10 ("job startup timeout", the CPU episode).
+
+## Merged 2026-10-14 (late)
+- #404 portfolio_id indexes on email_suppression_events / email_unsubscribe_links (20261017030000).
+- #401-#403 vault and TODO: #400 recorded; Mirsad's numbered "do these first" list.
 
 ## Merged 2026-10-14
 - #400 Zelle owner payments (20261014193445 + 20261014195036): bank-feed credits received as owner payments with a suggested unit (remembered sender, memo unit number, owner name, amount; staff confirm); association Zelle recipient; owner "Pay by Zelle" panel. Automatic import waits on the live Plaid bank feed.
@@ -916,7 +920,8 @@ Back to [[Home]]. Updated 2026-10-14 (#279-#400 merged; no open PR; next: Stripe
   3. Twilio business verification (KYC + 10DLC) -> two-way texting.
   4. Lob billing address -> physical / certified mail.
   5. Legal sign-off on /legal/*.
-  6. Decisions: platform remittance, tenant portal in/out, pilot company.
+  6. Decisions: platform remittance, pilot company, and whether to market the
+     tenant (resident) portal (app/resident, requireTenant: it EXISTS; don't expand it).
 - NOTHING LEFT FOR CLAUDE (2026-10-14): every area deep-checked, all 10
   PO/project/inventory/reactivation decisions built (#396, #397), ownership
   done (#388). Do not start new deep checks. Next work starts when Mirsad

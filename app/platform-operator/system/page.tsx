@@ -3,7 +3,9 @@ import { StatTile } from '@/components/ui/stat-tile'
 import { requirePlatformOperator } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
-import { MailCheck, MailWarning, Webhook, Database, Inbox } from 'lucide-react'
+import { formatInZone } from '@/lib/time/zoned'
+import { MailCheck, MailWarning, Webhook, Database, Inbox, Clock } from 'lucide-react'
+import { healthProblems, type PlatformHealthSummary } from '@/lib/platform/health'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,6 +25,7 @@ export default async function SystemMonitorPage() {
     { data: endpoints },
     { data: failedDeliveries },
     dbCheck,
+    { data: healthData, error: healthError },
   ] = await Promise.all([
     db.from('email_queue').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     db.from('email_queue').select('id', { count: 'exact', head: true }).eq('status', 'sent').gte('sent_at', d1),
@@ -30,7 +33,11 @@ export default async function SystemMonitorPage() {
     db.from('webhook_endpoints').select('id, name, url, active, failure_count, last_success_at, last_failure_at, last_failure_message, portfolios(company_name)').order('created_at'),
     db.from('webhook_deliveries').select('id, event_type, status, attempts, response_code, error_message, created_at').neq('status', 'succeeded').gte('created_at', d7).order('created_at', { ascending: false }).limit(25),
     db.from('portfolios').select('id', { count: 'exact', head: true }),
+    db.rpc('platform_health_summary', { p_hours: 168 }),
   ])
+  const health = (healthData ?? null) as PlatformHealthSummary | null
+  const jobFailures = health?.cron_failures ?? []
+  const problems = health ? healthProblems(health) : []
 
   const dbHealthy = !dbCheck.error
   const failing = (endpoints ?? []).filter((e: any) => e.active && (e.failure_count ?? 0) > 0)
@@ -41,6 +48,7 @@ export default async function SystemMonitorPage() {
     { label: 'Emails Sent (24h)', value: sent24h ?? 0, icon: MailCheck, bad: false },
     { label: 'Email Failures (7d)', value: (failedEmails ?? []).length, icon: MailWarning, bad: (failedEmails ?? []).length > 0 },
     { label: 'Failing Webhooks', value: failing.length, icon: Webhook, bad: failing.length > 0 },
+    { label: 'Job Failures (7d)', value: healthError ? '—' : jobFailures.length, icon: Clock, bad: !!healthError || jobFailures.length > 0 },
   ]
 
   return (
@@ -48,17 +56,56 @@ export default async function SystemMonitorPage() {
       <div>
         <h1 className="font-display text-[26px] font-bold leading-[1.12] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[30px]">System Monitor</h1>
         <p className="mt-2 max-w-3xl text-[15px] leading-6 text-gray-500">
-          Delivery infrastructure health — email queue, webhooks, and database reachability, measured live
+          Delivery infrastructure health — email queue, webhooks, scheduled jobs and database reachability, measured live.
+          The platform operator is emailed each morning when anything failed in the last 24 hours.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         {statTiles.map((t) => {
           const Icon = t.icon
           return (
             <StatTile key={t.label} label={t.label} value={t.value} icon={Icon} tone={t.bad ? 'danger' : 'default'} />
           )
         })}
+      </div>
+
+      {/* ── Last 7 days summary + scheduled job failures ── */}
+      <div className={card}>
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Scheduled Job Failures (last 7 days)</h2>
+          <p className="mt-0.5 text-[13px] text-gray-500">
+            {healthError
+              ? 'The health summary could not be read.'
+              : problems.length === 0
+                ? 'No failures in the last 7 days across scheduled jobs, email, webhooks, reports, automations and payments.'
+                : problems.join(' · ')}
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
+              <tr>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Job</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">Error</th>
+                <th className="whitespace-nowrap px-5 py-3 text-left font-medium">When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobFailures.length === 0 ? (
+                <tr><td colSpan={3} className="px-5 py-8 text-center text-sm text-gray-500">{healthError ? 'Could not load scheduled job failures.' : 'No failed scheduled jobs in the last 7 days.'}</td></tr>
+              ) : (
+                jobFailures.map((f, i) => (
+                  <tr key={`${f.job}-${f.started_at}-${i}`} className="border-b border-line/70 last:border-0 hover:bg-gray-50/70">
+                    <td className="px-5 py-3 font-medium text-gray-900">{f.job}</td>
+                    <td className="max-w-sm truncate px-5 py-3 text-[13px] text-red-700">{f.message || '—'}</td>
+                    <td className="whitespace-nowrap px-5 py-3 text-sm tabular-nums text-gray-700">{formatInZone(f.started_at, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* ── Email failures ────────────────────────────── */}
@@ -174,7 +221,7 @@ export default async function SystemMonitorPage() {
 
       <p className="text-xs leading-5 text-gray-400">
         Application uptime, API latency, and function logs live in the Vercel and Supabase dashboards — this page
-        covers the delivery infrastructure the platform manages itself (email queue, webhooks, database reachability).
+        covers the infrastructure the platform manages itself (email queue, webhooks, scheduled database jobs, database reachability).
       </p>
     </div>
   )

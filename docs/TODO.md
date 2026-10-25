@@ -1,7 +1,7 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-10-14 (priorities added).
+Last updated: 2026-10-24 (Grok review follow-up).
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
 
@@ -23,7 +23,9 @@ DNS or decisions). Details for the older items are further down.
 4. [ ] **Lob billing address** — physical and certified mail.
 5. [ ] **Legal sign-off** on `/legal/*` by counsel.
 6. [ ] **Business decisions:** how management companies pay Portier369;
-   tenant portal in or out; which pilot company to onboard first.
+   whether to market the tenant (resident) portal; which pilot company to
+   onboard first (Grok 2026-10-24: run a supervised pilot with 1-2 friendly
+   companies, payments recorded offline until Stripe is live).
 
 **Housekeeping (quick)**
 - [ ] **Email opt-out: two defaults to confirm** (2026-10-13). Answered:
@@ -41,6 +43,10 @@ DNS or decisions). Details for the older items are further down.
 - [ ] **Optional cleanup (unused table, 0 rows):** `drop table public.payable_bill_line_items;`
       Nothing in the app or the database reads or writes it; bills post to
       their header expense account. Keep it if you want itemized bills later.
+- [ ] **Optional SQL (scheduled-job history, 2026-10-24):** the database keeps
+      every scheduled-job run forever (46,000 rows today, ~3,000 a week; the
+      System Monitor reads it in 8 ms, so this is not urgent). To keep two
+      weeks: `select cron.schedule('purge-cron-run-history', '40 4 * * *', $$ delete from cron.job_run_details where end_time < now() - interval '14 days' $$);`
 - [ ] **Optional SQL (unused function):** `drop function public.claim_email_queue(integer);`
       The email worker uses claim_email_queue_snapshot; the old one is no
       longer callable by anyone (20261015010000) and doesn't skip
@@ -123,7 +129,7 @@ DNS or decisions). Details for the older items are further down.
 **Decisions**
 - [ ] **Legal sign-off** on `/legal/*` by counsel.
 - [ ] **Platform remittance** — how management companies pay Portier369.
-- [ ] **Tenant portal** — in or out of scope.
+- [ ] **Tenant portal** — the resident portal exists (`/resident`, tenant sign-in); decide whether to market it.
 - [ ] **Pilot company** — onboard one real management company for a full
       month on real data.
 
@@ -251,7 +257,7 @@ Every AppFolio page is built; these need access, accounts or decisions first.
 - [ ] **Live bank feeds:** Plaid sandbox/production certification.
 
 ### Needs owner decisions
-- [ ] **Tenant portal:** in or out of scope (tenants are data-only today).
+- [ ] **Tenant portal:** the resident portal exists (`/resident`); decide whether to market it.
 - [ ] **Platform remittance:** how management companies pay Portier369.
 - [ ] **Legal sign-off** on `/legal/*` by counsel.
 - [ ] **Pilot client** to run a full month on real data.

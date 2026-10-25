@@ -43,6 +43,7 @@ export const PUBLIC_PATHS = [
   '/api/mail/deliver',
   '/api/tenant/domain-check',
   '/api/tenant/verify-domains',
+  '/api/platform/health-alert',
   '/report-card',
   '/sign',
   '/vendor-upload',

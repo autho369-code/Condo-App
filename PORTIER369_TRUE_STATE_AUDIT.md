@@ -1,3 +1,10 @@
+> **HISTORICAL — superseded (2026-10-24).** This audit is a snapshot from
+> 2026-08-01 and is no longer the current state. Since then #279–#404 shipped:
+> every migration is applied to production, every area was deep-checked and
+> fixed, and the tenant (resident) portal exists. For where things stand read
+> `docs/brain/Status.md` (Next gaps) and `docs/reviews/2026-10-24-grok-review.md`.
+> Kept unchanged below for the record.
+
 # Portier369 True-State Audit
 
 **Audit branch:** `codex/portier369-stabilization`  

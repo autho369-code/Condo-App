@@ -339,3 +339,21 @@ name, amount; staff confirm; Plaid original_description required.
   sender is per association and is downgraded when the unit has a new owner.
 - Where owners send Zelle (association recipient) is a finance decision, like
   the allocation order (#391).
+
+## Grok outside review (2026-10-24)
+- The root PORTIER369_*.md audits (2026-08-01) are historical; the live
+  state is Status.md. Outside reviewers get pointed at Status, not them.
+- Health alert: the database only counts (platform_health_summary, operator
+  or service role); the email is written in app code by a daily Vercel cron
+  (/api/platform/health-alert), like other nightly mail. Platform mail, one
+  per operator per day (key platform-health:<day>:<operator>; service-role
+  inserts stay required mail). Sent only when something failed. Counts and
+  job names only, never recipients or contents. Known limit: if Resend or
+  the Vercel cron itself is down, no alert arrives (the System Monitor still
+  shows it). Vercel cron failures themselves are not in the summary (they
+  live in Vercel logs); a stuck email queue does show up.
+- Not doing (Grok #6): replacing ~3,600 `any` casts, a typed domain layer,
+  lib/env.ts. Column mistakes are caught by npm test's live-schema check;
+  a rewrite is risk without user-visible gain (no overcomplication).
+- Not doing without Mirsad: a public "beta / early access" page and the
+  pilot plan (business decisions, TODO "Business decisions").

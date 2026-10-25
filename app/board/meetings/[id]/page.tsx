@@ -7,6 +7,7 @@ import { date, money } from '@/lib/utils'
 import { Alert } from '@/components/ui/shell'
 import { Calendar, MapPin, Clock, FileText, Paperclip, Download, Loader2 } from 'lucide-react'
 import { meetingTypeLabel } from '@/lib/meetings/labels'
+import { Button } from '@/components/ui/button'
 
 interface Meeting {
   id: string
@@ -357,14 +358,10 @@ export default function MeetingDetailClient() {
           <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium capitalize ring-1 ring-inset ${statusBadge(meeting.status)}`}>
             {meeting.status.replace('_', ' ')}
           </span>
-          <button
-            onClick={generatePDF}
-            disabled={generating}
-            className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
-          >
+          <Button onClick={generatePDF} disabled={generating}>
             {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             {generating ? 'Generating...' : 'Generate Packet'}
-          </button>
+          </Button>
         </div>
       </div>
 
