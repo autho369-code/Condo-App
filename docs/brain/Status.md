@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-24 (#279-#404 merged; open PR: claude/grok-review-followup; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-24 (#279-#404 merged; open PR: #405 claude/grok-review-followup; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/grok-review-followup (2026-10-24): Grok's outside review saved and checked point by point (docs/reviews/2026-10-24-grok-review.md; most points came from the stale 2026-08-01 root audits, now bannered HISTORICAL). Adds platform_health_summary (20261024010000 LIVE as 20261024224135; dry-run rolled back on production first, read back: definer, pinned path, anon no execute), System Monitor scheduled-job failures, daily operator alert email /api/platform/health-alert (14:30 UTC, only when something failed), 7 dark buttons -> shared Button. The check found 12 pg_cron runs that failed unnoticed 2026-09-30..10-10 ("job startup timeout", the CPU episode).
+- #405 claude/grok-review-followup (2026-10-24): Grok's outside review saved and checked point by point (docs/reviews/2026-10-24-grok-review.md; most points came from the stale 2026-08-01 root audits, now bannered HISTORICAL). Adds platform_health_summary (20261024010000 LIVE as 20261024224135; dry-run rolled back on production first, read back: definer, pinned path, anon no execute), System Monitor scheduled-job failures, daily operator alert email /api/platform/health-alert (14:30 UTC, only when something failed), 7 dark buttons -> shared Button. The check found 12 pg_cron runs that failed unnoticed 2026-09-30..10-10 ("job startup timeout", the CPU episode).
 
 ## Merged 2026-10-14 (late)
 - #404 portfolio_id indexes on email_suppression_events / email_unsubscribe_links (20261017030000).
