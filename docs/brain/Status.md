@@ -926,7 +926,16 @@ Back to [[Home]]. Updated 2026-10-25 (#279-#406 merged; open: #407 docs, e2e bro
   5. Legal sign-off on /legal/*.
   6. Decisions: platform remittance, pilot company, and whether to market the
      tenant (resident) portal (app/resident, requireTenant: it EXISTS; don't expand it).
-- NOTHING LEFT FOR CLAUDE (2026-10-14): every area deep-checked, all 10
+- BROWSER TESTS (2026-10-25): `npm run e2e:db` then `npm run e2e` (e2e/README.md);
+  GitHub runs them on every PR. Next coverage: Stripe TEST checkout and AutoPay
+  as soon as the test keys are set; then owner/unit onboarding and bank
+  reconciliation.
+- NEXT SMALL FIX (found by the browser tests): seed_standard_charge_categories
+  adds a duplicate set when called twice for a company (company-wide categories
+  have association_id null, so uq_charge_categories_code never conflicts). Only
+  the new-company trigger calls it today (no live duplicates, checked
+  2026-10-25), but make it skip codes that already exist.
+- NOTHING LEFT FOR CLAUDE (2026-10-14, superseded by the two items above): every area deep-checked, all 10
   PO/project/inventory/reactivation decisions built (#396, #397), ownership
   done (#388). Do not start new deep checks. Next work starts when Mirsad
   sets Stripe test keys (then: Stripe TEST checkout + AutoPay run) or
