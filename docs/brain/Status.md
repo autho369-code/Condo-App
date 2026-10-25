@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-25 (#279-#406 merged; #407 and #408 merged 2026-10-25; open: charge-category seed fix; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-25 (#279-#406 merged; #407 and #408 merged 2026-10-25; open: #409 charge-category seed fix; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/charge-category-seed-once: standard charge categories added once per company (20261025065558 live).
+- #409 claude/charge-category-seed-once: standard charge categories added once per company (20261025065558 live).
 
 ## Merged 2026-10-25
 - #407 Grok review doc: what was verified vs taken from records; what takes weeks.
