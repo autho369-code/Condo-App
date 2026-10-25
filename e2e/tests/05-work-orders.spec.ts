@@ -82,9 +82,11 @@ test.describe.serial('work orders: open → vendor works it → vendor invoice �
     const repairsBefore = await glBalance(ids.glRepairs);
     const { data: bill } = await db().from('payable_bills').select('id').eq('work_order_id', workOrderId).single();
     await page.goto(`/bills/${bill!.id}`);
-    // A vendor's invoice arrives without an expense account: the manager codes it first.
+    // A vendor's invoice arrives without an expense account: the page suggests
+    // the vendor's default (Repairs) and the manager saves it before approving.
     await expect(page.getByRole('button', { name: 'Approve' })).toBeVisible();
-    await page.locator('select[name="gl_account_id"]').selectOption(ids.glRepairs);
+    await expect(page.locator('select[name="gl_account_id"]')).toHaveValue(ids.glRepairs);
+    await expect(page.getByText(/Suggested from the vendor's default account/)).toBeVisible();
     await page.getByRole('button', { name: 'Save account' }).click();
     await expect.poll(async () => (await db().from('payable_bills').select('gl_account_id').eq('id', bill!.id).single()).data?.gl_account_id).toBe(ids.glRepairs);
     const submit = page.getByRole('button', { name: 'Submit for approval' });

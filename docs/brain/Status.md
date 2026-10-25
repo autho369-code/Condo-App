@@ -935,9 +935,10 @@ Back to [[Home]]. Updated 2026-10-25 (#279-#406 merged; open: #407 docs, #408 e2
 - WAITING ON MIRSAD (new 2026-10-25, top of TODO): Resend delivery webhook +
   RESEND_WEBHOOK_SECRET (no delivery reports today); point-in-time recovery
   decision.
-- SMALL FOLLOW-UP: a vendor's invoice arrives with no expense account even
-  when the vendor has a default one (the manager must pick it); prefill from
-  vendors.default_gl_account_id.
+- DONE (#410): a vendor's invoice page now suggests the vendor's default
+  expense account (the manager still saves it before approving). Not filled in
+  the database on purpose: trg_payable_bills_gl_permission refuses a GL set by
+  a user without GL permission, and vendors have none.
 - NEXT SMALL FIX (found by the browser tests): seed_standard_charge_categories
   adds a duplicate set when called twice for a company (company-wide categories
   have association_id null, so uq_charge_categories_code never conflicts). Only
