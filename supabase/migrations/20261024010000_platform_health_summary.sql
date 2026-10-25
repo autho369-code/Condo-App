@@ -9,6 +9,9 @@
 -- non-zero (the email is written in app code, Decisions: nightly mail from an
 -- app cron).
 --
+-- Every count is by when the failure happened (last attempt / finish /
+-- update time), not when the row was created (Codex on #405).
+--
 -- Counts and job names only: no email recipients, subjects or bodies (sign-in
 -- emails stay invisible to operator monitors).
 --
@@ -49,14 +52,21 @@ begin
         order by d.start_time desc
         limit 50
       ) f), '[]'::jsonb),
-    -- Suppressed mail (unsubscribed, bounced) is kept and marked, not a fault.
+    -- Failed in the window, by when delivery failed, not when it was queued
+    -- (mail held for a suspended company can fail days after queueing).
+    -- fail_email_delivery sets next_attempt_at to the failure time plus at
+    -- most 2 hours, so this may also count a failure up to 2 hours before
+    -- the window. Suppressed mail (unsubscribed, bounced) is kept and
+    -- marked, not a fault.
     'emails_failed', (select count(*) from public.email_queue
                        where status = 'failed' and suppressed_at is null
-                         and created_at >= v_since),
-    -- Due over an hour ago and still not sent. Mail held for a suspended
-    -- company is waiting on purpose (claim_email_queue_snapshot) and left out.
+                         and next_attempt_at >= v_since),
+    -- Due over an hour ago and still not sent: waiting (pending) or waiting
+    -- for a retry (failed, under 5 attempts; claim_email_queue_snapshot).
+    -- Mail held for a suspended company is waiting on purpose and left out.
     'emails_stuck', (select count(*) from public.email_queue q
-                      where q.status = 'pending' and q.suppressed_at is null
+                      where (q.status = 'pending' or (q.status = 'failed' and q.attempt_count < 5))
+                        and q.suppressed_at is null
                         and coalesce(q.next_attempt_at, q.created_at) < now() - interval '1 hour'
                         and not exists (
                           select 1 from public.portfolios pf
@@ -64,15 +74,16 @@ begin
                              and pf.suspended_at is not null
                              and not q.platform_mail)),
     'webhooks_failed', (select count(*) from public.webhook_deliveries
-                         where status in ('failed', 'abandoned') and created_at >= v_since),
+                         where status in ('failed', 'abandoned')
+                           and coalesce(last_attempt_at, created_at) >= v_since),
     'reports_failed', (select count(*) from public.report_runs
-                        where status = 'failed' and created_at >= v_since),
+                        where status = 'failed' and coalesce(finished_at, updated_at, created_at) >= v_since),
     'automations_failed', (select count(*) from public.automation_flow_runs
-                            where status = 'failed' and fired_at >= v_since),
+                            where status = 'failed' and coalesce(last_attempt_at, fired_at) >= v_since),
     'stripe_events_failed', (select count(*) from public.stripe_webhook_events
                               where status = 'failed' and coalesce(processed_at, claimed_at) >= v_since),
     'autopay_failed', (select count(*) from public.stripe_autopay_runs
-                        where status = 'failed' and created_at >= v_since)
+                        where status = 'failed' and coalesce(updated_at, created_at) >= v_since)
   ) into v_result;
 
   return v_result;
