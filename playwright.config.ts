@@ -28,7 +28,9 @@ export default defineConfig({
   // One shared test company: run in order, one at a time.
   fullyParallel: false,
   workers: 1,
-  retries: process.env.CI ? 1 : 0,
+  // No retries: the groups share one seeded company, so a retry would rerun a
+  // group on data the failed attempt already changed (a failure must be read).
+  retries: 0,
   timeout: 120_000,
   expect: { timeout: 20_000 },
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list'], ['html', { open: 'never' }]],
