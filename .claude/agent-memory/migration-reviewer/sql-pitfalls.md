@@ -96,3 +96,4 @@ metadata:
 - Moving a column to a *_private table: check schema-columns.json gets the new private column (payment_plan_private.cancel_reason was missing) and that the app reads it via mergePrivateFieldsOne.
 
 - Text patches of plpgsql bodies are NOT name-checked at CREATE (only SQL-language bodies are): a "live apply succeeded" does not prove an injected variable/alias exists. Grep the target body for each new identifier (e.g. v_assoc in create_payment_plan, 20261015050000:137).
+- Health/monitor RPCs over cron.job_run_details (20261024010000): pg_cron keeps run history forever unless purged (no repo migration purges it) and indexes only runid, so a start_time window is a seq scan; ask for a row count + a purge job. Failure counts on report_runs/automation_flow_runs/stripe_* have no status/time index (report_runs_status is partial queued/running).

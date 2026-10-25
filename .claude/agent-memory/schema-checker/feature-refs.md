@@ -45,3 +45,6 @@ Facts verified during past reviews. Re-verify against snapshots/migrations befor
 - `associations.fiscal_year_start`, `portfolios.fiscal_year_start_month` smallint 1-12. Report files: bucket `reports`, path `<portfolio_id>/<run_id>.<output_format>`.
 - `portfolios.suspended_at` gates claim/cron functions; `email_queue.portfolio_id` nullable. `my_admin_portfolio()` from 20261011010000.
 - Work orders: `service_requests.number` TEXT; `gl_accounts.number` INTEGER.
+
+## Platform health (20261024010000)
+- `platform_health_summary(p_hours int)` returns jsonb (since, cron_failures[], emails_failed/stuck, webhooks/reports/automations/stripe_events/autopay_failed). Status literals: email_queue CHECK pending/sent/failed; webhook_delivery_status pending/succeeded/failed/retrying/abandoned; automation_flow_runs success/partial/failed; stripe_webhook_events processing/processed/failed; stripe_autopay_runs claimed/skipped/intent_created/submitted/failed/succeeded (2026-10-24 clean).

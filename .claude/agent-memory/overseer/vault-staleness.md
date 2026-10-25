@@ -155,3 +155,5 @@ Rule: at every start and pre-PR, diff Status line 3 + "## Open PR" + every "Next
 - 9th (2026-10-14 start, after #383 merged 13:26Z): Status line 3 + Open PR
   still "#383 open", TODO "Merge #383" box open, and #383 missing from
   Shipped.md entirely. Check Shipped.md has every merged PR, not only Status.
+
+- 2026-10-24 (grok-review-followup start): Status header still "Updated 2026-10-14 (#279-#400)"; #401-#404 in neither Status nor Shipped. Also TODO/Status list "Tenant portal in or out" as Mirsad's decision while app/resident (requireTenant) already exists - reconcile the wording, don't expand it. Root PORTIER369_*.md audits (2026-08-01) misled an outside reviewer: banner them.

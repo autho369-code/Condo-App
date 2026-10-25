@@ -93,3 +93,4 @@
 - Reference company-mail helper: lib/notifications/vendor-assignment.ts (also followed cleanly by purchase-order-approved.ts, Oct 2026: no link, no platformMail).
 - To tell a carried-over raise/fallback from a new one, grep the exact string across older migrations (e.g. 'Management staff' dates from 20261005094000).
 - Per-branch audit history (what was clean, lineages like submit_owner_message): see audited-branches.md.
+- Platform health alert (Oct 2026, lib/platform/health.ts, /api/platform/health-alert, 20261024010000): operator-only, platform_mail true, 'Portier369' sender + NEXT_PUBLIC_SITE_URL link allowed. Clean; template for future operator-only mail.

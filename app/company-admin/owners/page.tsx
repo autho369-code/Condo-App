@@ -7,6 +7,7 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { UserCheck, Key, UserX, Eye } from 'lucide-react'
 import { Alert } from '@/components/ui/shell'
 import { collectLoadErrors } from '@/lib/company-admin/load-errors'
+import { Button } from '@/components/ui/button'
 
 export const dynamic = 'force-dynamic'
 
@@ -127,7 +128,7 @@ export default async function OwnersPage({
             {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </label>
-        <button type="submit" className="h-10 rounded-xl bg-gray-950 px-4 text-sm font-medium text-white transition hover:bg-gray-800">Apply</button>
+        <Button type="submit">Apply</Button>
       </form>
 
       {/* Table */}

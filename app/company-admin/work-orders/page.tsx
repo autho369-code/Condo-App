@@ -8,6 +8,7 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { Wrench, Clock, AlertOctagon, ArrowUp, Eye } from 'lucide-react'
 import { todayInZone } from '@/lib/time/zoned'
 import { collectLoadErrors } from '@/lib/company-admin/load-errors'
+import { Button } from '@/components/ui/button'
 
 export const dynamic = 'force-dynamic'
 
@@ -162,7 +163,7 @@ export default async function WorkOrdersOversightPage({
             <option value="cancelled">Cancelled</option>
           </select>
         </label>
-        <button type="submit" className="h-10 rounded-xl bg-gray-950 px-4 text-sm font-medium text-white transition hover:bg-gray-800">Apply</button>
+        <Button type="submit">Apply</Button>
       </form>
 
       {/* Table */}

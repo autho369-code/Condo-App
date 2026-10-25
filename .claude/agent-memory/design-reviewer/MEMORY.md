@@ -34,6 +34,7 @@
 - toneForStatus edits: grep `'<status>'` across app/components/lib for other Badge callers whose tone shifts. Hand-pill -> `<Badge status>` swaps can change tone (charge `outstanding` was red, Badge makes it blue 'open'; accepted on units/[id], 2026-10-14, Balance column stays red).
 - CopyButton (components/ui/copy-button.tsx) hard-codes "link" in its failed/sr-only text; non-link uses (portal/pay Zelle address, 2026-10-14) read wrong. Flag reuse for non-URLs.
 - Shared `sp.error` Alert titled for one feature (associations/[id]/payments "Stripe error") gets reused by new forms on the page; check the title still fits.
+- Load-error fallthrough: `data ?? []` after a failed query renders the "No X yet" empty row under an error note (platform-operator/system job failures, 2026-10-24). Check the empty branch also checks `error`.
 - Alert (components/ui/shell.tsx) always sets role="alert"; persistent status banners ("AI is on") get announced on every load - nit, not a blocker.
 
 ## Owner-facing state cards (portal/violations/[id], 2026-10-13)

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
-import { buttonClass } from '@/components/ui/button';
+import { Button, buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { Building2, Eye } from 'lucide-react'
@@ -161,7 +161,7 @@ export default async function CompanyAdminAssociationsPage({
             <input type="number" name="max_units" defaultValue={sp.max_units ?? ''} placeholder="999" className={`${selectCls} w-24 placeholder:text-gray-400`} />
           </label>
         </div>
-        <button type="submit" className="h-10 rounded-xl bg-gray-950 px-4 text-sm font-medium text-white transition hover:bg-gray-800">Apply</button>
+        <Button type="submit">Apply</Button>
       </form>
 
       <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">

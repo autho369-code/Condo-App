@@ -12,6 +12,7 @@ import { Alert } from '@/components/ui/shell'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { vendorAssociationLabel } from '@/lib/vendors/options'
 import { collectLoadErrors } from '@/lib/company-admin/load-errors'
+import { Button } from '@/components/ui/button'
 
 export const dynamic = 'force-dynamic'
 
@@ -166,7 +167,7 @@ export default async function VendorsPage({
             {trades.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </label>
-        <button type="submit" className="h-10 rounded-xl bg-gray-950 px-4 text-sm font-medium text-white transition hover:bg-gray-800">Apply</button>
+        <Button type="submit">Apply</Button>
       </form>
 
       {/* Table */}
