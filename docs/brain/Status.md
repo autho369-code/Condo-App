@@ -1,11 +1,14 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-25 (#279-#406 merged; open: #407 docs, #408 e2e browser tests; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-25 (#279-#409 merged; open: #410 rest of Grok's list; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
 - #410 claude/grok-remaining-gaps (2026-10-25): the rest of Grok's list that Claude can do. Browser tests 19 -> 28: work orders across manager and vendor portals (open -> vendor in progress/done -> invoice with PDF only for finished jobs, duplicate number refused -> manager codes the expense account -> approved, repairs + A/P posted) and onboarding (new unit; duplicate unit number now a plain message instead of the database constraint; new owner + portal invitation -> owner opens the emailed link, sets a password, verifies via the emailed link and the "Verify and continue" button, signs in, sees only their own unit). Local dev CSP allows a loopback Supabase (dev only). Health summary 20261025020000 LIVE as 20261025075903: failed sign-ins (alert 25/day or 10 one account) and sent mail with no delivery report. Read-only production smoke test (npm run smoke:prod; GitHub after each production deploy + daily). Backups checked: 8 daily, all completed, no PITR.
-- #407 docs: Grok review doc says what was verified vs taken from records; what takes weeks.
-- #408 claude/e2e-browser-tests (2026-10-25): first browser end-to-end tests (Playwright), 19 passing: receivables (overdue dues -> late fee once -> check payment -> owner ledger), violations (notices -> hearing gate -> board upholds -> $50 fine on ledger/GL/owner), payables (bill -> approval accrues A/P -> check run #1001 -> no double pay), isolation (another company sees nothing; forged charge refused by the server); GL balance checked after every step. Runs on a local Supabase in Docker built from production's schema dump (e2e/supabase, port 55321; no production data or access) and in GitHub CI (.github/workflows/e2e.yml). Found while building: seed_standard_charge_categories duplicates when called twice (company-wide categories have association_id null, which never conflicts in uq_charge_categories_code); only the new-company trigger calls it, so no live impact.
+
+## Merged 2026-10-25
+- #409 standard charge categories added once per company (20261025065558 live).
+- #407 Grok review doc: what was verified vs taken from records; what takes weeks.
+- #408 (merged 2026-10-25) claude/e2e-browser-tests: first browser end-to-end tests (Playwright), 19 passing: receivables (overdue dues -> late fee once -> check payment -> owner ledger), violations (notices -> hearing gate -> board upholds -> $50 fine on ledger/GL/owner), payables (bill -> approval accrues A/P -> check run #1001 -> no double pay), isolation (another company sees nothing; forged charge refused by the server); GL balance checked after every step. Runs on a local Supabase in Docker built from production's schema dump (e2e/supabase, port 55321; no production data or access) and in GitHub CI (.github/workflows/e2e.yml). Found while building: seed_standard_charge_categories duplicates when called twice (company-wide categories have association_id null, which never conflicts in uq_charge_categories_code); only the new-company trigger calls it, so no live impact.
 
 ## Merged 2026-10-24
 - #405 (8c20962d) claude/grok-review-followup: Grok's outside review saved and checked point by point (docs/reviews/2026-10-24-grok-review.md; most points came from the stale 2026-08-01 root audits, now bannered HISTORICAL). Adds platform_health_summary (20261024010000 LIVE as 20261024224135 + 20261024224633 failure-time fix + 20261024230049 partial automations, both after Codex P2s; dry-run rolled back on production first, read back: definer, pinned path, anon no execute), System Monitor scheduled-job failures, daily operator alert email /api/platform/health-alert (14:30 UTC, only when something failed), 7 dark buttons -> shared Button. Security: Next.js 15.5.26 -> 15.5.28 (new advisories 2026-10: image-optimizer RCE with SVG, SSG/ISR cache poisoning, server-action DoS), DOMPurify 3.4.17, follow-redirects 1.16.1 (CI npm audit failed on them). The check found 12 pg_cron runs that failed unnoticed 2026-09-30..10-10 ("job startup timeout", the CPU episode).
@@ -939,11 +942,10 @@ Back to [[Home]]. Updated 2026-10-25 (#279-#406 merged; open: #407 docs, #408 e2
   expense account (the manager still saves it before approving). Not filled in
   the database on purpose: trg_payable_bills_gl_permission refuses a GL set by
   a user without GL permission, and vendors have none.
-- NEXT SMALL FIX (found by the browser tests): seed_standard_charge_categories
-  adds a duplicate set when called twice for a company (company-wide categories
-  have association_id null, so uq_charge_categories_code never conflicts). Only
-  the new-company trigger calls it today (no live duplicates, checked
-  2026-10-25), but make it skip codes that already exist.
+- DONE (claude/charge-category-seed-once, 20261025010000 LIVE as 20261025065558):
+  seed_standard_charge_categories adds a standard category only when the company
+  has none with that code (was: a second full set on a second call); anon/PUBLIC
+  execute revoked.
 - NOTHING LEFT FOR CLAUDE (2026-10-14, superseded by the two items above): every area deep-checked, all 10
   PO/project/inventory/reactivation decisions built (#396, #397), ownership
   done (#388). Do not start new deep checks. Next work starts when Mirsad

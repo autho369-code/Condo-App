@@ -9,6 +9,9 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
   first sign-in); duplicate unit number message; sign-in failure and email
   delivery-report alerts (20261025075903); production smoke test after each
   deploy; backups checked.
+- Standard charge categories are added once per company (20261025065558):
+  seed_standard_charge_categories skips codes the company already has; no
+  signed-out execute. Found by the browser tests.
 - Browser end-to-end tests (claude/e2e-browser-tests): Playwright, 19 tests over
   receivables, late fees, check payments, violations/fines, payables/check runs
   and company isolation, on a local Supabase built from production's schema;

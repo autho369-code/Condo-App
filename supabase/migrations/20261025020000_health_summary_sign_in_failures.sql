@@ -70,9 +70,11 @@ begin
     -- Sent over two hours ago with no report back from the email provider
     -- (delivered, bounced or complained): the provider's delivery webhook
     -- isn't reaching us (RESEND_WEBHOOK_SECRET / Resend webhook not set up),
-    -- so bounces and complaints can't stop future mail.
+    -- so bounces and complaints can't stop future mail. The window starts two
+    -- hours earlier than the others, so mail sent in the two hours before one
+    -- daily check is counted by the next (Codex on #410).
     'emails_unconfirmed', (select count(*) from public.email_queue
-                            where status = 'sent' and sent_at >= v_since
+                            where status = 'sent' and sent_at >= v_since - interval '2 hours'
                               and provider_message_id is not null
                               and sent_at < now() - interval '2 hours'
                               and delivered_at is null and bounced_at is null and complained_at is null
