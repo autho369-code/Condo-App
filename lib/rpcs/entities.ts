@@ -510,6 +510,16 @@ export async function updateBuilding(id: string, formData: FormData) {
 // UNITS
 // ============================================================================
 
+/** A unit-save error in words: a duplicate number shows the number, not the database constraint. */
+function unitSaveMessage(error: { code?: string; message?: string } | null, unitNumber: string | null, fallback: string): string {
+  if (error?.code === '23505' && /units_unique_number_per_building/.test(error.message ?? '')) {
+    return unitNumber
+      ? `Unit ${unitNumber} already exists in this building. Use a different unit number.`
+      : 'That unit number already exists in this building. Use a different unit number.';
+  }
+  return error?.message ?? fallback;
+}
+
 export async function createUnit(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
@@ -535,7 +545,7 @@ export async function createUnit(formData: FormData) {
   };
 
   const { data: unit, error } = await (supabase as any).from('units').insert(payload).select('id, building_id, buildings(association_id)').single();
-  if (error || !unit) { failTo(error?.message ?? 'Failed to create unit'); return; }
+  if (error || !unit) { failTo(unitSaveMessage(error, payload.unit_number, 'Failed to create unit')); return; }
 
   const assocId = (unit.buildings as any)?.association_id;
   if (assocId) revalidatePath(`/associations/${assocId}`);
@@ -560,7 +570,7 @@ export async function updateUnit(id: string, formData: FormData) {
   };
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
   const { data: changed, error } = await (supabase as any).from('units').update(patch).eq('id', id).select('id');
-  if (error) { failTo(error.message); return; }
+  if (error) { failTo(unitSaveMessage(error, (patch.unit_number as string | undefined) ?? null, 'Unit was not saved.')); return; }
   if (!changed?.length) { failTo('Unit was not saved: it is gone or your account cannot edit it.'); return; }
   revalidatePath(`/units/${id}`);
   revalidatePath('/units');

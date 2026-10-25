@@ -24,18 +24,19 @@ export function db(): SupabaseClient {
 
 export const ids = E2E.ids;
 
-export async function signIn(page: Page, who: 'manager' | 'owner' | 'otherManager') {
+export async function signIn(page: Page, who: 'manager' | 'owner' | 'vendor' | 'otherManager') {
   const account = E2E[who];
-  await page.goto(`/login?mode=${who === 'owner' ? 'owner' : 'manager'}`);
+  await page.goto(`/login?mode=${who === 'owner' ? 'owner' : who === 'vendor' ? 'vendor' : 'manager'}`);
   await page.getByLabel('Email').fill(account.email);
   await page.getByLabel('Password').fill(readEnv().E2E_TEST_PASSWORD);
   await page.getByRole('button', { name: /sign in/i }).click();
-  await expect(page).toHaveURL(who === 'owner' ? /\/portal/ : /\/dashboard/);
+  await expect(page).toHaveURL(who === 'owner' ? /\/portal/ : who === 'vendor' ? /\/vendor/ : /\/dashboard/);
 }
 
 /** Session files written by e2e/tests/auth.setup.ts. */
 export const asManager = { storageState: 'e2e/.auth/manager.json' };
 export const asOwner = { storageState: 'e2e/.auth/owner.json' };
+export const asVendor = { storageState: 'e2e/.auth/vendor.json' };
 export const asOtherManager = { storageState: 'e2e/.auth/otherManager.json' };
 
 /** The association's local date as YYYY-MM-DD, n days from today. */

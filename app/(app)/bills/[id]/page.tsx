@@ -20,7 +20,7 @@ export default async function BillDetailPage({ params, searchParams }: { params:
 
   const { data: b } = await (supabase as any)
     .from('payable_bills')
-    .select('*, vendors(name, address_street, address_city, address_state, address_zip, payment_type), associations(name), gl_accounts(number, name), bank_accounts(name, bank_name)')
+    .select('*, vendors(name, address_street, address_city, address_state, address_zip, payment_type, default_gl_account_id), associations(name), gl_accounts(number, name), bank_accounts(name, bank_name)')
     .eq('id', id)
     .maybeSingle();
 
@@ -53,6 +53,12 @@ export default async function BillDetailPage({ params, searchParams }: { params:
       .or(b.association_id ? `association_id.is.null,association_id.eq.${b.association_id}` : 'association_id.is.null')
       .order('number')
     : { data: [] as any[], error: null };
+  // A vendor's invoice arrives without an expense account (vendors can't set
+  // one); offer the vendor's default when it is one this bill can use.
+  const vendorDefaultGl = (b as any)?.vendors?.default_gl_account_id ?? null;
+  const suggestedAccountId = !b?.gl_account_id && vendorDefaultGl && (expenseAccounts ?? []).some((a: any) => a.id === vendorDefaultGl)
+    ? vendorDefaultGl as string
+    : null;
 
   return (
     <Workspace
@@ -112,8 +118,8 @@ export default async function BillDetailPage({ params, searchParams }: { params:
         {codable && (expenseAccounts ?? []).length > 0 && (
           <form action={setBillExpenseAccount} className="mt-4 grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-[1fr_auto] sm:items-end">
             <input type="hidden" name="bill_id" value={id} />
-            <Field label="Expense account" required hint={b.gl_account_id ? undefined : 'Needed before the bill can be approved.'}>
-              <Select name="gl_account_id" required defaultValue={b.gl_account_id ?? ''}>
+            <Field label="Expense account" required hint={b.gl_account_id ? undefined : suggestedAccountId ? "Suggested from the vendor's default account. Press Save account before approving." : 'Needed before the bill can be approved.'}>
+              <Select name="gl_account_id" required defaultValue={b.gl_account_id ?? suggestedAccountId ?? ''}>
                 <option value="" disabled>Choose an expense account…</option>
                 {(expenseAccounts ?? []).map((account: any) => (
                   <option key={account.id} value={account.id}>{account.number} — {account.name}</option>

@@ -12,7 +12,18 @@ Last updated: 2026-10-24 (Grok review follow-up).
 Everything Claude can do alone is done; these need Mirsad (accounts, keys,
 DNS or decisions). Details for the older items are further down.
 
-**⭐ Do these first (2026-10-14, in order — each unlocks the next work for Claude)**
+**⭐ Do these first (updated 2026-10-25, in order — each unlocks the next work for Claude)**
+0. [ ] **Email delivery reports (10 minutes, found 2026-10-25)** — none of the
+   mail production sent has a delivery report, so bounces and spam complaints
+   don't stop future mail. Resend → Webhooks → Add endpoint
+   `https://portier369.com/api/webhooks/resend`, events: delivered, bounced,
+   complained, opened, clicked, delivery delayed, failed. Copy its signing
+   secret → Vercel → condo-app → Environment Variables →
+   `RESEND_WEBHOOK_SECRET` (Production) → redeploy. The daily health email
+   flags this until it's done.
+0b. [ ] **Decide: point-in-time recovery** (Supabase → Database → Backups, paid
+   add-on). Today production has daily backups only (8 kept, all good), so a
+   restore could lose up to a day of payments and records.
 1. [ ] **Stripe test keys** — Vercel → condo-app → Environment Variables:
    `STRIPE_SECRET_KEY` (sk_test_…) and `STRIPE_WEBHOOK_SECRET` (whsec_…),
    then redeploy. Unlocks: Claude runs online payments + AutoPay end to end.

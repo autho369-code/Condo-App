@@ -9,6 +9,7 @@ export const E2E = {
   admin: { email: 'admin@e2e.portier369.test', name: 'Erin Admin' },
   manager: { email: 'manager@e2e.portier369.test', name: 'Max Manager' },
   owner: { email: 'owner@e2e.portier369.test', name: 'Oscar Owner' },
+  vendor: { email: 'vendor@e2e.portier369.test', name: 'Val Vendor' },
   // A manager at a second, unrelated company (isolation tests).
   otherManager: { email: 'other.manager@e2e.portier369.test', name: 'Olive Othercompany' },
   otherCompanyName: 'E2E Other Management',

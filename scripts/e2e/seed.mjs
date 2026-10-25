@@ -57,7 +57,7 @@ const sql = (q) => execFileSync('docker', ['exec', '-i', 'supabase_db_portier369
 });
 sql(`
   set session_replication_role = replica;  -- skip guard triggers while clearing local test rows
-  delete from public.payment_applications where payment_id in (select id from public.payments where unit_id = '${id.unit}');
+  delete from public.payment_applications where payment_id in (select id from public.payments where unit_id in (select id from public.units where building_id = '${id.building}'));
   delete from public.journal_lines where entry_id in (select id from public.journal_entries where portfolio_id = '${id.portfolio}');
   delete from public.journal_entries where portfolio_id = '${id.portfolio}';
   do $$ declare t text; begin
@@ -66,12 +66,22 @@ sql(`
     loop execute format('delete from public.%I where association_id = %L', t, '${id.association}'); end loop;
     for t in select c.table_name from information_schema.columns c join information_schema.tables tb on tb.table_name = c.table_name and tb.table_schema = c.table_schema
              where c.table_schema = 'public' and c.column_name = 'unit_id' and tb.table_type = 'BASE TABLE'
-    loop execute format('delete from public.%I where unit_id = %L', t, '${id.unit}'); end loop;
+    loop execute format('delete from public.%I where unit_id in (select id from public.units where building_id = %L)', t, '${id.building}'); end loop;
     for t in select c.table_name from information_schema.columns c join information_schema.tables tb on tb.table_name = c.table_name and tb.table_schema = c.table_schema
              where c.table_schema = 'public' and c.column_name = 'portfolio_id' and tb.table_type = 'BASE TABLE' and c.table_name not in ('portfolios', 'profiles')
     loop execute format('delete from public.%I where portfolio_id in (%L, %L)', t, '${id.portfolio}', '${id.otherPortfolio}'); end loop;
   end $$;
-  delete from public.units where id = '${id.unit}';
+  -- Anything else the test accounts created (e.g. a vendor's uploaded invoice document).
+  do $$ declare r record; begin
+    for r in select c.relname as tbl, att.attname as col
+               from pg_constraint con
+               join pg_class c on c.oid = con.conrelid
+               join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+               join pg_attribute att on att.attrelid = con.conrelid and att.attnum = con.conkey[1]
+              where con.contype = 'f' and con.confrelid = 'auth.users'::regclass
+    loop execute format('delete from public.%I where %I in (select id from auth.users where email like %L)', r.tbl, r.col, '%@e2e.portier369.test'); end loop;
+  end $$;
+  delete from public.units where building_id = '${id.building}';
   delete from public.buildings where id = '${id.building}';
   delete from public.associations where id = '${id.association}';
   delete from public.profiles where portfolio_id in ('${id.portfolio}', '${id.otherPortfolio}');
@@ -135,6 +145,8 @@ await must('owner login', svc.from('owners').update({ auth_user_id: ownerUser.id
 
 // 6. Vendor.
 await must('vendor', svc.from('vendors').insert({ id: id.vendor, portfolio_id: id.portfolio, association_id: id.association, name: E2E.vendorName, default_gl_account_id: id.glRepairs }));
+const vendorUser = await user(E2E.vendor.email, E2E.vendor.name, 'vendor');
+await must('vendor login', svc.from('vendors').update({ auth_user_id: vendorUser.id, portal_activated: true }).eq('id', id.vendor));
 
 // 7. The app's own defaults, as the company admin would set them up.
 const asAdmin = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });

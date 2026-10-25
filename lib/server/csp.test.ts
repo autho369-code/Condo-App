@@ -28,6 +28,20 @@ describe('app Content Security Policy', () => {
     expect(policy).toContain('report-uri /api/csp-report');
   });
 
+  it('allows a local Supabase only in development, and only on loopback', () => {
+    const before = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    try {
+      process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:55321';
+      expect(appContentSecurityPolicy('n', true)).toMatch(/connect-src [^;]*http:\/\/127\.0\.0\.1:55321/);
+      expect(appContentSecurityPolicy('n', false)).not.toContain('127.0.0.1');
+      process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://evil.example.com';
+      expect(appContentSecurityPolicy('n', true)).not.toContain('evil.example.com');
+    } finally {
+      if (before === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+      else process.env.NEXT_PUBLIC_SUPABASE_URL = before;
+    }
+  });
+
   it('lets bank linking (Plaid) load, frame and call home', () => {
     expect(policy).toMatch(/frame-src [^;]*https:\/\/cdn\.plaid\.com/);
     expect(policy).toMatch(/connect-src [^;]*https:\/\/\*\.plaid\.com/);

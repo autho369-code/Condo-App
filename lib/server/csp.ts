@@ -23,9 +23,29 @@ const shared = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   `frame-src ${STRIPE} https://hooks.stripe.com https://checkout.stripe.com https://*.supabase.co ${PLAID}`,
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.plaid.com https://*.vercel-insights.com",
   "worker-src 'self' blob:",
 ];
+
+const CONNECT_SRC = "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.plaid.com https://*.vercel-insights.com";
+
+/**
+ * In development only: a local Supabase (`supabase start`, loopback http) so
+ * browser uploads and auth calls work against it. Production never adds it.
+ */
+function localSupabaseOrigin(): string | null {
+  try {
+    const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '');
+    const loopback = url.hostname === '127.0.0.1' || url.hostname === 'localhost';
+    return url.protocol === 'http:' && loopback ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
+
+function connectSrc(dev: boolean): string {
+  const local = dev ? localSupabaseOrigin() : null;
+  return local ? `${CONNECT_SRC} ${local} ${local.replace(/^http:/, 'ws:')}` : CONNECT_SRC;
+}
 
 export const CSP_REPORT_PATH = '/api/csp-report';
 
@@ -33,12 +53,14 @@ export const CSP_REPORT_PATH = '/api/csp-report';
 export const PRINT_SCRIPT_HASH = "'sha256-JvP7+dR0/uG+XdJLQ3VY1tsCgjRYmPOpus5OtsH4uU8='";
 
 /**
- * Enforced policy for app pages. `dev` adds 'unsafe-eval' (React refresh) and
- * Vercel Analytics' debug script host (production loads it from our origin).
+ * Enforced policy for app pages. `dev` adds 'unsafe-eval' (React refresh),
+ * Vercel Analytics' debug script host (production loads it from our origin)
+ * and a local loopback Supabase, if that's what the app is configured with.
  */
 export function appContentSecurityPolicy(nonce: string, dev = false): string {
   return [
     ...shared,
+    connectSrc(dev),
     `script-src 'self' 'nonce-${nonce}' ${PRINT_SCRIPT_HASH} ${STRIPE} ${PLAID}${dev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ''}`,
     'upgrade-insecure-requests',
     `report-uri ${CSP_REPORT_PATH}`,
@@ -48,6 +70,7 @@ export function appContentSecurityPolicy(nonce: string, dev = false): string {
 /** Report-only policy for prerendered marketing pages (unchanged in spirit). */
 export const marketingContentSecurityPolicy = [
   ...shared,
+  CONNECT_SRC,
   `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${STRIPE} ${PLAID}`,
 ].join('; ');
 

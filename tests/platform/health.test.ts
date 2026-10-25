@@ -37,6 +37,19 @@ describe('platform health alert', () => {
     ]);
   });
 
+  it('alerts on a busy day of failed sign-ins or one account being guessed at, not a few typos', () => {
+    expect(healthProblems({ ...healthy, sign_in_failures: 6, sign_in_failures_one_account: 3 })).toEqual([]);
+    expect(healthProblems({ ...healthy, sign_in_failures: 30, sign_in_failures_one_account: 2 }))
+      .toEqual(['30 failed sign-ins (see the Security Center)']);
+    expect(healthProblems({ ...healthy, sign_in_failures: 12, sign_in_failures_one_account: 12 }))
+      .toEqual(['12 failed sign-ins, 12 against one account (see the Security Center)']);
+  });
+
+  it('flags sent mail the email provider never reported on', () => {
+    expect(healthProblems({ ...healthy, emails_unconfirmed: 6 }))
+      .toEqual(['6 sent emails have no delivery report from the email provider (is its delivery webhook set up?)']);
+  });
+
   it('escapes the email text', () => {
     const { subject, body } = healthAlertEmail(['<b>x</b>'], 'https://portier369.com/platform-operator/system');
     expect(subject).toBe('System health: 1 problem in the last 24 hours');

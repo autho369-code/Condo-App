@@ -1,0 +1,26 @@
+name: Production smoke test
+
+# Read-only checks of the live site after each successful production deploy
+# (Vercel reports deployments to GitHub), plus a daily run and a manual button.
+on:
+  deployment_status:
+  schedule:
+    - cron: '20 13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Production smoke test (read-only)
+    if: github.event_name != 'deployment_status' || (github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the live site
+        run: node scripts/smoke-production.mjs https://portier369.com
