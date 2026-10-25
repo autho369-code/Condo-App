@@ -64,7 +64,7 @@
     "security:mfa-recover": "node scripts/reset-mfa-break-glass.mjs",
     "check:queries": "node scripts/check-live-queries.mjs",
     "check:columns": "node scripts/check-query-columns.mjs",
-    "e2e:db": "npx supabase start --workdir e2e && node scripts/e2e/seed.mjs",
+    "e2e:db": "npx supabase start --workdir e2e -x imgproxy,vector,logflare,studio,edge-runtime,realtime,postgres-meta,supavisor,mailpit && node scripts/e2e/seed.mjs",
     "e2e": "playwright test",
     "e2e:db:stop": "npx supabase stop --workdir e2e"
   },

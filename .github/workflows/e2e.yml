@@ -23,6 +23,7 @@ jobs:
     env:
       CI: 'true'
       NEXT_TELEMETRY_DISABLED: '1'
+      E2E_EXCLUDE: imgproxy,vector,logflare,studio,edge-runtime,realtime,postgres-meta,supavisor,mailpit
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -39,8 +40,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Only the services the tests use (database, auth, API, gateway, storage),
+      # pulled from Docker Hub: anonymous pulls from public.ecr.aws hit its data
+      # limit on shared GitHub runners. One retry for a transient pull error.
       - name: Start the local test database (production schema)
-        run: npx supabase start --workdir e2e
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
+        run: |
+          start() { npx supabase start --workdir e2e -x "$E2E_EXCLUDE"; }
+          start || (sleep 30 && start)
+
 
       - name: Seed the test company
         run: node scripts/e2e/seed.mjs
