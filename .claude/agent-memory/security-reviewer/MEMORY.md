@@ -54,6 +54,8 @@
 - associations column guards keyed on `current_user` (stripe/allocation, 20261016164100): the only authenticated DEFINER writer is update_association_settings, whose allowlist excludes stripe/bank/allocation columns; Stripe writes go through the service client. Recheck if the allowlist grows.
 - Since 20261016164100 residents read parking only via DEFINER `portal_parking_assignments()` (resident_read policies USING false); new portal parking reads must use it, not the tables.
 
+- E2E harness (e2e/, playwright.config.ts, 2026-10-25): @next/env never overrides a process-env key that is defined, even as '' (verified in node_modules), so blanking keys in webServer.env works. Check `reuseExistingServer` (a stray :3100 server on .env.local = prod) and that the blank list covers every key in .env.local the app reads.
+
 ## Topic files
 - [Helpers and schema notes](helpers.md) -- tenant headers, portfolios guards, branding writers, bind args, owners/units RLS, AppFolio import
 - [Missed checks](missed-checks.md) -- domain-proof replay/relay, token minting, html_escape, storage cleanup, finance RPC scope triggers, hidden columns copied by DEFINER triggers (soft_delete_log), owner_visible_history writers

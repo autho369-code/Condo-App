@@ -3,6 +3,12 @@
 Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
+## 2026-10-25
+- Browser end-to-end tests (claude/e2e-browser-tests): Playwright, 19 tests over
+  receivables, late fees, check payments, violations/fines, payables/check runs
+  and company isolation, on a local Supabase built from production's schema;
+  runs in GitHub CI on every PR. `npm run e2e:db` then `npm run e2e`.
+
 ## 2026-10-24
 - Grok review follow-up (claude/grok-review-followup): review saved with a
   point-by-point check against the live state; stale 2026-08-01 root audits

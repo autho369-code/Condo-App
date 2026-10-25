@@ -1,9 +1,10 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-24 (#279-#404 merged; #405 merged 2026-10-24; no open PR; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-25 (#279-#406 merged; open: #407 docs, e2e browser tests; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- none
+- #407 docs: Grok review doc says what was verified vs taken from records; what takes weeks.
+- claude/e2e-browser-tests (2026-10-25): first browser end-to-end tests (Playwright), 19 passing: receivables (overdue dues -> late fee once -> check payment -> owner ledger), violations (notices -> hearing gate -> board upholds -> $50 fine on ledger/GL/owner), payables (bill -> approval accrues A/P -> check run #1001 -> no double pay), isolation (another company sees nothing; forged charge refused by the server); GL balance checked after every step. Runs on a local Supabase in Docker built from production's schema dump (e2e/supabase, port 55321; no production data or access) and in GitHub CI (.github/workflows/e2e.yml). Found while building: seed_standard_charge_categories duplicates when called twice (company-wide categories have association_id null, which never conflicts in uq_charge_categories_code); only the new-company trigger calls it, so no live impact.
 
 ## Merged 2026-10-24
 - #405 (8c20962d) claude/grok-review-followup: Grok's outside review saved and checked point by point (docs/reviews/2026-10-24-grok-review.md; most points came from the stale 2026-08-01 root audits, now bannered HISTORICAL). Adds platform_health_summary (20261024010000 LIVE as 20261024224135 + 20261024224633 failure-time fix + 20261024230049 partial automations, both after Codex P2s; dry-run rolled back on production first, read back: definer, pinned path, anon no execute), System Monitor scheduled-job failures, daily operator alert email /api/platform/health-alert (14:30 UTC, only when something failed), 7 dark buttons -> shared Button. Security: Next.js 15.5.26 -> 15.5.28 (new advisories 2026-10: image-optimizer RCE with SVG, SSG/ISR cache poisoning, server-action DoS), DOMPurify 3.4.17, follow-redirects 1.16.1 (CI npm audit failed on them). The check found 12 pg_cron runs that failed unnoticed 2026-09-30..10-10 ("job startup timeout", the CPU episode).

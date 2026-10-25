@@ -357,3 +357,22 @@ name, amount; staff confirm; Plaid original_description required.
   a rewrite is risk without user-visible gain (no overcomplication).
 - Not doing without Mirsad: a public "beta / early access" page and the
   pilot plan (business decisions, TODO "Business decisions").
+
+## Browser test environment (2026-10-25)
+- Browser tests run on a LOCAL Supabase in Docker (e2e/supabase, port 55321)
+  built from a schema-only `supabase db dump` of production plus production's
+  auth triggers, storage buckets/policies and global reference rows. Never
+  production; the seed and helpers refuse any other URL.
+- Not the hosted staging project: staging stopped at 20260803080000, and
+  production's own migration history can't be replayed cleanly (some functions
+  were changed outside it). The replay attempt left staging part-way
+  (53 production migrations after Aug 3 + one function); nothing uses staging
+  now. Not a Supabase branch either: this client can't confirm branch cost,
+  and the raw history can't rebuild an empty database.
+- The dev server for tests gets the local settings in its process environment,
+  which Next.js prefers over .env.local (production). Outside services off.
+- Tests sign each role in once per run (the app's sign-in rate limit: 10 per
+  account per 15 min counts successful sign-ins too).
+- Refresh the schema dump after production schema changes the tests should
+  cover (scripts/e2e/build-db.mjs; e2e/README.md).
+

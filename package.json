@@ -63,7 +63,10 @@
     "security:secrets": "node scripts/scan-secrets.mjs",
     "security:mfa-recover": "node scripts/reset-mfa-break-glass.mjs",
     "check:queries": "node scripts/check-live-queries.mjs",
-    "check:columns": "node scripts/check-query-columns.mjs"
+    "check:columns": "node scripts/check-query-columns.mjs",
+    "e2e:db": "npx supabase start --workdir e2e && node scripts/e2e/seed.mjs",
+    "e2e": "playwright test",
+    "e2e:db:stop": "npx supabase stop --workdir e2e"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -98,6 +101,7 @@
     "tldts": "^6.1.86"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.9.0",

@@ -9,7 +9,8 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     globals: true,
     // Agent worktrees live under .claude/; never run their copies of the tests.
-    exclude: [...configDefaults.exclude, '.claude/**'],
+    // Browser tests (e2e/) run with Playwright: npm run e2e.
+    exclude: [...configDefaults.exclude, '.claude/**', 'e2e/**'],
   },
   resolve: {
     alias: {
