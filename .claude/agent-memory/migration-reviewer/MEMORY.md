@@ -89,6 +89,8 @@
 - "Live body + change" CREATE OR REPLACE: grep the repo for the body's distinctive raise strings to spot live drift. validate_payment_accounts' charge_id/amount branch + trigger column list (charge_id, amount) exist live but in NO repo migration (20261017020000 brings the body in, not the trigger). No live DB tool: hand over pg_get_functiondef/pg_trigger SQL.
 - payments.bank_account_id writers (2026-10-14): manual receipt/charges UI require bank.association_id = unit's (stricter than trigger); Stripe inserts no bank; lockbox needs unit in batch association (company-wide bank already fails); nothing UPDATEs bank_account_id/unit_id.
 
+- `on conflict do nothing` against a unique index with a nullable column (uq_charge_categories_code incl. association_id) never fires for NULL rows; flag such seeds. Fix pattern: `where not exists` (20261025010000, clean). The twin trigger trg_seed_standard_charge_categories still has it (harmless: brand-new company only).
+
 ## Topic files
 - [Review lessons](review-lessons.md) — more misses: definer->join swaps, DML revokes, side tables, status sync, tenure scope, scheduler holds, freeze guards, AutoPay late-fee holds
 - [Schedulers and local dates](schedulers-and-dates.md) — association_local_date cost traps, suspension pauses, recurring catch-up, scheduled-report takeover
