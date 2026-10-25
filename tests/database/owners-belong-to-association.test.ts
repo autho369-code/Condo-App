@@ -132,6 +132,7 @@ describe('owners belong to exactly one association', () => {
       'scripts/seed-real.ts',
       'scripts/seed-comprehensive.ts',
       'scripts/seed-staging-verification.mjs',
+      'scripts/e2e/seed.mjs',
     ]));
   });
 

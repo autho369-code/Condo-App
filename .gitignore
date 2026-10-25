@@ -32,3 +32,9 @@ graphify-out/
 /mobile/android/**/build/
 /mobile/dist/*.apk
 /mobile/dist/*.aab
+
+/test-results/
+/playwright-report/
+/e2e/supabase/.temp/
+/e2e/supabase/.branches/
+/e2e/.auth/

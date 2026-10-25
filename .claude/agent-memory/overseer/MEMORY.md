@@ -136,3 +136,9 @@
 - Rule changes Mirsad gives in chat (e.g. auto-merge allowed, 2026-10-14) land
   in the user's auto-memory but not in docs/brain/PR Rules.md / CLAUDE.md,
   which still say "never merge". Check the vault records them before acting.
+
+- Bugs "found while building" written only in the Status Open PR entry vanish
+  when that entry is removed after merge (e2e PR 2026-10-25:
+  seed_standard_charge_categories duplicate). Require a Next gaps / TODO line
+  or a Decisions "verified, no change" line. Also: Next gaps saying "NOTHING
+  LEFT FOR CLAUDE" goes stale when chat gives new work; check it was edited.
