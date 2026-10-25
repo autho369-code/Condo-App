@@ -37,7 +37,7 @@ export function healthProblems(s: PlatformHealthSummary): string[] {
   if (s.emails_stuck) lines.push(`${plural(s.emails_stuck, 'email has', 'emails have')} waited over an hour to send (is the email worker running?)`);
   if (s.webhooks_failed) lines.push(`${plural(s.webhooks_failed, 'webhook delivery', 'webhook deliveries')} failed`);
   if (s.reports_failed) lines.push(`${plural(s.reports_failed, 'report run', 'report runs')} failed`);
-  if (s.automations_failed) lines.push(`${plural(s.automations_failed, 'automation run', 'automation runs')} failed`);
+  if (s.automations_failed) lines.push(`${plural(s.automations_failed, 'automation run', 'automation runs')} failed or partly failed`);
   if (s.stripe_events_failed) lines.push(`${plural(s.stripe_events_failed, 'Stripe event', 'Stripe events')} could not be processed`);
   if (s.autopay_failed) lines.push(`${plural(s.autopay_failed, 'AutoPay run', 'AutoPay runs')} failed`);
   return lines;

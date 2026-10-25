@@ -79,7 +79,8 @@ begin
     'reports_failed', (select count(*) from public.report_runs
                         where status = 'failed' and coalesce(finished_at, updated_at, created_at) >= v_since),
     'automations_failed', (select count(*) from public.automation_flow_runs
-                            where status = 'failed' and coalesce(last_attempt_at, fired_at) >= v_since),
+                            where status in ('failed', 'partial')  -- partial: some actions failed
+                              and coalesce(last_attempt_at, fired_at) >= v_since),
     'stripe_events_failed', (select count(*) from public.stripe_webhook_events
                               where status = 'failed' and coalesce(processed_at, claimed_at) >= v_since),
     'autopay_failed', (select count(*) from public.stripe_autopay_runs
