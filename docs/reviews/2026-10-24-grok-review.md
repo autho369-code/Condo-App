@@ -115,3 +115,17 @@ evidence above. Grok's "controlled pilot" verdict stands.
 **Grok's go-to-market advice** (controlled pilot with 1–2 friendly companies,
 offline payment recording until Stripe is live, honest "early access" wording) is
 Mirsad's call; it is listed in `docs/TODO.md` under the business decisions.
+
+## Follow-up, 2026-10-25 — what was done on each point Claude can act on
+
+| Grok recommendation | Done |
+|---|---|
+| Backup / rollback | Checked: 8 daily backups kept, all completed; Vercel keeps instant rollback. **No point-in-time recovery** (paid add-on) — Mirsad's decision (TODO). |
+| Read-only production smoke tests | `npm run smoke:prod` (pages, sign-in redirects, job endpoints refuse callers, security headers); GitHub runs it after every production deploy and daily. |
+| Browser + database evidence for money / compliance | 28 browser tests (#408 + this PR): receivables, late fees, check payments, violations → hearing → fine, vendor bills → check run, work orders across manager and vendor portals, owner/unit onboarding through the emailed invitation and verification, cross-company isolation. GL checked after every step. |
+| Alerts: auth denials | Daily health email now counts failed sign-ins (25/day or 10 on one account). |
+| Real email delivery evidence | Found: **no production email has a delivery report** — the Resend webhook secret isn't set (the receiver answers 503). The health email now flags sent mail with no report; Mirsad sets the webhook (TODO item 0). |
+| Board / company-admin design | Done (#405); real-phone testing still open. |
+
+Found and fixed along the way: duplicate charge categories on a second setup call (#409); a raw database error shown when a unit number already exists (now a plain message); local development couldn't upload files to a local Supabase (dev-only security-policy fix).
+

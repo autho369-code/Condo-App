@@ -4,6 +4,11 @@ Back to [[Home]]. Newest first. (The session-start hook also prints the last
 15 merges on main live from git.)
 
 ## 2026-10-25
+- Rest of Grok's list (claude/grok-remaining-gaps): browser tests for work
+  orders (manager + vendor portals) and onboarding (invitation, verification,
+  first sign-in); duplicate unit number message; sign-in failure and email
+  delivery-report alerts (20261025075903); production smoke test after each
+  deploy; backups checked.
 - Browser end-to-end tests (claude/e2e-browser-tests): Playwright, 19 tests over
   receivables, late fees, check payments, violations/fines, payables/check runs
   and company isolation, on a local Supabase built from production's schema;

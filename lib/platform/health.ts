@@ -22,7 +22,17 @@ export interface PlatformHealthSummary {
   automations_failed: number;
   stripe_events_failed: number;
   autopay_failed: number;
+  /** Sent 2h+ ago with no delivered/bounced/complaint report from the provider (20261025020000). */
+  emails_unconfirmed?: number;
+  /** Failed password sign-ins in the window (20261025020000; absent before). */
+  sign_in_failures?: number;
+  /** The most failed sign-ins against any one account in the window. */
+  sign_in_failures_one_account?: number;
 }
+
+/** Failed sign-ins worth a look: a busy day, or one account being guessed at. */
+export const SIGN_IN_FAILURES_ALERT = 25;
+export const SIGN_IN_FAILURES_ONE_ACCOUNT_ALERT = 10;
 
 /** Plain-language lines for each non-zero item; empty when all is healthy. */
 export function healthProblems(s: PlatformHealthSummary): string[] {
@@ -35,11 +45,17 @@ export function healthProblems(s: PlatformHealthSummary): string[] {
   }
   if (s.emails_failed) lines.push(`${plural(s.emails_failed, 'email failed', 'emails failed')} to send`);
   if (s.emails_stuck) lines.push(`${plural(s.emails_stuck, 'email has', 'emails have')} waited over an hour to send (is the email worker running?)`);
+  if (s.emails_unconfirmed) lines.push(`${plural(s.emails_unconfirmed, 'sent email has', 'sent emails have')} no delivery report from the email provider (is its delivery webhook set up?)`);
   if (s.webhooks_failed) lines.push(`${plural(s.webhooks_failed, 'webhook delivery', 'webhook deliveries')} failed`);
   if (s.reports_failed) lines.push(`${plural(s.reports_failed, 'report run', 'report runs')} failed`);
   if (s.automations_failed) lines.push(`${plural(s.automations_failed, 'automation run', 'automation runs')} failed or partly failed`);
   if (s.stripe_events_failed) lines.push(`${plural(s.stripe_events_failed, 'Stripe event', 'Stripe events')} could not be processed`);
   if (s.autopay_failed) lines.push(`${plural(s.autopay_failed, 'AutoPay run', 'AutoPay runs')} failed`);
+  const signIns = s.sign_in_failures ?? 0;
+  const oneAccount = s.sign_in_failures_one_account ?? 0;
+  if (signIns >= SIGN_IN_FAILURES_ALERT || oneAccount >= SIGN_IN_FAILURES_ONE_ACCOUNT_ALERT) {
+    lines.push(`${plural(signIns, 'failed sign-in', 'failed sign-ins')}${oneAccount >= SIGN_IN_FAILURES_ONE_ACCOUNT_ALERT ? `, ${oneAccount} against one account` : ''} (see the Security Center)`);
+  }
   return lines;
 }
 
