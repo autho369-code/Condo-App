@@ -72,13 +72,13 @@ Checked live on 2026-10-24 (production database, Vercel, code):
 
 | # | Grok's point | Real state | Action |
 |---|---|---|---|
-| 1 | Production hasn't received the migrations | **Stale.** 796 migrations live on production; every repo migration file is applied (11 applied under other names, checked object by object). Production deploy = `main` 4ad1d691, READY. | None |
+| 1 | Production hasn't received the migrations | **Stale.** 796 migrations are recorded on production. Every repo migration file matches a live entry by version or name, except 11 applied under other names; for those I checked their main function/column exists on production (not a full schema diff). Production deploy = `main`, READY. | None |
 | 2 | No Stripe/Plaid end-to-end evidence | **True — waiting on Mirsad.** No `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` in Vercel; Plaid not approved. Online pay and AutoPay already fail closed (`isStripeConfigured()`; owner pay pages say it's unavailable); owners pay by check/Zelle recorded by staff (#400). | Mirsad: TODO item 1 & 2 |
-| 3 | Mutation lifecycles not exercised end to end | **Stale.** Every area had a deep check with rolled-back production dry-runs (#279–#393): sale/move-out (#388), assessments/late fees/AutoPay holds (#396), reconciliation undo/reopen (#372/#373), violations → hearing → fines, work orders + recurrence (#386), GL/close (#390), setup/onboarding (#391), reports (#393), POs/projects (#387). | None (Mirsad: don't re-check done areas) |
-| 4 | No tenant portal | **Stale.** `app/resident/*` is a tenant (resident) portal with its own `requireTenant` sign-in (requests, documents, calendar, meetings, messages, work orders, profile). Whether to market it is Mirsad's call. | Mirsad decision (TODO 6) |
+| 3 | Mutation lifecycles not exercised end to end | **Partly true.** Earlier sessions deep-checked every area (#279–#393, recorded in Status.md): sale/move-out (#388), late fees/AutoPay holds (#396), reconciliation undo (#372/#373), violations → hearing → fines (#353), work orders + recurrence (#386), GL/close (#390), setup (#391), reports (#393), POs (#387). That evidence is code review plus database dry-runs on production that were rolled back. It is **not** browser click-through of every path, and there is no automated end-to-end (Playwright) suite for the money workflows. I did not re-run those checks on 2026-10-24; I relied on the records. | Open (see below) |
+| 4 | No tenant portal | **Partly stale.** `app/resident/*` exists with its own `requireTenant` sign-in and nine pages (home, requests, work orders, messages, communications, calendar, meetings, documents, profile). I confirmed it exists; I did not test it end to end. Whether to market it is Mirsad's call. | Mirsad decision (TODO 6) |
 | 5 | No delivery / cron / alerting evidence | **Partly true.** Email is delivering (8 sent, 0 failed/bounced in 30 days); all 19 database jobs succeeded every run in the last 7 days. But the System Monitor didn't show failed scheduled jobs and nothing alerted anyone — and the new check found 12 job runs that failed unnoticed (Sept 30 – Oct 10, "job startup timeout", during the database CPU episode). Physical check stock still needs a human print test. | **Fixed in this PR** (below). Check stock: Mirsad |
 | 6 | `any` casts, no typed domain layer, no `lib/env.ts` | **True, deliberately not done.** ~3,600 `any` uses. Column mistakes are already caught before merge by `npm test` (every static query checked against the live column + foreign-key snapshot; 0 broken of 1,179). A rewrite is weeks of risk for no user-visible gain (Mirsad: no overcomplication). | Decision recorded |
-| 7 | Board / company-admin pages still dark | **Stale.** All bodies are on the light design system. Only 7 hand-styled dark buttons remained. | **Fixed in this PR** (shared `Button`) |
+| 7 | Board / company-admin pages still dark | **Mostly stale.** A code search found no dark page backgrounds in `app/board` or `app/company-admin`, only 7 hand-styled dark buttons (now the shared `Button`). I checked the code, not every page on a phone; real-device testing has not been done. | Buttons fixed in #405; device testing open |
 | 8 | Surface larger than evidence | Covered by the deep checks in #3. No new modules are being added. | None |
 
 **What this PR adds (from the review):**
@@ -88,6 +88,29 @@ Checked live on 2026-10-24 (production database, Vercel, code):
 - Daily alert email (`/api/platform/health-alert`, 14:30 UTC): the platform
   operator gets one email on days when anything failed; nothing on healthy days.
 - 7 dark buttons in board / company-admin pages moved to the shared `Button`.
+
+**Where Grok is right that this takes weeks** (none of it can be finished by
+code alone):
+- **Stripe + Plaid end to end** (success, failure, duplicate, refund, dispute,
+  reconcile; bank link, sync, reconnect). Needs Stripe test keys and Plaid
+  approval from Mirsad, then days of test runs; Plaid approval itself can take
+  weeks.
+- **A supervised pilot** with 1–2 real management companies on real data, for a
+  full month. This is the only way to get the "durable evidence" Grok asks for.
+- **Browser end-to-end tests** for the money and compliance workflows
+  (Playwright or similar). Not built. A first useful set (payments, late fees,
+  violation → fine, work order → bill) is several days of work and needs test
+  logins on a non-production environment.
+- **Real-device mobile testing** of the operational screens.
+- **Physical check printing** on real check stock (a person with a printer).
+- **Typed domain layer / removing `any`** — weeks; deliberately not started
+  (see row 6).
+- **Legal sign-off**, **Twilio KYC/10DLC**, **Lob billing** — outside parties.
+
+So the honest summary: the code-level release blockers in the August audit are
+closed, and production is migrated and deployed; but "ready for unrestricted
+customers" still needs the pilot, live payment testing and browser end-to-end
+evidence above. Grok's "controlled pilot" verdict stands.
 
 **Grok's go-to-market advice** (controlled pilot with 1–2 friendly companies,
 offline payment recording until Stripe is live, honest "early access" wording) is

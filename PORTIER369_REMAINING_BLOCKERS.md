@@ -1,7 +1,9 @@
 > **HISTORICAL — superseded (2026-10-24).** This audit is a snapshot from
 > 2026-08-01 and is no longer the current state. Since then #279–#404 shipped:
-> every migration is applied to production, every area was deep-checked and
-> fixed, and the tenant (resident) portal exists. For where things stand read
+> every migration is applied to production, every area had a deep check (code
+> review + rolled-back database dry-runs, not browser end-to-end tests) and the
+> tenant (resident) portal exists. Still open: live Stripe/Plaid testing, a
+> pilot, browser end-to-end tests, device testing, check-stock printing. For where things stand read
 > `docs/brain/Status.md` (Next gaps) and `docs/reviews/2026-10-24-grok-review.md`.
 > Kept unchanged below for the record.
 
