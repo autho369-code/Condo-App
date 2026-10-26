@@ -376,3 +376,11 @@ name, amount; staff confirm; Plaid original_description required.
 - Refresh the schema dump after production schema changes the tests should
   cover (scripts/e2e/build-db.mjs; e2e/README.md).
 
+## Email to owners on hold (2026-10-26)
+- Mirsad: "stop sending emails to the owners" — the sample building on
+  production is a real building (17 owners; 6 automatic dues reminders went
+  out 2026-10-15, 1 message 2026-10-10). Texts and physical mail never sent.
+- platform_flags.hold_resident_email (on) makes claim_email_queue_snapshot
+  leave mail to owners/tenants pending: held, not sent, not deleted. Staff and
+  platform mail unaffected. Only Mirsad lifts it.
+

@@ -12,6 +12,13 @@ Last updated: 2026-10-24 (Grok review follow-up).
 Everything Claude can do alone is done; these need Mirsad (accounts, keys,
 DNS or decisions). Details for the older items are further down.
 
+**🛑 Email to owners and tenants is ON HOLD (2026-10-26, Mirsad).** The sample
+association is a real building; its owners got automatic dues reminders. All
+mail to owners/tenants stays queued and unsent (staff and platform mail still
+go out). Texts and physical mail have never been sent. To lift it later (held
+mail then goes out unless removed first):
+`update public.platform_flags set enabled = false where key = 'hold_resident_email';`
+
 **⭐ Do these first (updated 2026-10-25, in order — each unlocks the next work for Claude)**
 0. [ ] **Email delivery reports (10 minutes, found 2026-10-25)** — none of the
    mail production sent has a delivery report, so bounces and spam complaints
