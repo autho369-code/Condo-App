@@ -91,6 +91,8 @@
 
 - `on conflict do nothing` against a unique index with a nullable column (uq_charge_categories_code incl. association_id) never fires for NULL rows; flag such seeds. Fix pattern: `where not exists` (20261025010000, clean). The twin trigger trg_seed_standard_charge_categories still has it (harmless: brand-new company only).
 
+- Recipient-match holds (20261026010000 email_is_to_resident): owners.email / board_members.email can hold SEVERAL addresses (lib/calendar/reminder-delivery.ts:67,84 split them; queue rows carry no owner_id), so `lower(o.email) = to` misses; also board_members, tenancies.tenant_email. Suggest position() over the concatenated text. Check header comments against the body: its "3. health summary" step was never written.
+
 ## Topic files
 - [Review lessons](review-lessons.md) — more misses: definer->join swaps, DML revokes, side tables, status sync, tenure scope, scheduler holds, freeze guards, AutoPay late-fee holds
 - [Schedulers and local dates](schedulers-and-dates.md) — association_local_date cost traps, suspension pauses, recurring catch-up, scheduled-report takeover

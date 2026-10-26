@@ -376,3 +376,21 @@ name, amount; staff confirm; Plaid original_description required.
 - Refresh the schema dump after production schema changes the tests should
   cover (scripts/e2e/build-db.mjs; e2e/README.md).
 
+## Email to owners on hold (2026-10-26)
+- Mirsad: "stop sending emails to the owners" — the sample building on
+  production is a real building (17 owners; 6 automatic dues reminders went
+  out 2026-10-15, 1 message 2026-10-10). Texts and physical mail never sent.
+- platform_flags.hold_resident_email (on) makes claim_email_queue_snapshot
+  leave mail to owners/tenants pending: held, not sent, not deleted. Staff and
+  platform mail unaffected. Only Mirsad lifts it.
+- Mirsad 2026-10-26: keep the sample building's data as it is; the hold is
+  enough. Don't replace or delete its owners.
+- Email leaves the platform only through the app worker
+  (/api/email/process-queue -> claim_email_queue_snapshot). The old edge
+  functions send-email, process-email-queue, webhook-dispatcher,
+  process-sms-queue, generate-report, invite-user and stripe-webhook are
+  retired stubs (410). The only live edge function is data-export-builder.
+  Never deploy an edge function that sends mail/texts/webhooks or writes
+  money and accepts the anon key; that work belongs in the app's guarded
+  routes.
+
