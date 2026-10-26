@@ -79,7 +79,17 @@ test.describe.serial('onboarding: new unit → new owner invited → owner accep
     expect(new URL(verifyLink!).hostname).toBe('e2e-test-management.localhost');
     await page.goto(new URL(verifyLink!).pathname + new URL(verifyLink!).search);
     // The token is used only on the button press (an email scanner opening the link can't spend it).
-    await page.getByRole('button', { name: 'Verify and continue' }).click();
+    // Wait until the press has really left the confirm page: on a cold dev
+    // server the first press can be dropped while the page compiles (seen in
+    // CI as ECONNRESET); the token is still unused then, so press again.
+    const verifyButton = page.getByRole('button', { name: 'Verify and continue' });
+    await verifyButton.click();
+    try {
+      await expect(page).not.toHaveURL(/\/confirm/, { timeout: 30_000 });
+    } catch {
+      await verifyButton.click();
+      await expect(page).not.toHaveURL(/\/confirm/, { timeout: 60_000 });
+    }
     await page.waitForLoadState('networkidle');
     if (!/\/portal/.test(page.url())) {
       await page.goto('/login?mode=owner');
