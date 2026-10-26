@@ -383,4 +383,6 @@ name, amount; staff confirm; Plaid original_description required.
 - platform_flags.hold_resident_email (on) makes claim_email_queue_snapshot
   leave mail to owners/tenants pending: held, not sent, not deleted. Staff and
   platform mail unaffected. Only Mirsad lifts it.
+- Mirsad 2026-10-26: keep the sample building's data as it is; the hold is
+  enough. Don't replace or delete its owners.
 
