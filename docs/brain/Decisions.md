@@ -387,6 +387,10 @@ name, amount; staff confirm; Plaid original_description required.
   enough. Don't replace or delete its owners.
 - Email leaves the platform only through the app worker
   (/api/email/process-queue -> claim_email_queue_snapshot). The old edge
-  functions send-email and process-email-queue are retired stubs (410); never
-  redeploy a mail sender as an edge function that accepts the anon key.
+  functions send-email, process-email-queue, webhook-dispatcher,
+  process-sms-queue, generate-report, invite-user and stripe-webhook are
+  retired stubs (410). The only live edge function is data-export-builder.
+  Never deploy an edge function that sends mail/texts/webhooks or writes
+  money and accepts the anon key; that work belongs in the app's guarded
+  routes.
 

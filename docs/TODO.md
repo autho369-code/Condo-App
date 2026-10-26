@@ -17,12 +17,10 @@ DNS or decisions). Details for the older items are further down.
       (sent queued mail past the owner hold) were replaced with stubs that refuse
       every request (Mirsad approved). Logs: no outside use in the last 7 days.
       Optional: delete them in Supabase → Edge Functions.
-- [ ] **Approve: retire 5 more old edge functions (2026-10-26)** — webhook-dispatcher,
-      process-sms-queue, generate-report (all three open to the public website key;
-      they bypass the app's webhook SSRF guard, SMS consent checks and report access
-      checks), invite-user (sends invitations outside the email queue/owner hold) and
-      stripe-webhook (outdated payment logic). Nothing calls them. Stubs ready in
-      supabase/functions/. Keep data-export-builder (used by the export job).
+- [x] **Done 2026-10-26 (Mirsad approved):** retired 5 more old edge functions
+      — webhook-dispatcher, process-sms-queue, generate-report, invite-user,
+      stripe-webhook — all now refuse every request (checked from outside).
+      data-export-builder kept (the export job still runs every 5 minutes).
 
 **🛑 Email to owners and tenants is ON HOLD (2026-10-26, Mirsad).** The sample
 association is a real building; its owners got automatic dues reminders. All
