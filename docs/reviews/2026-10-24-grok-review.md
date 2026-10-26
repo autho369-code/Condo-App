@@ -129,3 +129,52 @@ Mirsad's call; it is listed in `docs/TODO.md` under the business decisions.
 
 Found and fixed along the way: duplicate charge categories on a second setup call (#409); a raw database error shown when a unit number already exists (now a plain message); local development couldn't upload files to a local Supabase (dev-only security-policy fix).
 
+## Status for the next review — 2026-10-26
+
+Read this section first. The old root files `PORTIER369_*.md` are a snapshot
+from 2026-08-01 and are marked historical; the live state is
+`docs/brain/Status.md`. Everything below was checked on production on
+2026-10-26.
+
+### Done
+
+| Grok recommendation | Evidence |
+|---|---|
+| Production migration, deployment | Every migration applied; production runs `main`. A read-only smoke test (`scripts/smoke-production.mjs`) runs after every production deploy and daily; passing. |
+| Backup / rollback | 8 daily backups kept, all completed; Vercel instant rollback. Point-in-time recovery is off (see Open). |
+| Switch off payments/bank feeds until tested | Online pay and AutoPay fail closed without Stripe keys; owner pages say so. |
+| Browser + database evidence for money and compliance | 24 Playwright workflows (plus 4 sign-ins) on every PR, against a local Supabase built from production's schema: receivables, late fees (charged once), check payments, violations → notice → hearing gate → fine, vendor bills → approval → check run, work orders across the manager and vendor portals with a vendor invoice, owner onboarding through the emailed invitation and verification, cross-company isolation including a forged request. The general ledger is checked after every step. `e2e/README.md`. |
+| Observability with alert thresholds | Daily operator email when anything failed: scheduled jobs, email (failed, stuck, no delivery report), webhooks, reports, automations, Stripe, AutoPay, failed sign-ins (25/day or 10 on one account). System Monitor shows scheduled-job failures. |
+| Real email delivery evidence | Resend delivery webhook connected 2026-10-26 (signed reports only). First report arrives with the next real send; the daily email flags sent mail with no report. |
+| Board / company-admin design system | All pages on the light system. |
+| Tenant portal | Exists (`/resident`, its own sign-in). |
+
+### Found and fixed during this work
+
+- **Real people in the sample data:** the sample association is a real
+  building. All email to owners and tenants is **held** on production (queued,
+  not sent) until Mirsad lifts it; staff mail still goes out. Texts and physical
+  mail were never sent.
+- **Open email relay:** an old Supabase edge function (`send-email`) sent any
+  message from the platform address for anyone holding the public key; six
+  other old functions bypassed the app's checks (email hold, webhook network
+  guard, SMS consent, report access, payment rules). All seven now refuse every
+  request; logs show no outside use in the 7 days kept.
+- Duplicate charge categories on a second setup call; a raw database error for
+  a duplicate unit number; local file uploads blocked by the security policy;
+  vendor invoices now suggest the vendor's default expense account.
+
+### Still open
+
+| Item | Owner | Why it isn't done |
+|---|---|---|
+| Stripe + Plaid end to end | Mirsad | Needs Stripe test keys and Plaid approval; then browser tests for checkout and AutoPay. |
+| Point-in-time recovery | Mirsad | Paid add-on; today a restore can lose up to a day. |
+| Supervised pilot with 1–2 companies | Mirsad | Business decision; the only way to get real-usage evidence. |
+| Real-phone testing | Mirsad / pilot | Pages are built mobile-first and checked at 375px in code, not on devices. |
+| Physical check printing on real stock | Mirsad | Needs a printer and check stock. |
+| Lift the owner email hold | Mirsad | Only when the sample data question is settled; held mail is reviewed first. |
+| Typed domain layer / remove `any` | — | Deliberately not done: column mistakes are caught by the live-schema query check on every PR; a rewrite is weeks of risk for no user-visible change. |
+| Public "early access" page | Mirsad | Marketing decision. |
+| Bank reconciliation browser test | Claude | Next browser test after Stripe. |
+
