@@ -385,4 +385,8 @@ name, amount; staff confirm; Plaid original_description required.
   platform mail unaffected. Only Mirsad lifts it.
 - Mirsad 2026-10-26: keep the sample building's data as it is; the hold is
   enough. Don't replace or delete its owners.
+- Email leaves the platform only through the app worker
+  (/api/email/process-queue -> claim_email_queue_snapshot). The old edge
+  functions send-email and process-email-queue are retired stubs (410); never
+  redeploy a mail sender as an edge function that accepts the anon key.
 

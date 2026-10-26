@@ -12,13 +12,11 @@ Last updated: 2026-10-24 (Grok review follow-up).
 Everything Claude can do alone is done; these need Mirsad (accounts, keys,
 DNS or decisions). Details for the older items are further down.
 
-**🚨 URGENT (2026-10-26): remove two old email functions — anyone can send email as Portier369 through them.**
-Supabase → project condo-app → Edge Functions → delete **send-email** and
-**process-email-queue** (⋯ → Delete). Nothing in the app uses them (mail goes
-through the app's own worker). With the public website key, anyone can make
-`send-email` send any message from hello@portier369.com, and
-`process-email-queue` sends queued mail past the owner hold. Claude's attempt
-to switch them off was blocked by its safety check (production deploy).
+- [x] **Done 2026-10-26:** the old Supabase edge functions **send-email** (an
+      open email relay with the public website key) and **process-email-queue**
+      (sent queued mail past the owner hold) were replaced with stubs that refuse
+      every request (Mirsad approved). Logs: no outside use in the last 7 days.
+      Optional: delete them in Supabase → Edge Functions.
 
 **🛑 Email to owners and tenants is ON HOLD (2026-10-26, Mirsad).** The sample
 association is a real building; its owners got automatic dues reminders. All
