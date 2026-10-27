@@ -1,11 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-26 (#279-#416 merged; ship checklist at the top of docs/TODO.md; open PR: claude/e2e-bank-reconciliation; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-26 (#279-#417 merged; ship checklist at the top of docs/TODO.md; no open PR; Claude queue empty until Mirsad acts on the checklist; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/e2e-bank-reconciliation: bank reconciliation browser test (07); 33 browser tests pass locally.
+- none
 
 ## Merged 2026-10-26 (late)
+- #417 bank reconciliation browser test (e2e/tests/07-bank-reconciliation.spec.ts); 33 browser tests. Codex stalled ~2h on "running"; a fresh "@codex review" comment got a clean review.
 - #416 claude/email-hold-one-association: the email hold now covers only Randolph Station (email_hold_associations, email_is_held; 20261027010000 LIVE as 20261026194614). The platform flag is the emergency switch and is OFF. Dry-run rolled back on production: every hold case passed.
 
 ## Merged 2026-10-26
