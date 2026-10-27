@@ -1,9 +1,9 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-26 (#279-#417 merged; ship checklist at the top of docs/TODO.md; no open PR; Claude queue empty until Mirsad acts on the checklist; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-27 (#279-#418 merged; ship checklist at the top of docs/TODO.md; open PR: claude/ach-remittance; next: Mirsad enters the ACH account on /platform-operator/billing; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- none
+- claude/ach-remittance: companies pay Portier369 by ACH (Mirsad 2026-10-27). platform_remittance (20261027020000 LIVE, empty) + operator form on /platform-operator/billing + details in the invoice email (sendInvoice refuses without them) and on /company-admin/billing.
 
 ## Merged 2026-10-26 (late)
 - #417 bank reconciliation browser test (e2e/tests/07-bank-reconciliation.spec.ts); 33 browser tests. Codex stalled ~2h on "running"; a fresh "@codex review" comment got a clean review.

@@ -402,3 +402,17 @@ name, amount; staff confirm; Plaid original_description required.
   money and accepts the anon key; that work belongs in the app's guarded
   routes.
 
+
+## How companies pay Portier369 (2026-10-27)
+- Mirsad: management companies pay Portier369 by ACH bank transfer (not
+  Stripe, not mailed checks).
+- One row in public.platform_remittance (operator-only RLS; 20261027020000):
+  the account holder, bank, routing number (ABA checksum checked), account
+  number, type and an optional note. Mirsad enters it himself on
+  /platform-operator/billing. Claude never types bank numbers into a form, and
+  they shouldn't be pasted in chat.
+- sendInvoice refuses to send until the row exists; the invoice email shows
+  the details with the invoice number as the payment reference. The company
+  Billing page (company admins only, read with the service key after
+  requirePortfolioAdmin) shows the same. The audit row records the last 4
+  digits only.

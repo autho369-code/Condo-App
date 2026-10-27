@@ -20,6 +20,7 @@ import { monthWindowInZone, parseDollarsToCents, parsePositiveInt } from '@/lib/
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { hasVisibleText, normalizeSupportEmail } from '@/lib/company-admin/settings';
 import { todayInZone } from '@/lib/time/zoned';
+import { REMITTANCE_COLUMNS, escapeHtml, lastFour, parseRemittance, remittanceEmailHtml, type Remittance } from '@/lib/billing/remittance';
 
 const COMPANIES = '/platform-operator/companies';
 // Verified Resend sender for platform-level email
@@ -585,17 +586,23 @@ export async function sendInvoice(formData: FormData) {
   if (!toEmail) fail(returnTo, 'No billing email on file — add a company admin or set a billing email first.');
 
   const { data: company } = await svc.from('portfolios').select('company_name').eq('id', inv.portfolio_id).maybeSingle();
+  // An invoice goes out only with the ACH details companies pay to.
+  const { data: remittance, error: remittanceError } = await svc.from('platform_remittance').select(REMITTANCE_COLUMNS).maybeSingle();
+  if (remittanceError) fail(returnTo, `Could not load the payment instructions: ${remittanceError.message}`);
+  if (!remittance) fail(returnTo, 'Add the ACH payment instructions on the Billing page before sending an invoice.');
   const amount = `$${(((inv.total_cents ?? 0) as number) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const period = inv.period_start ? `${inv.period_start} to ${inv.period_end}` : '';
+  const invoiceNumber = (inv.number as string | null) ?? null;
   const body = [
     '<p>Hello,</p>',
-    `<p>Invoice <strong>${inv.number ?? inv.id}</strong> for <strong>${company?.company_name ?? 'your company'}</strong> is ready.</p>`,
+    `<p>Invoice <strong>${escapeHtml(invoiceNumber ?? inv.id)}</strong> for <strong>${escapeHtml(company?.company_name ?? 'your company')}</strong> is ready.</p>`,
     '<ul>',
     `<li>Amount due: <strong>${amount}</strong></li>`,
     period ? `<li>Billing period: ${period}</li>` : '',
     '</ul>',
-    inv.notes ? `<p>${inv.notes}</p>` : '',
-    `<p>You can view this invoice on your Billing page in Portier369. For remittance details or questions, reply to this email or contact ${FROM_ADDRESS}.</p>`,
+    inv.notes ? `<p>${escapeHtml(inv.notes)}</p>` : '',
+    remittanceEmailHtml(remittance as Remittance, invoiceNumber),
+    `<p>You can view this invoice on your Billing page in Portier369. For questions, reply to this email or contact ${FROM_ADDRESS}.</p>`,
     '<p>— The Portier369 team</p>',
   ].join('');
 
@@ -617,6 +624,66 @@ export async function sendInvoice(formData: FormData) {
   await audit(svc, me, 'invoice_sent', inv.portfolio_id, { invoice_id: invoiceId, to_email: toEmail });
   revalidatePath(returnTo);
   ok(returnTo, 'invoice_sent');
+}
+
+// The ACH account companies pay Portier369 to (one row). Shown on every
+// invoice email and on each company's Billing page.
+export async function saveRemittance(formData: FormData) {
+  const me = await requirePlatformAdmin();
+  const returnTo = '/platform-operator/billing';
+  const parsed = parseRemittance(formData);
+  if ('error' in parsed) fail(returnTo, parsed.error);
+
+  const svc = createServiceClient() as any;
+  const { data: before } = await svc.from('platform_remittance').select(REMITTANCE_COLUMNS).maybeSingle();
+  const { error } = await svc.from('platform_remittance').upsert(
+    { id: true, ...parsed.value, updated_at: new Date().toISOString(), updated_by: me.auth_user_id },
+    { onConflict: 'id' },
+  );
+  if (error) fail(returnTo, `Could not save the payment instructions: ${error.message}`);
+
+  // The audit row carries the last four digits only.
+  const auditError = await writeAudit(svc, me, 'remittance_updated', null, {
+    bank_name: parsed.value.bank_name,
+    account_last4: lastFour(parsed.value.account_number),
+    account_type: parsed.value.account_type,
+  });
+  if (auditError) fail(returnTo, auditFailureMessage(auditError));
+
+  // Changing where companies send money is the main fraud risk here: tell
+  // every operator admin whenever the account changes.
+  const changed = !before
+    || before.routing_number !== parsed.value.routing_number
+    || before.account_number !== parsed.value.account_number;
+  if (changed) {
+    const { data: admins } = await svc.from('platform_operators').select('email').eq('active', true).eq('role', 'admin');
+    const wasText = before ? `${escapeHtml(before.bank_name)} account ending ${lastFour(before.account_number)}` : 'not set';
+    const nowText = `${escapeHtml(parsed.value.bank_name)} account ending ${lastFour(parsed.value.account_number)}`;
+    const rows = ((admins ?? []) as { email: string | null }[]).filter((a) => a.email).map((a) => ({
+      to_email: a.email,
+      subject: 'Portier369 payment account changed',
+      body: [
+        '<p>The bank account companies pay Portier369 to was changed.</p>',
+        '<ul>',
+        `<li>Before: <strong>${wasText}</strong></li>`,
+        `<li>Now: <strong>${nowText}</strong></li>`,
+        `<li>Changed by: <strong>${escapeHtml(me.email ?? 'unknown')}</strong></li>`,
+        '</ul>',
+        '<p>If you did not expect this, correct it on the Billing page of the platform operator workspace right away.</p>',
+      ].join(''),
+      status: 'pending',
+      from_address: FROM_ADDRESS,
+      from_name: FROM_NAME,
+      platform_mail: true,
+    }));
+    if (rows.length) {
+      const { error: mailError } = await svc.from('email_queue').insert(rows);
+      if (mailError) fail(returnTo, `The payment instructions were saved, but the change alert could not be queued: ${mailError.message}`);
+    }
+  }
+  revalidatePath(returnTo);
+  revalidatePath('/company-admin/billing');
+  ok(returnTo, 'remittance_saved');
 }
 
 export async function markInvoicePaid(formData: FormData) {
