@@ -1,7 +1,7 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-10-24 (Grok review follow-up).
+Last updated: 2026-10-26 (ship-readiness check; one consolidated ship checklist at the top).
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
 
@@ -29,31 +29,87 @@ go out). Texts and physical mail have never been sent. To lift it later (held
 mail then goes out unless removed first):
 `update public.platform_flags set enabled = false where key = 'hold_resident_email';`
 
-**⭐ Do these first (updated 2026-10-25, in order — each unlocks the next work for Claude)**
-0. [ ] **Email delivery reports (10 minutes, found 2026-10-25)** — none of the
-   mail production sent has a delivery report, so bounces and spam complaints
-   don't stop future mail. Resend → Webhooks → Add endpoint
-   `https://portier369.com/api/webhooks/resend`, events: delivered, bounced,
-   complained, opened, clicked, delivery delayed, failed. Copy its signing
-   secret → Vercel → condo-app → Environment Variables →
-   `RESEND_WEBHOOK_SECRET` (Production) → redeploy. The daily health email
-   flags this until it's done.
-0b. [ ] **Decide: point-in-time recovery** (Supabase → Database → Backups, paid
-   add-on). Today production has daily backups only (8 kept, all good), so a
-   restore could lose up to a day of payments and records.
-1. [ ] **Stripe test keys** — Vercel → condo-app → Environment Variables:
+## 🚢 Ship checklist (2026-10-26) — the ONE live list; read this first
+
+**Checked on 2026-10-26:** production runs the latest `main` (#414) and
+every migration is applied. CI, the 28 browser tests, CodeQL and the
+production smoke test all pass. Locally, typecheck, unit tests and build
+pass. The Supabase security advisor shows no errors. In the last 3 days no
+scheduled job failed, and in the last 7 days no email failed. The code is
+ready. What is left is accounts, keys, decisions and a pilot. Everything
+further down this page is detail or history for the items here.
+
+**A. Before the first real company (blockers)**
+1. [ ] **Stripe test keys**: Vercel → condo-app → Environment Variables:
    `STRIPE_SECRET_KEY` (sk_test_…) and `STRIPE_WEBHOOK_SECRET` (whsec_…),
-   then redeploy. Unlocks: Claude runs online payments + AutoPay end to end.
-2. [ ] **Plaid approval** (sandbox, then production) — unlocks the live bank
-   feed, so Zelle and other deposits arrive automatically and are matched to
-   units (#400). Until then staff record Zelle payments by hand.
-3. [ ] **Twilio business verification** (Trust Hub KYC + US 10DLC) — two-way texting.
-4. [ ] **Lob billing address** — physical and certified mail.
+   then redeploy. Neither is set today (checked 2026-10-26). After that,
+   Claude runs online payments and AutoPay end to end and adds browser tests
+   for them.
+2. [ ] **Stripe live**: live keys, plus the Connect webhook endpoint with
+   `checkout.session.expired` among its events. The pilot association then
+   connects its own Stripe account (Payments tab). Until then, payments are
+   recorded offline (checks and Zelle by hand).
+3. [ ] **Delete the old Resend API key** that was pasted in chat (Resend →
+   API Keys), if it is not the key now set in Vercel. This is a security item.
+4. [ ] **Settle the sample building / email hold.** The hold
+   (`hold_resident_email`) covers **every company**, so a pilot company's
+   owners would get no email either. Pick one, and Claude builds it:
+   (a) remove the real building's people from the sample data, then lift the
+   hold after reviewing the held mail; or (b) limit the hold to the sample
+   association only.
 5. [ ] **Legal sign-off** on `/legal/*` by counsel.
-6. [ ] **Business decisions:** how management companies pay Portier369;
-   whether to market the tenant (resident) portal; which pilot company to
-   onboard first (Grok 2026-10-24: run a supervised pilot with 1-2 friendly
-   companies, payments recorded offline until Stripe is live).
+6. [ ] **Platform remittance**: how management companies pay Portier369
+   (ACH, a mailing address or a Bill.com link). Claude then puts it into the
+   invoice email and the company Billing page, which today say "contact us".
+7. [ ] **Pick the pilot company** (1–2 friendly companies, supervised, one
+   full month: dues, work orders, one board cycle; use
+   `docs/ONBOARDING_CHECKLIST.md`).
+8. [ ] **Accountant review**: a CPA checks the general ledger, owner
+   statements and year-end close on the pilot's first month.
+
+**B. Should do before or during the pilot**
+9. [ ] **Decide on point-in-time recovery** (Supabase → Database → Backups, a
+   paid add-on). Today there are daily backups only (8 kept, all good), so a
+   restore could lose up to a day of records.
+10. [ ] **Test on real phones** (iPhone and Android) on the owner portal and
+    the manager pages. In code, every page is checked at 375 px, but nothing
+    has been tested on a real device.
+11. [ ] **Print checks on real check stock** once (check run → PDF → printer)
+    to confirm the alignment.
+12. [ ] **Plaid approval** (sandbox, then production): gives the live bank
+    feed, so Zelle and other deposits are matched to units automatically
+    (#400). Until then, staff record them by hand.
+13. [ ] **AI key** at `/settings/ai`. It turns on violation letters, the comms
+    copilot and the assistants.
+14. [ ] **Supabase Auth connection pool**: switch it from 10 fixed
+    connections to a percentage (free, a setting only; details below).
+15. [ ] **Stellar's support phone** and **Stellar's email sender domain**
+    (details below).
+16. [ ] **Tighten DMARC** from `p=none` to `quarantine`, then `reject`.
+
+**C. Later (not needed to ship)**
+17. [ ] **Twilio business verification** (Trust Hub KYC + US 10DLC) for
+    two-way texting. Today texts are recorded but not sent.
+18. [ ] **Lob billing address** for physical and certified mail.
+19. [ ] **Decide whether to market the tenant (resident) portal** (`/resident`
+    already exists).
+20. [ ] **NSF fee income account**: run the SQL below (it drops a
+    constraint), then Claude wires up the setting.
+21. [ ] Optional database cleanups: the SQL is listed under Housekeeping and
+    Accounts below. All of it is Mirsad's to run, because it drops things.
+
+**Claude's own queue (no waiting)**
+- [ ] Bank reconciliation browser test (the next browser test; it doesn't
+  need Stripe).
+- [ ] Once item 1 is set: Stripe test checkout and AutoPay browser tests.
+- [ ] Once item 4 is decided: a sample-data cleanup or a hold limited to one
+  association.
+- [ ] Once item 6 is decided: remittance details in the invoice email and the
+  Billing page.
+
+- [x] **Done 2026-10-26: email delivery reports.** The Resend webhook is
+  connected, and `RESEND_WEBHOOK_SECRET` is set in Vercel. An unsigned POST
+  to the endpoint gets 401.
 
 **Housekeeping (quick)**
 - [ ] **Email opt-out: two defaults to confirm** (2026-10-13). Answered:

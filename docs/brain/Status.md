@@ -1,9 +1,14 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-25 (#279-#410 merged; no open PR; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-26 (#279-#414 merged; ship checklist at the top of docs/TODO.md; open PR: claude/ship-readiness (docs only); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- #413 claude/hold-resident-email: all email to owners/tenants held (20261026010000 + 20261026020000 LIVE; Mirsad 2026-10-26, the sample building is real). Broad match: owners.email/emails, board_members, tenants, tenancies. Health summary doesn't count held mail as stuck. FOUND: legacy edge functions send-email (open relay with the anon key: verified it passes the gate) and process-email-queue (drains past the hold) are were still deployed: now replaced with 410 stubs (Mirsad approved; verified with the anon key; function logs show no outside calls in the 7 days kept). Stubs in supabase/functions/. Then 5 more retired the same way (Mirsad approved): webhook-dispatcher, process-sms-queue, generate-report (anon-callable; bypassed the app's webhook SSRF guard, SMS consent and report access checks), invite-user (mail outside the queue/hold), stripe-webhook (old payment logic). Only data-export-builder remains live (export job).
+- claude/ship-readiness (docs only): ship-readiness check + one consolidated ship checklist at the top of docs/TODO.md.
+
+## Merged 2026-10-26
+- #414 Grok review doc: status for the next review.
+- #412 browser tests: onboarding verify press retried on a cold dev server.
+- #413 (merged) claude/hold-resident-email: all email to owners/tenants held (20261026010000 + 20261026020000 LIVE; Mirsad 2026-10-26, the sample building is real). Broad match: owners.email/emails, board_members, tenants, tenancies. Health summary doesn't count held mail as stuck. FOUND: legacy edge functions send-email (open relay with the anon key: verified it passes the gate) and process-email-queue (drains past the hold) are were still deployed: now replaced with 410 stubs (Mirsad approved; verified with the anon key; function logs show no outside calls in the 7 days kept). Stubs in supabase/functions/. Then 5 more retired the same way (Mirsad approved): webhook-dispatcher, process-sms-queue, generate-report (anon-callable; bypassed the app's webhook SSRF guard, SMS consent and report access checks), invite-user (mail outside the queue/hold), stripe-webhook (old payment logic). Only data-export-builder remains live (export job).
 
 ## Merged 2026-10-25
 - #410 (merged, 6e075979) claude/grok-remaining-gaps: the rest of Grok's list that Claude can do. Browser tests 19 -> 28: work orders across manager and vendor portals (open -> vendor in progress/done -> invoice with PDF only for finished jobs, duplicate number refused -> manager codes the expense account -> approved, repairs + A/P posted) and onboarding (new unit; duplicate unit number now a plain message instead of the database constraint; new owner + portal invitation -> owner opens the emailed link, sets a password, verifies via the emailed link and the "Verify and continue" button, signs in, sees only their own unit). Local dev CSP allows a loopback Supabase (dev only). Health summary 20261025020000 LIVE as 20261025075903 + 20261025080656 (delivery check window overlaps by 2h, Codex P2): failed sign-ins (alert 25/day or 10 one account) and sent mail with no delivery report. Read-only production smoke test (npm run smoke:prod; GitHub after each production deploy + daily; first automatic run on the #410 deploy passed). Backups checked: 8 daily, all completed, no PITR.
@@ -936,9 +941,18 @@ Back to [[Home]]. Updated 2026-10-25 (#279-#410 merged; no open PR; next: Stripe
   payables, work orders (manager + vendor portals), onboarding, isolation.
   Next coverage: Stripe TEST checkout and AutoPay as soon as the test keys are
   set; then bank reconciliation.
-- WAITING ON MIRSAD (new 2026-10-25, top of TODO): Resend delivery webhook +
-  RESEND_WEBHOOK_SECRET (no delivery reports today); point-in-time recovery
-  decision.
+- SHIP CHECKLIST (2026-10-26): docs/TODO.md now opens with ONE live list,
+  "Ship checklist": A blockers / B pilot / C later, plus Claude's queue.
+  Production was checked that day: main is deployed, every migration is
+  applied, CI, the browser tests and the smoke test are green, the advisor
+  shows no errors, and no job or email failed. The code is ready; what is left
+  is keys, decisions and the pilot. New blocker: the owner email hold covers
+  EVERY company, so before a pilot either remove the real sample people or
+  limit the hold to that association (Mirsad picks). Claude's next test with
+  no waiting: the bank reconciliation browser test.
+- DONE 2026-10-26: Resend delivery webhook + RESEND_WEBHOOK_SECRET set (an
+  unsigned POST gets 401). Still waiting on Mirsad: the point-in-time
+  recovery decision.
 - DONE (#410): a vendor's invoice page now suggests the vendor's default
   expense account (the manager still saves it before approving). Not filled in
   the database on purpose: trg_payable_bills_gl_permission refuses a GL set by
@@ -947,7 +961,7 @@ Back to [[Home]]. Updated 2026-10-25 (#279-#410 merged; no open PR; next: Stripe
   seed_standard_charge_categories adds a standard category only when the company
   has none with that code (was: a second full set on a second call); anon/PUBLIC
   execute revoked.
-- NOTHING LEFT FOR CLAUDE (2026-10-14, superseded by the two items above): every area deep-checked, all 10
+- (2026-10-14, superseded by the ship checklist above) every area deep-checked, all 10
   PO/project/inventory/reactivation decisions built (#396, #397), ownership
   done (#388). Do not start new deep checks. Next work starts when Mirsad
   sets Stripe test keys (then: Stripe TEST checkout + AutoPay run) or
