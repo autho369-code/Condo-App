@@ -11,6 +11,9 @@ who can see what.
 | `tests/02-violations.spec.ts` | Open a violation under a house rule → courtesy notice → formal notice with hearing → fine blocked until the board decides → board upholds → $50 fine on the unit, in the GL and on the owner's ledger |
 | `tests/03-payables.spec.ts` | Vendor bill → approval (accrues to A/P) → check run (check #1001 from operating cash, A/P cleared) → the bill can't be paid twice |
 | `tests/04-isolation.spec.ts` | A manager at another company sees none of our units, violations, bills, owners or vendors, and a forged charge to our unit is refused by the server |
+| `tests/05-work-orders.spec.ts` | Work order across the manager and vendor portals: open → vendor in progress / done → vendor invoice (PDF, finished jobs only; duplicate number refused) → manager codes the expense account → approved; repairs and A/P posted |
+| `tests/06-onboarding.spec.ts` | New unit (duplicate unit number gets a plain message) → new owner + portal invitation → owner opens the emailed link, sets a password, verifies, signs in and sees only their own unit |
+| `tests/07-bank-reconciliation.spec.ts` | $100 check receipt + a $5 bank-only fee → reconciliation with the deposit outstanding → completing out of balance is refused → clear the statement's items → complete (reconciled date stamped) → locked → undo with a reason → complete again |
 
 ## Where it runs
 

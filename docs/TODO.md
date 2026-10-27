@@ -101,8 +101,8 @@ further down this page is detail or history for the items here.
     Accounts below. All of it is Mirsad's to run, because it drops things.
 
 **Claude's own queue (no waiting)**
-- [ ] Bank reconciliation browser test (the next browser test; it doesn't
-  need Stripe).
+- [x] Bank reconciliation browser test: done 2026-10-27
+  (`e2e/tests/07-bank-reconciliation.spec.ts`, 33 browser tests in all).
 - [ ] Once item 1 is set: Stripe test checkout and AutoPay browser tests.
 - [ ] Once item 6 is decided: remittance details in the invoice email and the
   Billing page.
