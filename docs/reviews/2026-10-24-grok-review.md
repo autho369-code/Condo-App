@@ -176,5 +176,5 @@ from 2026-08-01 and are marked historical; the live state is
 | Lift the owner email hold | Mirsad | Only when the sample data question is settled; held mail is reviewed first. |
 | Typed domain layer / remove `any` | — | Deliberately not done: column mistakes are caught by the live-schema query check on every PR; a rewrite is weeks of risk for no user-visible change. |
 | Public "early access" page | Mirsad | Marketing decision. |
-| Bank reconciliation browser test | Claude | Next browser test after Stripe. |
+| ~~Bank reconciliation browser test~~ | Claude | Done 2026-10-27 (`e2e/tests/07-bank-reconciliation.spec.ts`). |
 

@@ -1,9 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-26 (#279-#415 merged; ship checklist at the top of docs/TODO.md; open PR: claude/email-hold-one-association; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-26 (#279-#416 merged; ship checklist at the top of docs/TODO.md; open PR: claude/e2e-bank-reconciliation; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/email-hold-one-association: the email hold now covers only Randolph Station (email_hold_associations, email_is_held; 20261027010000 LIVE as 20261026194614). The platform flag is the emergency switch and is OFF. Dry-run rolled back on production: every hold case passed.
+- claude/e2e-bank-reconciliation: bank reconciliation browser test (07); 33 browser tests pass locally.
+
+## Merged 2026-10-26 (late)
+- #416 claude/email-hold-one-association: the email hold now covers only Randolph Station (email_hold_associations, email_is_held; 20261027010000 LIVE as 20261026194614). The platform flag is the emergency switch and is OFF. Dry-run rolled back on production: every hold case passed.
 
 ## Merged 2026-10-26
 - #415 ship checklist: one consolidated to-do list at the top of docs/TODO.md (docs only).
@@ -938,10 +941,12 @@ Back to [[Home]]. Updated 2026-10-26 (#279-#415 merged; ship checklist at the to
   6. Decisions: platform remittance, pilot company, and whether to market the
      tenant (resident) portal (app/resident, requireTenant: it EXISTS; don't expand it).
 - BROWSER TESTS (2026-10-25): `npm run e2e:db` then `npm run e2e` (e2e/README.md);
-  GitHub runs them on every PR. 28 tests: receivables, late fees, violations,
-  payables, work orders (manager + vendor portals), onboarding, isolation.
+  GitHub runs them on every PR. 33 tests: receivables, late fees, violations,
+  payables, work orders (manager + vendor portals), onboarding, isolation,
+  bank reconciliation (2026-10-27: outstanding deposit + bank-only fee,
+  out-of-balance refused, complete, locked, undo with reason, complete again).
   Next coverage: Stripe TEST checkout and AutoPay as soon as the test keys are
-  set; then bank reconciliation.
+  set.
 - SHIP CHECKLIST (2026-10-26): docs/TODO.md now opens with ONE live list,
   "Ship checklist": A blockers / B pilot / C later, plus Claude's queue.
   Production was checked that day: main is deployed, every migration is
