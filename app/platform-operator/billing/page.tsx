@@ -134,7 +134,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
       {(sp.invoice_generated || sp.invoice_sent || sp.invoice_paid || sp.invoice_voided) && (
         <Alert tone="success" title={sp.invoice_generated ? 'Invoice generated.' : sp.invoice_sent ? 'Invoice emailed to the company billing contact.' : sp.invoice_paid ? 'Invoice marked paid.' : 'Invoice voided.'} />
       )}
-      {sp.remittance_saved && <Alert tone="success" title="Payment instructions saved.">Invoice emails and every company's Billing page now show them.</Alert>}
+      {sp.remittance_saved && <Alert tone="success" title="Payment instructions saved.">Invoice emails and every company&apos;s Billing page now show them.</Alert>}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
