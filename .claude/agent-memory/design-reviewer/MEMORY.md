@@ -35,6 +35,8 @@
 - CopyButton (components/ui/copy-button.tsx) hard-codes "link" in its failed/sr-only text; non-link uses (portal/pay Zelle address, 2026-10-14) read wrong. Flag reuse for non-URLs.
 - Shared `sp.error` Alert titled for one feature (associations/[id]/payments "Stripe error") gets reused by new forms on the page; check the title still fits.
 - Load-error fallthrough: `data ?? []` after a failed query renders the "No X yet" empty row under an error note (platform-operator/system job failures, 2026-10-24). Check the empty branch also checks `error`.
+- HTML `pattern` compiles with the regex `v` flag: an unescaped `-` in a class (`[0-9 -]`) is a syntax error, so the browser silently drops the pattern (platform-operator/billing routing input, 2026-10-26). Use `[0-9 \-]`.
+- User-entered free text shown read-only (notes, instructions) needs `break-words`; a long URL overflows 375px.
 - Alert (components/ui/shell.tsx) always sets role="alert"; persistent status banners ("AI is on") get announced on every load - nit, not a blocker.
 
 ## Owner-facing state cards (portal/violations/[id], 2026-10-13)

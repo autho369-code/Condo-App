@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { REMITTANCE_COLUMNS } from '@/lib/billing/remittance'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
@@ -41,10 +42,19 @@ export default async function BillingPage() {
     .order('period_end', { ascending: false })
     .limit(20)
 
+  // Where to send ACH payments. The table is operator-only, so it is read with
+  // the service key; requirePortfolioAdmin above limits this page to the
+  // company's admins.
+  const { data: remittance, error: remittanceError } = await (createServiceClient() as any)
+    .from('platform_remittance')
+    .select(REMITTANCE_COLUMNS)
+    .maybeSingle()
+
   const loadErrors = collectLoadErrors({
     Subscription: { error: subError },
     'Door metrics': { error: metricsError },
     Invoices: { error: invoicesError },
+    'Payment instructions': { error: remittanceError },
   })
 
   const s = sub ?? {}
@@ -208,11 +218,39 @@ export default async function BillingPage() {
           <CreditCard className="h-5 w-5 text-gray-400" />
           <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Billing &amp; Payment</h2>
         </div>
-        <div className="text-sm text-gray-600">
-          Invoices are issued by Portier369. To arrange payment, contact{' '}
-          <a href="mailto:billing@portier369.com" className="font-medium text-gray-900 hover:underline">billing@portier369.com</a>{' '}
-          or your account manager.
-        </div>
+        {remittance ? (
+          <>
+            <div className="text-sm text-gray-600">
+              Invoices are issued by Portier369. Pay by ACH bank transfer to:
+            </div>
+            <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+              {[
+                ['Account holder', remittance.payee_name],
+                ['Bank', remittance.bank_name],
+                ['Routing number (ABA)', remittance.routing_number],
+                ['Account number', remittance.account_number],
+                ['Account type', remittance.account_type === 'savings' ? 'Savings' : 'Checking'],
+                ['Payment reference', 'Your invoice number'],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-xs text-gray-500">{label}</dt>
+                  <dd className="break-words font-medium tabular-nums text-gray-900">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            {remittance.instructions && <div className="mt-3 break-words text-sm text-gray-600">{remittance.instructions}</div>}
+            <div className="mt-3 text-xs text-gray-500">
+              {remittance.updated_at && <>Updated {date(remittance.updated_at)}. Before your first payment to a changed account, confirm it with us. </>}
+              Questions: <a href="mailto:billing@portier369.com" className="font-medium text-gray-900 hover:underline">billing@portier369.com</a>
+            </div>
+          </>
+        ) : (
+          <div className="text-sm text-gray-600">
+            Invoices are issued by Portier369. To arrange payment, contact{' '}
+            <a href="mailto:billing@portier369.com" className="font-medium text-gray-900 hover:underline">billing@portier369.com</a>{' '}
+            or your account manager.
+          </div>
+        )}
         {s.billing_email && (
           <div className="mt-2 text-xs text-gray-500">Billing contact: {s.billing_email}</div>
         )}

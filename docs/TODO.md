@@ -60,9 +60,13 @@ further down this page is detail or history for the items here.
    hold Randolph Station only, so a pilot company's owners get their mail.
    See the hold note above.
 5. [ ] **Legal sign-off** on `/legal/*` by counsel.
-6. [ ] **Platform remittance**: how management companies pay Portier369
-   (ACH, a mailing address or a Bill.com link). Claude then puts it into the
-   invoice email and the company Billing page, which today say "contact us".
+6. [ ] **Enter the ACH account companies pay to** (decided 2026-10-27: ACH
+   bank transfer; built). Platform operator → Billing → "Payment instructions
+   (ACH)": account holder, bank, routing number, account number, type. Until
+   it is entered, invoices can't be sent and the company Billing page still
+   says "contact billing@portier369.com". After that, every invoice email and
+   each company's Billing page show the details, with the invoice number as
+   the payment reference.
 7. [ ] **Pick the pilot company** (1–2 friendly companies, supervised, one
    full month: dues, work orders, one board cycle; use
    `docs/ONBOARDING_CHECKLIST.md`).
@@ -104,8 +108,8 @@ further down this page is detail or history for the items here.
 - [x] Bank reconciliation browser test: done 2026-10-27
   (`e2e/tests/07-bank-reconciliation.spec.ts`, 33 browser tests in all).
 - [ ] Once item 1 is set: Stripe test checkout and AutoPay browser tests.
-- [ ] Once item 6 is decided: remittance details in the invoice email and the
-  Billing page.
+- [x] ACH remittance built 2026-10-27 (`platform_remittance`, the operator
+  form, the invoice email and the company Billing page). Waiting on item 6.
 
 - [x] **Done 2026-10-26: email delivery reports.** The Resend webhook is
   connected, and `RESEND_WEBHOOK_SECRET` is set in Vercel. An unsigned POST

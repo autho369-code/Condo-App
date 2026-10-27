@@ -8,10 +8,11 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { BILLABLE_SUBSCRIPTION_STATUSES, monthWindowInZone, monthlyRecurringCents, pastDueInvoicesFilter } from '@/lib/platform/operator-metrics';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/input';
+import { Field, Input, Label, Select, Textarea } from '@/components/ui/input';
+import { REMITTANCE_COLUMNS, lastFour } from '@/lib/billing/remittance';
 import { date, money } from '@/lib/utils';
 import { CreditCard, DollarSign, AlertCircle, Clock, FileText } from 'lucide-react';
-import { generateInvoice, markInvoicePaid, sendInvoice, voidInvoice } from '../companies/actions';
+import { generateInvoice, markInvoicePaid, saveRemittance, sendInvoice, voidInvoice } from '../companies/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,9 +111,15 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
     .is('archived_at', null)
     .order('company_name');
 
+  // The ACH account companies pay to (one row; operator-only RLS).
+  const { data: remittance, error: remittanceError } = await db
+    .from('platform_remittance')
+    .select(REMITTANCE_COLUMNS)
+    .maybeSingle();
+
   const mrr = monthlyRecurringCents(activeSubs) / 100;
   const loadError = activeSubsRes.error ?? paidThisMonthRes.error ?? invoicesError?.message ?? subscriptionsError?.message
-    ?? openInvoicesError?.message ?? failedPaymentsError?.message ?? pastDueError?.message ?? companiesError?.message ?? null;
+    ?? openInvoicesError?.message ?? failedPaymentsError?.message ?? pastDueError?.message ?? companiesError?.message ?? remittanceError?.message ?? null;
   const paidAmount = (paidThisMonth ?? []).reduce((sum: number, i: any) => sum + (i.total_cents ?? 0), 0) / 100;
 
   return (
@@ -127,6 +134,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
       {(sp.invoice_generated || sp.invoice_sent || sp.invoice_paid || sp.invoice_voided) && (
         <Alert tone="success" title={sp.invoice_generated ? 'Invoice generated.' : sp.invoice_sent ? 'Invoice emailed to the company billing contact.' : sp.invoice_paid ? 'Invoice marked paid.' : 'Invoice voided.'} />
       )}
+      {sp.remittance_saved && <Alert tone="success" title="Payment instructions saved.">Invoice emails and every company&apos;s Billing page now show them.</Alert>}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -135,6 +143,42 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
         <StatCard label="Paid This Month" value={money(paidAmount)} icon={CreditCard} />
         <StatCard label="Failed Payments (past due)" value={failedPayments ?? 0} icon={AlertCircle} />
         <StatCard label="Past Due" value={pastDue ?? 0} icon={Clock} />
+      </div>
+
+      {/* How companies pay Portier369 */}
+      <div className={`${card} p-5`}>
+        <h2 className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink">Payment instructions (ACH)</h2>
+        <p className="mt-0.5 text-[13px] text-gray-500">
+          {remittance
+            ? `Companies pay by ACH to ${remittance.bank_name} account ending ${lastFour(remittance.account_number)}. Shown on every invoice email and on each company's Billing page. Every change is emailed to all operator admins.`
+            : 'Not set yet. Invoices cannot be sent until the account companies pay to is entered here.'}
+        </p>
+        <form action={saveRemittance as any} className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Field label="Account holder name" required>
+            <Input name="payee_name" required maxLength={200} defaultValue={remittance?.payee_name ?? 'Portier369, Inc.'} />
+          </Field>
+          <Field label="Bank name" required>
+            <Input name="bank_name" required maxLength={200} defaultValue={remittance?.bank_name ?? ''} />
+          </Field>
+          <Field label="Routing number (ABA)" required>
+            <Input name="routing_number" required inputMode="numeric" autoComplete="off" maxLength={11} defaultValue={remittance?.routing_number ?? ''} />
+          </Field>
+          <Field label="Account number" required>
+            <Input name="account_number" required inputMode="numeric" autoComplete="off" maxLength={21} defaultValue={remittance?.account_number ?? ''} />
+          </Field>
+          <Field label="Account type" required>
+            <Select name="account_type" defaultValue={remittance?.account_type ?? 'checking'}>
+              <option value="checking">Checking</option>
+              <option value="savings">Savings</option>
+            </Select>
+          </Field>
+          <Field label="Note for companies (optional)" className="sm:col-span-2" hint="For example: put the invoice number in the payment memo.">
+            <Textarea name="instructions" rows={2} maxLength={1000} defaultValue={remittance?.instructions ?? ''} />
+          </Field>
+          <div className="sm:col-span-2">
+            <PendingSubmit pendingLabel="Saving…">Save payment instructions</PendingSubmit>
+          </div>
+        </form>
       </div>
 
       {/* Invoices Table */}
