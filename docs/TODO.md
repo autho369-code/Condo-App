@@ -22,12 +22,17 @@ DNS or decisions). Details for the older items are further down.
       stripe-webhook — all now refuse every request (checked from outside).
       data-export-builder kept (the export job still runs every 5 minutes).
 
-**🛑 Email to owners and tenants is ON HOLD (2026-10-26, Mirsad).** The sample
-association is a real building; its owners got automatic dues reminders. All
-mail to owners/tenants stays queued and unsent (staff and platform mail still
-go out). Texts and physical mail have never been sent. To lift it later (held
-mail then goes out unless removed first):
-`update public.platform_flags set enabled = false where key = 'hold_resident_email';`
+**🛑 Email to Randolph Station's owners and tenants is ON HOLD (2026-10-26, Mirsad).**
+The sample association is a real building. Its owners, board members and
+tenants get no email: it stays queued, unsent and not deleted. Since
+2026-10-27 the hold covers **only** the associations listed in
+`email_hold_associations`, which today is Randolph Station, so other
+companies' owners get their mail. Staff and platform mail always go out.
+Texts and physical mail have never been sent. To lift it for Randolph Station
+later (held mail then goes out unless removed first):
+`delete from public.email_hold_associations where association_id = '62344573-04f3-4a39-82d3-a70cbc2f045c';`
+Emergency switch, which holds every company's residents again:
+`update public.platform_flags set enabled = true where key = 'hold_resident_email';`
 
 ## 🚢 Ship checklist (2026-10-26) — the ONE live list; read this first
 
@@ -51,12 +56,9 @@ further down this page is detail or history for the items here.
    recorded offline (checks and Zelle by hand).
 3. [ ] **Delete the old Resend API key** that was pasted in chat (Resend →
    API Keys), if it is not the key now set in Vercel. This is a security item.
-4. [ ] **Settle the sample building / email hold.** The hold
-   (`hold_resident_email`) covers **every company**, so a pilot company's
-   owners would get no email either. Pick one, and Claude builds it:
-   (a) remove the real building's people from the sample data, then lift the
-   hold after reviewing the held mail; or (b) limit the hold to the sample
-   association only.
+4. [x] **Sample building / email hold: done 2026-10-27.** Mirsad chose to
+   hold Randolph Station only, so a pilot company's owners get their mail.
+   See the hold note above.
 5. [ ] **Legal sign-off** on `/legal/*` by counsel.
 6. [ ] **Platform remittance**: how management companies pay Portier369
    (ACH, a mailing address or a Bill.com link). Claude then puts it into the
@@ -102,8 +104,6 @@ further down this page is detail or history for the items here.
 - [ ] Bank reconciliation browser test (the next browser test; it doesn't
   need Stripe).
 - [ ] Once item 1 is set: Stripe test checkout and AutoPay browser tests.
-- [ ] Once item 4 is decided: a sample-data cleanup or a hold limited to one
-  association.
 - [ ] Once item 6 is decided: remittance details in the invoice email and the
   Billing page.
 

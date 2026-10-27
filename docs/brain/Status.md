@@ -1,11 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-26 (#279-#414 merged; ship checklist at the top of docs/TODO.md; open PR: claude/ship-readiness (docs only); next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-26 (#279-#415 merged; ship checklist at the top of docs/TODO.md; open PR: claude/email-hold-one-association; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
 
 ## Open PR
-- claude/ship-readiness (docs only): ship-readiness check + one consolidated ship checklist at the top of docs/TODO.md.
+- claude/email-hold-one-association: the email hold now covers only Randolph Station (email_hold_associations, email_is_held; 20261027010000 LIVE as 20261026194614). The platform flag is the emergency switch and is OFF. Dry-run rolled back on production: every hold case passed.
 
 ## Merged 2026-10-26
+- #415 ship checklist: one consolidated to-do list at the top of docs/TODO.md (docs only).
 - #414 Grok review doc: status for the next review.
 - #412 browser tests: onboarding verify press retried on a cold dev server.
 - #413 (merged) claude/hold-resident-email: all email to owners/tenants held (20261026010000 + 20261026020000 LIVE; Mirsad 2026-10-26, the sample building is real). Broad match: owners.email/emails, board_members, tenants, tenancies. Health summary doesn't count held mail as stuck. FOUND: legacy edge functions send-email (open relay with the anon key: verified it passes the gate) and process-email-queue (drains past the hold) are were still deployed: now replaced with 410 stubs (Mirsad approved; verified with the anon key; function logs show no outside calls in the 7 days kept). Stubs in supabase/functions/. Then 5 more retired the same way (Mirsad approved): webhook-dispatcher, process-sms-queue, generate-report (anon-callable; bypassed the app's webhook SSRF guard, SMS consent and report access checks), invite-user (mail outside the queue/hold), stripe-webhook (old payment logic). Only data-export-builder remains live (export job).

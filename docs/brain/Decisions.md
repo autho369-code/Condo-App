@@ -385,6 +385,14 @@ name, amount; staff confirm; Plaid original_description required.
   platform mail unaffected. Only Mirsad lifts it.
 - Mirsad 2026-10-26: keep the sample building's data as it is; the hold is
   enough. Don't replace or delete its owners.
+- Mirsad 2026-10-26 (later): hold ONLY the sample association, so other
+  companies' owners get mail (20261027010000). Table email_hold_associations
+  (operator only) lists the held associations: Randolph Station.
+  email_is_held(association, owner, address) is the one test used by the claim
+  and the health summary. It covers the row's owner, plus any address of an
+  owner, board member, tenant or lease in a held association. The
+  platform-wide flag hold_resident_email stays as an emergency switch and is
+  OFF.
 - Email leaves the platform only through the app worker
   (/api/email/process-queue -> claim_email_queue_snapshot). The old edge
   functions send-email, process-email-queue, webhook-dispatcher,

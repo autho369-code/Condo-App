@@ -93,6 +93,8 @@
 
 - Recipient-match holds (20261026010000 email_is_to_resident): owners.email / board_members.email can hold SEVERAL addresses (lib/calendar/reminder-delivery.ts:67,84 split them; queue rows carry no owner_id), so `lower(o.email) = to` misses; also board_members, tenancies.tenant_email. Suggest position() over the concatenated text. Check header comments against the body: its "3. health summary" step was never written.
 
+- Association-scoped recipient holds (20261027010000 email_is_held): tenants.association_id is NULLABLE (units.building_id, board_members.association_id are NOT NULL); match tenants also via unit_id->buildings. Rows with owner_id null + free-text to_email in a held association are sent by design; say so.
+
 ## Topic files
 - [Review lessons](review-lessons.md) — more misses: definer->join swaps, DML revokes, side tables, status sync, tenure scope, scheduler holds, freeze guards, AutoPay late-fee holds
 - [Schedulers and local dates](schedulers-and-dates.md) — association_local_date cost traps, suspension pauses, recurring catch-up, scheduled-report takeover
