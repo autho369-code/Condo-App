@@ -284,6 +284,17 @@ export function hasPortfolioAdminAccess(
   return me.is_company_admin || me.is_platform_operator;
 }
 
+/**
+ * Who may add, change or import chart-of-accounts entries: the company admin,
+ * or a platform operator with the admin role (support and read-only operators
+ * are refused by the database). Use it to show or hide chart-editing links.
+ */
+export function canEditChartOfAccounts(
+  me: Pick<MeResult, 'is_company_admin' | 'is_platform_operator' | 'platform_operator_role'>,
+): boolean {
+  return me.is_company_admin || (me.is_platform_operator && me.platform_operator_role === 'admin');
+}
+
 export async function requirePortfolioAdmin(): Promise<MeResult> {
   const me = await requireAuth();
   if (!hasPortfolioAdminAccess(me)) redirect('/dashboard');

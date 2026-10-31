@@ -11,9 +11,10 @@
 //     one association: the tie-out's differences, through the journal entry
 //     upload RPC (import_journal_entry_batch).
 //
-// All run through the signed-in finance user's session client, so RLS
-// applies (gl_accounts_finance_all = can_manage_finance(portfolio_id));
-// guard_gl_account_change() re-checks numbers, parent type and association.
+// All run through the signed-in user's session client, so RLS applies: the
+// chart-of-accounts import needs the company admin (gl_accounts_admin_* on
+// top of gl_accounts_finance_all); guard_gl_account_change() re-checks
+// numbers, parent type and association.
 import { revalidatePath } from 'next/cache';
 import { requireFinanceStaff, requirePortfolioAdmin } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';

@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { buttonClass } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
-import { requireFinanceStaff } from '@/lib/auth/me';
+import { canEditChartOfAccounts, requireFinanceStaff } from '@/lib/auth/me';
 import { claimSubmission, completeSubmission, newSubmissionToken, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { todayInZone } from '@/lib/time/zoned';
@@ -75,7 +75,9 @@ export default async function NewBankDepositPage({ searchParams }: { searchParam
         {sp.posted && <Alert tone="success" title="Deposit recorded">The deposit was posted to the General Ledger.</Alert>}
         {glAccounts.length === 0 ? (
           <Alert tone="warning" title="No GL accounts yet">
-            Add accounts to your chart of accounts first — <Link href="/gl-accounts/new" className="font-medium underline">create a GL account</Link>.
+            {canEditChartOfAccounts(me)
+              ? <>Add accounts to your chart of accounts first — <Link href="/gl-accounts/new" className="font-medium underline">create a GL account</Link>.</>
+              : 'Ask your company admin to set up the chart of accounts first.'}
           </Alert>
         ) : (
           <form action={recordDeposit}>

@@ -204,6 +204,26 @@ describe('POST /api/stripe/webhook', () => {
     expect(db.calls.some((c) => c.table === 'stripe_webhook_events' && c.op === 'update' && c.payload?.status === 'processed')).toBe(true);
   });
 
+  it('a late "succeeded" after a refund, dispute, return or cancellation posts, receipts and logs nothing', async () => {
+    for (const status of ['refunded', 'chargeback', 'returned', 'canceled']) {
+      const t = tables();
+      t.payment_intents[0].status = status;
+      const db = fakeDb(t, (name) => {
+        if (name === 'claim_stripe_webhook_event') return { data: true, error: null };
+        if (name === 'post_stripe_ledger_payment') return { data: PAYMENT_ID, error: null };
+        return { data: null, error: null };
+      });
+      mocks.createServiceClient.mockReturnValue(db.client);
+
+      const res = await post(succeededEvent());
+      expect(res.status).toBe(200);
+      expect(db.rpcCalls.some((c) => c.name === 'post_stripe_ledger_payment')).toBe(false);
+      expect(t.payment_intents[0].status).toBe(status);
+      expect(t.email_queue).toHaveLength(0);
+      expect(t.payment_events).toHaveLength(0);
+    }
+  });
+
   it('records an ACH settlement as ach', async () => {
     const t = tables();
     const db = fakeDb(t, (name) => ({ data: name === 'post_stripe_ledger_payment' ? PAYMENT_ID : true, error: null }));

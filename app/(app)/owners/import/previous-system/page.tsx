@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { buttonClass } from '@/components/ui/button';
-import { requireStaff } from '@/lib/auth/me';
+import { canEditChartOfAccounts, requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { importAppfolioUnits } from '../actions';
@@ -27,7 +27,7 @@ export default async function AppfolioImportPage() {
   const me = await requireStaff();
   // The chart of accounts, open balances and trial balance need finance access (the actions re-check).
   const canFinance = Boolean(me.is_finance_staff || me.is_platform_operator);
-  const canEditChart = Boolean(me.is_company_admin || me.is_platform_operator);
+  const canEditChart = canEditChartOfAccounts(me);  // the chart is the company admin's
   // The chart of accounts, vendors and trial-balance check work on the user's own company;
   // an operator with no company of their own can't use them, so they aren't shown.
   const hasCompany = Boolean(me.portfolio?.id);

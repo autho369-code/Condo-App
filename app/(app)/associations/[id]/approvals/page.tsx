@@ -43,11 +43,13 @@ export default async function ApprovalsTab({
   // rest are decided here.
   const requestIds = ((rows ?? []) as any[]).map((r) => r.id);
   // (Bills and POs are finance-only reads, so ask the database which ids.)
-  const { data: moneyIds } = requestIds.length
+  const { data: moneyIds, error: linkError } = requestIds.length
     ? await (supabase as any).rpc('money_approval_request_ids', { p_ids: requestIds })
-    : { data: [] };
-  const linked = new Set(((moneyIds ?? []) as unknown[]).map((v: any) => (typeof v === 'string' ? v : v?.money_approval_request_ids)));
-  const pendingGeneral = ((rows ?? []) as any[]).filter((r) => r.status === 'pending' && !linked.has(r.id));
+    : { data: [], error: null };
+  const linked = new Set((moneyIds ?? []) as string[]);
+  // Without the lookup we can't tell which requests are behind a bill or PO,
+  // so no decision forms are shown.
+  const pendingGeneral = linkError ? [] : ((rows ?? []) as any[]).filter((r) => r.status === 'pending' && !linked.has(r.id));
 
   const rail = null;
 
@@ -68,6 +70,7 @@ export default async function ApprovalsTab({
       rail={rail}
     >
       {sp.error && <Alert tone="danger" title="Could not record the decision" className="mb-4">{sp.error}</Alert>}
+      {linkError && <Alert tone="danger" title="Could not load which requests are behind a bill or purchase order" className="mb-4">{linkError.message}. Refresh to record board decisions.</Alert>}
       {sp.saved === 'decision' && <Alert tone="success" title="Decision recorded" className="mb-4">The board&apos;s decision is saved on the request.</Alert>}
       <Section>
         <table className="w-full text-sm">

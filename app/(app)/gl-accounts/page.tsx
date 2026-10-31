@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { BookOpen, Download, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { hasPortfolioAdminAccess, requireStaff } from '@/lib/auth/me';
+import { canEditChartOfAccounts, hasPortfolioAdminAccess, requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
@@ -36,7 +36,7 @@ export default async function GLAccountsPage({
   const { q = '', status = '', association_id = '', saved = '', created = '' } = await searchParams;
   const isFinance = me.is_finance_staff || me.is_platform_operator;
   // The chart of accounts is the company admin's to enter and change (Product Rules).
-  const canEditChart = hasPortfolioAdminAccess(me);
+  const canEditChart = canEditChartOfAccounts(me);
   const assoc = UUID.test(association_id) ? association_id : '';
   const supabase = await createClient();
   const db = supabase as any;

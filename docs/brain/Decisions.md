@@ -416,3 +416,37 @@ name, amount; staff confirm; Plaid original_description required.
   Billing page (company admins only, read with the service key after
   requirePortfolioAdmin) shows the same. The audit row records the last 4
   digits only.
+
+## Elephant-Goldfish review fixes (2026-10-31)
+- Mirsad asked for an independent review with Google's Elephant-Goldfish
+  Model plugin (installed in Claude Code and Codex; full repo at
+  C:\Users\autho\elephant-goldfish-model). Reports: docs/reviews/2026-10-31-egm/.
+  Fixes: #420 and the follow-up PR. Its goldfish reviewers also reviewed #420
+  itself (docs/reviews/2026-10-31-egm/pr420/).
+- **Chart of accounts is the company admin's to write** (Product Rules). Since
+  20261031110358, managers with finance access (Property Manager, Accountant,
+  no role) still read the chart and post to it but can't add, edit or import
+  accounts; /gl-accounts/new and edit send them to the dashboard, and their
+  pages say "Ask your company admin". Who it affects: finance staff who used
+  to keep the chart themselves. Rollback if Mirsad wants finance staff back:
+  `drop policy gl_accounts_admin_insert on public.gl_accounts; drop policy
+  gl_accounts_admin_update on public.gl_accounts; drop policy
+  gl_accounts_admin_delete on public.gl_accounts;`, then in the app:
+  requirePortfolioAdmin → requireFinanceStaff in app/(app)/gl-accounts/new/page.tsx
+  (page and action), app/(app)/gl-accounts/[id]/page.tsx (page and action) and
+  importAppfolioChartOfAccounts in app/(app)/owners/import/previous-system/gl-actions.ts;
+  and canEditChartOfAccounts(me) → isFinance / canFinance in
+  app/(app)/gl-accounts/page.tsx, app/(app)/owners/import/previous-system/page.tsx,
+  app/(app)/journal-entries/new/page.tsx and
+  app/(app)/bank-accounts/deposits/other/page.tsx. Association-specific accounts
+  (gl_accounts.association_id) stay: balances are per association and the
+  imported AppFolio charts use them; "one chart per company" means one
+  numbering, not no association accounts.
+- **Email hold stays broad** (over-holds): #420 changed it to whole-address
+  matching; the follow-up restored the substring match because Randolph
+  Station's people may be real, and a stored 'a@x.com/b@x.com' or 'mailto:'
+  address would have been released. Platform mail (sign-in links) to a held
+  resident is held too, on purpose.
+- **Bill board routing at submit only adds the board**: approval_required also
+  carries staff's own "send to the board" choice, so a looser setting can't
+  remove it. Purchase orders recompute both ways (they have no such choice).

@@ -1,9 +1,10 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-10-26 (ship-readiness check; one consolidated ship checklist at the top).
-(Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
-`docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
+Last updated: 2026-10-31 (Elephant-Goldfish review: stale docs marked; onboarding checklist refreshed). Before that 2026-10-26 (ship-readiness check; one consolidated ship checklist at the top).
+(Current status: `docs/brain/Status.md`. Onboarding steps live in
+`docs/ONBOARDING_CHECKLIST.md` (refreshed 2026-10-31). `docs/PROJECT_STATUS.md` and
+`docs/appfolio-gap-analysis.md` are out of date (2026-10-31 review).)
 
 ---
 
