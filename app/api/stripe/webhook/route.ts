@@ -717,7 +717,9 @@ export async function POST(request: NextRequest) {
           updated_at: now,
         }).eq('id', failedIntent.id).in('status', ['pending', 'processing']).select('id');
         if (failedUpdateError) throw new Error(`Failed payment update failed: ${failedUpdateError.message}`);
-        if ((failedRows ?? []).length > 0) {
+        // A retry of this event after finishing the AutoPay run failed finds
+        // the intent already 'failed': finish the run then too (idempotent).
+        if ((failedRows ?? []).length > 0 || failedIntent.status === 'failed') {
           await finalizeAutopayRun(
             svc,
             obj,
