@@ -210,7 +210,7 @@ export default async function CompanyDetailPage({
                   <form action={reactivateCompany as any}>
                     <input type="hidden" name="portfolio_id" value={id} />
                     <input type="hidden" name="return_to" value={returnTo} />
-                    <Button type="submit" variant="primary" size="sm">Reactivate</Button>
+                    <PendingSubmit variant="primary" size="sm" confirm={`Reactivate ${portfolio.company_name}? Its users can sign in again and held email, AutoPay and scheduled jobs resume.`}>Reactivate</PendingSubmit>
                   </form>
                 ) : (
                   <form action={suspendCompany as any} className="flex items-center gap-2">
@@ -408,7 +408,7 @@ export default async function CompanyDetailPage({
                         <form action={sendPasswordReset as any}>
                           <input type="hidden" name="profile_id" value={member.id} />
                           <input type="hidden" name="return_to" value={returnTo} />
-                          <Button type="submit" variant="ghost" size="sm">Send Reset</Button>
+                          <PendingSubmit variant="ghost" size="sm" confirm="Email this user a password reset link?">Send Reset</PendingSubmit>
                         </form>
                         <form action={forcePasswordReset as any}>
                           <input type="hidden" name="profile_id" value={member.id} />
@@ -418,7 +418,7 @@ export default async function CompanyDetailPage({
                         <form action={unlockAccount as any}>
                           <input type="hidden" name="profile_id" value={member.id} />
                           <input type="hidden" name="return_to" value={returnTo} />
-                          <Button type="submit" variant="ghost" size="sm">Unlock</Button>
+                          <PendingSubmit variant="ghost" size="sm" confirm="Turn this user's login back on? This undoes Disable Login.">Unlock</PendingSubmit>
                         </form>
                         <form action={disableLogin as any}>
                           <input type="hidden" name="profile_id" value={member.id} />
@@ -531,7 +531,7 @@ export default async function CompanyDetailPage({
                             <form action={regenerateInvitation as any}>
                               <input type="hidden" name="invitation_id" value={inv.id} />
                               <input type="hidden" name="return_to" value={returnTo} />
-                              <Button type="submit" variant="ghost" size="sm">New Link</Button>
+                              <PendingSubmit variant="ghost" size="sm" confirm="Make a new invitation link? The old link stops working.">New Link</PendingSubmit>
                             </form>
                           )}
                         </div>

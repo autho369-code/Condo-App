@@ -225,7 +225,7 @@ export default async function BillsPage({
   ];
 
   // ── EXPORT (mirrors the active tab's on-screen table, same filters) ──
-  const companyName = me.portfolio?.company_name ?? 'Management company';
+  const companyName = me.portfolio?.company_name ?? 'Your management company';
   const exportStamp = today;
   const exportTable: ExportTable | null =
     tab === 'bills'

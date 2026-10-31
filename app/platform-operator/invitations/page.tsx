@@ -221,14 +221,14 @@ export default async function InvitationsPage({
                           <form action={cancelInvitation as any}>
                             <input type="hidden" name="invitation_id" value={inv.id} />
                             <input type="hidden" name="return_to" value={RETURN_TO} />
-                            <Button type="submit" variant="ghost" size="sm">Cancel</Button>
+                            <PendingSubmit variant="ghost" size="sm" pendingLabel="Cancelling…" confirm="Cancel this invitation? The link stops working.">Cancel</PendingSubmit>
                           </form>
                         )}
                         {canRegenerate && (
                           <form action={regenerateInvitation as any}>
                             <input type="hidden" name="invitation_id" value={inv.id} />
                             <input type="hidden" name="return_to" value={RETURN_TO} />
-                            <Button type="submit" variant="ghost" size="sm">New Link</Button>
+                            <PendingSubmit variant="ghost" size="sm" confirm="Make a new invitation link? The old link stops working.">New Link</PendingSubmit>
                           </form>
                         )}
                       </div>

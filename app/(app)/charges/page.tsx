@@ -299,7 +299,7 @@ export default async function ChargesPage({
     .slice(0, 5);
 
   // ── EXPORT (mirrors the active tab's on-screen table, same filters) ──
-  const companyName = me.portfolio?.company_name ?? 'Management company';
+  const companyName = me.portfolio?.company_name ?? 'Your management company';
   const exportStamp = today;
   let exportTable: ExportTable;
   let exportFooter: string | undefined;

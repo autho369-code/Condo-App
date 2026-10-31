@@ -892,7 +892,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                             ) : (
                               <>
                                 <form action={sendTenantPasswordReset.bind(null, t.id, id) as any}>
-                                  <Button type="submit" variant="ghost" size="sm">Reset password</Button>
+                                  <PendingSubmit variant="ghost" size="sm" confirm="Email this tenant a password reset link?">Reset password</PendingSubmit>
                                 </form>
                                 {t.portal_activated ? (
                                   <form action={setTenantPortalAccess.bind(null, t.id, id, false) as any}>
@@ -900,7 +900,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                                   </form>
                                 ) : (
                                   <form action={setTenantPortalAccess.bind(null, t.id, id, true) as any}>
-                                    <Button type="submit" variant="ghost" size="sm">Enable portal</Button>
+                                    <PendingSubmit variant="ghost" size="sm" confirm="Turn on this tenant's portal access?">Enable portal</PendingSubmit>
                                   </form>
                                 )}
                               </>

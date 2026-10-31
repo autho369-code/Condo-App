@@ -138,7 +138,7 @@ export default async function ArchitecturalReviewQueue({
         <>
           <ExportActions
             documentTitle="Architectural Reviews"
-            companyName={me.portfolio?.company_name ?? 'Management company'}
+            companyName={me.portfolio?.company_name ?? 'Your management company'}
             filename={`architectural-reviews-${todayDate}`}
             tables={[exportTable]}
           />
