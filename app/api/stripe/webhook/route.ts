@@ -228,6 +228,10 @@ function requireMatchingMoney(obj: any, intent: any, amountField: 'amount_total'
   assertStripeMoney(obj, intent.amount, amountField);
 }
 
+// A payment intent in one of these states is final: no later Stripe event
+// may post, receipt or change it again.
+const FINAL_INTENT_STATUSES = ['refunded', 'chargeback', 'returned', 'canceled'];
+
 export async function POST(request: NextRequest) {
   if (!isStripeConfigured()) {
     return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
@@ -546,7 +550,7 @@ export async function POST(request: NextRequest) {
         // A late or retried checkout event must not undo a refund, dispute,
         // bank return or cancellation (a paid payment was posted when it first
         // succeeded, and posting is idempotent per Stripe PaymentIntent).
-        if (['refunded', 'chargeback', 'returned', 'canceled'].includes(intent.status)) break;
+        if (FINAL_INTENT_STATUSES.includes(intent.status)) break;
         const updates: any = {
           processor_payment_intent_id: obj.payment_intent ?? intent.processor_payment_intent_id,
           processor_account_id: stripeAccount,
@@ -630,6 +634,15 @@ export async function POST(request: NextRequest) {
         if (intent.processor_livemode !== null && intent.processor_livemode !== event.livemode) {
           throw new Error('Payment mode does not match the payment intent');
         }
+        // A late or retried "succeeded" event must not undo a refund, dispute,
+        // bank return or cancellation, nor post, receipt or log again: stop
+        // here, as the checkout handler does. An AutoPay run still gets
+        // finished (the charge did go through), in case the first delivery
+        // failed before finishing it.
+        if (FINAL_INTENT_STATUSES.includes(intent.status)) {
+          await finalizeAutopayRun(svc, obj, intent.id, stripeAccount, 'succeeded');
+          break;
+        }
         const wasSucceeded = intent.status === 'succeeded' && !!intent.payment_id;
         // Checkout/AutoPay offer ['card','us_bank_account'], and webhook payloads
         // carry latest_charge as an id string, so read the charge's actual
@@ -649,9 +662,8 @@ export async function POST(request: NextRequest) {
           updated_at: now,
         })
           .eq('id', intent.id)
-          // A retried or late "succeeded" event must not undo a refund, dispute
-          // or bank return.
-          .not('status', 'in', '("refunded","chargeback","returned")');
+          // Belt and braces with the early stop above.
+          .not('status', 'in', '("refunded","chargeback","returned","canceled")');
         if (updateError) throw new Error(`Settled payment update failed: ${updateError.message}`);
         await finalizeAutopayRun(svc, obj, intent.id, stripeAccount, 'succeeded');
         if (!wasSucceeded) {

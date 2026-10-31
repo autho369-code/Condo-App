@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { buttonClass } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
-import { requireFinanceStaff } from '@/lib/auth/me';
+import { canEditChartOfAccounts, requireFinanceStaff } from '@/lib/auth/me';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { todayInZone } from '@/lib/time/zoned';
 import { createClient } from '@/lib/supabase/server';
@@ -79,7 +79,7 @@ export default async function NewJournalEntryPage({ searchParams }: { searchPara
       <div className="space-y-4">
         {sp.error && <Alert tone="danger" title="Could not post entry">{sp.error}</Alert>}
         {glAccounts.length === 0 ? (
-          <Alert tone="warning" title="No GL accounts yet">Add accounts to your chart of accounts first — <Link href="/gl-accounts/new" className="font-medium underline">create a GL account</Link>.</Alert>
+          <Alert tone="warning" title="No GL accounts yet">{canEditChartOfAccounts(me) ? <>Add accounts to your chart of accounts first — <Link href="/gl-accounts/new" className="font-medium underline">create a GL account</Link>.</> : 'Ask your company admin to set up the chart of accounts first.'}</Alert>
         ) : (
           <JournalEntryForm
             glAccounts={glAccounts as any}

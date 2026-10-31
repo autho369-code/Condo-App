@@ -16173,11 +16173,11 @@
     ],
     "data": [
      "rpc:payment_plan_schedule",
+     "rpc:resident_unit_balances",
      "table:occupancies",
      "table:payment_plans",
      "table:payments",
-     "table:v_charge_balances",
-     "table:v_unit_account_summary"
+     "table:v_charge_balances"
     ],
     "guard": [
      "requireOwner"

@@ -21,8 +21,11 @@ Back to [[Home]].
 - **All sign-ins go through Portier369's own Supabase sign-in:** auth links
   (sign-in, reset, invites, callbacks) stay on `<slug>.portier369.com`, never a
   custom domain.
-- Build for new clients; don't migrate or backfill the old sample (Granville, deleted 2026-10-09)
-  data. "Don't bill anyone, this is just a sample."
+- Build for new clients; don't migrate or backfill sample data (Granville was
+  deleted 2026-10-09). Randolph Station is held from resident email
+  (email_hold_associations); whether its people are real or test is Mirsad's
+  open decision, so treat them as real. (Mirsad on sample data: "Don't bill
+  anyone, this is just a sample.")
 - Owners, vendors and the board never see manager notes. Board portal is
   read-only. Owners/vendors change only what their portal offers, on their own
   records. Server actions re-check auth inside the action and fail loudly.

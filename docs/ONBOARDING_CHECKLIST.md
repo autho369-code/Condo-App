@@ -1,10 +1,9 @@
-> **OUT OF DATE (2026-10-31).** An independent review (Codex running Google's Elephant-Goldfish drift report, `docs/reviews/2026-10-31-egm/`) found this document no longer matches the code. Use `docs/brain/` (Status, Product Rules, Decisions) for the current state.
-
 # Onboarding Checklist — bringing a new client live on Portier369
 
 A repeatable sequence for onboarding a management company and its first
 association(s). Roughly top-to-bottom; each step notes **who** does it and
-**where**. Verified paths as of 2026-06-22.
+**where**. Paths checked 2026-06-22; payments, tenants, SMS, remittance and
+the chart-of-accounts step updated 2026-10-31.
 
 ---
 
@@ -33,6 +32,9 @@ association(s). Roughly top-to-bottom; each step notes **who** does it and
 - [ ] Accept the `/invite` link → set password → lands on `/company-admin/overview`.
 - [ ] Add managers if needed (`/company-admin/managers` → invite; optionally scope
       each manager to specific associations).
+- [ ] **Chart of accounts** — only the company admin can enter it: `/gl-accounts`
+      → New GL account, or import the previous system's chart on
+      `/owners/import/previous-system`. Managers post to it but can't change it.
 
 ## 3. Create the association(s) + buildings  *(Manager / Company Admin)*
 - [ ] Create the association (`/associations` → new).
@@ -57,8 +59,10 @@ association(s). Roughly top-to-bottom; each step notes **who** does it and
 ## 6. Set payment / remittance instructions  *(Manager, per association)*
 - [ ] Association profile → **Payment Instructions**: payee, mailing address, notes.
       Owners see this on `/portal/pay` ("How to Pay"); without it they see
-      "contact your management company." (Payments are offline — manager records
-      them; they auto-apply to charges.)
+      "contact your management company." Payments recorded by the manager
+      (check, ACH, Zelle) auto-apply to charges. Online card/ACH payments and
+      AutoPay work once the platform Stripe keys are set and the association
+      connects its own Stripe account (association → Payments tab).
 
 ## 7. *(Optional)* Turn on AI features  *(Company Admin)* — `/settings/ai`
 - [ ] Set the client's AI provider + API key (bring-your-own-key). Enables:
@@ -71,11 +75,14 @@ association(s). Roughly top-to-bottom; each step notes **who** does it and
       or the association's Board tab) → they get `/board` (financials, approvals,
       minutes, etc.).
 - [ ] **Vendors** → invite to portal from `/vendors` (lands on `/vendor`).
-- [ ] **Tenants** are data-only (no login) — reachable by email/SMS.
+- [ ] **Tenants** → optional portal login at `/resident` (invite from the
+      owner's page → Occupancy section); otherwise reachable by email.
 
 ## 9. Operator: bill the company  *(Platform Operator)* — `/platform-operator/billing`
+- [ ] Once: enter Portier369's ACH payment details on this page (the invoice
+      email can't be sent without them).
 - [ ] **Generate invoice** (defaults to the plan price) → **Send** (emails the
-      billing contact) → company pays offline → **Mark paid**.
+      billing contact with the ACH details) → company pays by ACH → **Mark paid**.
 
 ## 10. Verify it's live
 - [ ] Manager `/dashboard` shows real numbers (A/R, open work orders, bills).
@@ -87,9 +94,14 @@ association(s). Roughly top-to-bottom; each step notes **who** does it and
 ---
 
 ## Notes / current limitations
-- **No online owner payments** by design — offline remittance only.
-- **SMS** records messages but has no live gateway yet (email delivers via Resend).
+- **Online owner payments** (Stripe Connect, per association) are built but
+  off until the platform Stripe keys are set in Vercel; until then owners pay
+  offline and the manager records it.
+- **SMS** sends through Twilio once the account's KYC and 10DLC registration
+  are done; until then texts are recorded but not delivered. Email delivers
+  via Resend.
 - **Legal** pages (`/legal/*`) are drafted; have counsel sign off before the first
   paying client.
-- **Platform remittance** (how the company pays Portier369) isn't stored yet — the
-  invoice email says "contact us"; see the to-do in `docs/PROJECT_STATUS.md`.
+- **Platform remittance**: companies pay Portier369 by ACH; the details are
+  entered once on `/platform-operator/billing` and go on every invoice and the
+  company's Billing page (`/company-admin/billing`).

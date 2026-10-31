@@ -22,7 +22,7 @@ export default async function LedgerPage() {
   const myUnits = unitFilter(ownUnits.ids);
   // Every row, paged: the API stops at 1,000 rows, which cut the list short and
   // made the balance below wrong for an owner with a long history.
-  const [{ rows: chargeRows, error: chargesErrorText }, tenure, { data: unitRows, error: unitsError }] = await Promise.all([
+  const [{ rows: chargeRows, error: chargesErrorText, truncated: chargesTruncated }, tenure, { data: unitRows, error: unitsError }] = await Promise.all([
     fetchAllRows<any>(() => (supabase as any)
       .from('v_charge_balances')
       .select('*')
@@ -49,25 +49,22 @@ export default async function LedgerPage() {
   // payments are listed but marked.
   const charges = ((chargeRows ?? []) as any[]).filter((c) => ownerVisibleCharge(tenure, c));
   const paymentScope = tenureFilter(tenure, 'payment_date', myUnits);
-  const { rows: payments, error: paymentsErrorText } = paymentScope
+  const { rows: payments, error: paymentsErrorText, truncated: paymentsTruncated } = paymentScope
     ? await fetchAllRows<any>(() => (supabase as any)
         .from('payments')
         .select('id, unit_id, amount, payment_date, method, reference, reversed_at, reversal_reason, units(unit_number)')
         .or(paymentScope)
         .order('payment_date', { ascending: false })
         .order('id'))
-    : { rows: [] as any[], error: null };
+    : { rows: [] as any[], error: null, truncated: false };
   const chargesError = chargesErrorText ? { message: chargesErrorText } : null;
   const paymentsError = paymentsErrorText ? { message: paymentsErrorText } : null;
 
-  // Unapplied credit (payments not yet matched to a charge) reduces what is owed,
-  // so the total agrees with the dashboard and the pay page.
-  const { data: summaries, error: summariesError } = await (supabase as any)
-    .from('v_unit_account_summary')
-    .select('unit_id, unapplied_credit')
-    .in('unit_id', myUnits);
-  const unappliedCredit = ((summaries ?? []) as { unapplied_credit: number | string | null }[])
-    .reduce((s, u) => s + Number(u.unapplied_credit ?? 0), 0);
+  // The total is the database's balance per unit (charges less every payment,
+  // unapplied credit included), the same figure as the dashboard: summed in
+  // the database, never over the listed rows.
+  const { data: balanceRows, error: balancesError } = await (supabase as any).rpc('resident_unit_balances');
+  const ownUnitIds = new Set(ownUnits.ids);
 
   // The export carries one header per association (a login can own units in
   // several); each row names its association and unit.
@@ -98,11 +95,10 @@ export default async function LedgerPage() {
   }));
   const loadError = (ownUnits.error ? { message: ownUnits.error } : null)
     ?? (tenure.error ? { message: tenure.error } : null)
-    ?? chargesError ?? paymentsError ?? summariesError ?? unitsError;
-  // The balance counts every charge on the unit (hidden ones are paid), so it
-  // still agrees with the dashboard and the pay page.
-  const chargesBalance = ((chargeRows ?? []) as any[]).reduce((s, c) => s + Number(c.balance_due ?? 0), 0);
-  const totalBalance = Math.round((chargesBalance - unappliedCredit) * 100) / 100;
+    ?? chargesError ?? paymentsError ?? balancesError ?? unitsError;
+  const totalBalance = Math.round(((balanceRows ?? []) as { unit_id: string; balance: number | string | null }[])
+    .filter((b) => ownUnitIds.has(b.unit_id))
+    .reduce((s, b) => s + Number(b.balance ?? 0), 0) * 100) / 100;
 
   // Active payment plans for the owner's units (RLS: their own units; one per unit).
   // A plan made with a previous owner is theirs, not the buyer's: keep plans
@@ -135,6 +131,9 @@ export default async function LedgerPage() {
         />
       </div>
 
+      {(chargesTruncated || paymentsTruncated) && (
+        <Alert tone="warning" title="Showing the most recent 50,000 lines">Older history isn&apos;t listed here; the balance above is complete. Ask your management company for a full statement.</Alert>
+      )}
       {loadError && (
         <Alert tone="danger" title="Could not load your ledger:">{loadError.message}. The balance and history below may be incomplete — please refresh.</Alert>
       )}
