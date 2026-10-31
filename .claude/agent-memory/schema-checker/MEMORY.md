@@ -25,6 +25,7 @@ Per-area schema facts (enums, RPC signatures, new columns by migration): [featur
 - With a column filter, `.select()` adds no new RLS constraint; an empty result means not updated (real failure). Still compare SELECT vs UPDATE policies (meeting_action_items example, 2026-10-07).
 - Find policies by grepping the baseline (`"public"."<t>"`) and later migrations (`public.<t>`, `alter policy`, DO-loop `format(... %I)` arrays like operator_writes_need_admin / staff_association_in_company).
 - Narrowing a FOR ALL policy is safe only if a separate SELECT policy exists.
+- Finance-only reads: `payable_bills` and `purchase_orders` (my_finance_portfolio) return [] for non-finance staff, so "is this request behind a bill/PO" lookups on staff pages silently miss (approvals/page.tsx, 2026-10-31). Bill requests use request_type 'expense', POs 'purchase_order'.
 - A column-level revoke breaks user-client `select('*')`, `.insert().select()` returning it, and `.eq('<col>')` filters.
 
 ## Optimistic-lock filters

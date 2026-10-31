@@ -8,6 +8,7 @@ import { money, date } from '@/lib/utils';
 import { LedgerActions, type LedgerChargeRow, type LedgerPaymentRow } from '@/components/portal/ledger-actions';
 import { ownerTenureCutoffs, ownerVisibleCharge, tenureFilter, withinTenure } from '../_lib/tenure';
 import { isLateFeeRemoval } from '@/lib/portal/ledger-rows';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,12 +20,15 @@ export default async function LedgerPage() {
   // to the whole association, which leaked every owner's ledger here.
   const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_ids);
   const myUnits = unitFilter(ownUnits.ids);
-  const [{ data: chargeRows, error: chargesError }, tenure, { data: unitRows, error: unitsError }] = await Promise.all([
-    (supabase as any)
+  // Every row, paged: the API stops at 1,000 rows, which cut the list short and
+  // made the balance below wrong for an owner with a long history.
+  const [{ rows: chargeRows, error: chargesErrorText }, tenure, { data: unitRows, error: unitsError }] = await Promise.all([
+    fetchAllRows<any>(() => (supabase as any)
       .from('v_charge_balances')
       .select('*')
       .in('unit_id', myUnits)
-      .order('due_date', { ascending: false }),
+      .order('due_date', { ascending: false })
+      .order('charge_id')),
     ownerTenureCutoffs(supabase, me.owner_ids),
     // Unit number + association per unit, for the Unit column and the export
     // header (v_charge_balances is a view with no foreign key to embed).
@@ -45,13 +49,16 @@ export default async function LedgerPage() {
   // payments are listed but marked.
   const charges = ((chargeRows ?? []) as any[]).filter((c) => ownerVisibleCharge(tenure, c));
   const paymentScope = tenureFilter(tenure, 'payment_date', myUnits);
-  const { data: payments, error: paymentsError } = paymentScope
-    ? await (supabase as any)
+  const { rows: payments, error: paymentsErrorText } = paymentScope
+    ? await fetchAllRows<any>(() => (supabase as any)
         .from('payments')
         .select('id, unit_id, amount, payment_date, method, reference, reversed_at, reversal_reason, units(unit_number)')
         .or(paymentScope)
         .order('payment_date', { ascending: false })
-    : { data: [], error: null };
+        .order('id'))
+    : { rows: [] as any[], error: null };
+  const chargesError = chargesErrorText ? { message: chargesErrorText } : null;
+  const paymentsError = paymentsErrorText ? { message: paymentsErrorText } : null;
 
   // Unapplied credit (payments not yet matched to a charge) reduces what is owed,
   // so the total agrees with the dashboard and the pay page.

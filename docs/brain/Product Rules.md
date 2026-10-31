@@ -21,7 +21,7 @@ Back to [[Home]].
 - **All sign-ins go through Portier369's own Supabase sign-in:** auth links
   (sign-in, reset, invites, callbacks) stay on `<slug>.portier369.com`, never a
   custom domain.
-- Build for new clients; don't migrate or backfill the sample (Granville)
+- Build for new clients; don't migrate or backfill the old sample (Granville, deleted 2026-10-09)
   data. "Don't bill anyone, this is just a sample."
 - Owners, vendors and the board never see manager notes. Board portal is
   read-only. Owners/vendors change only what their portal offers, on their own

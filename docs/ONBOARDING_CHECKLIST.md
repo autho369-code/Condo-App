@@ -1,3 +1,5 @@
+> **OUT OF DATE (2026-10-31).** An independent review (Codex running Google's Elephant-Goldfish drift report, `docs/reviews/2026-10-31-egm/`) found this document no longer matches the code. Use `docs/brain/` (Status, Product Rules, Decisions) for the current state.
+
 # Onboarding Checklist — bringing a new client live on Portier369
 
 A repeatable sequence for onboarding a management company and its first

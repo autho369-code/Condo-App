@@ -5,18 +5,24 @@ import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
-import { Badge } from '@/components/ui/shell';
+import { Alert, Badge } from '@/components/ui/shell';
 import { buttonClass } from '@/components/ui/button';
+import { Field, Input, Select } from '@/components/ui/input';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { recordApprovalRequestDecision } from '@/lib/rpcs/approval-requests';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ApprovalsTab({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
   await requireStaff();
   const { id: assocParam } = await params;
+  const sp = await searchParams;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();
   const id = association.id;
@@ -32,6 +38,16 @@ export default async function ApprovalsTab({
     .eq('association_id', id)
     .is('archived_at', null)
     .order('requested_at', { ascending: false });
+
+  // Requests behind a bill or purchase order are decided on that page; the
+  // rest are decided here.
+  const requestIds = ((rows ?? []) as any[]).map((r) => r.id);
+  // (Bills and POs are finance-only reads, so ask the database which ids.)
+  const { data: moneyIds } = requestIds.length
+    ? await (supabase as any).rpc('money_approval_request_ids', { p_ids: requestIds })
+    : { data: [] };
+  const linked = new Set(((moneyIds ?? []) as unknown[]).map((v: any) => (typeof v === 'string' ? v : v?.money_approval_request_ids)));
+  const pendingGeneral = ((rows ?? []) as any[]).filter((r) => r.status === 'pending' && !linked.has(r.id));
 
   const rail = null;
 
@@ -51,6 +67,8 @@ export default async function ApprovalsTab({
       }
       rail={rail}
     >
+      {sp.error && <Alert tone="danger" title="Could not record the decision" className="mb-4">{sp.error}</Alert>}
+      {sp.saved === 'decision' && <Alert tone="success" title="Decision recorded" className="mb-4">The board&apos;s decision is saved on the request.</Alert>}
       <Section>
         <table className="w-full text-sm">
           <thead className="border-b border-line bg-gray-50/70 text-[12.5px] text-gray-500">
@@ -90,6 +108,32 @@ export default async function ApprovalsTab({
           </tbody>
         </table>
       </Section>
+
+      {pendingGeneral.length > 0 && (
+        <Section title="Record the board's decision" padded>
+          <div className="space-y-6">
+            {pendingGeneral.map((r: any) => (
+              <form key={r.id} action={recordApprovalRequestDecision} className="grid gap-3 border-b border-gray-100 pb-5 last:border-b-0 last:pb-0 sm:grid-cols-[200px_1fr_auto] sm:items-end">
+                <input type="hidden" name="association_id" value={id} />
+                <input type="hidden" name="approval_request_id" value={r.id} />
+                <p className="text-sm font-medium text-gray-900 sm:col-span-3">{r.title}</p>
+                <Field label="Board decision" required>
+                  <Select name="decision" required defaultValue="">
+                    <option value="" disabled>Choose…</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                  </Select>
+                </Field>
+                <Field label="Note">
+                  <Input name="note" maxLength={1000} />
+                </Field>
+                <PendingSubmit pendingLabel="Recording…" confirm="Record the board's decision? It can't be changed afterwards.">Record decision</PendingSubmit>
+              </form>
+            ))}
+            <p className="text-xs text-gray-500">In the note, say where and when the board decided, e.g. the meeting or a vote by email.</p>
+          </div>
+        </Section>
+      )}
     </Workspace>
   );
 }

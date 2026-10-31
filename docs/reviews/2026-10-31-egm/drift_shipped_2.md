@@ -1,0 +1,25 @@
+# 2026-10-31_DRIFT_REPORT (Shipped.md lines 311-end)
+
+## docs/brain/Shipped.md (lines 311-619)
+
+- **Major — #251 "addPet checks the unit and resident (closed a cross-company pet plant)"**: fixed only in the server action, not in the database.
+  - Evidence: `app/(app)/owners/[id]/occupancy-actions.ts:183-192` (app check through `currentHome`). In the database, `unit_pets_staff_all` (`supabase/migrations/20260715040000_production_schema_baseline.sql:23729`) checks only `can_access_portfolio(portfolio_id)`. No trigger ties `unit_pets.unit_id` to that portfolio. The only later changes are `20261012100000_manager_scope_child_tables.sql:88`, a restrictive policy that every unscoped manager passes, and an archive trigger in `20261016010000_ownership_fixes.sql:269`.
+  - Why it is a divergence: a staff user of company A can still insert a `unit_pets` row directly (PostgREST/RLS) with `portfolio_id = A` and `unit_id` set to a unit of company B. `unit_pets_resident_read` (baseline:23725) lets residents read by `unit_id in current_resident_unit_ids()`, so company B's residents see the planted row. This is the same cross-company plant the entry says it closed.
+  - Possibly also affected (unverified): `tenants` rows written by `addTenant`. I found no same-company trigger on `tenants` either, but I did not check the tenants policies.
+
+- **Major (partial) — #265 "never by email match" (vendor login)**: a vendor's first record can still be bound by email.
+  - Evidence: `public.link_portal_user`, latest at `supabase/migrations/20261009050000_owner_login_across_associations.sql:1420-1449`, called from `auto_link_portal_user` at :1509. It sets `vendors.auth_user_id` and `portal_activated = true` on the oldest vendor record whose `emails` contains the login's email. It skips only when a pending invitation for that email exists. `relink_all_portal_users` (:1540-1575) does the same for every vendor login.
+  - Why it is a divergence: `current_vendor_ids()` reads `v.auth_user_id = auth.uid()`, so a record bound this way becomes the login's first record. That record can belong to a different association than the one the vendor was invited to. Owners really are invitation-only (:1416-1417, :1527); vendors are not.
+
+- **Nit — #272 "Refuses ... a second opening entry at any date"**: the server action is the only guard.
+  - Evidence: `app/(app)/owners/import/previous-system/gl-actions.ts:500-505` looks up `journal_lines.memo = OPENING_MEMO`. Nothing in the database prevents a second opening entry. `import_journal_entry_batch` and the plain journal-entry upload can post one, with the same memo or without it.
+  - Also: the lookup does not exclude voided or reversed entries. Once an opening entry has been voided, this tool refuses forever; that behaviour is not documented (unverified: depends on how voids are recorded).
+  - Related claim, "nothing lands between reading the ledger and posting": only the two import locks are taken. Manual journal entries, receipts and charges in the same association do not take them.
+
+- **Nit — Middleware time limits, "every database call in middleware 6 s"**: one call has no deadline wrapper.
+  - Evidence: `middleware.ts:326` calls `supabase.auth.mfa.getAuthenticatorAssuranceLevel()` without `withDeadline`; the other calls use it (lines 148, 223, 270). The global `fetchWithTimeout(CALL_TIMEOUT_MS)` (line 127) probably still caps any network call this makes, so the practical impact is unverified.
+
+- **Unverified — #257 "claim_import_lock ... waits on Mirsad because its body has a DELETE"**: the doc never says this was resolved.
+  - Evidence: `supabase/migrations/20261008080000_import_locks.sql:84-106` defines `claim_import_lock` as an ordinary migration with a WHERE-scoped DELETE, which pg_safeupdate allows. `lib/imports/import-lock.ts:14` calls it on every import. From the repository I cannot confirm the function is live. If it is not, every import (including #272's opening balances) fails with "Could not start the import".
+
+Checked with no drift found: the #244 finance/delinquency RPC association checks (no later redefinition removed them; the later redefinitions of generate_owner_statements, bulk_create_charges, bulk_create_recurring_charges and request_payable_bill_approval keep `can_view_association_row`); #245 delinquency sync; #270 TRUNCATE (no later bare DELETE); #269 import_opening_credit access checks; #261 delete_association_completely and the purge helpers (revoked from all app roles); #263 and #261 restrictive `mgr_assoc_scope` on vendors and owners; #266 current_owner_ids with no email path; #268 can_access_association_mvp; #243 owner attachment storage-path scoping; #239 token CHECK, server-generated token trigger and html_escape quote; #246 report-violation host scoping; #249 complete_maintenance_task (SECURITY INVOKER); capital_project_spend_totals scoping; the receivables plan_cache setting (kept on re-create in 20261013070000); middleware failing closed when the identity lookup fails; the Piper session id (no Math.random left in chat code).

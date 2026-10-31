@@ -95,6 +95,8 @@
 
 - Association-scoped recipient holds (20261027010000 email_is_held): tenants.association_id is NULLABLE (units.building_id, board_members.association_id are NOT NULL); match tenants also via unit_id->buildings. Rows with owner_id null + free-text to_email in a held association are sent by design; say so.
 
+- Narrowing a CHILD-row read policy (payment_applications cut to tenure, 20261031153000:24) while the parent stays visible (seller's still-open charges via resident_visible_charge_ids): invoker sum views (v_charge_balances -> v_unit_account_summary) then overstate balances. Sweep invoker views/RPCs that aggregate the child; parent and child visibility must match.
+
 ## Topic files
 - [Review lessons](review-lessons.md) — more misses: definer->join swaps, DML revokes, side tables, status sync, tenure scope, scheduler holds, freeze guards, AutoPay late-fee holds
 - [Schedulers and local dates](schedulers-and-dates.md) — association_local_date cost traps, suspension pauses, recurring catch-up, scheduled-report takeover

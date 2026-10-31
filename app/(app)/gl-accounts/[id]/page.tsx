@@ -5,7 +5,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
-import { requireFinanceStaff } from '@/lib/auth/me';
+import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { GL_ACCOUNT_TYPES, glWriteError } from '@/lib/gl/accounts';
@@ -21,7 +21,7 @@ const inputCls = 'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 te
 // categories, ...), so history and linked setups keep their meaning.
 async function updateGlAccount(formData: FormData) {
   'use server';
-  await requireFinanceStaff();
+  await requirePortfolioAdmin();
   const id = String(formData.get('id') ?? '');
   if (!UUID.test(id)) redirect('/gl-accounts');
   const fail = (m: string): never => redirect(`/gl-accounts/${id}?error=${encodeURIComponent(m)}`);
@@ -77,7 +77,7 @@ export default async function EditGlAccountPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string }>;
 }) {
-  await requireFinanceStaff();
+  await requirePortfolioAdmin();
   const { id } = await params;
   const sp = await searchParams;
   if (!UUID.test(id)) notFound();

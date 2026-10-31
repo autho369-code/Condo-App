@@ -35,6 +35,8 @@ export default async function GLAccountsPage({
   const me = await requireStaff();
   const { q = '', status = '', association_id = '', saved = '', created = '' } = await searchParams;
   const isFinance = me.is_finance_staff || me.is_platform_operator;
+  // The chart of accounts is the company admin's to enter and change (Product Rules).
+  const canEditChart = hasPortfolioAdminAccess(me);
   const assoc = UUID.test(association_id) ? association_id : '';
   const supabase = await createClient();
   const db = supabase as any;
@@ -80,7 +82,7 @@ export default async function GLAccountsPage({
         <a href={`/gl-accounts/export?${new URLSearchParams({ q, status, association_id: assoc }).toString()}`} className={buttonClass('secondary')}><Download className="h-4 w-4" /> Export</a>
         {isFinance && <Link href="/gl-accounts/map" className={buttonClass('secondary')}>GL account map</Link>}
         {hasPortfolioAdminAccess(me) && <Link href="/gl-accounts/permissions" className={buttonClass('secondary')}>Role permissions</Link>}
-        {isFinance && <Link href="/gl-accounts/new" className={buttonClass()}><Plus className="h-4 w-4" /> New GL account</Link>}
+        {canEditChart && <Link href="/gl-accounts/new" className={buttonClass()}><Plus className="h-4 w-4" /> New GL account</Link>}
       </>}
     >
       <div className="space-y-6">
@@ -113,7 +115,7 @@ export default async function GLAccountsPage({
               icon={BookOpen}
               title={q || status || assoc ? 'No GL accounts match your filters' : 'No GL accounts configured yet'}
               description="The chart of accounts will appear here, grouped by account range."
-              action={isFinance && !q && !status && !assoc && (
+              action={canEditChart && !q && !status && !assoc && (
                 <Link href="/gl-accounts/new" className={buttonClass()}><Plus className="h-4 w-4" /> Create your first GL account</Link>
               )}
             />
@@ -148,7 +150,7 @@ export default async function GLAccountsPage({
                     <TR key={a.id}>
                       <TD className="font-mono tabular-nums">{a.number}</TD>
                       <TD className="font-medium">
-                        {isFinance
+                        {canEditChart
                           ? <Link href={`/gl-accounts/${a.id}`} className="text-gray-900 hover:underline">{a.name}</Link>
                           : a.name}
                         {a.sub_account_of_id && parentById.get(a.sub_account_of_id) && (
