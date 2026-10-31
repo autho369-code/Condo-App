@@ -32,6 +32,7 @@ Facts verified during past reviews. Re-verify against snapshots/migrations befor
 
 ## Payables / calendar / SMS / email
 - RPCs `set_payable_bill_expense_account(p_bill_id,p_gl_account_id)`, `record_approval_decision(p_request_id,p_decision,p_note)`.
+- Vendors read events only via `vendor_calendar_events(p_until)` (20261031153000; calendar_events_vendor_read is using(false)): returns id,title,start_datetime,location,operations_status,maintenance_task_id,association_name; no vendor_id column, limit 500.
 - Residents read events via `resident_calendar_events(p_association_ids,p_from,p_to,p_limit)`; `resident_unit_balances()`; parking via `portal_parking_assignments()`.
 - `sms_messages` AFTER INSERT trigger already updates the conversation; `provider_message_id` partial UNIQUE.
 - Email suppression (20261015010000): email_queue.mail_class/suppressed_at; email_suppressions UNIQUE (portfolio_id,email,reason); filter by portfolio_id too. email_queue user-insert guard rules on from_name/reply_to/owner_id.

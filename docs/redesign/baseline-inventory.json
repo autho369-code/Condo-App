@@ -6791,7 +6791,7 @@
     ],
     "action": [
      "action",
-     "isFinance"
+     "canEditChart"
     ],
     "field": [
      "association_id",
@@ -6822,7 +6822,7 @@
    "route": "/gl-accounts/:id",
    "file": "app/(app)/gl-accounts/[id]/page.tsx",
    "pageGuards": [
-    "requireFinanceStaff"
+    "requirePortfolioAdmin"
    ],
    "caps": {
     "link": [
@@ -6856,7 +6856,7 @@
      "table:gl_accounts"
     ],
     "guard": [
-     "requireFinanceStaff"
+     "requirePortfolioAdmin"
     ],
     "confirm": []
    }
@@ -6902,7 +6902,7 @@
    "route": "/gl-accounts/new",
    "file": "app/(app)/gl-accounts/new/page.tsx",
    "pageGuards": [
-    "requireFinanceStaff"
+    "requirePortfolioAdmin"
    ],
    "caps": {
     "link": [
@@ -6933,7 +6933,7 @@
      "table:gl_accounts"
     ],
     "guard": [
-     "requireFinanceStaff"
+     "requirePortfolioAdmin"
     ],
     "confirm": []
    }
@@ -17495,7 +17495,7 @@
     "field": [],
     "button": [],
     "data": [
-     "table:calendar_events",
+     "rpc:vendor_calendar_events",
      "table:maintenance_tasks",
      "table:work_orders"
     ],

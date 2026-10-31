@@ -15,7 +15,7 @@
 // applies (gl_accounts_finance_all = can_manage_finance(portfolio_id));
 // guard_gl_account_change() re-checks numbers, parent type and association.
 import { revalidatePath } from 'next/cache';
-import { requireFinanceStaff } from '@/lib/auth/me';
+import { requireFinanceStaff, requirePortfolioAdmin } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { withImportLock } from '@/lib/imports/import-lock';
@@ -33,7 +33,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 type ExistingAccount = { id: string; number: number; account_type: string; association_id: string | null };
 
 export async function importAppfolioChartOfAccounts(accounts: AppfolioGlAccount[]): Promise<GlImportSummary> {
-  const me = await requireFinanceStaff();
+  const me = await requirePortfolioAdmin();  // the chart of accounts is the company admin's
   const portfolioId: string | undefined = me.portfolio?.id;
   if (!portfolioId) return { imported: 0, skipped: 0, errors: ['Your account is not linked to a company.'] };
   if (!Array.isArray(accounts) || accounts.length === 0) return { imported: 0, skipped: 0, errors: ['The file has no accounts.'] };

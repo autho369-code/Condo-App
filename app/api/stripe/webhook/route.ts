@@ -649,8 +649,9 @@ export async function POST(request: NextRequest) {
           updated_at: now,
         })
           .eq('id', intent.id)
-          // A retried or late "succeeded" event must not undo a refund or dispute.
-          .not('status', 'in', '("refunded","chargeback")');
+          // A retried or late "succeeded" event must not undo a refund, dispute
+          // or bank return.
+          .not('status', 'in', '("refunded","chargeback","returned")');
         if (updateError) throw new Error(`Settled payment update failed: ${updateError.message}`);
         await finalizeAutopayRun(svc, obj, intent.id, stripeAccount, 'succeeded');
         if (!wasSucceeded) {

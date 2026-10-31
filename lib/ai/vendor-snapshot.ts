@@ -71,13 +71,13 @@ export async function buildVendorSnapshot(portfolioId: string): Promise<VendorSn
       .is('archived_at', null)
       .order('bill_date', { ascending: false })
       .limit(20),
-    db.from('calendar_events')
-      .select('title, start_datetime, associations(name)')
-      .in('vendor_id', vendorIds)
-      .is('archived_at', null)
-      .gte('start_datetime', new Date().toISOString())
-      .order('start_datetime')
-      .limit(10),
+    // Vendor-safe calendar fields only (see vendor_calendar_events).
+    db.rpc('vendor_calendar_events', { p_until: new Date(Date.now() + 365 * 86400000).toISOString() }).then((r: any) => ({
+      ...r,
+      data: ((r.data ?? []) as any[])
+        .filter((e) => vendorIds.includes(e.vendor_id) && e.start_datetime >= new Date().toISOString())
+        .slice(0, 10),
+    })),
   ]);
 
   // Fail loudly: an assistant answering from a silently empty snapshot would
@@ -144,7 +144,7 @@ export async function buildVendorSnapshot(portfolioId: string): Promise<VendorSn
     upcomingAppointments: (events ?? []).map((e: any) => ({
       title: e.title ?? null,
       when: e.start_datetime ?? null,
-      property: e.associations?.name ?? null,
+      property: e.association_name ?? null,
     })),
   };
 }

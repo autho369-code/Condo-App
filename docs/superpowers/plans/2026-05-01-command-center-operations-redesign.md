@@ -1,3 +1,5 @@
+> **OUT OF DATE (2026-10-31).** An independent review (Codex running Google's Elephant-Goldfish drift report, `docs/reviews/2026-10-31-egm/`) found this document no longer matches the code. Use `docs/brain/` (Status, Product Rules, Decisions) for the current state.
+
 # Command Center Operations Redesign Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.

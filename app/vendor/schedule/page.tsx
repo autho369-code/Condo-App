@@ -26,18 +26,14 @@ export default async function VendorSchedulePage() {
       .in('status', OPEN_STATUSES)
       .not('scheduled_date', 'is', null)
       .order('scheduled_date'),
-    db.from('calendar_events')
-      .select('id, title, start_datetime, location, operations_status, associations(name)')
-      .in('vendor_id', me.vendor_ids)
-      .is('archived_at', null)
-      // Maintenance tasks are listed from maintenance_tasks below; their
-      // calendar events would show the same visit twice.
-      .is('maintenance_task_id', null)
-      // Upcoming, plus past visits still marked scheduled (they're overdue,
-      // not finished; they used to vanish from the schedule).
-      .or(`start_datetime.gte.${new Date().toISOString()},operations_status.eq.scheduled`)
-      .lte('start_datetime', in60)
-      .order('start_datetime'),
+    // Vendor-safe fields only (the table holds staff-only fields a policy can't
+    // hide): upcoming visits, plus past visits still marked scheduled (overdue,
+    // not finished). Maintenance tasks are listed from maintenance_tasks below;
+    // their calendar events would show the same visit twice.
+    db.rpc('vendor_calendar_events', { p_until: in60 }).then((r: any) => ({
+      ...r,
+      data: ((r.data ?? []) as any[]).filter((e) => e.maintenance_task_id == null),
+    })),
     db.from('maintenance_tasks')
       .select('id, task_name, next_due_date, associations(name)')
       .in('vendor_id', me.vendor_ids)
@@ -72,7 +68,7 @@ export default async function VendorSchedulePage() {
       // Local calendar day of the visit (the UTC date put evening visits on the next day).
       when: e.start_datetime ? todayInZone(undefined, new Date(e.start_datetime)) : '',
       title: e.title ?? 'Appointment',
-      detail: `${e.associations?.name ?? '—'}${e.location ? ` · ${e.location}` : ''}`,
+      detail: `${e.association_name ?? '—'}${e.location ? ` · ${e.location}` : ''}`,
       kind: 'event',
       overdue: !!e.start_datetime && todayInZone(undefined, new Date(e.start_datetime)) < todayDate && e.operations_status === 'scheduled',
     })),

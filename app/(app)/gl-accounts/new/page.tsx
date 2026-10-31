@@ -5,7 +5,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button, buttonClass } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
-import { requireFinanceStaff } from '@/lib/auth/me';
+import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { GL_ACCOUNT_TYPES, glWriteError } from '@/lib/gl/accounts';
@@ -17,7 +17,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const inputCls = 'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
 
 export default async function NewGlAccountPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  await requireFinanceStaff();
+  await requirePortfolioAdmin();
   const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
@@ -29,7 +29,7 @@ export default async function NewGlAccountPage({ searchParams }: { searchParams:
 
   async function createGlAccount(formData: FormData) {
     'use server';
-    const me = await requireFinanceStaff();
+    const me = await requirePortfolioAdmin();
     const supabase = await createClient();
     const db = supabase as any;
     const number = parseInt(formData.get('number') as string, 10);

@@ -1,3 +1,5 @@
+> **OUT OF DATE (2026-10-31).** An independent review (Codex running Google's Elephant-Goldfish drift report, `docs/reviews/2026-10-31-egm/`) found this document no longer matches the code. Use `docs/brain/` (Status, Product Rules, Decisions) for the current state.
+
 # Portier369 — Master Project Status
 *Single source of truth in the repo. Kept in sync with Claude's memory at*
 *`C:\Users\autho\.claude\projects\C--Users-autho-Portier369\memory\project-state.md`.*

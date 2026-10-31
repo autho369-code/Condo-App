@@ -1,9 +1,12 @@
 # Status
 
-Back to [[Home]]. Updated 2026-10-27 (#279-#418 merged; ship checklist at the top of docs/TODO.md; open PR: claude/ach-remittance; next: Mirsad enters the ACH account on /platform-operator/billing; next: Stripe TEST-mode checkout and AutoPay run once Mirsad sets test keys; waiting on Mirsad: NSF fee income GL constraint SQL, Auth connection pool %, Stellar support phone).
+Back to [[Home]]. Updated 2026-10-31 (#279-#419 merged; open PR: claude/egm-review-fixes; Elephant-Goldfish review 2026-10-31 in docs/reviews/2026-10-31-egm; next: the zoom-out reviewer's business items are Mirsad's — pilot company, whether Randolph Station is real or test data, Stripe test keys).
 
 ## Open PR
-- claude/ach-remittance: companies pay Portier369 by ACH (Mirsad 2026-10-27). platform_remittance (20261027020000 LIVE, empty) + operator form on /platform-operator/billing + details in the invoice email (sendInvoice refuses without them) and on /company-admin/billing.
+- claude/egm-review-fixes (2026-10-31): fixes from the Elephant-Goldfish review (Google's EGM plugin; Codex ran it independently on docs/, fresh Claude goldfish reviewers on the vault and code; reports in docs/reviews/2026-10-31-egm). Migration 20261031110358 LIVE (read back). Fixed: buyer reads only payment applications from move-in on or on charges they can see; email holds admin-only for operators; vendor/owner can't post work order messages as someone else (author set by trigger); pets/tenants can't point at another company's unit; vendors read calendar only through vendor_calendar_events (no staff fields); email hold matches whole addresses (jo@x.com no longer held by bjo@x.com); vendor logins never linked by email; staff can't insert a pre-decided approval request; general board approval requests get a decision form (they could never be decided); bills re-check board routing at submit; chart of accounts written only by company admin/operator (Product Rules); owner ledger pages past 1,000 rows; a late Stripe "succeeded" can't undo a bank return; 9 stale docs bannered OUT OF DATE. Not done (features, Mirsad to prioritise): board elections/online voting, mailed owner statements/coupons, texting tenants, scheduled bank-feed sync, 18 board pages that redirect.
+
+## Merged 2026-10-27
+- #419 companies pay Portier369 by ACH (Mirsad 2026-10-27). platform_remittance (20261027020000 LIVE, empty) + operator form on /platform-operator/billing + details in the invoice email (sendInvoice refuses without them) and on /company-admin/billing.
 
 ## Merged 2026-10-26 (late)
 - #417 bank reconciliation browser test (e2e/tests/07-bank-reconciliation.spec.ts); 33 browser tests. Codex stalled ~2h on "running"; a fresh "@codex review" comment got a clean review.
