@@ -32,7 +32,7 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
     db.from('v_unit_account_summary').select('*').eq('unit_id', p.unit_id).maybeSingle(),
   ]);
   const assoc = p.units?.buildings?.associations;
-  const company = assoc?.portfolios?.company_name ?? 'Management office';
+  const company = assoc?.portfolios?.company_name ?? 'Your management company';
   const ownerNames = payer?.owner_name ?? '';
   const balanceDue = balance ? Number(balance.outstanding_balance ?? 0) - Number(balance.unapplied_credit ?? 0) : null;
   const receiptNo = String(p.id).slice(0, 8).toUpperCase();

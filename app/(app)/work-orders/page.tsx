@@ -220,7 +220,7 @@ export default async function WorkOrdersPage({
   ];
 
   // ── Export (mirrors the on-screen table, same tab + filters) ──
-  const companyName = me.portfolio?.company_name ?? 'Management company';
+  const companyName = me.portfolio?.company_name ?? 'Your management company';
   const exportStamp = todayInZone();
   const exportTable: ExportTable = {
     columns: [

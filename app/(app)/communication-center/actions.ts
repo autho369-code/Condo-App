@@ -143,7 +143,7 @@ async function resolveRecipients(db: any, msg: any): Promise<Recipient[]> {
     });
     if (out.length === 0 && msg.portfolio_id) {
       const { data: pf } = await db.from('portfolios').select('support_email, company_name').eq('id', msg.portfolio_id).maybeSingle();
-      if (pf?.support_email) out.push({ email: pf.support_email, name: pf.company_name ?? 'Management office' });
+      if (pf?.support_email) out.push({ email: pf.support_email, name: pf.company_name ?? 'Your management company' });
     }
   }
 

@@ -171,7 +171,7 @@ export default async function ServiceRequestsPage({
       actions={(
         <ExportActions
           documentTitle="Service Requests"
-          companyName={me.portfolio?.company_name ?? 'Management company'}
+          companyName={me.portfolio?.company_name ?? 'Your management company'}
           filename={`service-requests-${todayInZone()}`}
           tables={[exportTable]}
         />

@@ -206,7 +206,7 @@ export default async function OwnersPage({
   const shownTenants = tenantMatches.slice(0, RENDER_CAP);
 
   // ── Export (mirrors the active view's on-screen list, same filters) ──
-  const companyName = me.portfolio?.company_name ?? 'Management company';
+  const companyName = me.portfolio?.company_name ?? 'Your management company';
   const exportStamp = todayInZone();
   const exportTable: ExportTable =
     view === 'tenants'

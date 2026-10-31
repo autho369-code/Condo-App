@@ -61,6 +61,8 @@
 - Adding FK columns to a BEFORE UPDATE OF trigger's column list (unit_row_same_company + owner_id/tenant_id, 20261031170000:189,193) exposes it to ON DELETE SET NULL cascades from those parents; during unit/company purges the lookup rows are already gone -> raise. Validate only keys that changed to non-null.
 - Restrictive policies AND together: before accepting a new "looser" restrictive (operator_may_write(true)), grep existing restrictive ones on the table (operator_writes_own_rows_* = admin-only on login_attempts/user_sessions, admin OR own-row on profiles UPDATE). Net effect may be nil or only remove the own-row exception.
 
+- "Inline subquery -> rls_private helper" policy rewrites: the old `exists(select .. from parent)` silently enforced the parent's RLS (company scope). A DEFINER helper must re-encode it; Product Rules say INVOKER. 20261031180000:210 my_managed_vendor_ids dropped the vendor company check (no vendor trigger on document_requests). Diff each helper vs parent SELECT policies.
+
 ## Topic files
 - [Review lessons](review-lessons.md) — more misses: definer->join swaps, DML revokes, side tables, status sync, tenure scope, scheduler holds, freeze guards, AutoPay late-fee holds
 - [Schedulers and local dates](schedulers-and-dates.md) — association_local_date cost traps, suspension pauses, recurring catch-up, scheduled-report takeover
