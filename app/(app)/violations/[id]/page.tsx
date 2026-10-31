@@ -17,6 +17,7 @@ import { ViolationLettersList } from '@/components/violations/letters-list';
 import { markViolationLetterMailed, sendCurrentStepLetter } from '@/lib/rpcs/violation-rules';
 import { signLetterLinks, VIOLATION_LETTER_COLUMNS, type ViolationLetterRow } from '@/lib/violations/letter-links';
 import { formatInZone } from '@/lib/time/zoned';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 
 export const dynamic = 'force-dynamic';
 
@@ -187,6 +188,7 @@ export default async function ViolationDetailPage({
             {currentStep > 0 && (
               <form action={sendCurrentStepLetter} className="shrink-0">
                 <input type="hidden" name="id" value={violation.id} />
+                <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
                 <Button type="submit" size="sm" variant={currentStepLetterMissing || currentStepEmailPending ? 'primary' : 'secondary'}>
                   {currentStepLetterMissing ? 'Send missing letter for this step' : currentStepEmailPending ? 'Retry the email for this step' : "Email this step's letter again"}
                 </Button>

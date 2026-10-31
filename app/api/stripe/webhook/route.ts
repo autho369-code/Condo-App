@@ -562,10 +562,20 @@ export async function POST(request: NextRequest) {
           const paymentId = await postLedgerPayment(svc, intent, 'card', obj.payment_intent, stripeAccount);
           updates.status = 'succeeded';
           updates.succeeded_at = now;
+          updates.failure_reason = null;
           updates.payment_id = paymentId;
           updates.method = intent.method ?? 'card';
-        } else if (intent.status === 'pending') {
-          updates.status = 'processing'; // ACH: awaiting settlement
+        } else if (intent.status === 'pending'
+          || (intent.status === 'failed'
+              && intent.processor_payment_intent_id === obj.payment_intent
+              && Number(event.created) * 1000 > Date.parse(intent.updated_at ?? ''))) {
+          // ACH: awaiting settlement. A card declined earlier inside this same
+          // Checkout session left the intent 'failed'; the session completing
+          // with a bank payment AFTER that decline puts it back in flight. (A
+          // late retry of an older completion never revives a payment that
+          // failed since: Stripe keeps an event's original created time.)
+          updates.status = 'processing';
+          updates.failure_reason = null;
         }
         const { error: updateError } = await svc.from('payment_intents').update(updates).eq('id', intentId)
           .not('status', 'in', '("refunded","chargeback","returned","canceled")');
@@ -694,15 +704,22 @@ export async function POST(request: NextRequest) {
         if (failedIntent.processor_livemode !== null && failedIntent.processor_livemode !== event.livemode) {
           throw new Error('Failed payment mode does not match the payment intent');
         }
+        // Only an attempt still in flight can fail: a late decline must never
+        // undo a success, refund, dispute, bank return or cancellation. The
+        // Stripe PaymentIntent id is kept so a Checkout session that later
+        // completes with another method can recognise this attempt.
         const { data: failedRows, error: failedUpdateError } = await svc.from('payment_intents').update({
           status: 'failed',
           failure_reason: obj.last_payment_error?.message ?? 'Payment failed',
+          processor_payment_intent_id: failedIntent.processor_payment_intent_id ?? obj.id,
           processor_account_id: stripeAccount,
           processor_livemode: event.livemode,
           updated_at: now,
-        }).eq('id', failedIntent.id).neq('status', 'succeeded').select('id');
+        }).eq('id', failedIntent.id).in('status', ['pending', 'processing']).select('id');
         if (failedUpdateError) throw new Error(`Failed payment update failed: ${failedUpdateError.message}`);
-        if ((failedRows ?? []).length > 0) {
+        // A retry of this event after finishing the AutoPay run failed finds
+        // the intent already 'failed': finish the run then too (idempotent).
+        if ((failedRows ?? []).length > 0 || failedIntent.status === 'failed') {
           await finalizeAutopayRun(
             svc,
             obj,
@@ -735,18 +752,58 @@ export async function POST(request: NextRequest) {
           throw new Error('Refund amount or currency does not match the local payment');
         }
         const isFullRefund = refundCents === originalCents && obj.refunded === true;
-        const { error: refundUpdateError } = await svc.from('payment_intents').update({
-          status: isFullRefund ? 'refunded' : refundedIntent.status,
+        // A dispute outranks a refund: keep 'chargeback' so the dispute stays
+        // visible (the refund is still recorded below for review).
+        const keepStatus = !isFullRefund || refundedIntent.status === 'chargeback';
+        const refundUpdate = svc.from('payment_intents').update({
+          ...(keepStatus ? {} : { status: 'refunded' }),
           failure_reason: `${isFullRefund ? 'Refund' : 'Partial refund'} recorded in Stripe — review the owner ledger for an offsetting adjustment.`,
           updated_at: now,
         }).eq('id', refundedIntent.id);
+        const { error: refundUpdateError } = keepStatus
+          ? await refundUpdate
+          : await refundUpdate.neq('status', 'chargeback');
         if (refundUpdateError) throw new Error(`Refund status update failed: ${refundUpdateError.message}`);
+        // Record each Stripe refund once, by its own id and amount
+        // (charge.amount_refunded is cumulative, so recording it per event
+        // double-counted). Retries and concurrent events upsert the same rows.
+        const refundList = obj.refunds?.data;
+        if (Array.isArray(refundList) && refundList.length > 0 && !obj.refunds?.has_more) {
+          for (const refund of refundList) {
+            const cents = Number(refund?.amount);
+            if (typeof refund?.id !== 'string' || !refund.id.startsWith('re_') || !Number.isSafeInteger(cents) || cents <= 0) continue;
+            if (refund.status && !['succeeded', 'pending'].includes(String(refund.status))) continue;
+            const { error: refundRowError } = await svc.from('payment_processor_adjustments').upsert({
+              stripe_event_id: `refund:${refund.id}`,
+              payment_intent_id: refundedIntent.id,
+              processor_account_id: stripeAccount,
+              adjustment_type: 'refund',
+              amount: cents / 100,
+              currency: String(obj.currency ?? 'usd').toLowerCase(),
+              reason: refund.reason ?? null,
+            }, { onConflict: 'stripe_event_id' });
+            if (refundRowError) throw new Error(`Refund review creation failed: ${refundRowError.message}`);
+          }
+          break;
+        }
+        // No refund list on the event (or more refunds than it carries):
+        // record only what this event adds on top of what is recorded.
+        const { data: earlierRefunds, error: earlierRefundsError } = await svc.from('payment_processor_adjustments')
+          .select('amount')
+          .eq('payment_intent_id', refundedIntent.id)
+          .eq('adjustment_type', 'refund')
+          .neq('stripe_event_id', event.id);
+        if (earlierRefundsError) throw new Error(`Earlier refunds lookup failed: ${earlierRefundsError.message}`);
+        const recordedCents = (earlierRefunds ?? [])
+          .reduce((sum: number, row: { amount: unknown }) => sum + usdDollarsToCents(row.amount), 0);
+        const newRefundCents = refundCents - recordedCents;
+        if (newRefundCents <= 0) break;
         const { error: adjustmentError } = await svc.from('payment_processor_adjustments').upsert({
           stripe_event_id: event.id,
           payment_intent_id: refundedIntent.id,
           processor_account_id: stripeAccount,
           adjustment_type: 'refund',
-          amount: refundCents / 100,
+          amount: newRefundCents / 100,
           currency: String(obj.currency ?? 'usd').toLowerCase(),
           reason: obj.refunds?.data?.[0]?.reason ?? null,
         }, { onConflict: 'stripe_event_id' });

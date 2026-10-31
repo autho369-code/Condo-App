@@ -12,10 +12,17 @@ const HEADERS = [
   'move_in_date',
 ];
 
-const EXAMPLE = ['101', 'Jane', 'Doe', 'jane.doe@example.com', '(312) 555-0100', '100', '350.00', '2024-01-15'];
+// ownership_pct is the UNIT's share of the whole association (all units add
+// up to 100), not the owner's share of the unit. A co-owner row repeats the
+// unit and can leave ownership_pct and monthly_dues blank: the first owner
+// row of a unit is its primary owner and carries the unit's dues.
+const EXAMPLES = [
+  ['101', 'Jane', 'Doe', 'jane.doe@example.com', '(312) 555-0100', '1.25', '350.00', '2024-01-15'],
+  ['101', 'John', 'Doe', 'john.doe@example.com', '', '', '', '2024-01-15'],
+];
 
 export function GET() {
-  const csv = `${HEADERS.join(',')}\n${EXAMPLE.join(',')}\n`;
+  const csv = `${[HEADERS, ...EXAMPLES].map((row) => row.join(',')).join('\n')}\n`;
   return new NextResponse(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',

@@ -16,7 +16,9 @@ import { requireStaff } from '@/lib/auth/me';
 import { todayInZone } from '@/lib/time/zoned';
 import { escapeLike } from '@/lib/db/escape-like';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
-import { withImportLock } from '@/lib/imports/import-lock';
+import { IMPORT_LOCK_HELD_MESSAGE, withImportLock } from '@/lib/imports/import-lock';
+import { importUnitKey } from '@/lib/imports/unit-key';
+import { parseHomeownerPct } from '@/lib/imports/appfolio-homeowners';
 import { OPENING_ENTRY_POSTED_MESSAGE, openingEntryPosted } from '@/lib/imports/opening-entry';
 
 export type ImportSummary = { imported: number; skipped: number; errors?: string[] };
@@ -83,170 +85,276 @@ export async function importOwners(
   if (assocErr || !association) {
     return { imported: 0, skipped: rows.length, errors: [assocErr ? `Could not check the association: ${assocErr.message}` : 'That association was not found or is outside your access.'] };
   }
-
-  const building = await ensureBuilding(db, associationId);
-  if ('error' in building) {
-    return { imported: 0, skipped: rows.length, errors: [`Could not resolve a building: ${building.error}`] };
+  const portfolioId: string | null = association.portfolio_id ?? null;
+  if (!portfolioId) {
+    return { imported: 0, skipped: rows.length, errors: ['That association is not linked to a company, so owners cannot be imported into it.'] };
   }
-  const buildingId = building.id;
 
-  // Cache units we resolve/create this run so multiple owners on the same unit
-  // (e.g. co-owners) don't each create a duplicate unit.
-  const unitCache = new Map<string, string>();
-  // Units whose dues were scheduled by an earlier row of this file: co-owners
-  // share the unit's one dues schedule, so a later co-owner row leaves it alone.
-  const duesScheduledUnits = new Map<string, number>();
-  // Emails created earlier in this run (lower-cased) — a repeat is a duplicate too.
-  const seenEmails = new Set<string>();
-  let imported = 0;
-  let skipped = 0;
-  const errors: string[] = [];
+  // The same lock as the previous-system homeowner import: two runs (a double
+  // click, a second tab, or both importers at once) must not both create the
+  // same units and owners.
+  try {
+    return await withImportLock(db, portfolioId, 'appfolio_homeowners', async () => {
+      // Every unit of the association, in any of its buildings, keyed the way
+      // the previous-system imports match them ("3817 - 1" = "3817-1"). Paged:
+      // a missed unit would be created twice. A number used in more than one
+      // building is ambiguous: such rows are skipped.
+      const { rows: existingUnits, error: unitsErr } = await fetchAllRows<any>(() => db
+        .from('units')
+        .select('id, unit_number, ownership_pct, buildings!inner(association_id)')
+        .eq('buildings.association_id', associationId)
+        .is('archived_at', null)
+        .order('id'));
+      if (unitsErr) return { imported: 0, skipped: rows.length, errors: [`Could not load the association's units: ${unitsErr}`] };
+      const unitByKey = new Map<string, { id: string; pct: number }>();
+      const ambiguousUnits = new Set<string>();
+      for (const u of existingUnits ?? []) {
+        const k = importUnitKey(u.unit_number);
+        if (unitByKey.has(k)) ambiguousUnits.add(k);
+        else unitByKey.set(k, { id: u.id, pct: Number(u.ownership_pct ?? 0) });
+      }
+      for (const k of ambiguousUnits) unitByKey.delete(k);
 
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i];
-    const line = i + 1;
-    const unitNumber = clean(r.unit_number);
-    const firstName = clean(r.owner_first_name);
-    const lastName = clean(r.owner_last_name);
-    const email = clean(r.owner_email);
+      // Current owners of those units: a unit that already has one keeps its
+      // primary owner and its dues.
+      const { rows: currentOwners, error: occupancyErr } = await fetchAllRows<any>(() => db
+        .from('occupancies')
+        .select('id, unit_id, dues_amount')
+        .eq('association_id', associationId)
+        .eq('occupancy_type', 'owner')
+        .eq('status', 'current')
+        .order('id'));
+      if (occupancyErr) return { imported: 0, skipped: rows.length, errors: [`Could not load the current homeowners: ${occupancyErr}`] };
+      // Per unit: whether it has a current owner, and the dues already set on it.
+      const unitStates = new Map<string, { hasOwner: boolean; dues: number | null }>();
+      const unitState = (unitId: string) => {
+        let s = unitStates.get(unitId);
+        if (!s) { s = { hasOwner: false, dues: null }; unitStates.set(unitId, s); }
+        return s;
+      };
+      for (const o of currentOwners ?? []) {
+        const s = unitState(o.unit_id);
+        s.hasOwner = true;
+        if (Number(o.dues_amount ?? 0) > 0 && s.dues === null) s.dues = Number(o.dues_amount);
+      }
 
-    if (!unitNumber || !firstName || !lastName || !email) {
-      skipped++;
-      errors.push(`Row ${line}: missing required field (unit_number, owner_first_name, owner_last_name, owner_email).`);
-      continue;
-    }
+      // The unit's dues, whichever of its rows carries them (a co-owner row
+      // often leaves monthly_dues blank).
+      // (Keyed the same way rows look units up; negative dues are ignored.)
+      const duesByUnit = new Map<string, number>();
+      for (const r of rows) {
+        const k = importUnitKey(clean(r.unit_number).slice(0, 40));
+        const d = num(r.monthly_dues);
+        if (k && d !== null && d >= 0 && !duesByUnit.has(k)) duesByUnit.set(k, d);
+      }
 
-    // Never create a second owner record for an email this association already
-    // has. A homeowner record belongs to one association, so the same person
-    // owning in another association of the company is a separate record.
-    const emailKey = email.toLowerCase();
-    if (seenEmails.has(emailKey)) {
-      skipped++;
-      errors.push(`Row ${line} (${unitNumber} / ${email}): duplicate — this email appears on an earlier row. Link the extra unit from the owner's page.`);
-      continue;
-    }
-    const { data: existingOwner, error: dupErr } = await db
-      .from('owners')
-      .select('id')
-      .eq('association_id', associationId)
-      .ilike('email', escapeLike(email))
-      .is('archived_at', null)
-      .limit(1)
-      .maybeSingle();
-    if (dupErr) {
-      skipped++;
-      errors.push(`Row ${line} (${unitNumber} / ${email}): could not check for an existing owner: ${dupErr.message}`);
-      continue;
-    }
-    if (existingOwner) {
-      skipped++;
-      errors.push(`Row ${line} (${unitNumber} / ${email}): duplicate — a homeowner of this association with this email already exists. Link the unit from that owner's page.`);
-      continue;
-    }
+      // ownership_pct is each unit's share of the association. A file made
+      // from the old template put the OWNER's share there (100, or 50 for
+      // co-owners); the units' shares would then add up to far more than
+      // 100%. In that case no unit percentage is taken from the file.
+      const pctByUnit = new Map<string, number>();
+      for (const r of rows) {
+        const k = importUnitKey(clean(r.unit_number).slice(0, 40));
+        const p = parseHomeownerPct(clean(r.ownership_pct));
+        if (k && p !== null && !pctByUnit.has(k)) pctByUnit.set(k, p);
+      }
+      const filePctTotal = [...pctByUnit.values()].reduce((a, b) => a + b, 0);
+      const usePctFromFile = filePctTotal <= 100.5;
+      const pctWarning = usePctFromFile ? null : (`ownership_pct: the units' percentages in this file add up to ${Math.round(filePctTotal * 100) / 100}%, more than 100%, so it looks like each owner's share rather than each unit's share of the association. No unit's ownership % was changed; set them on the units page.`);
 
-    try {
-      // find-or-create the unit by unit_number within this building
-      let unitId = unitCache.get(unitNumber);
-      if (!unitId) {
-        const { data: foundUnit, error: unitFindErr } = await db
-          .from('units')
+      let buildingId: string | null = null;
+      // Emails created earlier in this run (lower-cased) — a repeat is a duplicate too.
+      const seenEmails = new Set<string>();
+      let imported = 0;
+      let skipped = 0;
+      let pctFilled = 0;
+      const errors: string[] = [];
+      if (pctWarning) errors.push(pctWarning);
+
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const line = i + 1;
+        const unitNumber = clean(r.unit_number).slice(0, 40);
+        const firstName = clean(r.owner_first_name);
+        const lastName = clean(r.owner_last_name);
+        const email = clean(r.owner_email);
+
+        if (!unitNumber || !firstName || !lastName || !email) {
+          skipped++;
+          errors.push(`Row ${line}: missing required field (unit_number, owner_first_name, owner_last_name, owner_email).`);
+          continue;
+        }
+        const label = `Row ${line} (${unitNumber} / ${email})`;
+        const key = importUnitKey(unitNumber);
+        if (ambiguousUnits.has(key)) {
+          skipped++;
+          errors.push(`${label}: unit "${unitNumber}" exists in more than one building; link this owner by hand.`);
+          continue;
+        }
+
+        // Never create a second owner record for an email this association already
+        // has. A homeowner record belongs to one association, so the same person
+        // owning in another association of the company is a separate record.
+        const emailKey = email.toLowerCase();
+        if (seenEmails.has(emailKey)) {
+          skipped++;
+          errors.push(`${label}: duplicate — this email appears on an earlier row. Link the extra unit from the owner's page.`);
+          continue;
+        }
+        const { data: existingOwner, error: dupErr } = await db
+          .from('owners')
           .select('id')
-          .eq('building_id', buildingId)
-          .eq('unit_number', unitNumber)
+          .eq('association_id', associationId)
+          .ilike('email', escapeLike(email))
           .is('archived_at', null)
+          .limit(1)
           .maybeSingle();
-        if (unitFindErr) throw new Error(unitFindErr.message);
-        if (foundUnit) {
-          unitId = foundUnit.id;
-        } else {
-          const ownershipPct = num(r.ownership_pct) ?? 0;
-          const { data: newUnit, error: unitErr } = await db
-            .from('units')
-            .insert({ building_id: buildingId, unit_number: unitNumber, ownership_pct: ownershipPct })
+        if (dupErr) {
+          skipped++;
+          errors.push(`${label}: could not check for an existing owner: ${dupErr.message}`);
+          continue;
+        }
+        if (existingOwner) {
+          skipped++;
+          errors.push(`${label}: duplicate — a homeowner of this association with this email already exists. Link the unit from that owner's page.`);
+          continue;
+        }
+
+        // ownership_pct is the UNIT's share of the association (assessments and
+        // votes are split by it), as in the previous-system import: it fills a
+        // new unit, or an existing unit still at 0, and is never overwritten.
+        const rawPct = clean(r.ownership_pct);
+        const pct = usePctFromFile ? parseHomeownerPct(rawPct) : null;
+        if (usePctFromFile && rawPct && pct === null) {
+          errors.push(`${label}: ownership_pct "${rawPct}" is not a percentage above 0 and up to 100; the unit's ownership % was left as it is.`);
+        }
+
+        try {
+          // Find the unit in any building of the association, or create it.
+          let unit = unitByKey.get(key);
+          if (!unit) {
+            if (!buildingId) {
+              const building = await ensureBuilding(db, associationId);
+              if ('error' in building) throw new Error(`Could not resolve a building: ${building.error}`);
+              buildingId = building.id;
+            }
+            const { data: newUnit, error: unitErr } = await db
+              .from('units')
+              .insert({ building_id: buildingId, unit_number: unitNumber, ownership_pct: pct ?? 0 })
+              .select('id')
+              .single();
+            if (unitErr || !newUnit) throw new Error(unitErr?.message ?? 'unit insert failed');
+            unit = { id: String(newUnit.id), pct: pct ?? 0 };
+            unitByKey.set(key, unit);
+          }
+          const unitId = unit.id;
+
+          // create the owner (an exported "Mobile: ..., Home: ..." cell becomes separate numbers)
+          const phones = parseLabeledPhones(clean(r.owner_phone));
+          const fullName = [firstName, lastName].filter(Boolean).join(' ');
+          const { data: owner, error: ownerErr } = await db
+            .from('owners')
+            .insert({
+              // The record belongs to this association; the database derives
+              // portfolio_id from it as well.
+              association_id: associationId,
+              portfolio_id: portfolioId,
+              first_name: firstName,
+              last_name: lastName,
+              full_name: fullName,
+              email,
+              phone: phones.primary,
+              phone_numbers: phones.entries,
+              preferred_comm: 'email',
+              created_by: me.auth_user_id,
+            })
             .select('id')
             .single();
-          if (unitErr || !newUnit) throw new Error(unitErr?.message ?? 'unit insert failed');
-          unitId = newUnit.id;
+          if (ownerErr || !owner) throw new Error(ownerErr?.message ?? 'owner insert failed');
+
+          // The occupancy. Only the unit's first owner is primary; the unit's
+          // dues live on the one occupancy that carries the schedule, so a
+          // co-owner (or an owner added to a unit that already has dues)
+          // stores none. share_pct is the owner's share of the unit (100, as
+          // in the previous-system import), not the unit's percentage.
+          const state = unitState(unitId);
+          const unitDues = duesByUnit.get(key) ?? null;
+          const carriesDues = state.dues === null && unitDues !== null;
+          const moveIn = toDate(r.move_in_date);
+          const { data: occRow, error: occErr } = await db.from('occupancies').insert({
+            owner_id: owner.id,
+            unit_id: unitId,
+            association_id: associationId,
+            occupancy_type: 'owner',
+            status: 'current',
+            is_primary: !state.hasOwner,
+            share_pct: 100,
+            dues_amount: carriesDues ? unitDues : 0,
+            dues_frequency: 'monthly',
+            move_in_date: moveIn,
+          }).select('id').single();
+          if (occErr || !occRow) {
+            // Don't leave an owner with no unit behind: remove the record just created.
+            const { error: undoErr } = await db.from('owners').delete().eq('id', owner.id).select('id');
+            const why = occErr?.message ?? 'could not link the owner to the unit';
+            throw new Error(
+              undoErr
+                ? `${why} (the owner record was created but could not be removed: ${undoErr.message})`
+                : `${why} (owner not created)`,
+            );
+          }
+          state.hasOwner = true;
+
+          // Bill the monthly dues once per unit; a failure keeps the owner but is reported.
+          const rowDues = num(r.monthly_dues);
+          if (carriesDues) {
+            const duesErr = await scheduleOwnerDues(db, occRow.id, moveIn);
+            if (duesErr) {
+              // Leave this link without dues, so a later co-owner row (or a fix
+              // by hand) can carry them, instead of an amount nothing bills.
+              const { error: resetErr } = await db.from('occupancies').update({ dues_amount: 0 }).eq('id', occRow.id);
+              errors.push(resetErr
+                ? `${label}: owner imported, but ${duesErr}, and the dues amount could not be cleared (${resetErr.message}). Fix the unit's dues by hand.`
+                : `${label}: owner imported, but ${duesErr}. Set the unit's dues by hand.`);
+            } else {
+              state.dues = unitDues;
+            }
+          } else if (rowDues !== null && state.dues !== null && rowDues !== state.dues) {
+            // Co-owners share one dues schedule: flag a conflicting amount
+            // instead of silently picking one.
+            errors.push(`${label}: owner imported, but monthly_dues ${rowDues} conflicts with ${state.dues} already set for this unit; kept ${state.dues}. Fix the unit's dues if that is wrong.`);
+          }
+
+          // Ownership %: only while the unit's is still 0 (never overwrite one someone set).
+          if (pct !== null && unit.pct === 0) {
+            const { data: changed, error: pctErr } = await db.from('units').update({ ownership_pct: pct })
+              .eq('id', unitId).eq('ownership_pct', 0).select('id');
+            if (pctErr) errors.push(`${label}: owner imported, but the unit's ownership % was not set: ${pctErr.message}`);
+            else if (changed?.length) { unit.pct = pct; pctFilled++; }
+          }
+
+          seenEmails.add(emailKey);
+          imported++;
+        } catch (err: any) {
+          skipped++;
+          errors.push(`${label}: ${err?.message ?? 'failed'}`);
         }
-        unitCache.set(unitNumber, unitId!);
       }
 
-      // create the owner (an exported "Mobile: …, Home: …" cell becomes separate numbers)
-      const phones = parseLabeledPhones(clean(r.owner_phone));
-      const fullName = [firstName, lastName].filter(Boolean).join(' ');
-      const { data: owner, error: ownerErr } = await db
-        .from('owners')
-        .insert({
-          // The record belongs to this association; the database derives
-          // portfolio_id from it as well.
-          association_id: associationId,
-          portfolio_id: association.portfolio_id,
-          first_name: firstName,
-          last_name: lastName,
-          full_name: fullName,
-          email,
-          phone: phones.primary,
-          phone_numbers: phones.entries,
-          preferred_comm: 'email',
-          created_by: me.auth_user_id,
-        })
-        .select('id')
-        .single();
-      if (ownerErr || !owner) throw new Error(ownerErr?.message ?? 'owner insert failed');
-
-      // create the occupancy (owner, current, primary)
-      const { data: occRow, error: occErr } = await db.from('occupancies').insert({
-        owner_id: owner.id,
-        unit_id: unitId,
-        association_id: associationId,
-        occupancy_type: 'owner',
-        status: 'current',
-        is_primary: true,
-        share_pct: num(r.ownership_pct) ?? 100,
-        dues_amount: num(r.monthly_dues) ?? 0,
-        dues_frequency: 'monthly',
-        move_in_date: toDate(r.move_in_date),
-      }).select('id').single();
-      if (occErr) {
-        // Don't leave an owner with no unit behind: remove the record just created.
-        const { error: undoErr } = await db.from('owners').delete().eq('id', owner.id).select('id');
-        throw new Error(
-          undoErr
-            ? `${occErr.message} (the owner record was created but could not be removed: ${undoErr.message})`
-            : `${occErr.message} (owner not created)`,
-        );
-      }
-
-      // Bill the monthly dues; a failure here keeps the owner but is reported.
-      const moveIn = toDate(r.move_in_date);
-      // Blank dues (e.g. a co-owner row) leave the unit's dues alone; any
-      // value, including an explicit 0, sets them (0 stops the old dues).
-      const duesGiven = num(r.monthly_dues);
-      const duesAmount = duesGiven ?? 0;
-      let duesErr: string | null = null;
-      const scheduledAmount = duesScheduledUnits.get(unitId!);
-      if (occRow?.id && duesGiven !== null && scheduledAmount === undefined) {
-        duesErr = await scheduleOwnerDues(db, occRow.id, moveIn);
-        if (!duesErr) duesScheduledUnits.set(unitId!, duesAmount);
-      } else if (duesGiven !== null && scheduledAmount !== undefined && scheduledAmount !== duesAmount) {
-        // Co-owners share one dues schedule: flag a conflicting amount
-        // instead of silently picking one.
-        duesErr = `dues: monthly_dues ${duesAmount} conflicts with ${scheduledAmount} on an earlier row for this unit; kept ${scheduledAmount}. Fix the unit's dues if that is wrong.`;
-      }
-      if (duesErr) errors.push(`Row ${line} (${unitNumber} / ${email}): owner imported, but ${duesErr}`);
-
-      seenEmails.add(emailKey);
-      imported++;
-    } catch (err: any) {
-      skipped++;
-      errors.push(`Row ${line} (${unitNumber} / ${email}): ${err?.message ?? 'failed'}`);
+      if (pctFilled) errors.unshift(`${pctFilled} existing unit${pctFilled === 1 ? '' : 's'} had no ownership % and now have the one from the file.`);
+      revalidatePath('/owners');
+      revalidatePath('/units');
+      revalidatePath(`/associations/${associationId}/units`);
+      return { imported, skipped, errors: errors.length ? errors : undefined };
+    });
+  } catch (e) {
+    const why = e instanceof Error ? e.message : 'The import failed.';
+    // The lock was not taken: nothing was written.
+    if (why === IMPORT_LOCK_HELD_MESSAGE || why.startsWith('Could not start the import')) {
+      return { imported: 0, skipped: rows.length, errors: [why] };
     }
+    return { imported: 0, skipped: rows.length, errors: [`${why} Some owners may already have been added; check the owner list before importing again.`] };
   }
-
-  revalidatePath('/owners');
-  revalidatePath('/units');
-  revalidatePath(`/associations/${associationId}/units`);
-  return { imported, skipped, errors: errors.length ? errors : undefined };
 }
 
 export async function importOpeningBalances(
@@ -433,7 +541,7 @@ export async function importAppfolioUnits(
       // Unit numbers compare case-insensitively, ignoring spacing around dashes ("3817 - 1" =
       // "3817-1"), the same key the homeowner and open-balance imports use. A number used in
       // more than one building is ambiguous: such rows are left alone.
-      const unitKey = (v: unknown) => clean(v).toLowerCase().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ');
+      const unitKey = importUnitKey;
       const have = new Map<string, { id: string; pct: number }>();
       const ambiguous = new Set<string>();
       // Shares of the extra units behind an ambiguous number: not matchable, but they still

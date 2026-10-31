@@ -78,18 +78,35 @@ async function unitCredit(svc: any, unitId: string): Promise<number> {
 // ledger (ACH in flight, card awaiting the webhook, a checkout opened in the
 // last day). Without this AutoPay charged the same balance again, and a
 // co-owner's mandate charged what the first mandate had just collected.
-async function inFlightAmount(svc: any, unitId: string): Promise<number> {
+// `excludeIntentId` is this run's own intent (its id is the run id): a retried
+// run must not count its own unsubmitted attempt, or it computes $0 and is
+// marked skipped without ever charging.
+async function inFlightAmount(svc: any, unitId: string, excludeIntentId?: string | null): Promise<number> {
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-  const { data, error } = await svc
+  let query = svc
     .from('payment_intents')
     .select('amount, status, created_at')
     .eq('unit_id', unitId)
     .is('payment_id', null)
     .in('status', ['pending', 'processing', 'succeeded']);
+  if (excludeIntentId) query = query.neq('id', excludeIntentId);
+  const { data, error } = await query;
   if (error) throw new Error(`pending payments could not be read: ${error.message}`);
   return ((data ?? []) as Array<{ amount: number; status: string; created_at: string }>)
     .filter((i) => i.status !== 'pending' || i.created_at >= since)
     .reduce((s, i) => s + Number(i.amount ?? 0), 0);
+}
+
+/** The run already recorded for this mandate and date, if any (retries). */
+async function existingRunId(svc: any, mandateId: string, scheduledFor: string): Promise<string | null> {
+  const { data, error } = await svc
+    .from('stripe_autopay_runs')
+    .select('id')
+    .eq('mandate_id', mandateId)
+    .eq('scheduled_for', scheduledFor)
+    .maybeSingle();
+  if (error) throw new Error(`earlier AutoPay run could not be read: ${error.message}`);
+  return data?.id ? String(data.id) : null;
 }
 
 async function claimRun(svc: any, mandateId: string, scheduledFor: string) {
@@ -150,11 +167,18 @@ export async function GET(request: NextRequest) {
     if (scheduledFor > today) continue; // not yet the run day where the association is
     summary.due++;
     const runAt = new Date().toISOString();
-    // The next run is next month on the association's calendar (not UTC's:
-    // late on the last day of a month UTC is already in the next one).
+    // The next run counts from the SCHEDULED date, so a late run (a retry,
+    // the cron down a day) doesn't skip the following month - but from no
+    // earlier than one month before today, so a mandate that waited months
+    // (association not yet live on Stripe, company suspended) catches up at
+    // most one missed month, never one charge per missed month.
+    const monthAgo = new Date(`${today}T12:00:00Z`);
+    monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
+    const scheduledAt = new Date(`${scheduledFor}T12:00:00Z`);
+    const nextRunDate = nextMonthlyRunDate(m.day_of_month, scheduledAt > monthAgo ? scheduledAt : monthAgo);
     const advance = () => svc
       .from('autopay_mandates')
-      .update({ next_run_date: nextMonthlyRunDate(m.day_of_month, new Date(`${today}T12:00:00Z`)), last_run_at: runAt })
+      .update({ next_run_date: nextRunDate, last_run_at: runAt })
       .eq('id', m.id)
       .eq('next_run_date', scheduledFor)
       .eq('status', 'active');
@@ -238,7 +262,9 @@ export async function GET(request: NextRequest) {
     // ── Amount per mode ─────────────────────────────────────────
     let amountCents = 0;
     try {
-      const pending = m.mode === 'fixed' ? 0 : await inFlightAmount(svc, m.unit_id);
+      const pending = m.mode === 'fixed'
+        ? 0
+        : await inFlightAmount(svc, m.unit_id, await existingRunId(svc, m.id, scheduledFor));
       if (m.mode === 'fixed') {
         amountCents = m.fixed_amount_cents ?? 0;
       } else if (m.mode === 'recurring_only' || m.mode === 'special_only') {

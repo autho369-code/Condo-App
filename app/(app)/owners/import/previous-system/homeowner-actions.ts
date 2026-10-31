@@ -36,6 +36,7 @@ import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
 import { IMPORT_LOCK_HELD_MESSAGE, withImportLock } from '@/lib/imports/import-lock';
 import { homeownerName, parseDues, parseHomeownerPct } from '@/lib/imports/appfolio-homeowners';
 import { splitEmails } from '@/lib/imports/appfolio-vendors';
+import { importUnitKey } from '@/lib/imports/unit-key';
 import type { ImportSummary } from '../actions';
 
 /** What the action needs from each parsed homeowner (extra fields are ignored). */
@@ -57,7 +58,7 @@ const PAGE = 1000;
 
 const clean = (v: unknown): string => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v).trim());
 /** Unit numbers compare case-insensitively, ignoring spacing around dashes ("3817 - 1" = "3817-1"). */
-const unitKey = (v: unknown) => clean(v).toLowerCase().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ');
+const unitKey = importUnitKey;
 /** Names compare on letters and digits only, in any script ("Leon & Ariel Abbey" = "leonarielabbey"). */
 const nameKey = (v: unknown) => clean(v).normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 /** Phone numbers compare on their last 10 digits. */

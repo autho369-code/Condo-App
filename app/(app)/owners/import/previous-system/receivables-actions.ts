@@ -22,6 +22,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { withImportLock } from '@/lib/imports/import-lock';
 import { OPENING_ENTRY_POSTED_MESSAGE, openingEntryPosted } from '@/lib/imports/opening-entry';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { importUnitKey } from '@/lib/imports/unit-key';
 import type { AppfolioReceivableItem } from '@/lib/imports/appfolio-receivables';
 
 export type ReceivablesImportSummary = {
@@ -67,7 +68,7 @@ function isoDate(v: unknown): string | null {
 }
 
 /** Unit numbers compare case-insensitively, ignoring spacing around dashes ("3817 - 1" = "3817-1"). */
-const unitKey = (v: unknown) => clean(v).toLowerCase().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ');
+const unitKey = importUnitKey;
 
 /**
  * An imported source item, independent of the report cutoff and of its outstanding amount:

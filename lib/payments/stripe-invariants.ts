@@ -47,8 +47,14 @@ export function assertStripeMoney(
   }
 }
 
+/**
+ * Net of the money a payout carries. Stripe's `balance_transactions?payout=`
+ * listing includes the payout's own transaction (type 'payout', net equal to
+ * minus the payout amount); counting it would cancel the sum to ~0.
+ */
 export function sumStripeNetCents(transactions: Array<Record<string, unknown>>): number {
   return transactions.reduce((sum, transaction) => {
+    if (transaction.type === 'payout') return sum;
     const net = Number(transaction.net);
     if (!Number.isSafeInteger(net)) throw new Error('Stripe payout contains an invalid net amount');
     const next = sum + net;
