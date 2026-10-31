@@ -102,6 +102,22 @@ export async function updateManagerAssociations(formData: FormData) {
   redirect(`${returnTo}?saved=1`)
 }
 
+/**
+ * A platform operator's login is managed only from the Platform Operators
+ * area (as app/platform-operator/users/actions.ts does): a company admin
+ * must not ban or reset the MFA of an operator who also has a manager
+ * profile in their company.
+ */
+async function refusePlatformOperator(svc: any, userId: string, fail: (msg: string) => never) {
+  const { data: operator, error } = await svc.from('platform_operators')
+    .select('id')
+    .eq('auth_user_id', userId)
+    .eq('active', true)
+    .maybeSingle()
+  if (error) fail(`Could not verify the manager account: ${error.message}`)
+  if (operator) fail('This account belongs to a platform operator and can only be managed by platform support.')
+}
+
 export async function setManagerLoginStatus(formData: FormData) {
   const me = await requirePortfolioAdmin()
   const managerId = formData.get('manager_id') as string
@@ -120,6 +136,7 @@ export async function setManagerLoginStatus(formData: FormData) {
     .eq('hoa_role', 'manager')
     .maybeSingle()
   if (!manager) fail('Manager not found in your portfolio.')
+  await refusePlatformOperator(svc, managerId, fail)
 
   const disabling = action === 'disable'
   const { error: authError } = await svc.auth.admin.updateUserById(managerId, {
@@ -173,6 +190,7 @@ export async function resetManagerMfa(formData: FormData) {
     .eq('hoa_role', 'manager')
     .maybeSingle()
   if (error || !manager) fail('Manager not found in your portfolio.')
+  await refusePlatformOperator(svc, managerId, fail)
 
   const reset = await resetUserMfa({
     service: svc,

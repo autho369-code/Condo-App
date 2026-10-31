@@ -145,13 +145,19 @@ export async function writeChecks(formData: FormData) {
   };
   const supabase = await createClient();
   const bank_account_id       = formData.get('bank_account_id') as string;
-  const starting_check_number = parseInt(formData.get('starting_check_number') as string);
+  // A whole positive number only: parseInt would read "12abc" as check 12.
+  const startingCheckRaw      = String(formData.get('starting_check_number') ?? '').trim();
+  const starting_check_number = /^\d+$/.test(startingCheckRaw) ? Number(startingCheckRaw) : NaN;
   const payment_date          = (formData.get('payment_date') as string) || todayInZone();
   const bill_ids              = formData.getAll('bill_ids') as string[];
   const authorization_confirmed = formData.get('authorization_confirmed') === 'on';
 
-  if (!bank_account_id || !bill_ids.length || !starting_check_number || !authorization_confirmed) {
+  if (!bank_account_id || !bill_ids.length || !startingCheckRaw || !authorization_confirmed) {
     failTo('Select a bank account and bills, enter the check number, and confirm signing authorization.');
+    return;
+  }
+  if (!Number.isSafeInteger(starting_check_number) || starting_check_number < 1) {
+    failTo('The starting check number must be a whole number of 1 or more, with digits only.');
     return;
   }
 

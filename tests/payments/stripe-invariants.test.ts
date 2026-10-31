@@ -39,6 +39,14 @@ describe('association-owned Stripe invariants', () => {
     expect(payoutChargeIds(rows)).toEqual(['ch_assocA1', 'ch_assocA2']);
   });
 
+  it('leaves the payout balance transaction itself out of the net', () => {
+    const rows = [
+      { id: 'txn_1', type: 'charge', net: 9700, source: 'ch_assocA1' },
+      { id: 'txn_po', type: 'payout', net: -9700, source: 'po_1' },
+    ];
+    expect(sumStripeNetCents(rows)).toBe(9700);
+  });
+
   it('fails closed when Stripe returns malformed payout amounts', () => {
     expect(() => sumStripeNetCents([{ net: '9.5' }])).toThrow('invalid net amount');
   });

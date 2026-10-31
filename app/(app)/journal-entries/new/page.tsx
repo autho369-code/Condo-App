@@ -66,7 +66,13 @@ export default async function NewJournalEntryPage({ searchParams }: { searchPara
       await releaseSubmission(db, token);
       fail(error.message);
     }
-    if (typeof entryId === 'string') await completeSubmission(db, token, entryId);
+    if (typeof entryId !== 'string' || !entryId) {
+      // No error but no entry id: never redirect to /journal-entries/null.
+      // The entry may have been posted, so the claim is kept: re-sending this
+      // form can't post it twice.
+      fail('The entry could not be confirmed as posted. Check the journal before posting it again.');
+    }
+    await completeSubmission(db, token, entryId as string);
     redirect(`/journal-entries/${entryId}?saved=1`);
   }
 

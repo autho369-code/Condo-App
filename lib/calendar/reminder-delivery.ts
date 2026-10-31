@@ -57,13 +57,16 @@ function formatWhen(iso: string, allDay: boolean, timeZone: string) {
 async function recipientsFor(svc: Svc, group: string, event: any): Promise<Array<{ email: string; name: string | null }>> {
   if (group === 'vendor') {
     if (!event.vendor_id) return [];
-    const { data: v } = await svc.from('vendors').select('name, emails').eq('id', event.vendor_id).maybeSingle();
+    const { data: v, error } = await svc.from('vendors').select('name, emails').eq('id', event.vendor_id).maybeSingle();
+    // A failed read must retry the reminder, not mark it "no recipients".
+    if (error) throw new Error(`vendor lookup failed: ${error.message}`);
     const email = firstVendorEmail(v?.emails);
     return email ? [{ email, name: v?.name ?? null }] : [];
   }
   if (group === 'board') {
     if (!event.association_id) return [];
-    const { data } = await svc.from('board_members').select('full_name, email').eq('association_id', event.association_id).eq('active', true);
+    const { data, error } = await svc.from('board_members').select('full_name, email').eq('association_id', event.association_id).eq('active', true);
+    if (error) throw new Error(`board lookup failed: ${error.message}`);
     return ((data ?? []) as any[]).flatMap((b) => splitEmails(b.email).map((email) => ({ email, name: b.full_name ?? null })));
   }
   if (group === 'affected_residents') {
@@ -87,16 +90,19 @@ async function recipientsFor(svc: Svc, group: string, event: any): Promise<Array
   if (event.portfolios?.support_email) return splitEmails(event.portfolios.support_email).map((email) => ({ email, name: null }));
   if (event.association_id) {
     // association_managers.user_id references auth.users, so look profiles up separately.
-    const { data: managers } = await svc.from('association_managers').select('user_id').eq('association_id', event.association_id).is('ended_at', null);
+    const { data: managers, error: managersError } = await svc.from('association_managers').select('user_id').eq('association_id', event.association_id).is('ended_at', null);
+    if (managersError) throw new Error(`manager lookup failed: ${managersError.message}`);
     const ids = ((managers ?? []) as any[]).map((m) => m.user_id).filter(Boolean);
     if (ids.length) {
-      const { data: profiles } = await svc.from('profiles').select('email, full_name').in('id', ids);
+      const { data: profiles, error: profilesError } = await svc.from('profiles').select('email, full_name').in('id', ids);
+      if (profilesError) throw new Error(`manager profile lookup failed: ${profilesError.message}`);
       const list = ((profiles ?? []) as any[]).flatMap((p) => splitEmails(p.email).map((email) => ({ email, name: p.full_name ?? null })));
       if (list.length) return list;
     }
   }
   if (event.created_by) {
-    const { data: p } = await svc.from('profiles').select('email, full_name').eq('id', event.created_by).maybeSingle();
+    const { data: p, error: creatorError } = await svc.from('profiles').select('email, full_name').eq('id', event.created_by).maybeSingle();
+    if (creatorError) throw new Error(`creator profile lookup failed: ${creatorError.message}`);
     return splitEmails(p?.email).map((email) => ({ email, name: p?.full_name ?? null }));
   }
   return [];

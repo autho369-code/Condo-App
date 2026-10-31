@@ -32,6 +32,11 @@ export async function GET(request: NextRequest) {
 
   const db = createServiceClient() as any;
   const resend = new Resend(process.env.RESEND_API_KEY);
+  // An email whose attempts ran out while a run was sending it (that run
+  // errored or was stopped) is marked failed, not left pending forever.
+  // A failure here is logged and sending carries on.
+  const { error: exhaustedError } = await db.rpc('fail_exhausted_email_queue');
+  if (exhaustedError) console.error('[email] could not mark exhausted emails failed:', exhaustedError.message);
   const { data: claimed, error: claimError } = await db.rpc('claim_email_queue_snapshot', { p_limit: 20 });
   if (claimError) return NextResponse.json({ error: claimError.message }, { status: 500 });
 

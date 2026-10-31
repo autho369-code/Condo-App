@@ -40,7 +40,7 @@ function fakeDb(tables: Record<string, Row[]>, rpc: (name: string, args: any) =>
   const calls: { op: string; table: string; payload?: any; filters: [string, string, any][] }[] = [];
   const rpcCalls: { name: string; args: any }[] = [];
   function builder(table: string) {
-    const state: { op: string; payload?: any; filters: [string, string, any][]; selected: boolean; count?: boolean } = {
+    const state: { op: string; payload?: any; filters: [string, string, any][]; selected: boolean; count?: boolean; onConflict?: string } = {
       op: 'select', filters: [], selected: false,
     };
     const rows = () => (tables[table] ?? []).filter((r) => state.filters.every(([kind, col, val]) => {
@@ -55,8 +55,16 @@ function fakeDb(tables: Record<string, Row[]>, rpc: (name: string, args: any) =>
       calls.push({ op: state.op, table, payload: state.payload, filters: state.filters });
       if (state.op === 'insert' || state.op === 'upsert') {
         const list = Array.isArray(state.payload) ? state.payload : [state.payload];
-        const added = list.map((p: Row) => ({ id: `${table}-${(tables[table]?.length ?? 0) + 1}`, ...p }));
-        (tables[table] ??= []).push(...added);
+        const added: Row[] = [];
+        for (const p of list as Row[]) {
+          // An upsert on a conflict column replaces the row with the same value.
+          const key = state.op === 'upsert' ? state.onConflict : undefined;
+          const existing = key ? (tables[table] ?? []).find((r) => r[key] === p[key]) : undefined;
+          if (existing) { Object.assign(existing, p); added.push(existing); continue; }
+          const row = { id: `${table}-${(tables[table]?.length ?? 0) + 1}`, ...p };
+          (tables[table] ??= []).push(row);
+          added.push(row);
+        }
         return { data: added, error: null };
       }
       if (state.op === 'update') {
@@ -70,7 +78,7 @@ function fakeDb(tables: Record<string, Row[]>, rpc: (name: string, args: any) =>
     const b: any = {
       select(_cols?: string, opts?: { count?: string }) { state.selected = true; if (opts?.count) state.count = true; return b; },
       insert(p: any) { state.op = 'insert'; state.payload = p; return b; },
-      upsert(p: any) { state.op = 'upsert'; state.payload = p; return b; },
+      upsert(p: any, opts?: { onConflict?: string }) { state.op = 'upsert'; state.payload = p; state.onConflict = opts?.onConflict; return b; },
       update(p: any) { state.op = 'update'; state.payload = p; return b; },
       eq(c: string, v: any) { state.filters.push(['eq', c, v]); return b; },
       neq(c: string, v: any) { state.filters.push(['neq', c, v]); return b; },
@@ -276,6 +284,120 @@ describe('POST /api/stripe/webhook', () => {
     expect(res.status).toBe(200);
     expect(t.payment_intents[0]).toMatchObject({ status: 'failed', failure_reason: 'Card declined' });
     expect(db.rpcCalls.some((c) => c.name === 'post_stripe_ledger_payment')).toBe(false);
+  });
+
+  it('a late decline never undoes a settled, refunded, disputed, returned or canceled payment', async () => {
+    for (const status of ['succeeded', 'refunded', 'chargeback', 'returned', 'canceled', 'failed']) {
+      const t = tables();
+      t.payment_intents[0].status = status;
+      t.payment_intents[0].failure_reason = null;
+      const db = fakeDb(t, (name) => ({ data: name === 'claim_stripe_webhook_event' ? true : null, error: null }));
+      mocks.createServiceClient.mockReturnValue(db.client);
+      const res = await post({
+        id: 'evt_LATEFAIL', type: 'payment_intent.payment_failed', livemode: false, account: ACCOUNT,
+        data: { object: { id: 'pi_TEST1', amount: 25000, currency: 'usd', metadata: { intent_id: INTENT_ID }, last_payment_error: { message: 'Card declined' } } },
+      });
+      expect(res.status).toBe(200);
+      expect(t.payment_intents[0].status).toBe(status);
+      expect(t.payment_intents[0].failure_reason).toBeNull();
+      expect(t.payment_events).toHaveLength(0);
+    }
+  });
+
+  it('a Checkout session that completes by bank after a declined card puts the payment back in flight', async () => {
+    const t = tables();
+    t.payment_intents[0].processor_session_id = 'cs_PAY1';
+    const db = fakeDb(t, (name) => ({ data: name === 'claim_stripe_webhook_event' ? true : null, error: null }));
+    mocks.createServiceClient.mockReturnValue(db.client);
+
+    // The card is declined inside the session...
+    const declined = await post({
+      id: 'evt_DECLINE1', type: 'payment_intent.payment_failed', livemode: false, account: ACCOUNT,
+      data: { object: { id: 'pi_TEST1', amount: 25000, currency: 'usd', metadata: { intent_id: INTENT_ID }, last_payment_error: { message: 'Card declined' } } },
+    });
+    expect(declined.status).toBe(200);
+    expect(t.payment_intents[0]).toMatchObject({ status: 'failed', processor_payment_intent_id: 'pi_TEST1' });
+
+    // ...then the owner pays by bank in the same session.
+    const completed = await post({
+      id: 'evt_CHECKOUT1', type: 'checkout.session.completed', livemode: false, account: ACCOUNT,
+      created: Math.floor(Date.now() / 1000) + 60,
+      data: { object: {
+        id: 'cs_PAY1', mode: 'payment', client_reference_id: INTENT_ID, payment_intent: 'pi_TEST1',
+        payment_status: 'unpaid', amount_total: 25000, currency: 'usd',
+        metadata: { intent_id: INTENT_ID, association_id: ASSOC_ID, unit_id: UNIT_ID },
+      } },
+    });
+    expect(completed.status).toBe(200);
+    expect(t.payment_intents[0]).toMatchObject({ status: 'processing', failure_reason: null });
+  });
+
+  it('a late retry of a completion older than the failure does not revive the payment', async () => {
+    const t = tables();
+    t.payment_intents[0].processor_session_id = 'cs_PAY1';
+    const db = fakeDb(t, (name) => ({ data: name === 'claim_stripe_webhook_event' ? true : null, error: null }));
+    mocks.createServiceClient.mockReturnValue(db.client);
+    await post({
+      id: 'evt_DECLINE2', type: 'payment_intent.payment_failed', livemode: false, account: ACCOUNT,
+      data: { object: { id: 'pi_TEST1', amount: 25000, currency: 'usd', metadata: { intent_id: INTENT_ID }, last_payment_error: { message: 'Bank payment failed' } } },
+    });
+    const retried = await post({
+      id: 'evt_CHECKOUT_OLD', type: 'checkout.session.completed', livemode: false, account: ACCOUNT,
+      created: Math.floor(Date.now() / 1000) - 3600,
+      data: { object: {
+        id: 'cs_PAY1', mode: 'payment', client_reference_id: INTENT_ID, payment_intent: 'pi_TEST1',
+        payment_status: 'unpaid', amount_total: 25000, currency: 'usd',
+        metadata: { intent_id: INTENT_ID, association_id: ASSOC_ID, unit_id: UNIT_ID },
+      } },
+    });
+    expect(retried.status).toBe(200);
+    expect(t.payment_intents[0].status).toBe('failed');
+  });
+
+  it('records each Stripe refund once by its id, and keeps a dispute visible', async () => {
+    const t = tables();
+    Object.assign(t.payment_intents[0], {
+      status: 'chargeback', payment_id: PAYMENT_ID, processor_account_id: ACCOUNT, processor_charge_id: 'ch_TEST1',
+    });
+    t.payment_processor_adjustments = [];
+    const db = fakeDb(t, (name) => ({ data: name === 'claim_stripe_webhook_event' ? true : null, error: null }));
+    mocks.createServiceClient.mockReturnValue(db.client);
+    const first = { id: 're_1', amount: 10000, status: 'succeeded', reason: 'requested_by_customer' };
+    const second = { id: 're_2', amount: 15000, status: 'succeeded', reason: 'requested_by_customer' };
+    const refund = (id: string, amountRefunded: number, refunded: boolean, list: unknown[]) => post({
+      id, type: 'charge.refunded', livemode: false, account: ACCOUNT,
+      data: { object: { id: 'ch_TEST1', amount_refunded: amountRefunded, refunded, currency: 'usd', refunds: { data: list, has_more: false } } },
+    });
+
+    expect((await refund('evt_REFUND1', 10000, false, [first])).status).toBe(200);
+    // Stripe reports the running total ($100, then $250) and every refund so far.
+    expect((await refund('evt_REFUND2', 25000, true, [second, first])).status).toBe(200);
+    // A retry of the first event adds nothing.
+    expect((await refund('evt_REFUND1', 10000, false, [first])).status).toBe(200);
+
+    expect(t.payment_processor_adjustments.map((a) => [a.stripe_event_id, a.amount]).sort()).toEqual([
+      ['refund:re_1', 100],
+      ['refund:re_2', 150],
+    ]);
+    expect(t.payment_intents[0].status).toBe('chargeback');
+  });
+
+  it('marks a fully refunded payment refunded', async () => {
+    const t = tables();
+    Object.assign(t.payment_intents[0], {
+      status: 'succeeded', payment_id: PAYMENT_ID, processor_account_id: ACCOUNT, processor_charge_id: 'ch_TEST1',
+    });
+    t.payment_processor_adjustments = [];
+    const db = fakeDb(t, (name) => ({ data: name === 'claim_stripe_webhook_event' ? true : null, error: null }));
+    mocks.createServiceClient.mockReturnValue(db.client);
+    const res = await post({
+      id: 'evt_REFUNDFULL', type: 'charge.refunded', livemode: false, account: ACCOUNT,
+      data: { object: { id: 'ch_TEST1', amount_refunded: 25000, refunded: true, currency: 'usd' } },
+    });
+    expect(res.status).toBe(200);
+    expect(t.payment_intents[0].status).toBe('refunded');
+    expect(t.payment_processor_adjustments).toHaveLength(1);
+    expect(t.payment_processor_adjustments[0].amount).toBe(250);
   });
 
   it('undoes the AutoPay it enrolled when the owner canceled the setup meanwhile', async () => {

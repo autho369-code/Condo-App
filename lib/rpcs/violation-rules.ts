@@ -318,6 +318,15 @@ export async function sendCurrentStepLetter(formData: FormData) {
   const { data: v } = await (supabase as any).from('violations').select('current_step').eq('id', id).maybeSingle();
   const step = Number(v?.current_step ?? 0);
   if (step < 1) go(`/violations/${id}`, 'error', 'No follow-up step has been recorded yet.');
+  // A double click or re-sent form must not email the same letter twice: the
+  // form's one-time token is claimed before anything is sent.
+  const claim = await claimSubmission(supabase, formData, 'violation_step_letter');
+  if (claim.status === 'error') go(`/violations/${id}`, 'error', claim.message);
+  if (claim.status === 'duplicate') {
+    if (claim.resultId) go(`/violations/${id}`, 'saved', 'This letter was already sent.');
+    go(`/violations/${id}`, 'error', 'This letter is already being sent. Refresh in a moment to see it.');
+  }
+  const token = (claim as { token: string }).token;
   let letter: string;
   try {
     // An existing letter only needs its email retried / repeated — this works
@@ -331,8 +340,11 @@ export async function sendCurrentStepLetter(formData: FormData) {
       letter = `${terms.step_name}: ${await deliverStepLetter(supabase, id, terms, me.auth_user_id ?? null)}`;
     }
   } catch (e) {
+    // Nothing went out: free the token so the same form can be sent again.
+    await releaseSubmission(supabase, token);
     go(`/violations/${id}`, 'error', `The letter was not sent: ${e instanceof Error ? e.message : 'unknown error'}`);
   }
+  await completeSubmission(supabase, token, id);
   revalidatePath(`/violations/${id}`);
   revalidatePath('/violations/letters');
   go(`/violations/${id}`, 'saved', letter);
